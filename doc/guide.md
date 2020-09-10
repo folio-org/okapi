@@ -36,7 +36,8 @@ managing and running microservices.
     * [Upgrading modules per tenant](#upgrading-modules-per-tenant)
     * [Auto-deployment](#auto-deployment)
     * [Install jobs and asynchronous operations](#install-jobs-and-asynchronous-operations)
-    * [Purge](#purge)
+    * [Ignoring errors during install](#ignoring-errors-during-install)
+    * [Purge module data](#purge-module-data)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
@@ -2672,7 +2673,7 @@ All install jobs for a tenant can be retrieved with GET to
 with JSON content defined by schema
 [InstallJobList.json](../okapi-core/src/main/raml/InstallJobList.json)).
 
-### Ignoring errors
+### Ignoring errors during install
 
 Okapi 4.2.0 and later, it is possible to ignore errors during the
 install operation. This is done by supplying parameter `ignoreErrors=true`
@@ -2683,7 +2684,7 @@ for individual modules, if they fail, their upgrade will not be commited.
 This is an experimental parameter which was added to be able to inspect
 all problem(s) with module upgrade(s).
 
-### Purge
+### Purge module data
 
 By default when modules are disabled, persistent data is preserved.
 This can be changed with the optional parameter `purge`, which when
