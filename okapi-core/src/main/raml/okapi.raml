@@ -10,6 +10,7 @@ types:
   InterfaceDescriptor: !include InterfaceDescriptor.json
   InterfaceList: !include InterfaceList.json
   InstallJob: !include InstallJob.json
+  InstallJobList: !include InstallJobList.json
   TenantDescriptor: !include TenantDescriptor.json
   TenantList: !include TenantList.json
   TenantModuleDescriptor: !include TenantModuleDescriptor.json
@@ -777,6 +778,29 @@ types:
               body:
                 text/plain:
     /install:
+      get:
+        description: Retrieve information about all install jobs
+        responses:
+          200:
+            description: OK
+            body:
+              application/json:
+                type: InstallJobList
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+          400:
+            description: User error
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: User error
+            body:
+              text/plain:
       post:
         description: Enable, disable or upgrade one or more modules for
           tenant. The request body and response body is of the same type

@@ -12,6 +12,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.LockedTypedMap1;
+import org.folio.okapi.util.LockedTypedMap2;
 import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.util.TenantInstallOptions;
@@ -51,7 +53,7 @@ public class TenantManager {
   private final TenantStore tenantStore;
   private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
   private String mapName = "tenants";
-  private LockedTypedMap1<InstallJob> jobs = new LockedTypedMap1<>(InstallJob.class);
+  private LockedTypedMap2<InstallJob> jobs = new LockedTypedMap2<>(InstallJob.class);
   private static final String EVENT_NAME = "timer";
   private Set<String> timers = new HashSet<>();
   private Messages messages = Messages.getInstance();
@@ -756,8 +758,16 @@ public class TenantManager {
   }
 
   Future<InstallJob> installUpgradeGet(String tenantId, String installId) {
-    logger.info("installUpgradeGet InstallId={}", installId);
-    return tenants.getNotFound(tenantId).compose(x -> jobs.getNotFound(installId));
+    return tenants.getNotFound(tenantId).compose(x -> jobs.getNotFound(tenantId, installId));
+  }
+
+  Future<List<InstallJob>> installUpgradeGetList(String tenantId) {
+    return tenants.getNotFound(tenantId).compose(x -> jobs.get(tenantId).compose(list -> {
+      if (list == null) {
+        return Future.succeededFuture(new LinkedList<>());
+      }
+      return Future.succeededFuture(list);
+    }));
   }
 
   Future<List<TenantModuleDescriptor>> installUpgradeCreate(
@@ -828,7 +838,7 @@ public class TenantManager {
       if (options.getSimulate()) {
         return Future.succeededFuture(tml);
       }
-      return jobs.put(job.getId(), job).compose(res2 -> {
+      return jobs.add(t.getId(), job.getId(), job).compose(res2 -> {
         Promise<List<TenantModuleDescriptor>> promise = Promise.promise();
         Future<Void> future = Future.succeededFuture();
         if (options.getAsync()) {
@@ -841,7 +851,7 @@ public class TenantManager {
             for (TenantModuleDescriptor tm : tml) {
               tm.setStatus(TenantModuleDescriptor.Status.idle);
             }
-            return jobs.put(job.getId(), job);
+            return jobs.put(t.getId(), job.getId(), job);
           });
         }
         if (options.getDeploy()) {
@@ -850,7 +860,7 @@ public class TenantManager {
               for (TenantModuleDescriptor tm : tml) {
                 tm.setStatus(TenantModuleDescriptor.Status.deploy);
               }
-              return jobs.put(job.getId(), job);
+              return jobs.put(t.getId(), job.getId(), job);
             });
           }
           future = future.compose(x -> autoDeploy(t, modsAvailable, tml));
@@ -859,7 +869,7 @@ public class TenantManager {
           if (options.getAsync()) {
             future = future.compose(x -> {
               tm.setStatus(TenantModuleDescriptor.Status.call);
-              return jobs.put(job.getId(), job);
+              return jobs.put(t.getId(), job.getId(), job);
             });
           }
           if (options.getIgnoreErrors()) {
@@ -880,7 +890,7 @@ public class TenantManager {
               if (tm.getMessage() == null) {
                 tm.setStatus(TenantModuleDescriptor.Status.done);
               }
-              return jobs.put(job.getId(), job);
+              return jobs.put(t.getId(), job.getId(), job);
             });
           }
         }
@@ -889,7 +899,7 @@ public class TenantManager {
         }
         future.onComplete(x -> {
           job.setComplete(true);
-          jobs.put(job.getId(), job).onComplete(y -> logger.info("job complete"));
+          jobs.put(t.getId(), job.getId(), job).onComplete(y -> logger.info("job complete"));
           if (options.getAsync()) {
             return;
           }

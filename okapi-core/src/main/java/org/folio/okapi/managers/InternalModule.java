@@ -254,6 +254,11 @@ public class InternalModule {
         + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.upgrade.post\" ], "
         + "    \"type\" : \"internal\" "
         + "   }, {"
+        + "    \"methods\" :  [ \"GET\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/install\","
+        + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.install.get\" ], "
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
         + "    \"methods\" :  [ \"POST\" ],"
         + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/install\","
         + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.install.post\" ], "
@@ -439,6 +444,10 @@ public class InternalModule {
         + "   \"permissionName\" : \"okapi.proxy.tenants.upgrade.post\", "
         + "   \"displayName\" : \"Okapi - Upgrade modules\", "
         + "   \"description\" : \"Check if newer versions available, and upgrade\" "
+        + " }, { "
+        + "   \"permissionName\" : \"okapi.proxy.tenants.install.get\", "
+        + "   \"displayName\" : \"Okapi - get install information\", "
+        + "   \"description\" : \"Retrieve install job information\" "
         + " }, { "
         + "   \"permissionName\" : \"okapi.proxy.tenants.install.post\", "
         + "   \"displayName\" : \"Okapi - Enable modules and dependencies\", "
@@ -734,6 +743,11 @@ public class InternalModule {
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
+  }
+
+  private Future<String> installTenantModulesGetList(String tenantId) {
+    return tenantManager.installUpgradeGetList(tenantId)
+        .compose(installJobList -> Future.succeededFuture(Json.encodePrettily(installJobList)));
   }
 
   private Future<String> installTenantModulesGet(String tenantId, String installId) {
@@ -1131,6 +1145,10 @@ public class InternalModule {
         }
         if (n == 7 && m.equals(HttpMethod.DELETE) && segments[5].equals("modules")) {
           return disableModuleForTenant(pc, decodedSegs[4], decodedSegs[6]);
+        }
+        // /_/proxy/tenants/:id/install
+        if (n == 6 && m.equals(HttpMethod.GET) && segments[5].equals("install")) {
+          return installTenantModulesGetList(decodedSegs[4]);
         }
         // /_/proxy/tenants/:id/install
         if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("install")) {

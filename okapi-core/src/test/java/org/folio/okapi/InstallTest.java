@@ -390,6 +390,16 @@ public class InstallTest {
 
     final String okapiTenant = "roskilde";
 
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/" + okapiTenant + "/install")
+        .then().statusCode(404)
+        .body(equalTo(okapiTenant));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
     // add tenant
     final String docTenantRoskilde = "{" + LS
         + "  \"id\" : \"" + okapiTenant + "\"," + LS
@@ -407,6 +417,16 @@ public class InstallTest {
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
     final String locationTenantRoskilde = r.getHeader("Location");
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/" + okapiTenant + "/install")
+        .then().statusCode(200)
+        .body(equalTo("[ ]"));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
 
     final String docTimer_1_0_0 = "{" + LS
         + "  \"id\" : \"timer-module-1.0.0\"," + LS
@@ -485,6 +505,17 @@ public class InstallTest {
     String locationInstallJob = r.getHeader("Location");
     String suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/" + okapiTenant + "/install")
+        .then().statusCode(200)
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    context.assertEquals(1, r.jsonPath().getList("$").size());
+
     pollComplete(context, suffix).body(equalTo("{" + LS
             + "  \"complete\" : true," + LS
             + "  \"modules\" : [ {" + LS
@@ -521,6 +552,17 @@ public class InstallTest {
             + "    \"status\" : \"call\"" + LS
             + "  } ]" + LS
             + "}"));
+
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/" + okapiTenant + "/install")
+        .then().statusCode(200)
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    context.assertEquals(2, r.jsonPath().getList("$").size());
 
     final String nodeDoc1 = "{" + LS
         + "  \"instId\" : \"localhost-" + Integer.toString(portTimer) + "\"," + LS

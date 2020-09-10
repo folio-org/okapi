@@ -19,6 +19,11 @@ public class LockedTypedMap2<T> extends LockedStringMap {
     return addOrReplace(false, k, k2, json);
   }
 
+  public Future<Void> put(String k, String k2, T value) {
+    String json = Json.encode(value);
+    return addOrReplace(true, k, k2, json);
+  }
+
   /**
    * get and deserialize value from shared map.
    * @param k primary-level key
