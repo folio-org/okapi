@@ -29,11 +29,11 @@ public class TenantModuleDescriptor {
   private String message;
 
   @java.lang.SuppressWarnings({"squid:S00115"})
-  public enum Status {
-    idle, deploy, call, undeploy, done
+  public enum Stage {
+    pending, deploy, call, undeploy, done
   }
 
-  private Status status;
+  private Stage stage;
 
   public String getId() {
     return id;
@@ -67,12 +67,12 @@ public class TenantModuleDescriptor {
     this.message = message;
   }
 
-  public Status getStatus() {
-    return status;
+  public Stage getStage() {
+    return stage;
   }
 
-  public void setStatus(Status status) {
-    this.status = status;
+  public void setStage(Stage stage) {
+    this.stage = stage;
   }
 
   /**

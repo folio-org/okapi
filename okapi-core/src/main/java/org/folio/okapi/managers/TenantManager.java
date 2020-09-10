@@ -850,7 +850,7 @@ public class TenantManager {
           promise.complete(tml2);
           future = future.compose(x -> {
             for (TenantModuleDescriptor tm : tml) {
-              tm.setStatus(TenantModuleDescriptor.Status.idle);
+              tm.setStage(TenantModuleDescriptor.Stage.pending);
             }
             return jobs.put(t.getId(), job.getId(), job);
           });
@@ -859,7 +859,7 @@ public class TenantManager {
           if (options.getAsync()) {
             future = future.compose(x -> {
               for (TenantModuleDescriptor tm : tml) {
-                tm.setStatus(TenantModuleDescriptor.Status.deploy);
+                tm.setStage(TenantModuleDescriptor.Stage.deploy);
               }
               return jobs.put(t.getId(), job.getId(), job);
             });
@@ -869,7 +869,7 @@ public class TenantManager {
         for (TenantModuleDescriptor tm : tml) {
           if (options.getAsync()) {
             future = future.compose(x -> {
-              tm.setStatus(TenantModuleDescriptor.Status.call);
+              tm.setStage(TenantModuleDescriptor.Stage.call);
               return jobs.put(t.getId(), job.getId(), job);
             });
           }
@@ -889,7 +889,7 @@ public class TenantManager {
           if (options.getAsync()) {
             future = future.compose(x -> {
               if (tm.getMessage() == null) {
-                tm.setStatus(TenantModuleDescriptor.Status.done);
+                tm.setStage(TenantModuleDescriptor.Stage.done);
               }
               return jobs.put(t.getId(), job.getId(), job);
             });

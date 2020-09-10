@@ -2650,16 +2650,16 @@ Brief list of properties:
  * `id`: module ID
  * `from`: old module ID (absent if not upgrading)
  * `action`: enable/disable/uptodate
- * `status`: the current state of the module
+ * `stage`: the current stage of the module
  * `message`: present upon error (error message)
 
-If `message` property is present an error has occurred and `status`
+If `message` property is present an error has occurred and `stage`
 indicates at which stage the error occurred.
 
-If no `message` property is present and `status` is `idle`, the module
+If no `message` property is present and `stage` is `pending`, the module
 upgrade has not begun yet.
 
-If no `message` property is present and `status` is `done`, the module
+If no `message` property is present and `stage` is `done`, the module
 the module upgrade is complete.
 
 Note that install jobs are also created for synchronous operations (default
@@ -2671,6 +2671,17 @@ All install jobs for a tenant can be retrieved with GET to
 `/_/proxy/tenants/tenant/install`. If successful, HTTP 200 is returned
 with JSON content defined by schema
 [InstallJobList.json](../okapi-core/src/main/raml/InstallJobList.json)).
+
+### Ignoring errors
+
+Okapi 4.2.0 and later, it is possible to ignore errors during the
+install operation. This is done by supplying parameter `ignoreErrors=true`
+for install/upgrade. When value is true, Okapi will try to upgrade all
+modules in the modules list, regardless if one of them fails. However,
+for individual modules, if they fail, their upgrade will not be commited.
+
+This is an experimental parameter which was added to be able to inspect
+all problem(s) with module upgrade(s).
 
 ### Purge
 
