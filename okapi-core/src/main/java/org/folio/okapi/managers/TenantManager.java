@@ -10,6 +10,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -798,6 +799,7 @@ public class TenantManager {
               }
               InstallJob job = new InstallJob();
               job.setId(installId);
+              job.setDate(Instant.now().toString());
               if (tml == null) {
                 job.setModules(upgrades(modsAvailable, modsEnabled));
               } else {

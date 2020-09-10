@@ -73,26 +73,33 @@ public class InstallTest {
     vertx.close(context.asyncAssertSuccess());
   }
 
-  ValidatableResponse pollComplete(TestContext context, String uri)
+  JsonObject pollComplete(TestContext context, String uri)
   {
-    ValidatableResponse body = null;
     for (int i = 0; i < 10; i++) {
       RestAssuredClient c = api.createRestAssured3();
       logger.info("poll {}", i);
 
-      body = c.given()
+      ValidatableResponse body = c.given()
           .get(uri)
           .then().statusCode(200);
       Response r = body.extract().response();
-      if (Boolean.TRUE.equals(r.jsonPath().getBoolean("complete"))) {
-        break;
+      JsonObject job = new JsonObject(r.body().asString());
+      if (Boolean.TRUE.equals(job.getBoolean("complete"))) {
+        return job;
       }
-
       Async async = context.async();
       vertx.setTimer(300, x -> async.complete());
       async.await();
     }
-    return body;
+    return new JsonObject();
+  }
+
+  JsonObject pollCompleteStrip(TestContext context, String uri)
+  {
+    JsonObject job = pollComplete(context, uri);
+    job.remove("date");
+    job.remove("id");
+    return job;
   }
 
   @Test
@@ -186,8 +193,8 @@ public class InstallTest {
     String suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
     String id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
-    pollComplete(context, suffix).body(equalTo("{" + LS
-        + "  \"id\" : \"" + id + "\"," + LS
+    JsonObject job = pollCompleteStrip(context, suffix);
+    context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"basic-module-1.0.0\"," + LS
@@ -195,7 +202,7 @@ public class InstallTest {
         + "    \"message\" : \"Service returned with exit code 1\"," + LS
         + "    \"status\" : \"deploy\"" + LS
         + "  } ]" + LS
-        + "}"));
+        + "}", job.encodePrettily());
   }
 
   @Test
@@ -273,34 +280,16 @@ public class InstallTest {
     final String locationInstallJob = r.getHeader("Location");
 
     String suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
-    String id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
-    c = api.createRestAssured3();
-    c.given()
-        .get(suffix)
-        .then().statusCode(200)
-        .body(equalTo("{" + LS
-            + "  \"id\" : \"" + id + "\"," + LS
-            + "  \"complete\" : false," + LS
-            + "  \"modules\" : [ {" + LS
-            + "    \"id\" : \"basic-module-1.0.0\"," + LS
-            + "    \"action\" : \"enable\"," + LS
-            + "    \"status\" : \"deploy\"" + LS
-            + "  } ]" + LS
-            + "}"));
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
-
-    pollComplete(context, suffix).body(equalTo("{" + LS
-        + "  \"id\" : \"" + id + "\"," + LS
+    JsonObject job = pollCompleteStrip(context, suffix);
+    context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"basic-module-1.0.0\"," + LS
         + "    \"action\" : \"enable\"," + LS
         + "    \"status\" : \"done\"" + LS
         + "  } ]" + LS
-        + "}"));
+        + "}", job.encodePrettily());
 
     // known installId but unknown tenantId
     c = api.createRestAssured3();
@@ -510,7 +499,6 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     String locationInstallJob = r.getHeader("Location");
     String suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
-    String id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
     c = api.createRestAssured3();
     r = c.given()
@@ -522,9 +510,12 @@ public class InstallTest {
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
     context.assertEquals(1, r.jsonPath().getList("$").size());
+    String jobId = suffix.substring(suffix.lastIndexOf('/') + 1);
 
-    pollComplete(context, suffix).body(equalTo("{" + LS
-        + "  \"id\" : \"" + id + "\"," + LS
+    JsonObject job = pollComplete(context, suffix);
+    job.remove("date");
+    context.assertEquals("{" + LS
+        + "  \"id\" : \"" + jobId + "\"," + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"timer-module-1.0.0\"," + LS
@@ -532,7 +523,7 @@ public class InstallTest {
         + "    \"message\" : \"Module timer-module-1.0.0 has no launchDescriptor\"," + LS
         + "    \"status\" : \"deploy\"" + LS
         + "  } ]" + LS
-        + "}"));
+        + "}", job.encodePrettily());
 
     c = api.createRestAssured3();
     r = c.given()
@@ -550,10 +541,9 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
-    id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
-    pollComplete(context, suffix).body(equalTo("{" + LS
-        + "  \"id\" : \"" + id + "\"," + LS
+    job = pollCompleteStrip(context, suffix);
+    context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"timer-module-1.0.0\"," + LS
@@ -561,7 +551,7 @@ public class InstallTest {
         + "    \"message\" : \"No running instances for module timer-module-1.0.0. Can not invoke /_/tenant\"," + LS
         + "    \"status\" : \"call\"" + LS
         + "  } ]" + LS
-        + "}"));
+        + "}", job.encodePrettily());
 
     c = api.createRestAssured3();
     r = c.given()
@@ -605,10 +595,9 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
-    id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
-    pollComplete(context, suffix).body(equalTo("{" + LS
-        + "  \"id\" : \"" + id + "\"," + LS
+    job = pollCompleteStrip(context, suffix);
+    context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"timer-module-1.0.0\"," + LS
@@ -616,7 +605,7 @@ public class InstallTest {
         + "    \"message\" : \"POST request for timer-module-1.0.0 /_/tenant failed with 403: timer response\"," + LS
         + "    \"status\" : \"call\"" + LS
         + "  } ]" + LS
-        + "}"));
+        + "}", job.encodePrettily());
 
     timerTenantInitStatus = 200;
     timerTenantPermissionsStatus = 500;
@@ -637,10 +626,9 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
-    id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
-    pollComplete(context, suffix).body(equalTo("{" + LS
-        + "  \"id\" : \"" + id + "\"," + LS
+    job = pollCompleteStrip(context, suffix);
+    context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"timer-module-1.0.0\"," + LS
@@ -648,7 +636,7 @@ public class InstallTest {
         + "    \"message\" : \"POST request for timer-module-1.0.0 /permissionscall failed with 500: timer permissions response\"," + LS
         + "    \"status\" : \"call\"" + LS
         + "  } ]" + LS
-        + "}"));
+        + "}", job.encodePrettily());
 
     timerTenantInitStatus = 200;
     timerTenantPermissionsStatus = 200;
@@ -669,18 +657,16 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
-    id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
-    pollComplete(context, suffix).body(equalTo(
-        "{" + LS
-            + "  \"id\" : \"" + id + "\"," + LS
-            + "  \"complete\" : true," + LS
-            + "  \"modules\" : [ {" + LS
-            + "    \"id\" : \"timer-module-1.0.0\"," + LS
-            + "    \"action\" : \"enable\"," + LS
-            + "    \"status\" : \"done\"" + LS
-            + "  } ]" + LS
-            + "}"));
+    job = pollCompleteStrip(context, suffix);
+    context.assertEquals("{" + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"timer-module-1.0.0\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"status\" : \"done\"" + LS
+        + "  } ]" + LS
+        + "}", job.encodePrettily());
 
     c = api.createRestAssured3();
     c.given()
@@ -707,18 +693,16 @@ public class InstallTest {
 
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
-    id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
-    pollComplete(context, suffix).body(equalTo(
-        "{" + LS
-            + "  \"id\" : \"" + id + "\"," + LS
+    job = pollCompleteStrip(context, suffix);
+    context.assertEquals("{" + LS
             + "  \"complete\" : true," + LS
             + "  \"modules\" : [ {" + LS
             + "    \"id\" : \"timer-module-1.0.0\"," + LS
             + "    \"action\" : \"disable\"," + LS
             + "    \"status\" : \"done\"" + LS
             + "  } ]" + LS
-            + "}"));
+            + "}", job.encodePrettily());
 
     timerTenantInitStatus = 401;
     c = api.createRestAssured3();
@@ -737,10 +721,9 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
-    id = suffix.substring(suffix.lastIndexOf('/') + 1);
-    pollComplete(context, suffix).body(equalTo(
-        "{" + LS
-            + "  \"id\" : \"" + id + "\"," + LS
+
+    job = pollCompleteStrip(context, suffix);
+    context.assertEquals("{" + LS
             + "  \"complete\" : true," + LS
             + "  \"modules\" : [ {" + LS
             + "    \"id\" : \"timer-module-1.0.0\"," + LS
@@ -748,7 +731,7 @@ public class InstallTest {
             + "    \"message\" : \"POST request for timer-module-1.0.0 /_/tenant failed with 401: timer response\"," + LS
             + "    \"status\" : \"call\"" + LS
             + "  } ]" + LS
-            + "}"));
+            + "}", job.encodePrettily());
 
     final String docOther_1_0_0 = "{" + LS
         + "  \"id\" : \"other-module-1.0.0\"," + LS
@@ -809,10 +792,9 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
-    id = suffix.substring(suffix.lastIndexOf('/') + 1);
-    pollComplete(context, suffix).body(equalTo(
-        "{" + LS
-            + "  \"id\" : \"" + id + "\"," + LS
+
+    job = pollCompleteStrip(context, suffix);
+    context.assertEquals("{" + LS
             + "  \"complete\" : true," + LS
             + "  \"modules\" : [ {" + LS
             + "    \"id\" : \"timer-module-1.0.0\"," + LS
@@ -825,7 +807,7 @@ public class InstallTest {
             + "    \"message\" : \"POST request for other-module-1.0.0 /_/tenant failed with 401: timer response\"," + LS
             + "    \"status\" : \"call\"" + LS
             + "  } ]" + LS
-            + "}"));
+            + "}", job.encodePrettily());
 
     timerTenantInitStatus = 401;
     c = api.createRestAssured3();
@@ -847,10 +829,9 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
-    id = suffix.substring(suffix.lastIndexOf('/') + 1);
-    pollComplete(context, suffix).body(equalTo(
-        "{" + LS
-            + "  \"id\" : \"" + id + "\"," + LS
+
+    job = pollCompleteStrip(context, suffix);
+    context.assertEquals("{" + LS
             + "  \"complete\" : true," + LS
             + "  \"modules\" : [ {" + LS
             + "    \"id\" : \"timer-module-1.0.0\"," + LS
@@ -862,8 +843,26 @@ public class InstallTest {
             + "    \"action\" : \"enable\"," + LS
             + "    \"status\" : \"idle\"" + LS
             + "  } ]" + LS
-            + "}"));
+            + "}", job.encodePrettily());
 
+    // get all install jobs and test that they are returned with oldest first
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/" + okapiTenant + "/install")
+        .then().statusCode(200)
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    JsonArray ar = new JsonArray(r.body().asString());
+    context.assertEquals(9, ar.size());
+    String prevDate = "0";
+    for (int i = 0; i < ar.size(); i++) {
+      String thisDate = ar.getJsonObject(i).getString("date");
+      context.assertTrue(thisDate.compareTo(prevDate) > 0);
+      prevDate = thisDate;
+    }
     timerServer.close();
   }
 

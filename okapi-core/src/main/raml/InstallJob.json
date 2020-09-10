@@ -13,6 +13,10 @@
       "description": "Whether job is complete",
       "type": "boolean"
     },
+    "date": {
+      "description": "Start date",
+      "type": "string"
+    },
     "modules": {
       "description": "List of modules involved in install job",
      "$ref": "TenantModuleDescriptorList.json"

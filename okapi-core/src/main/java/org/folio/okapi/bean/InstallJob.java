@@ -11,6 +11,8 @@ public class InstallJob {
 
   private Boolean complete;
 
+  private String date;
+
   private List<TenantModuleDescriptor> modules;
 
   public void setId(String id) {
@@ -21,6 +23,22 @@ public class InstallJob {
     return id;
   }
 
+  public Boolean getComplete() {
+    return complete;
+  }
+
+  public void setComplete(Boolean complete) {
+    this.complete = complete;
+  }
+
+  public String getDate() {
+    return date;
+  }
+
+  public void setDate(String date) {
+    this.date = date;
+  }
+
   public List<TenantModuleDescriptor> getModules() {
     return modules;
   }
@@ -29,11 +47,4 @@ public class InstallJob {
     this.modules = modules;
   }
 
-  public Boolean getComplete() {
-    return complete;
-  }
-
-  public void setComplete(Boolean complete) {
-    this.complete = complete;
-  }
 }
