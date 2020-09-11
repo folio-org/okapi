@@ -86,11 +86,6 @@ public class EnvManager {
   }
 
   Future<Void> remove(String name) {
-    return envMap.remove(name).compose(res -> {
-      if (Boolean.FALSE.equals(res)) {
-        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, name));
-      }
-      return envStore.delete(name).mapEmpty();
-    });
+    return envMap.removeNotFound(name);
   }
 }
