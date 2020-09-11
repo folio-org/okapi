@@ -459,7 +459,7 @@ public class ProxyTest {
   private void upload(TestContext context, String tenant, String uri, int offset) {
     Async async = context.async();
     int bufSz = 10000;
-    long bufCnt = 100000;
+    long bufCnt = 1000;
     long total = bufSz * bufCnt;
     logger.info("Sending {} GB", total / 1e9);
     HttpClient client = vertx.createHttpClient();
