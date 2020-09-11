@@ -337,6 +337,14 @@ public class LockedStringMapTest {
       List<Future> futures = new LinkedList<>();
       for (int i = 0; i < 10; i++) {
         futures.add(map.addOrReplace(true,"k", "l", Integer.toString(i)));
+      }
+      Async async = context.async();
+      CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      async.await();
+    }
+    {
+      List<Future> futures = new LinkedList<>();
+      for (int i = 0; i < 10; i++) {
         futures.add(map.addOrReplace(true,"k", Integer.toString(i), Integer.toString(i)));
       }
       Async async = context.async();
