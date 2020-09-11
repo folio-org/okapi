@@ -1,6 +1,9 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -11,6 +14,9 @@ import org.junit.After;
 import org.junit.Test;
 import org.junit.Before;
 import org.junit.runner.RunWith;
+
+import java.util.LinkedList;
+import java.util.List;
 
 @RunWith(VertxUnitRunner.class)
 public class LockedStringMapTest {
@@ -226,9 +232,8 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.remove("k1", "k2").onComplete(res -> {
+      map.removeNotFound("k1", "k2").onComplete(res -> {
         context.assertTrue(res.succeeded());
-        context.assertTrue(res.result()); // k1, k2 deleted ok
         async.complete();
       });
       async.await();
@@ -237,6 +242,7 @@ public class LockedStringMapTest {
       Async async = context.async();
       map.removeNotFound("k1", "k2").onComplete(res -> {
         context.assertFalse(res.succeeded());
+        context.assertEquals(ErrorType.NOT_FOUND, OkapiError.getType(res.cause()));
         async.complete();
       });
       async.await();
@@ -282,6 +288,7 @@ public class LockedStringMapTest {
       Async async = context.async();
       map.removeNotFound("k", "x").onComplete(res -> {
         context.assertTrue(res.failed());
+        context.assertEquals(ErrorType.NOT_FOUND, OkapiError.getType(res.cause()));
         context.assertEquals("k/x", res.cause().getMessage());
         async.complete();
       });
@@ -296,7 +303,56 @@ public class LockedStringMapTest {
       });
       async.await();
     }
+
+    {
+      Async async = context.async();
+      map.remove("k").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertFalse(res.result());
+        async.complete();
+      });
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      map.removeNotFound("k").onComplete(res -> {
+        context.assertTrue(res.failed());
+        context.assertEquals(ErrorType.NOT_FOUND, OkapiError.getType(res.cause()));
+        async.complete();
+      });
+      async.await();
+    }
+
   }
 
+  @Test
+  public void testConcurrent(TestContext context) {
+    {
+      Async async = context.async();
+      map.init(vertx, "FooMap").onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      async.await();
+    }
+    {
+      List<Future> futures = new LinkedList<>();
+      for (int i = 0; i < 10; i++) {
+        futures.add(map.addOrReplace(true,"k", "l", Integer.toString(i)));
+        futures.add(map.addOrReplace(true,"k", Integer.toString(i), Integer.toString(i)));
+      }
+      Async async = context.async();
+      CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      async.await();
+    }
 
+    {
+      List<Future> futures = new LinkedList<>();
+      for (int i = 0; i < 10; i++) {
+        futures.add(map.remove("k", "l"));
+        futures.add(map.remove("k", Integer.toString(i)));
+      }
+      Async async = context.async();
+      CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      async.await();
+    }
+  }
 }
