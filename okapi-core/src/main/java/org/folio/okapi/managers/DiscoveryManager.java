@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.spi.cluster.ClusterManager;
@@ -578,23 +579,32 @@ public class DiscoveryManager implements NodeListener {
       fut.handle(new Success<>(hd));
       return;
     }
-    httpClient.get(new RequestOptions().setAbsoluteURI(url), res1 -> {
-      if (res1.failed()) {
-        hd.setHealthMessage("Fail: " + res1.cause().getMessage());
+    httpClient.request(new RequestOptions().setAbsoluteURI(url).setMethod(HttpMethod.GET), req -> {
+      if (req.failed()) {
+        hd.setHealthMessage("Fail: " + req.cause().getMessage());
         hd.setHealthStatus(false);
         fut.handle(new Success<>(hd));
         return;
       }
-      HttpClientResponse response = res1.result();
-      response.endHandler(res -> {
-        hd.setHealthMessage("OK");
-        hd.setHealthStatus(true);
-        fut.handle(new Success<>(hd));
-      });
-      response.exceptionHandler(res -> {
-        hd.setHealthMessage("Fail: " + res.getMessage());
-        hd.setHealthStatus(false);
-        fut.handle(new Success<>(hd));
+      req.result().end();
+      req.result().onComplete(res -> {
+        if (res.failed()) {
+          hd.setHealthMessage("Fail: " + res.cause().getMessage());
+          hd.setHealthStatus(false);
+          fut.handle(new Success<>(hd));
+          return;
+        }
+        HttpClientResponse response = res.result();
+        response.endHandler(x -> {
+          hd.setHealthMessage("OK");
+          hd.setHealthStatus(true);
+          fut.handle(new Success<>(hd));
+        });
+        response.exceptionHandler(x -> {
+          hd.setHealthMessage("Fail: " + x.getMessage());
+          hd.setHealthStatus(false);
+          fut.handle(new Success<>(hd));
+        });
       });
     });
   }

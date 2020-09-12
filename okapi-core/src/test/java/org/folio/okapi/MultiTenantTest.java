@@ -4,6 +4,7 @@ import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
@@ -142,15 +143,19 @@ public class MultiTenantTest {
   public void tearDown(TestContext context) {
     Async async = context.async();
     HttpClient httpClient = vertx.createHttpClient();
-
-    httpClient.delete(port, "localhost",
-      "/_/discovery/modules", context.asyncAssertSuccess(response -> {
-      context.assertEquals(204, response.statusCode());
-      response.endHandler(x -> {
-        httpClient.close();
-        td(context, async);
-      });
-    }));
+    httpClient.request(HttpMethod.DELETE, port,
+        "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
+          request.end();
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(204, response.statusCode());
+            response.endHandler(x -> {
+              httpClient.close();
+              vertx.close(y -> {
+                async.complete();
+              });
+            });
+          }));
+        }));
   }
 
   @Test

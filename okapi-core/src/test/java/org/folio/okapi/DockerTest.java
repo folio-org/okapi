@@ -14,6 +14,7 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -90,7 +91,7 @@ public class DockerTest {
       });
     } else {
       String l = locations.removeFirst();
-      client.delete(port, "localhost",  l).onComplete(res -> {
+      client.request(HttpMethod.DELETE, port, "localhost",  l).onComplete(res -> {
         td(context, async);
       });
     }
@@ -100,35 +101,42 @@ public class DockerTest {
     final SocketAddress socketAddress
       = SocketAddress.domainSocketAddress("/var/run/docker.sock");
     final String url = "http://localhost/images/json?all=1";
-    client.get(new RequestOptions().setURI(url).setServer(socketAddress),
+    client.request(new RequestOptions().setURI(url).setServer(socketAddress).setMethod(HttpMethod.GET),
     res1 -> {
       if (res1.failed()) {
         future.handle(Future.failedFuture(res1.cause()));
         return;
       }
-      HttpClientResponse res = res1.result();
-      Buffer body = Buffer.buffer();
-      res.handler(body::appendBuffer);
-      res.endHandler(d -> {
-        if (res.statusCode() == 200) {
-          boolean gotIt = false;
-          try {
-            JsonArray ar = body.toJsonArray();
-            future.handle(Future.succeededFuture(ar));
-          } catch (Exception ex) {
-            logger.warn(ex);
-            future.handle(Future.failedFuture(ex));
-          }
-        } else {
-          String m = "checkDocker HTTP error " + res.statusCode() + "\n"
-              + body.toString();
-          logger.error(m);
-          future.handle(Future.failedFuture(m));
+      res1.result().end();
+      res1.result().onComplete(res2 -> {
+        if (res2.failed()) {
+          future.handle(Future.failedFuture(res2.cause()));
+          return;
         }
-      });
-      res.exceptionHandler(d -> {
-        logger.warn("exceptionHandler 2 " + d, d);
-        future.handle(Future.failedFuture(d));
+        HttpClientResponse res = res2.result();
+        Buffer body = Buffer.buffer();
+        res.handler(body::appendBuffer);
+        res.endHandler(d -> {
+          if (res.statusCode() == 200) {
+            boolean gotIt = false;
+            try {
+              JsonArray ar = body.toJsonArray();
+              future.handle(Future.succeededFuture(ar));
+            } catch (Exception ex) {
+              logger.warn(ex);
+              future.handle(Future.failedFuture(ex));
+            }
+          } else {
+            String m = "checkDocker HTTP error " + res.statusCode() + "\n"
+                + body.toString();
+            logger.error(m);
+            future.handle(Future.failedFuture(m));
+          }
+        });
+        res.exceptionHandler(d -> {
+          logger.warn("exceptionHandler 2 " + d, d);
+          future.handle(Future.failedFuture(d));
+        });
       });
     });
   }

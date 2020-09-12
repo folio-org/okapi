@@ -2,6 +2,7 @@ package org.folio.okapi;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,20 +59,20 @@ public class ModuleTenantsTest {
 
   @After
   public void tearDown(TestContext context) {
-    td(context, context.async());
-  }
-
-  private void td(TestContext context, Async async) {
-    httpClient.delete(port,
-      "localhost", "/_/discovery/modules", context.asyncAssertSuccess(response -> {
-      context.assertEquals(204, response.statusCode());
-      response.endHandler(x -> {
-        httpClient.close();
-        vertx.close(y -> {
-          async.complete();
-        });
-      });
-    }));
+    Async async = context.async();
+    httpClient.request(HttpMethod.DELETE, port,
+        "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
+          request.end();
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(204, response.statusCode());
+            response.endHandler(x -> {
+              httpClient.close();
+              async.complete();
+            });
+          }));
+       }));
+    async.await();
+    vertx.close(context.asyncAssertSuccess());
   }
 
   @Test

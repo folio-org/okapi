@@ -51,32 +51,41 @@ public class PullManager {
     }
     url += "_/version";
     final Buffer body = Buffer.buffer();
-    httpClient.get(new RequestOptions().setAbsoluteURI(url), res1 -> {
-      if (res1.failed()) {
+    httpClient.request(new RequestOptions().setAbsoluteURI(url).setMethod(HttpMethod.GET), req -> {
+      if (req.failed()) {
         logger.warn("pull for {} failed: {}", baseUrl,
-            res1.cause().getMessage(), res1.cause());
+            req.cause().getMessage(), req.cause());
         getRemoteUrl(it, fut);
         return;
       }
-      HttpClientResponse res = res1.result();
-      res.handler(body::appendBuffer);
-      res.endHandler(x -> {
-        if (res.statusCode() != 200) {
-          logger.warn("pull for {} failed with status {}",
-              baseUrl, res.statusCode());
-          fut.handle(new Failure<>(ErrorType.USER,
-              "pull for " + baseUrl + " returned status "
-                  + res.statusCode() + "\n" + body.toString()));
-        } else {
-          List<String> result = new LinkedList<>();
-          result.add(baseUrl);
-          result.add(body.toString());
-          fut.handle(new Success<>(result));
+      req.result().end();
+      req.result().onComplete(res -> {
+        if (res.failed()) {
+          logger.warn("pull for {} failed: {}", baseUrl,
+              res.cause().getMessage(), res.cause());
+          getRemoteUrl(it, fut);
+          return;
         }
+        HttpClientResponse response = res.result();
+        response.handler(body::appendBuffer);
+        response.endHandler(x -> {
+          if (response.statusCode() != 200) {
+            logger.warn("pull for {} failed with status {}",
+                baseUrl, response.statusCode());
+            fut.handle(new Failure<>(ErrorType.USER,
+                "pull for " + baseUrl + " returned status "
+                    + response.statusCode() + "\n" + body.toString()));
+          } else {
+            List<String> result = new LinkedList<>();
+            result.add(baseUrl);
+            result.add(body.toString());
+            fut.handle(new Success<>(result));
+          }
+        });
+        response.exceptionHandler(x
+            -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()))
+        );
       });
-      res.exceptionHandler(x
-          -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()))
-      );
     });
   }
 
