@@ -37,7 +37,7 @@ public class ProcessModuleHandleTest {
   }
 
   private ModuleHandle createModuleHandle(LaunchDescriptor desc, int port) {
-    desc.setWaitIterations(5);
+    desc.setWaitIterations(15);
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, port);
     return pmh;
   }

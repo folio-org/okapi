@@ -141,13 +141,6 @@ java_check() {
       echo "Could not find any executable java binary."
       echo "Install java in your PATH or set JAVA_HOME"
       exit 1
-   else
-      VERSION=$("$JAVA" -version 2>&1 | awk -F '"' '/version/ { print $2 }' \
-              | awk -F '.' '{ print $2 }')
-      if [ "$VERSION" -lt "8" ];  then
-         echo "Java version 8 or higher is required."
-         exit 0
-      fi
    fi
 }  # end java_check
 
