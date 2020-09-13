@@ -566,6 +566,12 @@ public class DiscoveryManager implements NodeListener {
     futures.all(all, fut);
   }
 
+  void fail(Throwable cause, HealthDescriptor hd, Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
+    hd.setHealthMessage("Fail: " + cause.getMessage());
+    hd.setHealthStatus(false);
+    fut.handle(new Success<>(hd));
+  }
+
   void health(DeploymentDescriptor md,
                       Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
 
@@ -581,17 +587,13 @@ public class DiscoveryManager implements NodeListener {
     }
     httpClient.request(new RequestOptions().setAbsoluteURI(url).setMethod(HttpMethod.GET), req -> {
       if (req.failed()) {
-        hd.setHealthMessage("Fail: " + req.cause().getMessage());
-        hd.setHealthStatus(false);
-        fut.handle(new Success<>(hd));
+        fail(req.cause(), hd, fut);
         return;
       }
       req.result().end();
       req.result().onComplete(res -> {
         if (res.failed()) {
-          hd.setHealthMessage("Fail: " + res.cause().getMessage());
-          hd.setHealthStatus(false);
-          fut.handle(new Success<>(hd));
+          fail(res.cause(), hd, fut);
           return;
         }
         HttpClientResponse response = res.result();

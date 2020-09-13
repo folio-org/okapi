@@ -38,6 +38,13 @@ public class PullManager {
     this.moduleManager = moduleManager;
   }
 
+  private void fail(Throwable cause, String baseUrl, Iterator<String> it,
+                    Handler<ExtendedAsyncResult<List<String>>> fut) {
+    logger.warn("pull for {} failed: {}", baseUrl, cause.getMessage(), cause);
+    getRemoteUrl(it, fut);
+    return;
+  }
+
   private void getRemoteUrl(Iterator<String> it,
                             Handler<ExtendedAsyncResult<List<String>>> fut) {
     if (!it.hasNext()) {
@@ -53,17 +60,13 @@ public class PullManager {
     final Buffer body = Buffer.buffer();
     httpClient.request(new RequestOptions().setAbsoluteURI(url).setMethod(HttpMethod.GET), req -> {
       if (req.failed()) {
-        logger.warn("pull for {} failed: {}", baseUrl,
-            req.cause().getMessage(), req.cause());
-        getRemoteUrl(it, fut);
+        fail(req.cause(), baseUrl, it, fut);
         return;
       }
       req.result().end();
       req.result().onComplete(res -> {
         if (res.failed()) {
-          logger.warn("pull for {} failed: {}", baseUrl,
-              res.cause().getMessage(), res.cause());
-          getRemoteUrl(it, fut);
+          fail(res.cause(), baseUrl, it, fut);
           return;
         }
         HttpClientResponse response = res.result();
