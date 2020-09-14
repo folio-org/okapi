@@ -12,6 +12,8 @@ public class ModuleInstance {
   private String url; // Absolute URL to the module instance
   private final RoutingEntry re;
   private String authToken;
+  private String xokapiUserid;
+  private String xokapiPermissions;
   private final String path; // The relative URI from the proxy request
   private final HttpMethod method;
   private final boolean handler;  // is true if handler; false otherwise (filter)
@@ -85,5 +87,21 @@ public class ModuleInstance {
   public ModuleInstance withRetry() {
     this.withRetry = true;
     return this;
+  }
+
+  public String getxOkapiUserId() {
+    return xokapiUserid;
+  }
+
+  public void setxOkapiUserId(String xokapiUserid) {
+    this.xokapiUserid = xokapiUserid;
+  }
+
+  public String getxOkapiPermissions() {
+    return xokapiPermissions;
+  }
+
+  public void setxOkapiPermissions(String xokapiPermissions) {
+    this.xokapiPermissions = xokapiPermissions;
   }
 }
