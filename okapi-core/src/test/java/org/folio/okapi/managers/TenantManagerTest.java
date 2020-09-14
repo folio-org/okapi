@@ -30,7 +30,6 @@ public class TenantManagerTest extends TestBase {
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
-
   }
 
   @After
@@ -58,7 +57,6 @@ public class TenantManagerTest extends TestBase {
       });
       async.await();
     }
-    logger.info("test1 a");
     {
       Async async = context.async();
       td.setName("second name");
@@ -68,7 +66,6 @@ public class TenantManagerTest extends TestBase {
       });
       async.await();
     }
-    logger.info("test1 b");
     {
       Async async = context.async();
       tm.list().onComplete(res -> {
@@ -82,7 +79,6 @@ public class TenantManagerTest extends TestBase {
       });
       async.await();
     }
-    logger.info("test1 c");
     {
       Async async = context.async();
       tm.updateModuleCommit(td.getId(), "mod-1.0.0", "mod-1.0.1").onComplete(res -> {
@@ -91,7 +87,6 @@ public class TenantManagerTest extends TestBase {
       });
       async.await();
     }
-    logger.info("test1 d");
     {
       Async async = context.async();
       tm.delete(td.getId()).onComplete(res -> {
@@ -100,7 +95,6 @@ public class TenantManagerTest extends TestBase {
       });
       async.await();
     }
-    logger.info("test1 e");
     {
       Async async = context.async();
       tm.delete(td.getId()).onComplete(res -> {
