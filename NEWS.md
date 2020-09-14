@@ -1,3 +1,8 @@
+## 3.1.3 2020-09-14
+
+ * Log event bus events for timers (to analyze OKAPI-848 problem)
+ * Fix OkapiPerformance test (missing permissionsRequired)
+
 ## 3.1.2 2020-07-02
 
  * [OKAPI-869](https://issues.folio.org/browse/OKAPI-869) Fix System calls
