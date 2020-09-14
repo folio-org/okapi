@@ -172,8 +172,11 @@ public class TenantManagerTest extends TestBase {
     LockedTypedMap1Faulty<Tenant> tenantsMap = new LockedTypedMap1Faulty<>(Tenant.class);
     tm.setTenantsMap(tenantsMap);
 
-    tm.init(vertx).onComplete(context.asyncAssertSuccess());
-
+    {
+      Async async = context.async();
+      tm.init(vertx).onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      async.await();
+    }
     tenantsMap.setGetError("gerror");
     tenantsMap.setAddError(null);
     tenantsMap.setGetKeysError(null);
@@ -208,7 +211,7 @@ public class TenantManagerTest extends TestBase {
     tenantsMap.setGetKeysError(null);
     {
       Async async = context.async();
-      tm.insert(tenant).onComplete(res -> { // TODO: null pointer sometimes
+      tm.insert(tenant).onComplete(res -> {
         context.assertTrue(res.failed());
         context.assertEquals(ErrorType.INTERNAL, OkapiError.getType(res.cause()));
         context.assertEquals("aerror", res.cause().getMessage());
