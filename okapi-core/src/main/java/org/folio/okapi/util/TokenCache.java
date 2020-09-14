@@ -36,7 +36,7 @@ public class TokenCache {
     CacheEntry entry = new CacheEntry(token, userId, xokapiPerms, now + ttl);
     String key = genKey(method, path, keyToken, userId);
     MetricsHelper.recordTokenCacheCached(tenant, method, path, userId);
-    logger.info("Caching: " + key + " " + token);
+    logger.info("Caching: {} {}", key, token);
     cache.put(key, entry);
   }
   
@@ -69,7 +69,7 @@ public class TokenCache {
   }
   
   private String genKey(String method, String path, String token, String userId) {
-    return method + "|" + path + "|" + token + "|" + userId;
+    return (method + "|" + path + "|" + token + "|" + userId).replaceAll("[\n|\t|\r]", "");
   }
   
   public static final class CacheEntry {
