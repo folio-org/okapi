@@ -69,7 +69,7 @@ public class TokenCache {
   }
   
   private String genKey(String method, String path, String token, String userId) {
-    return (method + "|" + path + "|" + token + "|" + userId).replaceAll("[\n|\t|\r]", "");
+    return (method + "|" + path + "|" + token + "|" + userId).replaceAll("[\n\t\r]", "");
   }
   
   public static final class CacheEntry {
