@@ -180,6 +180,26 @@ public class ProxyService {
     return true;
   }
 
+  private boolean checkTokenCache(ProxyContext pc, HttpServerRequest req, RoutingEntry re, ModuleInstance mi) {
+    boolean skipAuth = false;
+    String pathPattern = re.getPathPattern();
+
+    CacheEntry cached = tokenCache.get(pc.getTenant(), req.method().name(),
+        pathPattern == null ? req.path() : pathPattern, req.headers().get(XOkapiHeaders.TOKEN),
+        req.getHeader(XOkapiHeaders.USER_ID));
+
+    if (cached != null) {
+      mi.setAuthToken(cached.token);
+      mi.setxOkapiUserId(cached.xokapiUserid);
+      mi.setxOkapiPermissions(cached.xokapiPermissions);
+
+      skipAuth = true;
+    } else {
+      mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
+    }
+    return skipAuth;
+  }
+
   /**
    * Builds the pipeline of modules to be invoked for a request. Sets the
    * default authToken for each ModuleInstance. Later, these can be overwritten
@@ -212,22 +232,7 @@ public class ProxyService {
           if (match(re, req)) {
             ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method(), true);
 
-            String pathPattern = re.getPathPattern();
-
-            // CAM
-            CacheEntry cached = tokenCache.get(pc.getTenant(), req.method().name(),
-                pathPattern == null ? req.path() : pathPattern,
-                req.headers().get(XOkapiHeaders.TOKEN), req.getHeader(XOkapiHeaders.USER_ID));
-
-            if (cached != null) {
-              mi.setAuthToken(cached.token);
-              mi.setxOkapiUserId(cached.xokapiUserid);
-              mi.setxOkapiPermissions(cached.xokapiPermissions);
-
-              skipAuth = true;
-            } else {
-              mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
-            }
+            skipAuth = checkTokenCache(pc, req, re, mi);
             mods.add(mi);
             pc.debug("getMods:   Added " + md.getId() + " " + re.getPathPattern() + " "
                 + re.getPath() + " " + re.getPhase() + "/" + re.getLevel());
@@ -255,7 +260,7 @@ public class ProxyService {
     mods.sort(cmp);
 
     if (skipAuth) {
-      pc.debug("CAM - skipping auth, have cached token.");
+      pc.debug("Skipping auth, have cached token.");
       mods.remove(0);
     }
 
@@ -480,7 +485,6 @@ public class ProxyService {
           mi.setAuthToken(tok);
           pc.debug("authResponse: token for " + id + ": " + tok);
 
-          //CAM
           tokenCache.put(pc.getTenant(),
               req.method().name(),
               pathPattern == null ? req.path() : pathPattern,
@@ -1043,13 +1047,11 @@ public class ProxyService {
         ctx.request().headers().add(XOkapiHeaders.TOKEN, token);
       }
 
-      //CAM
-
       String userId = mi.getxOkapiUserId();
       if (userId != null) {
         ctx.request().headers().remove(XOkapiHeaders.USER_ID);
         ctx.request().headers().add(XOkapiHeaders.USER_ID, userId);
-        pc.debug("CAM - using X-Okapi-User-Id: " + userId);
+        pc.debug("Using X-Okapi-User-Id: " + userId);
       }
 
       String perms = mi.getxOkapiPermissions();
@@ -1060,7 +1062,7 @@ public class ProxyService {
         ctx.request()
             .headers()
             .add(XOkapiHeaders.PERMISSIONS, perms);
-        pc.debug("CAM - using X-Okapi-Permissions: " + perms);
+        pc.debug("Using X-Okapi-Permissions: " + perms);
       }
 
       // Pass headers for filters
