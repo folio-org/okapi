@@ -180,7 +180,8 @@ public class ProxyService {
     return true;
   }
 
-  private boolean checkTokenCache(ProxyContext pc, HttpServerRequest req, RoutingEntry re, ModuleInstance mi) {
+  private boolean checkTokenCache(ProxyContext pc, HttpServerRequest req, RoutingEntry re,
+      ModuleInstance mi) {
     boolean skipAuth = false;
     String pathPattern = re.getPathPattern();
 
