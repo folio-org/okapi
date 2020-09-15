@@ -146,9 +146,8 @@ public class MultiTenantTest {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> {
               httpClient.close();
-              vertx.close(y -> {
-                async.complete();
-              });
+              vertx.close(context.asyncAssertSuccess());
+              async.complete();
             });
           }));
         }));
