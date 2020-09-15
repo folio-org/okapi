@@ -604,11 +604,7 @@ public class DiscoveryManager implements NodeListener {
           hd.setHealthStatus(true);
           fut.handle(new Success<>(hd));
         });
-        response.exceptionHandler(x -> {
-          hd.setHealthMessage("Fail: " + x.getMessage());
-          hd.setHealthStatus(false);
-          fut.handle(new Success<>(hd));
-        });
+        response.exceptionHandler(e -> fail(e.getCause(), hd, fut));
       });
     });
   }
