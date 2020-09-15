@@ -56,11 +56,19 @@ public class OkapiPerformance {
   @After
   public void tearDown(TestContext context) {
     async = context.async();
-    httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
-        .onComplete(context.asyncAssertSuccess(res -> {
-          vertx.close(context.asyncAssertSuccess());
-          async.complete();
+    httpClient.request(HttpMethod.DELETE, port,
+        "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
+          request.end();
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(204, response.statusCode());
+            response.endHandler(x -> {
+              httpClient.close();
+              async.complete();
+            });
+          }));
         }));
+    async.await();
+    vertx.close(context.asyncAssertSuccess());
   }
 
   @Test(timeout = 600000)

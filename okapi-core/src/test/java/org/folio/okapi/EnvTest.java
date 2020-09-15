@@ -62,12 +62,12 @@ public class EnvTest {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> {
               httpClient.close();
-              vertx.close(y -> {
-                async.complete();
-              });
+              async.complete();
             });
           }));
         }));
+    async.await();
+    vertx.close(context.asyncAssertSuccess());
   }
 
   @Test
