@@ -58,7 +58,7 @@ public class OkapiPerformance {
     async = context.async();
     httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
         .onComplete(context.asyncAssertSuccess(res -> {
-          vertx.close(x -> context.asyncAssertSuccess());
+          vertx.close(context.asyncAssertSuccess());
           async.complete();
         }));
   }
