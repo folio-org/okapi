@@ -135,10 +135,6 @@ public class MultiTenantTest {
     });
   }
 
-  private void td(TestContext context, Async async) {
-    vertx.close(x -> async.complete());
-  }
-
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();
