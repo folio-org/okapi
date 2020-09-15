@@ -22,7 +22,6 @@ import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import java.util.LinkedList;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
@@ -38,14 +37,9 @@ public class DockerTest {
   private Vertx vertx;
   private final int port = 9230;
   private static final String LS = System.lineSeparator();
-  private final LinkedList<String> locations;
   private boolean haveDocker = false;
   private HttpClient client;
   private JsonArray dockerImages = new JsonArray();
-
-  public DockerTest() {
-    this.locations = new LinkedList<>();
-  }
 
   @Before
   public void setUp(TestContext context) {
@@ -81,20 +75,21 @@ public class DockerTest {
   @After
   public void tearDown(TestContext context) {
     logger.info("tearDown");
-    td(context, context.async());
-  }
 
-  private void td(TestContext context, Async async) {
-    if (locations.isEmpty()) {
-      vertx.close(x -> {
-        async.complete();
-      });
-    } else {
-      String l = locations.removeFirst();
-      client.request(HttpMethod.DELETE, port, "localhost",  l).onComplete(res -> {
-        td(context, async);
-      });
-    }
+    Async async = context.async();
+    HttpClient httpClient = vertx.createHttpClient();
+    httpClient.request(HttpMethod.DELETE, port,
+        "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
+          request.end();
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(204, response.statusCode());
+            response.endHandler(x -> {
+              httpClient.close();
+              vertx.close(context.asyncAssertSuccess());
+              async.complete();
+            });
+          }));
+        }));
   }
 
   private void checkDocker(Handler<AsyncResult<JsonArray>> future) {
@@ -206,7 +201,6 @@ public class DockerTest {
       .extract().response();
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
-    locations.add(r.getHeader("Location"));
 
     final String doc1 = "{" + LS
       + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
@@ -218,7 +212,6 @@ public class DockerTest {
       .body(doc1).post("/_/discovery/modules")
       .then().statusCode(201)
       .extract().response();
-    locations.add(r.getHeader("Location"));
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
   }
@@ -252,7 +245,6 @@ public class DockerTest {
       .extract().response();
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
-    locations.add(r.getHeader("Location"));
 
     final String doc1 = "{" + LS
       + "  \"srvcId\" : \"sample-unknown-1\"," + LS
@@ -309,7 +301,6 @@ public class DockerTest {
       .extract().response();
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
-    locations.add(r.getHeader("Location"));
 
     final String doc2 = "{" + LS
       + "  \"srvcId\" : \"mod-users-5.0.0-bad-listening-port\"," + LS
@@ -369,7 +360,6 @@ public class DockerTest {
       .extract().response();
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
-    locations.add(r.getHeader("Location"));
 
     final String doc2 = "{" + LS
       + "  \"srvcId\" : \"mod-users-5.0.0\"," + LS
@@ -390,7 +380,6 @@ public class DockerTest {
         || rBody.contains("port is already allocated"), "body is " + rBody);
     } else {
       context.assertEquals(201, statusCode);
-      locations.add(r.getHeader("Location"));
     }
   }
 }
