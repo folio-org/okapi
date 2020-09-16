@@ -32,17 +32,28 @@ public class EventBusCheckerTest {
     List<String> list = new LinkedList<>();
     list.add("a");
     list.add("b");
-    EventBusChecker.check(vertx, "a", list)
+    EventBusChecker.check(vertx, "a", "a", list)
         .onComplete(context.asyncAssertFailure(cause -> async.complete()));
     async.await();
   }
+
+  @Test
+  public void testBadReply(TestContext context) {
+    Async async = context.async();
+    List<String> list = new LinkedList<>();
+    list.add("a");
+    EventBusChecker.check(vertx, "a", "r", list)
+        .onComplete(context.asyncAssertFailure(cause -> async.complete()));
+    async.await();
+  }
+
 
   @Test
   public void testGoodNode(TestContext context) {
     Async async = context.async();
     List<String> list = new LinkedList<>();
     list.add("a");
-    EventBusChecker.check(vertx, "a", list)
+    EventBusChecker.check(vertx, "a", "a", list)
         .onComplete(context.asyncAssertSuccess(res -> async.complete()));
     async.await();
   }

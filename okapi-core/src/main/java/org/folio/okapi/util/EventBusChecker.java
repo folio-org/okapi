@@ -28,22 +28,22 @@ public class EventBusChecker {
       thisNode = clusterManager.getNodeId();
       nodes = clusterManager.getNodes();
     }
-    return check(vertx, thisNode, nodes);
+    return check(vertx, thisNode, thisNode, nodes);
   }
 
-  static Future<Void> check(Vertx vertx, String thisNode, List<String> nodes) {
+  static Future<Void> check(Vertx vertx, String thisNode, String reply, List<String> nodes) {
     DeliveryOptions options = new DeliveryOptions().setSendTimeout(30);
     vertx.eventBus().consumer(EVENT_NODE_CHECK + thisNode, message -> {
-      message.reply(thisNode);
+      message.reply(reply);
     });
     List<Future> futures = new LinkedList<>();
     for (String node : nodes) {
       futures.add(vertx.eventBus().request(EVENT_NODE_CHECK + node, "").compose(res -> {
         String replyNode = (String) res.body();
-        if (node.equals(replyNode)) {
-          return Future.succeededFuture();
+        if (!node.equals(replyNode)) {
+          return Future.failedFuture("Send " + node + " but got reply " + replyNode);
         }
-        return Future.failedFuture("Send " + node + " but got reply " + replyNode);
+        return Future.succeededFuture();
       }));
     }
     return CompositeFuture.all(futures).mapEmpty();
