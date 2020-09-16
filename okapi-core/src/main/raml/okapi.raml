@@ -832,7 +832,14 @@ types:
             required: false
             default: false
           ignoreErrors:
-            description: Whether to ignore module init errors
+            description: |
+              Okapi 4.2.0 and later, it is possible to ignore errors during the
+              install operation. This is done by supplying parameter `ignoreErrors=true`
+              for install/upgrade. When value is true, Okapi will try to upgrade all
+              modules in the modules list, regardless if one of them fails. However,
+              for individual modules, if they fail, their upgrade will not be commited.
+              This is an experimental parameter which was added to be able to inspect
+              all problem(s) with module upgrade(s).
             type: boolean
             required: false
             default: false
@@ -929,8 +936,25 @@ types:
           The response is a list of modules that should be enabled, disabled
           or upgraded to perform the upgrade.
         queryParameters:
+          async:
+            description: Whether to upgrade in the background
+            type: boolean
+            required: false
+            default: false
           deploy:
             description: Whether to deploy (or undeploy if disabling)
+            type: boolean
+            required: false
+            default: false
+          ignoreErrors:
+            description: |
+              Okapi 4.2.0 and later, it is possible to ignore errors during the
+              install operation. This is done by supplying parameter `ignoreErrors=true`
+              for install/upgrade. When value is true, Okapi will try to upgrade all
+              modules in the modules list, regardless if one of them fails. However,
+              for individual modules, if they fail, their upgrade will not be commited.
+              This is an experimental parameter which was added to be able to inspect
+              all problem(s) with module upgrade(s).
             type: boolean
             required: false
             default: false
