@@ -348,16 +348,17 @@ types:
         description: Whether to check dependencies
         type: boolean
         required: false
+        default: true
       preRelease:
         description: Whether to allow pre-release modules in dependency check
         type: boolean
         required: false
+        default: true
       npmSnapshot:
-        description: |
-          Whether to allow NPM module snapshots in dependency check
-          default: true
+        description: Whether to allow NPM module snapshots in dependency check
         type: boolean
         required: false
+        default: true
     body:
       application/json:
         type: ModuleDescriptor
@@ -387,6 +388,7 @@ types:
         description: If true, return Graphviz DOT content as plain text
         type: boolean
         required: false
+        default: false
       filter:
         description: Filter by module ID
         type: string
@@ -395,15 +397,16 @@ types:
         description: Whether full or compact MD should be returned
         type: boolean
         required: false
+        default: false
       latest:
         description: Limit to latest N releases (most likely 1 if given)
         type: integer
         required: false
       npmSnapshot:
         description: Whether to include NPM module snapshots
-          (default:true).
         type: boolean
         required: false
+        default: true
       order:
         description: Order
         enum: [desc, asc]
@@ -414,9 +417,9 @@ types:
         required: false
       preRelease:
         description: Whether to include modules with pre-release info
-          (default:true).
         type: boolean
         required: false
+        default: true
       provide:
         description: Limit to provided interface
         type: string
@@ -592,6 +595,7 @@ types:
             description: If true, return Graphviz DOT content as plain text
             type: boolean
             required: false
+            default: false
           filter:
             description: Filter by module ID
             type: string
@@ -600,15 +604,16 @@ types:
             description: Whether full or compact MD should be returned
             type: boolean
             required: false
+            default: false
           latest:
             description: Limit to latest N releases (most likely 1 if given)
             type: integer
             required: false
           npmSnapshot:
             description: Whether to include NPM module snapshots
-              (default:true).
             type: boolean
             required: false
+            default: true
           order:
             description: Order
             enum: [desc, asc]
@@ -619,9 +624,9 @@ types:
             required: false
           preRelease:
             description: Whether to include modules with pre-release info
-              (default:true).
             type: boolean
             required: false
+            default: true
           provide:
             description: Limit to provided interface
             type: string
@@ -657,13 +662,14 @@ types:
           invoke:
             description: |
               Whether to invoke for tenant init/permissions/purge
-              (default: true).
             type: boolean
             required: false
+            default: true
           purge:
             description: Disabled modules will also be purged.
             type: boolean
             required: false
+            default: false
           tenantParameters:
             description: Parameters for Tenant init
             type: string
@@ -710,15 +716,15 @@ types:
             This call will eventually be replaced by the 'install' service.
           queryParameters:
             invoke:
-              description: |
-                Whether to invoke for tenant init/permissions/purge
-                (default: true).
+              description: Whether to invoke for tenant init/permissions/purge
               type: boolean
               required: false
+              default: true
             purge:
               description: Disabled modules will also be purged.
               type: boolean
               required: false
+              default: false
             tenantParameters:
               description: Parameters for Tenant init
               type: string
@@ -754,15 +760,15 @@ types:
             This call will eventually be replaced by the 'install' service.
           queryParameters:
             invoke:
-              description: |
-                Whether to invoke for tenant init/permissions/purge
-                (default: true).
+              description: Whether to invoke for tenant init/permissions/purge
               type: boolean
               required: false
+              default: true
             purge:
               description: Disabled modules will also be purged.
               type: boolean
               required: false
+              default: false
             tenantParameters:
               description: Parameters for Tenant init
               type: string
@@ -819,38 +825,42 @@ types:
             description: Whether to install in the background
             type: boolean
             required: false
+            default: false
           deploy:
             description: Whether to deploy (or undeploy if disabling)
             type: boolean
             required: false
+            default: false
           ignoreErrors:
             description: Whether to ignore module init errors
             type: boolean
             required: false
+            default: false
           invoke:
-            description: |
-              Whether to invoke for tenant init/permissions/purge
-              (default: true).
+            description: Whether to invoke for tenant init/permissions/purge
             type: boolean
             required: false
+            default: true
           npmSnapshot:
-            description: |
-              Whether to include NPM module snapshots (default:true).
+            description: Whether to include NPM module snapshots (default:true).
             type: boolean
             required: false
+            default: true
           preRelease:
-            description: Whether pre-releases should be considered for
-              installation.
+            description: Whether pre-releases should be considered for installation.
             type: boolean
             required: false
+            default: true
           purge:
             description: Disabled modules will also be purged.
             type: boolean
             required: false
+            default: false
           simulate:
             description: Whether the installation is simulated
             type: boolean
             required: false
+            default: false
           tenantParameters:
             description: Parameters for Tenant init
             type: string
@@ -923,25 +933,27 @@ types:
             description: Whether to deploy (or undeploy if disabling)
             type: boolean
             required: false
+            default: false
           invoke:
-            description: |
-              Whether to invoke for tenant init/permissions/purge
-              (default: true).
+            description: Whether to invoke for tenant init/permissions/purge
             type: boolean
             required: false
+            default: true
           preRelease:
-            description: |
-              Whether pre-releases should be considered for installation.
+            description: Whether pre-releases should be considered for installation.
             type: boolean
             required: false
+            default: true
           purge:
-            description: Disabled modules will also be purged.
+            description: Disabled modules will also be purged
             type: boolean
             required: false
+            default: false
           simulate:
             description: Whether the upgrade is simulated
             type: boolean
             required: false
+            default: false
           tenantParameters:
             description: Parameters for Tenant init
             type: string
@@ -975,6 +987,7 @@ types:
             description: Whether brief or full interface list
             type: boolean
             required: false
+            default: false
           type:
             description: Limit by interfaceType
             type: string
