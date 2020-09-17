@@ -42,15 +42,10 @@ public class MainDeployTest {
 
   @After
   public void tearDown(TestContext context) {
-    async = context.async();
     System.setProperty("port", ""); // disable port by emptying it
-    if (vertx == null) {
-      async.complete();
-    } else {
-      vertx.close(x -> {
-        vertx = null;
-        async.complete();
-      });
+    if (vertx != null) {
+      vertx.close(context.asyncAssertSuccess());
+      vertx = null;
     }
   }
 

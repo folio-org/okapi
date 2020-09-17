@@ -38,25 +38,15 @@
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
-        <version>4.1.51.Final</version>
+        <version>4.1.52.Final</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-
-      <!-- Override 2.0.30.Final (from vertx-stack-depchain 4.0.0.Beta1) by 2.0.31.Final =
-           matching version for netty 4.1.51.FINAL.
-           Remove this when upgrading vertx-stack-depchain to >= 4.0.0-milestone6
-      -->
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-tcnative-boringssl-static</artifactId>
-        <version>2.0.31.Final</version>
       </dependency>
 
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.0.0.Beta1</version> <!-- also update depending versions below! -->
+        <version>4.0.0.Beta2</version> <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>

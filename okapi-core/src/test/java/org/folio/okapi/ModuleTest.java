@@ -1,5 +1,7 @@
 package org.folio.okapi;
 
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import org.junit.After;
 import org.junit.Assert;
@@ -171,69 +173,22 @@ public class ModuleTest {
 
   @After
   public void tearDown(TestContext context) {
-    logger.info("Cleaning up after ModuleTest");
-    async = context.async();
-    td(context);
+    logger.debug("Cleaning up after ModuleTest");
+    if (httpClient != null) {
+      Async async = context.async();
+      httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules",
+          context.asyncAssertSuccess(request -> {
+            request.end();
+            request.onComplete(context.asyncAssertSuccess(response -> {
+              context.assertEquals(204, response.statusCode());
+              response.endHandler(x -> async.complete());
+            }));
+          }));
+      async.await();
+    }
+    vertx.close(context.asyncAssertSuccess());
   }
 
-  private void td(TestContext context) {
-    if (locationAuthDeployment != null) {
-      httpClient.delete(port, "localhost", locationAuthDeployment,
-          context.asyncAssertSuccess(response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationAuthDeployment = null;
-          td(context);
-        });
-      }));
-      return;
-    }
-    if (locationSampleDeployment != null) {
-      httpClient.delete(port, "localhost", locationSampleDeployment,
-          context.asyncAssertSuccess(response -> {
-            context.assertEquals(204, response.statusCode());
-            locationSampleDeployment = null;
-            td(context);
-          }));
-      return;
-    }
-    if (locationHeaderDeployment != null) {
-      httpClient.delete(port, "localhost", locationHeaderDeployment,
-          context.asyncAssertSuccess(response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationHeaderDeployment = null;
-          td(context);
-        });
-      }));
-      return;
-    }
-    if (locationPreDeployment != null) {
-      httpClient.delete(port, "localhost",
-        locationPreDeployment, context.asyncAssertSuccess(response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationPreDeployment = null;
-          td(context);
-        });
-      }));
-      return;
-    }
-    if (locationPostDeployment != null) {
-      httpClient.delete(port, "localhost",
-        locationPostDeployment, context.asyncAssertSuccess(response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationPostDeployment = null;
-          td(context);
-        });
-      }));
-      return;
-    }
-    vertx.close(x -> {
-      async.complete();
-    });
-  }
 
   private void checkDbIsEmpty(String label, TestContext context) {
 
@@ -2733,6 +2688,7 @@ public class ModuleTest {
 
   private void undeployFirstAndDeploy(TestContext context, Handler<AsyncResult<String>> fut) {
     async = context.async();
+    httpClient = null;
     undeployFirst(context.asyncAssertSuccess(handler -> {
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
       vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
