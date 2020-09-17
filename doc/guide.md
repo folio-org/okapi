@@ -2673,6 +2673,9 @@ All install jobs for a tenant can be retrieved with GET to
 with JSON content defined by schema
 [InstallJobList.json](../okapi-core/src/main/raml/InstallJobList.json)).
 
+This allows to get a list of all install jobs - including ongoing ones
+regardless of whether they are asynchronous or not.
+
 ### Ignoring errors during install
 
 Okapi 4.2.0 and later, it is possible to ignore errors during the
