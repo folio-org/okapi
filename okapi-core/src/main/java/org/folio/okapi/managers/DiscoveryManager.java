@@ -175,12 +175,11 @@ public class DiscoveryManager implements NodeListener {
    * Helper to actually launch (deploy) a module on a node.
    */
   private Future<DeploymentDescriptor> callDeploy(String nodeId, DeploymentDescriptor dd) {
-
     return getNode(nodeId).compose(nodeDescriptor -> {
       String reqData = Json.encode(dd);
       Promise<DeploymentDescriptor> promise = Promise.promise();
       vertx.eventBus().request(nodeDescriptor.getUrl() + "/deploy", reqData,
-          deliveryOptions, ar -> {
+          deliveryOptions).onComplete(ar -> {
             if (ar.failed()) {
               promise.fail(new OkapiError(ErrorType.USER, ar.cause().getMessage()));
             } else {
@@ -239,19 +238,10 @@ public class DiscoveryManager implements NodeListener {
       return remove(md.getSrvcId(), md.getInstId()).mapEmpty();
     }
     logger.info("callUndeploy calling..");
-    return getNode(nodeId).compose(res -> {
-      String reqdata = md.getInstId();
-      Promise<Void> promise = Promise.promise();
-      vertx.eventBus().request(res.getUrl() + "/undeploy", reqdata,
-          deliveryOptions, ar -> {
-            if (ar.failed()) {
-              promise.fail(ar.cause().getMessage());
-            } else {
-              promise.complete();
-            }
-          });
-      return promise.future();
-    });
+    return getNode(nodeId).compose(res ->
+        vertx.eventBus().request(res.getUrl() + "/undeploy", md.getInstId(),
+            deliveryOptions).mapEmpty()
+    );
   }
 
   Future<Boolean> remove(String srvcId, String instId) {
