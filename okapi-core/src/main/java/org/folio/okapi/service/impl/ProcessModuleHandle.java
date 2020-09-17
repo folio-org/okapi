@@ -8,7 +8,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
@@ -23,10 +26,11 @@ import org.folio.okapi.util.TcpPortWaiting;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class ProcessModuleHandle implements ModuleHandle {
 
-  private final Logger logger = OkapiLogger.get();
+  private static final Logger logger = OkapiLogger.get();
 
   private final Vertx vertx;
   private final String exec;
+  private final String id;
   private final String cmdlineStart;
   private final String cmdlineStop;
   private final EnvEntry[] env;
@@ -41,13 +45,14 @@ public class ProcessModuleHandle implements ModuleHandle {
    * Construct process module handler.
    * @param vertx Vert.x handle
    * @param desc launch descriptor
+   * @param id if of process (possibly module ID)
    * @param ports ports handle
    * @param port listening port for module
    */
-  public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc,
+  public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc, String id,
                              Ports ports, int port) {
     this.vertx = vertx;
-
+    this.id = id;
     this.exec = desc.getExec();
     this.cmdlineStart = desc.getCmdlineStart();
     this.cmdlineStop = desc.getCmdlineStop();
@@ -64,17 +69,6 @@ public class ProcessModuleHandle implements ModuleHandle {
     if (maxIterations != null) {
       tcpPortWaiting.setMaxIterations(maxIterations);
     }
-  }
-
-  private ProcessBuilder createProcessBuilder(String[] l) {
-    ProcessBuilder pb = new ProcessBuilder(l);
-    if (env != null) {
-      Map<String, String> penv = pb.environment();
-      for (EnvEntry nv : env) {
-        penv.put(nv.getName(), nv.getValue());
-      }
-    }
-    return pb;
   }
 
   @Override
@@ -96,6 +90,36 @@ public class ProcessModuleHandle implements ModuleHandle {
     } else {
       start2(startFuture);
     }
+  }
+
+  private static Process launch(Vertx vertx, String id, EnvEntry[] env,
+                                String [] command) throws IOException {
+
+    ProcessBuilder pb = new ProcessBuilder(command);
+    if (env != null) {
+      Map<String, String> penv = pb.environment();
+      for (EnvEntry nv : env) {
+        penv.put(nv.getName(), nv.getValue());
+      }
+    }
+    Process process = pb.start();
+    captureStream(vertx, id, process.getInputStream());
+    captureStream(vertx, id, process.getErrorStream());
+    return process;
+  }
+
+  private static void captureStream(Vertx vertx, String id, InputStream input) {
+    vertx.executeBlocking(res -> {
+      BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+      String line = null;
+      try {
+        while ((line = reader.readLine()) != null) {
+          logger.info("{} {}", id, line);
+        }
+      } catch (IOException e) {
+        logger.error("{}", e.getMessage(), e);
+      }
+    });
   }
 
   @SuppressWarnings("indentation")
@@ -123,9 +147,7 @@ public class ProcessModuleHandle implements ModuleHandle {
             future.fail("Can not deploy: No exec, no CmdlineStart in LaunchDescriptor");
             return;
           }
-          ProcessBuilder pb = createProcessBuilder(l);
-          pb.inheritIO();
-          process = pb.start();
+          process = launch(vertx, id, env, l);
           process.waitFor(1, TimeUnit.SECONDS);
         } catch (InterruptedException ex) {
           logger.warn("when starting {}", c, ex);
@@ -202,9 +224,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         try {
           c = cmdlineStop.replace("%p", Integer.toString(port));
           String[] l = new String[]{"sh", "-c", c};
-          ProcessBuilder pb = createProcessBuilder(l);
-          pb.inheritIO();
-          Process pp = pb.start();
+          Process pp = launch(vertx, id, env, l);
           logger.debug("Waiting for the port to be closed");
           pp.waitFor(30, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
           logger.debug("Wait done");
