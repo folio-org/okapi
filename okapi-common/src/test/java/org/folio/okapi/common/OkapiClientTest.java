@@ -357,9 +357,13 @@ public class OkapiClientTest {
 
     context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
-    client.post(PORT, LOCALHOST, URL + "/test1", Buffer.buffer(), context.asyncAssertSuccess(response -> {
-      context.assertEquals(200, response.statusCode());
-    }));
+    client.request(HttpMethod.POST, PORT, LOCALHOST, URL + "/test1")
+        .onComplete(context.asyncAssertSuccess(request -> {
+          request.end();
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(200, response.statusCode());
+          }));
+        }));
   }
 
 }
