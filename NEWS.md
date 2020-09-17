@@ -1,3 +1,10 @@
+## 4.1.2 2020-09-17
+
+ * [OKAPI-882](https://issues.folio.org/browse/OKAPI-882) Fix passwords lesks in log
+ * [OKAPI-885](https://issues.folio.org/browse/OKAPI-885) Fix Warning issued: sun.reflect.Reflection.getCallerClass is not supported
+ * [OKAPI-887](https://issues.folio.org/browse/OKAPI-887) Fix Unit tests sporadically crash
+ * [OKAPI-893](https://issues.folio.org/browse/OKAPI-893) Fix check for openjdk-11 in okapi startup script fails
+
 ## 4.1.1 2020-08-31
 
  * [OKAPI-883](https://issues.folio.org/browse/OKAPI-883) Log4j2Plugins.dat in fat jar causes "Unrecognized format specifier"
