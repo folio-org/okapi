@@ -1,4 +1,4 @@
-
+@Library ('folio_jenkins_shared_libs') _
 
 buildMvn {
   publishModDescriptor = 'no'
@@ -6,6 +6,7 @@ buildMvn {
   mvnDeploy = 'yes'
   runLintRamlCop = 'yes'
   buildNode = 'jenkins-agent-java11'
+  buildDeb = true
 
   doDocker = {
     buildJavaDocker {
