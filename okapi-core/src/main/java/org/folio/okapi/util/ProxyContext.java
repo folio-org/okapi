@@ -164,7 +164,7 @@ public class ProxyContext {
     return ctx;
   }
 
-  private String getReqId() {
+  private String  getReqId() {
     return reqId;
   }
 
@@ -266,11 +266,11 @@ public class ProxyContext {
   }
 
   public void error(String msg) {
-    logger.error("{} {}", getReqId(), msg);
+    logger.error(msg);
   }
 
   public void warn(String msg) {
-    logger.warn("{} {}", getReqId(), msg);
+    logger.warn(msg);
   }
 
   public void warn(String msg, Throwable e) {
@@ -278,11 +278,11 @@ public class ProxyContext {
   }
 
   public void debug(String msg) {
-    logger.debug("{} {}", getReqId(), msg);
+    logger.debug(msg);
   }
 
   public void trace(String msg) {
-    logger.trace("{} {}", getReqId(), msg);
+    logger.trace(msg);
   }
 
   public Timer.Sample getSample() {
