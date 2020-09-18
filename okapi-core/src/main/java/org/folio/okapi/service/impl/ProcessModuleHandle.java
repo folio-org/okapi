@@ -1,5 +1,8 @@
 package org.folio.okapi.service.impl;
 
+import com.zaxxer.nuprocess.NuAbstractProcessHandler;
+import com.zaxxer.nuprocess.NuProcess;
+import com.zaxxer.nuprocess.NuProcessBuilder;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -8,11 +11,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.Map;
+import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.EnvEntry;
@@ -24,7 +24,7 @@ import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.util.TcpPortWaiting;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
-public class ProcessModuleHandle implements ModuleHandle {
+public class ProcessModuleHandle extends NuAbstractProcessHandler implements ModuleHandle {
 
   private static final Logger logger = OkapiLogger.get();
 
@@ -36,7 +36,8 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final EnvEntry[] env;
   private final Messages messages = Messages.getInstance();
 
-  private Process process;
+  private NuProcess process;
+  private int exitCode;
   private final int port;
   private final Ports ports;
   final TcpPortWaiting tcpPortWaiting;
@@ -92,34 +93,45 @@ public class ProcessModuleHandle implements ModuleHandle {
     }
   }
 
-  private static Process launch(Vertx vertx, String id, EnvEntry[] env,
-                                String [] command) throws IOException {
-
-    ProcessBuilder pb = new ProcessBuilder(command);
-    if (env != null) {
-      Map<String, String> penv = pb.environment();
-      for (EnvEntry nv : env) {
-        penv.put(nv.getName(), nv.getValue());
+  @Override
+  public void onStdout(ByteBuffer buffer, boolean closed) {
+    byte[] bytes = new byte[buffer.remaining()];
+    buffer.get(bytes);
+    String s = new String(bytes);
+    int prev = 0;
+    for (int i = 0; i < s.length(); i++) {
+      if (s.charAt(i) == '\n') {
+        if (i > prev) {
+          logger.info("{} {}", id, s.substring(prev, i));
+        }
+        prev = i + 1;
       }
     }
-    Process process = pb.start();
-    captureStream(vertx, id, process.getInputStream());
-    captureStream(vertx, id, process.getErrorStream());
-    return process;
   }
 
-  private static void captureStream(Vertx vertx, String id, InputStream input) {
-    vertx.executeBlocking(res -> {
-      BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-      String line = null;
-      try {
-        while ((line = reader.readLine()) != null) {
-          logger.info("{} {}", id, line);
-        }
-      } catch (IOException e) {
-        logger.error("{}", e.getMessage(), e);
+  @Override
+  public void onStderr(ByteBuffer buffer, boolean closed) {
+    onStdout(buffer, closed);
+  }
+
+  @Override
+  public void onExit(int code) {
+    exitCode = code;
+  }
+
+  private NuProcess launch(Vertx vertx, String id, EnvEntry[] env,
+                           String [] command) throws IOException {
+
+    NuProcessBuilder pb = new NuProcessBuilder(command);
+    if (env != null) {
+      for (EnvEntry nv : env) {
+        pb.environment().put(nv.getName(), nv.getValue());
       }
-    });
+    }
+    exitCode = 0;
+    pb.setProcessListener(this);
+    NuProcess process = pb.start(); // may throw IOException (but the signature doesn't say
+    return process;
   }
 
   @SuppressWarnings("indentation")
@@ -149,16 +161,16 @@ public class ProcessModuleHandle implements ModuleHandle {
           }
           process = launch(vertx, id, env, l);
           process.waitFor(1, TimeUnit.SECONDS);
-        } catch (InterruptedException ex) {
-          logger.warn("when starting {}", c, ex);
-          Thread.currentThread().interrupt();
         } catch (IOException ex) {
           logger.warn("when starting {}", c, ex);
           future.fail(ex);
           return;
+        } catch (InterruptedException ex) {
+          logger.warn("when starting {}", c, ex);
+          Thread.currentThread().interrupt();
         }
-        if (!process.isAlive() && process.exitValue() != 0) {
-          future.handle(Future.failedFuture(messages.getMessage("11500", process.exitValue())));
+        if (!process.isRunning() && exitCode != 0) {
+          future.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
           return;
         }
       }
@@ -224,12 +236,12 @@ public class ProcessModuleHandle implements ModuleHandle {
         try {
           c = cmdlineStop.replace("%p", Integer.toString(port));
           String[] l = new String[]{"sh", "-c", c};
-          Process pp = launch(vertx, id, env, l);
+          NuProcess pp = launch(vertx, id, env, l);
           logger.debug("Waiting for the port to be closed");
           pp.waitFor(30, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
           logger.debug("Wait done");
-          if (!pp.isAlive() && pp.exitValue() != 0) {
-            future.handle(Future.failedFuture(messages.getMessage("11500", pp.exitValue())));
+          if (!pp.isRunning() && exitCode != 0) {
+            future.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
             return;
           }
         } catch (IOException ex) {
@@ -257,23 +269,11 @@ public class ProcessModuleHandle implements ModuleHandle {
   @SuppressWarnings("indentation")
   private void stopProcess(Handler<AsyncResult<Void>> stopFuture) {
     vertx.executeBlocking(future -> {
-      process.destroy();
-      while (process.isAlive()) {
+      process.destroy(true);
+      while (process.isRunning()) {
         boolean exited = true;
         try {
-          process.exitValue();
-        } catch (IllegalThreadStateException e) {
-          exited = false;
-        } catch (Exception e) {
-          logger.info(e);
-          exited = false;
-        }
-        if (exited) {
-          future.fail("Process exited but child processes exist");
-          return;
-        }
-        try {
-          process.waitFor();
+          process.waitFor(0, TimeUnit.SECONDS);
         } catch (InterruptedException ex) {
           Thread.currentThread().interrupt();
         }
