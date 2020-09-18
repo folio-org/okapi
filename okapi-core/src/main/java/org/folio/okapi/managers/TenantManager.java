@@ -848,31 +848,21 @@ public class TenantManager {
             tml2.add(tm.cloneWithoutStatus());
           }
           promise.complete(tml2);
-          future = future.compose(x -> {
-            for (TenantModuleDescriptor tm : tml) {
-              tm.setStage(TenantModuleDescriptor.Stage.pending);
-            }
-            return jobs.put(t.getId(), job.getId(), job);
-          });
         }
-        if (options.getDeploy()) {
-          if (options.getAsync()) {
-            future = future.compose(x -> {
-              for (TenantModuleDescriptor tm : tml) {
-                tm.setStage(TenantModuleDescriptor.Stage.deploy);
-              }
-              return jobs.put(t.getId(), job.getId(), job);
-            });
+        future = future.compose(x -> {
+          for (TenantModuleDescriptor tm : tml) {
+            tm.setStage(TenantModuleDescriptor.Stage.pending);
           }
-          future = future.compose(x -> autoDeploy(t, modsAvailable, tml));
+          return jobs.put(t.getId(), job.getId(), job);
+        });
+        if (options.getDeploy()) {
+          future = future.compose(x -> autoDeploy(t, job, modsAvailable, tml));
         }
         for (TenantModuleDescriptor tm : tml) {
-          if (options.getAsync()) {
-            future = future.compose(x -> {
-              tm.setStage(TenantModuleDescriptor.Stage.call);
-              return jobs.put(t.getId(), job.getId(), job);
-            });
-          }
+          future = future.compose(x -> {
+            tm.setStage(TenantModuleDescriptor.Stage.call);
+            return jobs.put(t.getId(), job.getId(), job);
+          });
           if (options.getIgnoreErrors()) {
             Promise<Void> promise1 = Promise.promise();
             installTenantModule(t, pc, options, modsAvailable, tm).onComplete(x -> {
@@ -886,17 +876,17 @@ public class TenantManager {
           } else {
             future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
           }
-          if (options.getAsync()) {
-            future = future.compose(x -> {
-              if (tm.getMessage() == null) {
-                tm.setStage(TenantModuleDescriptor.Stage.done);
-              }
-              return jobs.put(t.getId(), job.getId(), job);
-            });
-          }
         }
         if (options.getDeploy()) {
-          future.compose(x -> autoUndeploy(t, modsAvailable, tml));
+          future.compose(x -> autoUndeploy(t, job, modsAvailable, tml));
+        }
+        for (TenantModuleDescriptor tm : tml) {
+          future = future.compose(x -> {
+            if (tm.getMessage() == null) {
+              tm.setStage(TenantModuleDescriptor.Stage.done);
+            }
+            return jobs.put(t.getId(), job.getId(), job);
+          });
         }
         future.onComplete(x -> {
           job.setComplete(true);
@@ -908,21 +898,28 @@ public class TenantManager {
             promise.fail(x.cause());
             return;
           }
-          promise.complete(tml);
+          List<TenantModuleDescriptor> tml2 = new LinkedList<>();
+          for (TenantModuleDescriptor tm : tml) {
+            tml2.add(tm.cloneWithoutStatus());
+          }
+          promise.complete(tml2);
         });
         return promise.future();
       });
     });
   }
 
-  private Future<Void> autoDeploy(Tenant t, Map<String, ModuleDescriptor> modsAvailable,
-                                  List<TenantModuleDescriptor> tml) {
+  private Future<Void> autoDeploy(Tenant tenant, InstallJob job, Map<String,
+      ModuleDescriptor> modsAvailable, List<TenantModuleDescriptor> tml) {
+
     List<Future> futures = new LinkedList<>();
     for (TenantModuleDescriptor tm : tml) {
       if (tm.getAction() == Action.enable || tm.getAction() == Action.uptodate) {
         ModuleDescriptor md = modsAvailable.get(tm.getId());
-        futures.add(proxyService.autoDeploy(md)
-            .onFailure(x -> tm.setMessage(x.getMessage())));
+        tm.setStage(TenantModuleDescriptor.Stage.deploy);
+        futures.add(jobs.put(tenant.getId(), job.getId(), job).compose(res ->
+            proxyService.autoDeploy(md)
+                .onFailure(x -> tm.setMessage(x.getMessage()))));
       }
     }
     return CompositeFuture.all(futures).mapEmpty();
@@ -947,16 +944,19 @@ public class TenantManager {
         .mapEmpty();
   }
 
-  private Future<Void> autoUndeploy(Tenant t, Map<String, ModuleDescriptor> modsAvailable,
-                                  List<TenantModuleDescriptor> tml) {
+  private Future<Void> autoUndeploy(Tenant tenant, InstallJob job,
+                                    Map<String, ModuleDescriptor> modsAvailable,
+                                    List<TenantModuleDescriptor> tml) {
+
     List<Future> futures = new LinkedList<>();
     for (TenantModuleDescriptor tm : tml) {
-      futures.add(autoUndeploy(t, modsAvailable, tm));
+      futures.add(autoUndeploy(tenant, job, modsAvailable, tm));
     }
     return CompositeFuture.all(futures).mapEmpty();
   }
 
-  private Future<Void> autoUndeploy(Tenant tenant, Map<String, ModuleDescriptor> modsAvailable,
+  private Future<Void> autoUndeploy(Tenant tenant, InstallJob job,
+                                    Map<String, ModuleDescriptor> modsAvailable,
                                     TenantModuleDescriptor tm) {
     ModuleDescriptor md = null;
     if (tm.getAction() == Action.enable) {
@@ -973,7 +973,9 @@ public class TenantManager {
       if (!res.isEmpty()) { // tenants using module, skip undeploy
         return Future.succeededFuture();
       }
-      return proxyService.autoUndeploy(mdF);
+      tm.setStage(TenantModuleDescriptor.Stage.undeploy);
+      return jobs.put(tenant.getId(), job.getId(), job).compose(x ->
+          proxyService.autoUndeploy(mdF));
     });
   }
 

@@ -76,7 +76,7 @@ public class TenantModuleDescriptor {
   }
 
   /**
-   * Clone an entry without status (for Install without async).
+   * Clone an entry without status and stage (for Install without async).
    * @return entry
    */
   @JsonIgnore
