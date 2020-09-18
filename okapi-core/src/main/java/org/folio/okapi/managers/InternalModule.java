@@ -658,25 +658,25 @@ public class InternalModule {
       if (td.getId() == null || td.getId().isEmpty()) {
         td.setId(UUID.randomUUID().toString());
       }
-      final String id = td.getId();
-      if (!id.matches("^[a-z0-9_-]+$")) {
+      final String tenantId = td.getId();
+      if (!tenantId.matches("^[a-z0-9_-]+$")) {
         return Future.failedFuture(
-            new OkapiError(ErrorType.USER, messages.getMessage("11601", id)));
+            new OkapiError(ErrorType.USER, messages.getMessage("11601", tenantId)));
       }
       Tenant t = new Tenant(td);
       return tenantManager.insert(t).compose(res ->
-        location(pc, id, null, Json.encodePrettily(t.getDescriptor())));
+        location(pc, tenantId, null, Json.encodePrettily(t.getDescriptor())));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
   }
 
-  private Future<String> updateTenant(String id, String body) {
+  private Future<String> updateTenant(String tenantId, String body) {
     try {
       final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
-      if (!id.equals(td.getId())) {
+      if (!tenantId.equals(td.getId())) {
         return Future.failedFuture(new OkapiError(ErrorType.USER,
-            messages.getMessage("11602", td.getId(), id)));
+            messages.getMessage("11602", td.getId(), tenantId)));
       }
       Tenant t = new Tenant(td);
       return tenantManager.updateDescriptor(td).compose(res ->
@@ -691,26 +691,27 @@ public class InternalModule {
         Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private Future<String> getTenant(String id) {
-    return tenantManager.get(id).compose(res ->
+  private Future<String> getTenant(String tenantId) {
+    return tenantManager.get(tenantId).compose(res ->
         Future.succeededFuture(Json.encodePrettily(res.getDescriptor())));
   }
 
-  private Future<String> deleteTenant(String id) {
-    if (XOkapiHeaders.SUPERTENANT_ID.equals(id)) {
-      return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("11603", id)));
+  private Future<String> deleteTenant(String tenantId) {
+    if (XOkapiHeaders.SUPERTENANT_ID.equals(tenantId)) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER,
+          messages.getMessage("11603", tenantId)));
       // Change of behavior, used to return 403
     }
-    return tenantManager.delete(id).compose(res -> Future.succeededFuture(""));
+    return tenantManager.delete(tenantId).compose(res -> Future.succeededFuture(""));
   }
 
-  private Future<String> enableModuleForTenant(ProxyContext pc, String id, String body) {
+  private Future<String> enableModuleForTenant(ProxyContext pc, String tenantId, String body) {
     try {
       TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
 
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
-      return tenantManager.enableAndDisableModule(id, options, null, td, pc)
+      return tenantManager.enableAndDisableModule(tenantId, options, null, td, pc)
           .compose(eres -> {
             td.setId(eres);
             return location(pc, td.getId(), null, Json.encodePrettily(td));
@@ -720,9 +721,9 @@ public class InternalModule {
     }
   }
 
-  private Future<String> disableModuleForTenant(ProxyContext pc, String id, String module) {
+  private Future<String> disableModuleForTenant(ProxyContext pc, String tenantId, String module) {
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
-    return tenantManager.enableAndDisableModule(id, options, module, null, pc)
+    return tenantManager.enableAndDisableModule(tenantId, options, module, null, pc)
         .compose(res -> Future.succeededFuture(""));
   }
 
@@ -761,22 +762,22 @@ public class InternalModule {
         .compose(installJob -> Future.succeededFuture(Json.encodePrettily(installJob)));
   }
 
-  private Future<String> upgradeModulesForTenant(ProxyContext pc, String id) {
+  private Future<String> upgradeModulesForTenant(ProxyContext pc, String tenantId) {
 
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
     UUID installId = UUID.randomUUID();
-    return tenantManager.installUpgradeCreate(id, installId.toString(), pc, options, null)
+    return tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, null)
         .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private Future<String> upgradeModuleForTenant(ProxyContext pc, String id,
+  private Future<String> upgradeModuleForTenant(ProxyContext pc, String tenantId,
                                                 String mod, String body) {
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
     try {
       final String module_from = mod;
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
-      return tenantManager.enableAndDisableModule(id, options, module_from, td, pc)
+      return tenantManager.enableAndDisableModule(tenantId, options, module_from, td, pc)
           .compose(res -> {
             td.setId(res);
             final String uri = pc.getCtx().request().uri();
@@ -789,10 +790,10 @@ public class InternalModule {
     }
   }
 
-  private Future<String> listModulesForTenant(ProxyContext pc, String id) {
+  private Future<String> listModulesForTenant(ProxyContext pc, String tenantId) {
 
     try {
-      return tenantManager.listModules(id).compose(mdl -> {
+      return tenantManager.listModules(tenantId).compose(mdl -> {
         final boolean dot = ModuleUtil.getParamBoolean(pc.getCtx().request(), "dot", false);
         mdl = ModuleUtil.filter(pc.getCtx().request(), mdl, dot, false);
         if (dot) {
@@ -807,16 +808,16 @@ public class InternalModule {
     }
   }
 
-  private Future<String> disableModulesForTenant(ProxyContext pc, String id) {
+  private Future<String> disableModulesForTenant(ProxyContext pc, String tenantId) {
 
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
-    return tenantManager.disableModules(id, options, pc)
+    return tenantManager.disableModules(tenantId, options, pc)
         .compose(res -> Future.succeededFuture(""));
   }
 
-  private Future<String> getModuleForTenant(String id, String mod) {
+  private Future<String> getModuleForTenant(String tenantId, String mod) {
 
-    return tenantManager.get(id).compose(tenant -> {
+    return tenantManager.get(tenantId).compose(tenant -> {
       Set<String> ml = tenant.listModules();  // Convert the list of module names
       if (!ml.contains(mod)) {
         return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, mod));
@@ -827,18 +828,18 @@ public class InternalModule {
     });
   }
 
-  private Future<String> listInterfaces(ProxyContext pc, String id) {
+  private Future<String> listInterfaces(ProxyContext pc, String tenantId) {
 
     final boolean full = ModuleUtil.getParamBoolean(pc.getCtx().request(), "full", false);
     final String type = pc.getCtx().request().getParam("type");
-    return tenantManager.listInterfaces(id, full, type)
+    return tenantManager.listInterfaces(tenantId, full, type)
         .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private Future<String> listModulesFromInterface(ProxyContext pc, String id, String intId) {
+  private Future<String> listModulesFromInterface(ProxyContext pc, String tenantId, String intId) {
 
     final String type = pc.getCtx().request().getParam("type");
-    return tenantManager.listModulesFromInterface(id, intId, type).compose(modules -> {
+    return tenantManager.listModulesFromInterface(tenantId, intId, type).compose(modules -> {
       ArrayList<TenantModuleDescriptor> ta = new ArrayList<>();
       for (ModuleDescriptor md : modules) {
         TenantModuleDescriptor tmd = new TenantModuleDescriptor();
