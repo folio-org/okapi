@@ -189,7 +189,7 @@ public class MainVerticle extends AbstractVerticle {
   public void start(Promise<Void> promise) {
     Future<Void> fut = startDatabases();
     if (initMode == InitMode.NORMAL) {
-      fut = fut.compose(x -> startModmanager());
+      fut = fut.compose(x -> startModuleManager());
       fut = fut.compose(x -> startTenants());
       fut = fut.compose(x -> checkInternalModules());
       fut = fut.compose(x -> startEnv());
@@ -213,8 +213,8 @@ public class MainVerticle extends AbstractVerticle {
     return storage.prepareDatabases(initMode);
   }
 
-  private Future<Void> startModmanager() {
-    logger.info("startModmanager");
+  private Future<Void> startModuleManager() {
+    logger.info("startModuleManager");
     return moduleManager.init(vertx);
   }
 
