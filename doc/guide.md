@@ -2655,7 +2655,12 @@ Brief list of properties:
  * `message`: present upon error (error message)
 
 If `message` property is present an error has occurred and `stage`
-indicates at which stage the error occurred.
+indicates at which stage the error occurred. Stage is one of
+ * `pending`: module is yet to be upgraded/deployed/etc..
+ * `deploy`: module is being deployed
+ * `call`: module is being called via system interface, such as `_tenant`,
+    `_tenantPermissions`, ..
+ * `done`: module is fully upgraded
 
 If no `message` property is present and `stage` is `pending`, the module
 upgrade has not begun yet.
