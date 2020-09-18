@@ -7,6 +7,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.spi.cluster.ClusterManager;
@@ -407,6 +408,13 @@ public class DiscoveryManager implements NodeListener {
     return CompositeFuture.all(futures).compose(x -> Future.succeededFuture(all));
   }
 
+  Future<HealthDescriptor> fail(Throwable cause, HealthDescriptor hd) {
+
+    hd.setHealthMessage("Fail: " + cause.getMessage());
+    hd.setHealthStatus(false);
+    return Future.succeededFuture(hd);
+  }
+
   Future<HealthDescriptor> health(DeploymentDescriptor md) {
 
     HealthDescriptor hd = new HealthDescriptor();
@@ -419,23 +427,24 @@ public class DiscoveryManager implements NodeListener {
       return Future.succeededFuture(hd);
     }
     Promise<HealthDescriptor> promise = Promise.promise();
-    httpClient.get(new RequestOptions().setAbsoluteURI(url)).onComplete(res1 -> {
-      if (res1.failed()) {
-        hd.setHealthMessage("Fail: " + res1.cause().getMessage());
-        hd.setHealthStatus(false);
-        promise.complete(hd);
+    httpClient.request(new RequestOptions().setAbsoluteURI(url).setMethod(HttpMethod.GET), req -> {
+      if (req.failed()) {
+        promise.handle(fail(req.cause(), hd));
         return;
       }
-      HttpClientResponse response = res1.result();
-      response.endHandler(res -> {
-        hd.setHealthMessage("OK");
-        hd.setHealthStatus(true);
-        promise.complete(hd);
-      });
-      response.exceptionHandler(res -> {
-        hd.setHealthMessage("Fail: " + res.getMessage());
-        hd.setHealthStatus(false);
-        promise.complete(hd);
+      req.result().end();
+      req.result().onComplete(res -> {
+        if (res.failed()) {
+          promise.handle(fail(res.cause(), hd));
+          return;
+        }
+        HttpClientResponse response = res.result();
+        response.endHandler(x -> {
+          hd.setHealthMessage("OK");
+          hd.setHealthStatus(true);
+          promise.complete(hd);
+        });
+        response.exceptionHandler(e -> promise.handle(fail(e.getCause(), hd)));
       });
     });
     return promise.future();
