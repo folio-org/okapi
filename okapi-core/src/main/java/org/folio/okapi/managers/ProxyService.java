@@ -1237,7 +1237,7 @@ public class ProxyService {
         if (cres.failed()) {
           String msg = messages.getMessage("11101", inst.getMethod(),
               inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
-          logger.warn(msg);
+          logger.warn(msg, cres.cause());
           MetricsHelper.recordHttpClientError(tenantId, inst.getMethod().name(), inst.getPath());
           fut.handle(Future.failedFuture(msg));
           return;
