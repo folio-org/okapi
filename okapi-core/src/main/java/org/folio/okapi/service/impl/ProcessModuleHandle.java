@@ -45,7 +45,7 @@ public class ProcessModuleHandle implements ModuleHandle {
    * Construct process module handler.
    * @param vertx Vert.x handle
    * @param desc launch descriptor
-   * @param id if of process (possibly module ID)
+   * @param id process identifier used for logging (possibly module ID)
    * @param ports ports handle
    * @param port listening port for module
    */
