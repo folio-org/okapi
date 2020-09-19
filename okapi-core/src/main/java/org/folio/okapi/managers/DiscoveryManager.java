@@ -114,7 +114,7 @@ public class DiscoveryManager implements NodeListener {
 
   Future<DeploymentDescriptor> addAndDeploy(DeploymentDescriptor dd) {
     return addAndDeploy0(dd).compose(res -> {
-      return deploymentStore.insert(res).compose(x -> Future.succeededFuture(res));
+      return deploymentStore.insert(res).map(res);
     });
   }
 
@@ -146,7 +146,7 @@ public class DiscoveryManager implements NodeListener {
         if (dd.getInstId() == null) {
           return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10802")));
         } else {
-          return add(dd).compose(x -> Future.succeededFuture(dd));
+          return add(dd).map(dd);
         }
       } else {
         return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10803")));
@@ -176,21 +176,13 @@ public class DiscoveryManager implements NodeListener {
    * Helper to actually launch (deploy) a module on a node.
    */
   private Future<DeploymentDescriptor> callDeploy(String nodeId, DeploymentDescriptor dd) {
-    return getNode(nodeId).compose(nodeDescriptor -> {
-      String reqData = Json.encode(dd);
-      Promise<DeploymentDescriptor> promise = Promise.promise();
-      vertx.eventBus().request(nodeDescriptor.getUrl() + "/deploy", reqData,
-          deliveryOptions).onComplete(ar -> {
-            if (ar.failed()) {
-              promise.fail(new OkapiError(ErrorType.USER, ar.cause().getMessage()));
-            } else {
-              String b = (String) ar.result().body();
-              DeploymentDescriptor pmd = Json.decodeValue(b, DeploymentDescriptor.class);
-              promise.complete(pmd);
-            }
-          });
-      return promise.future();
-    });
+    return getNode(nodeId)
+        .flatMap(nodeDescriptor -> {
+          String url = nodeDescriptor.getUrl() + "/deploy";
+          return vertx.eventBus().request(url, Json.encode(dd), deliveryOptions)
+              .recover(e -> Future.failedFuture(new OkapiError(ErrorType.USER, e.getMessage())));
+        })
+        .map(message -> Json.decodeValue((String) message.body(), DeploymentDescriptor.class));
   }
 
   Future<Void> removeAndUndeploy(String srvcId, String instId) {
@@ -222,9 +214,9 @@ public class DiscoveryManager implements NodeListener {
     List<Future> futures = new LinkedList<>();
     for (DeploymentDescriptor dd : ddList) {
       logger.info("removeAndUndeploy {} {}", dd.getSrvcId(), dd.getInstId());
-      futures.add(callUndeploy(dd).compose(res -> {
-        return deploymentStore.delete(dd.getInstId());
-      }).mapEmpty());
+      futures.add(callUndeploy(dd)
+          .compose(res -> deploymentStore.delete(dd.getInstId()))
+          .mapEmpty());
     }
     return CompositeFuture.all(futures).mapEmpty();
   }
