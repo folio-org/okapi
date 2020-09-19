@@ -76,11 +76,11 @@ public class TenantModuleDescriptor {
   }
 
   /**
-   * Clone an entry without status and stage (for Install without async).
+   * Clone an entry with only original tenant module information (Before async install).
    * @return entry
    */
   @JsonIgnore
-  public TenantModuleDescriptor cloneWithoutStatus() {
+  public TenantModuleDescriptor cloneLegacy() {
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     tm.action = this.action;
     tm.id = this.id;
