@@ -161,7 +161,7 @@ public class PullManager {
       }
       logger.info("pull: {} MDs to insert", mustAddList.size());
       return moduleManager.createList(mustAddList, true, true,true)
-          .compose(res1 -> Future.succeededFuture(briefList));
+          .map(briefList);
     });
   }
 

@@ -91,7 +91,7 @@ public class TenantStoreMongo implements TenantStore {
       final Tenant t = decodeTenant(d);
       t.setEnabled(enabled);
       JsonObject document = encodeTenant(t, id);
-      return cli.save(COLLECTION, document).compose(x -> Future.succeededFuture(Boolean.TRUE));
+      return cli.save(COLLECTION, document).map(Boolean.TRUE);
     });
   }
 

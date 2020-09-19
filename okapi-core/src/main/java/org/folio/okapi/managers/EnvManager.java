@@ -81,7 +81,7 @@ public class EnvManager {
           return Future.succeededFuture();
         }));
       }
-      return future.compose(x -> Future.succeededFuture(list));
+      return future.map(list);
     });
   }
 

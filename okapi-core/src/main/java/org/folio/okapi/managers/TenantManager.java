@@ -151,7 +151,7 @@ public class TenantManager {
           return Future.succeededFuture();
         }));
       }
-      return CompositeFuture.all(futures).compose(x -> Future.succeededFuture(tdl));
+      return CompositeFuture.all(futures).map(tdl);
     });
   }
 
@@ -989,7 +989,7 @@ public class TenantManager {
           return Future.succeededFuture();
         }));
       }
-      return CompositeFuture.all(futures).compose(x -> Future.succeededFuture(tl));
+      return CompositeFuture.all(futures).map(tl);
     });
   }
 

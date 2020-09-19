@@ -723,8 +723,7 @@ public class InternalModule {
 
   private Future<String> disableModuleForTenant(ProxyContext pc, String tenantId, String module) {
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
-    return tenantManager.enableAndDisableModule(tenantId, options, module, null, pc)
-        .compose(res -> Future.succeededFuture(""));
+    return tenantManager.enableAndDisableModule(tenantId, options, module, null, pc).map("");
   }
 
   private Future<String> installTenantModulesPost(ProxyContext pc, String tenantId, String body) {

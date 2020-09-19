@@ -67,8 +67,7 @@ public class TenantStorePostgres implements TenantStore {
       Tenant t = o.mapTo(Tenant.class);
       t.setEnabled(enabled);
       JsonObject doc = JsonObject.mapFrom(t);
-      future = future.compose(a -> q.query(sql, Tuple.of(id, doc))
-          .compose(b -> Future.succeededFuture(Boolean.TRUE)));
+      future = future.compose(a -> q.query(sql, Tuple.of(id, doc)).map(Boolean.TRUE));
     }
     return future;
   }

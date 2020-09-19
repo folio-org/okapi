@@ -368,9 +368,7 @@ public class DiscoveryManager implements NodeListener {
           return Future.succeededFuture();
         }));
       }
-      return CompositeFuture.all(futures).compose(x -> {
-        return Future.succeededFuture(all);
-      });
+      return CompositeFuture.all(futures).map(all);
     });
   }
 
@@ -514,7 +512,7 @@ public class DiscoveryManager implements NodeListener {
         return Future.failedFuture(new OkapiError(ErrorType.USER,
             messages.getMessage("10808", nodeId)));
       }
-      return nodes.put(nodeId, nd).compose(x -> Future.succeededFuture(nd));
+      return nodes.put(nodeId, nd).map(nd);
     });
   }
 
@@ -532,9 +530,7 @@ public class DiscoveryManager implements NodeListener {
           return Future.succeededFuture();
         }));
       }
-      return CompositeFuture.all(futures).compose(res -> {
-        return Future.succeededFuture(nodes);
-      });
+      return CompositeFuture.all(futures).map(nodes);
     });
   }
 

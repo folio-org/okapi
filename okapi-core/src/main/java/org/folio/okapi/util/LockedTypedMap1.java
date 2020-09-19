@@ -71,7 +71,7 @@ public class LockedTypedMap1<T> extends LockedStringMap {
           return Future.succeededFuture();
         }));
       }
-      return CompositeFuture.all(futures).compose(res -> Future.succeededFuture(results));
+      return CompositeFuture.all(futures).map(results);
     });
   }
 
