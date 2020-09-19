@@ -97,7 +97,8 @@ public class InstallTest {
   JsonObject pollCompleteStrip(TestContext context, String uri)
   {
     JsonObject job = pollComplete(context, uri);
-    job.remove("date");
+    job.remove("startDate");
+    job.remove("endDate");
     job.remove("id");
     return job;
   }
@@ -513,7 +514,8 @@ public class InstallTest {
     String jobId = suffix.substring(suffix.lastIndexOf('/') + 1);
 
     JsonObject job = pollComplete(context, suffix);
-    job.remove("date");
+    context.assertNotNull(job.remove("startDate"));
+    context.assertNotNull(job.remove("endDate"));
     context.assertEquals("{" + LS
         + "  \"id\" : \"" + jobId + "\"," + LS
         + "  \"complete\" : true," + LS
@@ -859,7 +861,7 @@ public class InstallTest {
     context.assertEquals(9, ar.size());
     String prevDate = "0";
     for (int i = 0; i < ar.size(); i++) {
-      String thisDate = ar.getJsonObject(i).getString("date");
+      String thisDate = ar.getJsonObject(i).getString("startDate");
       context.assertTrue(thisDate.compareTo(prevDate) > 0);
       prevDate = thisDate;
     }

@@ -10,7 +10,9 @@ public class InstallJob {
 
   private Boolean complete;
 
-  private String date;
+  private String startDate;
+
+  private String endDate;
 
   private List<TenantModuleDescriptor> modules;
 
@@ -30,12 +32,20 @@ public class InstallJob {
     this.complete = complete;
   }
 
-  public String getDate() {
-    return date;
+  public String getStartDate() {
+    return startDate;
   }
 
-  public void setDate(String date) {
-    this.date = date;
+  public void setStartDate(String date) {
+    this.startDate = date;
+  }
+
+  public String getEndDate() {
+    return endDate;
+  }
+
+  public void setEndDate(String endDate) {
+    this.endDate = endDate;
   }
 
   public List<TenantModuleDescriptor> getModules() {

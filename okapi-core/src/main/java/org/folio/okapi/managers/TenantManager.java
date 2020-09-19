@@ -799,7 +799,7 @@ public class TenantManager {
               }
               InstallJob job = new InstallJob();
               job.setId(installId);
-              job.setDate(Instant.now().toString());
+              job.setStartDate(Instant.now().toString());
               if (tml == null) {
                 job.setModules(upgrades(modsAvailable, modsEnabled));
               } else {
@@ -889,6 +889,7 @@ public class TenantManager {
           });
         }
         future.onComplete(x -> {
+          job.setEndDate(Instant.now().toString());
           job.setComplete(true);
           jobs.put(t.getId(), job.getId(), job).onComplete(y -> logger.info("job complete"));
           if (options.getAsync()) {

@@ -2641,7 +2641,8 @@ with a slash + the job ID. The install job has properties such as
 
  * `complete`: boolean which tells whether the job has completed
  * `id`: job id
- * `date`: start time of job in UTC ISO8601 format.
+ * `startDate`: start time of job in UTC ISO8601 format.
+ * `endDate`: end time of job in UTC ISO8601 format (only present when complete)
  * `modules`: enable/disable list of modules along with status.
 
 Each module entry is defined by schema

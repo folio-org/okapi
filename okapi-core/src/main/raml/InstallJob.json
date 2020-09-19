@@ -13,8 +13,12 @@
       "description": "Whether job is complete",
       "type": "boolean"
     },
-    "date": {
+    "startDate": {
       "description": "Start date",
+      "type": "string"
+    },
+    "endDate": {
+      "description": "End date",
       "type": "string"
     },
     "modules": {
