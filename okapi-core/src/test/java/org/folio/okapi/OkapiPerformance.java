@@ -5,6 +5,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -55,53 +56,19 @@ public class OkapiPerformance {
   @After
   public void tearDown(TestContext context) {
     async = context.async();
-    td(context);
-  }
-
-  public void td(TestContext context) {
-    if (locationAuth != null) {
-      httpClient.delete(port, "localhost", locationAuth, context.asyncAssertSuccess(response -> {
+    httpClient.request(HttpMethod.DELETE, port,
+        "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
+          request.end();
+          request.onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> {
-              locationAuth = null;
-              td(context);
+              httpClient.close();
+              async.complete();
             });
           }));
-      return;
-    }
-    if (locationSample != null) {
-      httpClient.delete(port, "localhost", locationSample, context.asyncAssertSuccess(response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationSample = null;
-          td(context);
-        });
-      }));
-      return;
-    }
-    if (locationSample2 != null) {
-      httpClient.delete(port, "localhost", locationSample2, context.asyncAssertSuccess(response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationSample2 = null;
-          td(context);
-        });
-      }));
-      return;
-    }
-    if (locationSample3 != null) {
-      httpClient.delete(port, "localhost", locationSample3, context.asyncAssertSuccess(response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationSample3 = null;
-          td(context);
-        });
-      }));
-      return;
-    }
-    vertx.close(x -> {
-      async.complete();
-    });
+        }));
+    async.await();
+    vertx.close(context.asyncAssertSuccess());
   }
 
   @Test(timeout = 600000)
@@ -130,123 +97,142 @@ public class OkapiPerformance {
       + "    \"type\" : \"request-response\"" + LS
       + "  } ]" + LS
       + "}";
-    httpClient.post(port, "localhost", "/_/proxy/modules", Buffer.buffer(doc),
-        context.asyncAssertSuccess(response -> {
-      logger.debug("declareAuth: " + response.statusCode() + " " + response.statusMessage());
-      context.assertEquals(201, response.statusCode());
-      response.endHandler(x -> {
-        deployAuth(context);
-      });
-    }));
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules")
+        .onComplete(context.asyncAssertSuccess(req -> {
+          req.end(doc);
+          req.onComplete(context.asyncAssertSuccess(response -> {
+            logger.debug("declareAuth: " + response.statusCode() + " " + response.statusMessage());
+            context.assertEquals(201, response.statusCode());
+            response.endHandler(x -> {
+              deployAuth(context);
+            });
+          }));
+        }));
   }
 
   public void deployAuth(TestContext context) {
     final String doc = "{" + LS
-            + "  \"srvcId\" : \"auth-1.0.0\"," + LS
-            + "  \"descriptor\" : {" + LS
-            + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar\"" + LS
-            + "  }" + LS
-            + "}";
-    httpClient.post(port, "localhost", "/_/deployment/modules", Buffer.buffer(doc),
-        context.asyncAssertSuccess(response -> {
-      logger.debug("deployAuth: " + response.statusCode() + " " + response.statusMessage());
-      context.assertEquals(201, response.statusCode());
-      locationAuth = response.getHeader("Location");
-      context.assertNotNull(locationAuth);
-      response.endHandler(x -> {
-        declareSample(context);
-      });
-    }));
+        + "  \"srvcId\" : \"auth-1.0.0\"," + LS
+        + "  \"descriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar\"" + LS
+        + "  }" + LS
+        + "}";
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/deployment/modules",
+        context.asyncAssertSuccess(request -> {
+          request.end(doc);
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            logger.debug("deployAuth: " + response.statusCode() + " " + response.statusMessage());
+            context.assertEquals(201, response.statusCode());
+            locationAuth = response.getHeader("Location");
+            context.assertNotNull(locationAuth);
+            response.endHandler(x -> {
+              declareSample(context);
+            });
+          }));
+        }));
   }
 
   public void declareSample(TestContext context) {
     final String doc = "{" + LS
-      + "  \"id\" : \"sample-module-1.0.0\"," + LS
-      + "  \"name\" : \"sample module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"," + LS
-      + "      \"permissionsRequired\" : [ ]" + LS
-      + "    } ]" + LS
-      + "  } ]" + LS
-      + "}";
+        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"name\" : \"sample module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"sample\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "      \"path\" : \"/testb\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]" + LS
+        + "}";
 
-    httpClient.post(port, "localhost", "/_/proxy/modules", Buffer.buffer(doc),
-        context.asyncAssertSuccess(response -> {
-      context.assertEquals(201, response.statusCode());
-      response.handler(body -> {
-        context.assertEquals(doc, body.toString());
-      });
-      response.endHandler(x -> {
-        deploySample(context);
-      });
-    }));
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules",
+        context.asyncAssertSuccess(request -> {
+          request.end(doc);
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(201, response.statusCode());
+            response.handler(body -> {
+              context.assertEquals(doc, body.toString());
+            });
+            response.endHandler(x -> {
+              deploySample(context);
+            });
+          }));
+        }));
   }
 
   public void deploySample(TestContext context) {
     final String doc = "{" + LS
-            + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
-            + "  \"descriptor\" : {" + LS
-            + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-            + "  }" + LS
-            + "}";
-    httpClient.post(port, "localhost", "/_/deployment/modules", Buffer.buffer(doc),
-        context.asyncAssertSuccess(response -> {
-      context.assertEquals(201, response.statusCode());
-      locationSample = response.getHeader("Location");
-      Assert.assertNotNull(locationSample);
-      response.handler(body -> {
-      });
-      response.endHandler(x -> {
-        createTenant(context);
-      });
-    }));
+        + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
+        + "  \"descriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+        + "  }" + LS
+        + "}";
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/deployment/modules",
+        context.asyncAssertSuccess(request -> {
+          request.end(doc);
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(201, response.statusCode());
+            locationSample = response.getHeader("Location");
+            Assert.assertNotNull(locationSample);
+            response.endHandler(x -> {
+              createTenant(context);
+            });
+          }));
+        }));
   }
 
   public void createTenant(TestContext context) {
     final String doc = "{" + LS
-            + "  \"id\" : \"" + okapiTenant + "\"," + LS
-            + "  \"name\" : \"" + okapiTenant + "\"," + LS
-            + "  \"description\" : \"Roskilde bibliotek\"" + LS
-            + "}";
-    httpClient.post(port, "localhost", "/_/proxy/tenants", Buffer.buffer(doc),
-        context.asyncAssertSuccess(response -> {
-      context.assertEquals(201, response.statusCode());
-      locationTenant = response.getHeader("Location");
-      response.handler(body -> {
-        context.assertEquals(doc, body.toString());
-      });
-      response.endHandler(x -> {
-        tenantEnableModuleAuth(context);
-      });
-    }));
+        + "  \"id\" : \"" + okapiTenant + "\"," + LS
+        + "  \"name\" : \"" + okapiTenant + "\"," + LS
+        + "  \"description\" : \"Roskilde bibliotek\"" + LS
+        + "}";
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants",
+        context.asyncAssertSuccess(request -> {
+          request.end(doc);
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(201, response.statusCode());
+            locationTenant = response.getHeader("Location");
+            response.handler(body -> {
+              context.assertEquals(doc, body.toString());
+            });
+            response.endHandler(x -> {
+              tenantEnableModuleAuth(context);
+            });
+          }));
+        }));
   }
 
   public void tenantEnableModuleAuth(TestContext context) {
     final String doc = "{" + LS
-            + "  \"id\" : \"auth\"" + LS
-            + "}";
-    httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
-        MultiMap.caseInsensitiveMultiMap(), Buffer.buffer(doc), context.asyncAssertSuccess(response -> {
-      context.assertEquals(201, response.statusCode());
-      response.endHandler(x -> tenantEnableModuleSample(context));
-    }));
+        + "  \"id\" : \"auth\"" + LS
+        + "}";
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
+        context.asyncAssertSuccess(request -> {
+          request.end();
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(201, response.statusCode());
+            response.endHandler(x -> tenantEnableModuleSample(context));
+          }));
+        }));
   }
 
   public void tenantEnableModuleSample(TestContext context) {
     final String doc = "{" + LS
-            + "  \"id\" : \"sample-module\"" + LS
-            + "}";
-    httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
-        MultiMap.caseInsensitiveMultiMap(), Buffer.buffer(doc), context.asyncAssertSuccess(response -> {
-      context.assertEquals(201, response.statusCode());
-      response.endHandler(x -> doLogin(context));
-    }));
+        + "  \"id\" : \"sample-module\"" + LS
+        + "}";
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
+        context.asyncAssertSuccess(request -> {
+          request.end();
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(201, response.statusCode());
+            response.endHandler(x -> doLogin(context));
+          }));
+        }));
   }
 
   public void doLogin(TestContext context) {
@@ -255,29 +241,34 @@ public class OkapiPerformance {
             + "  \"username\" : \"peter\"," + LS
             + "  \"password\" : \"peter-password\"" + LS
             + "}";
-    httpClient.post(port, "localhost", "/authn/login",
-        MultiMap.caseInsensitiveMultiMap().add("X-Okapi-Tenant", okapiTenant),
-        Buffer.buffer(doc), context.asyncAssertSuccess(response -> {
-      context.assertEquals(200, response.statusCode());
-      String headers = response.headers().entries().toString();
-      okapiToken = response.getHeader("X-Okapi-Token");
-      response.endHandler(x -> useItWithGet(context));
+    httpClient.request(HttpMethod.POST, port, "localhost", "/authn/login", context.asyncAssertSuccess(request -> {
+      request.putHeader("X-Okapi-Tenant", okapiTenant);
+      request.end(doc);
+      request.onComplete(context.asyncAssertSuccess(response -> {
+        context.assertEquals(200, response.statusCode());
+        String headers = response.headers().entries().toString();
+        okapiToken = response.getHeader("X-Okapi-Token");
+        response.endHandler(x -> useItWithGet(context));
+      }));
     }));
   }
 
   public void useItWithGet(TestContext context) {
-    httpClient.get(port, "localhost", "/testb",
-        MultiMap.caseInsensitiveMultiMap().add("X-Okapi-Token", okapiToken)
-        .add("X-Okapi-Tenant", okapiTenant), context.asyncAssertSuccess(response -> {
-      context.assertEquals(200, response.statusCode());
-      String headers = response.headers().entries().toString();
-      response.handler(x -> {
-        context.assertEquals("It works", x.toString());
-      });
-      response.endHandler(x -> {
-        useItWithPost(context);
-      });
-    }));
+    httpClient.request(HttpMethod.GET, port, "localhost", "/testb",
+        context.asyncAssertSuccess(request -> {
+          request.putHeader("X-Okapi-Tenant", okapiTenant);
+          request.end();
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(200, response.statusCode());
+            String headers = response.headers().entries().toString();
+            response.handler(x -> {
+              context.assertEquals("It works", x.toString());
+            });
+            response.endHandler(x -> {
+              useItWithPost(context);
+            });
+          }));
+        }));
   }
 
   public void useItWithPost(TestContext context) {
@@ -287,49 +278,64 @@ public class OkapiPerformance {
     headers.add("X-Okapi-Tenant", okapiTenant);
     headers.add("Accept", "text/xml");
     headers.add("Content-Type", "text/plain");
-    httpClient.post(port, "localhost", "/testb", headers, Buffer.buffer("Okapi"),
-        context.asyncAssertSuccess(response -> {
-      context.assertEquals(200, response.statusCode());
-      response.handler(body::appendBuffer);
-      response.endHandler(x -> {
-        context.assertEquals("<test>Hello Okapi</test>", body.toString());
-        declareSample2(context);
-      });
-    }));
+
+    httpClient.request(HttpMethod.POST, port, "localhost", "/testb",
+        context.asyncAssertSuccess(request -> {
+          request.putHeader("X-Okapi-Token", okapiToken);
+          request.putHeader("X-Okapi-Tenant", okapiTenant);
+          request.putHeader("Accept", "text/xml");
+          request.putHeader("Content-Type", "text/plain");
+          request.end("Okapi");
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(200, response.statusCode());
+            response.handler(body::appendBuffer);
+            response.endHandler(x -> {
+              context.assertEquals("<test>Hello Okapi</test>", body.toString());
+              declareSample2(context);
+            });
+          }));
+        }));
   }
 
   public void declareSample2(TestContext context) {
     final String doc = "{" + LS
-            + "  \"id\" : \"sample-module2-1.0.0\"," + LS
-            + "  \"name\" : \"sample2\"," + LS
-            + "  \"filters\" : [ {" + LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/testb\"," + LS
-            + "    \"level\" : \"31\"," + LS
-            + "    \"type\" : \"request-response\"" + LS
-            + "  } ]" + LS
-            + "}";
-    httpClient.post(port, "localhost", "/_/proxy/modules", Buffer.buffer(doc),
-        context.asyncAssertSuccess(response -> {
-      context.assertEquals(201, response.statusCode());
-      response.endHandler(x -> {
-        deploySample2(context);
-      });
-    }));
+        + "  \"id\" : \"sample-module2-1.0.0\"," + LS
+        + "  \"name\" : \"sample2\"," + LS
+        + "  \"filters\" : [ {" + LS
+        + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "    \"path\" : \"/testb\"," + LS
+        + "    \"level\" : \"31\"," + LS
+        + "    \"type\" : \"request-response\"" + LS
+        + "  } ]" + LS
+        + "}";
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules",
+        context.asyncAssertSuccess(request -> {
+          request.end(doc);
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(201, response.statusCode());
+            response.endHandler(x -> {
+              deploySample2(context);
+            });
+          }));
+        }));
   }
 
   public void deploySample2(TestContext context) {
     final String doc = "{" + LS
         + "  \"instId\" : \"sample2-inst\"," + LS
         + "  \"srvcId\" : \"sample-module2-1.0.0\"," + LS
-        + "  \"url\" : \"http://localhost:9232\"" + LS            + "}";
-    httpClient.post(port, "localhost", "/_/discovery/modules", Buffer.buffer(doc),
-        context.asyncAssertSuccess(response -> {
-          context.assertEquals(201, response.statusCode());
-          locationSample2 = response.getHeader("Location");
-          response.endHandler(x -> {
-            tenantEnableModuleSample2(context);
-          });
+        + "  \"url\" : \"http://localhost:9232\"" + LS
+        + "}";
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/discovery/modules",
+        context.asyncAssertSuccess(request -> {
+          request.end(doc);
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(201, response.statusCode());
+            locationSample2 = response.getHeader("Location");
+            response.endHandler(x -> {
+              tenantEnableModuleSample2(context);
+            });
+          }));
         }));
   }
 
@@ -337,14 +343,16 @@ public class OkapiPerformance {
     final String doc = "{" + LS
         + "  \"id\" : \"sample-module2\"" + LS
         + "}";
-    httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
-        Buffer.buffer(doc), context.asyncAssertSuccess(response -> {
-      context.assertEquals(201, response.statusCode());
-      response.endHandler(x -> {
-        // deleteTenant(context);
-        declareSample3(context);
-      });
-    }));
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
+        context.asyncAssertSuccess(request -> {
+          request.end(doc);
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(201, response.statusCode());
+            response.endHandler(x -> {
+              declareSample3(context);
+            });
+          }));
+        }));
   }
 
   public void declareSample3(TestContext context) {
@@ -368,12 +376,15 @@ public class OkapiPerformance {
         + "    \"type\" : \"request-only\"" + LS
         + "  } ]" + LS
         + "}";
-    httpClient.post(port, "localhost", "/_/proxy/modules", Buffer.buffer(doc),
-        context.asyncAssertSuccess(response -> {
-          context.assertEquals(201, response.statusCode());
-          response.endHandler(x -> {
-            deploySample3(context);
-          });
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules",
+        context.asyncAssertSuccess(request -> {
+          request.end(doc);
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(201, response.statusCode());
+            response.endHandler(x -> {
+              deploySample3(context);
+            });
+          }));
         }));
   }
 
@@ -382,13 +393,16 @@ public class OkapiPerformance {
         + "  \"instId\" : \"sample3-inst\"," + LS
         + "  \"srvcId\" : \"sample-module3-1.0.0\"," + LS
         + "  \"url\" : \"http://localhost:9232\"" + LS            + "}";
-    httpClient.post(port, "localhost", "/_/discovery/modules", Buffer.buffer(doc),
-        context.asyncAssertSuccess(response -> {
-          context.assertEquals(201, response.statusCode());
-          locationSample3 = response.getHeader("Location");
-          response.endHandler(x -> {
-            tenantEnableModuleSample3(context);
-          });
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/discovery/modules",
+        context.asyncAssertSuccess(request -> {
+          request.end(doc);
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(201, response.statusCode());
+            locationSample3 = response.getHeader("Location");
+            response.endHandler(x -> {
+              tenantEnableModuleSample3(context);
+            });
+          }));
         }));
   }
 
@@ -396,12 +410,15 @@ public class OkapiPerformance {
     final String doc = "{" + LS
         + "  \"id\" : \"sample-module3-1.0.0\"" + LS
         + "}";
-    httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
-        Buffer.buffer(doc), context.asyncAssertSuccess(response -> {
-          context.assertEquals(201, response.statusCode());
-          response.endHandler(x -> {
-            repeatPostInit(context);
-          });
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
+        context.asyncAssertSuccess(request -> {
+          request.end(doc);
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(201, response.statusCode());
+            response.endHandler(x -> {
+              repeatPostInit(context);
+            });
+          }));
         }));
   }
 
@@ -433,28 +450,34 @@ public class OkapiPerformance {
       logger.debug("repeatPost " + max + " iterations");
     }
     Buffer body = Buffer.buffer();
-    httpClient.post(port, "localhost", "/testb",
-        MultiMap.caseInsensitiveMultiMap().add("X-Okapi-Token", okapiToken).add("X-Okapi-Tenant", okapiTenant),
-        Buffer.buffer(msg), context.asyncAssertSuccess(response -> {
-          context.assertEquals(200, response.statusCode());
-          String headers = response.headers().entries().toString();
-          response.handler(body::appendBuffer);
-          response.endHandler(x -> {
-            context.assertEquals("Hello Hello " + msg, body.toString());
-            repeatPostRun(context, cnt + 1, max, parallels);
-          });
-          response.exceptionHandler(e -> context.fail(e));
+    httpClient.request(HttpMethod.POST, port, "localhost", "/testb",
+        context.asyncAssertSuccess(request -> {
+          request.putHeader("X-Okapi-Token", okapiToken);
+          request.putHeader("X-Okapi-Tenant", okapiTenant);
+          request.end(msg);
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(200, response.statusCode());
+            String headers = response.headers().entries().toString();
+            response.handler(body::appendBuffer);
+            response.endHandler(x -> {
+              context.assertEquals("Hello Hello " + msg, body.toString());
+              repeatPostRun(context, cnt + 1, max, parallels);
+            });
+            response.exceptionHandler(e -> context.fail(e));
+          }));
         }));
   }
 
   public void deleteTenant(TestContext context) {
-    httpClient.delete(port, "localhost", locationTenant,
-        context.asyncAssertSuccess(response -> {
-      context.assertEquals(204, response.statusCode());
-      response.endHandler(x -> {
-        done(context);
-      });
-    }));
+    httpClient.request(HttpMethod.DELETE, port, "localhost", locationTenant,
+        context.asyncAssertSuccess(request -> {
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(204, response.statusCode());
+            response.endHandler(x -> {
+              done(context);
+            });
+          }));
+        }));
   }
 
   public void done(TestContext context) {

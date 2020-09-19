@@ -115,9 +115,8 @@ public class PullTest {
       });
       return;
     }
-    vertx.close(x -> {
-      async.complete();
-    });
+    vertx.close(context.asyncAssertSuccess());
+    async.complete();
   }
 
   @Test
