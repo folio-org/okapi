@@ -164,7 +164,7 @@ public class ProxyContext {
     return ctx;
   }
 
-  private String  getReqId() {
+  private String getReqId() {
     return reqId;
   }
 
@@ -274,7 +274,7 @@ public class ProxyContext {
   }
 
   public void warn(String msg, Throwable e) {
-    logger.warn("{} {}", getReqId(), msg, e);
+    logger.warn(msg, e);
   }
 
   public void debug(String msg) {
