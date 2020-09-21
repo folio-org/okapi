@@ -99,11 +99,11 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     buffer.get(bytes);
     String s = new String(bytes);
     int prev = 0;
+    // one log per line
     for (int i = 0; i < s.length(); i++) {
       if (s.charAt(i) == '\n') {
-        if (i > prev) {
-          logger.info("{} {}", id, s.substring(prev, i));
-        }
+        // omit \n in output
+        logger.info("{} {}", id, s.substring(prev, i));
         prev = i + 1;
       }
     }
