@@ -756,8 +756,8 @@ public class ProxyService {
         sz += name.length() + 4 + value.length(); // 4 for colon blank cr lf
       }
     }
-    if (sz > limit && logger.isInfoEnabled()) {
-      logger.info("Request headers size={}", sz);
+    if (sz > limit && logger.isDebugEnabled()) {
+      logger.debug("Request headers size={}", sz);
       dumpHeaders(ctx.request().headers());
     }
     clientRequest.headers().setAll(ctx.request().headers());
@@ -772,7 +772,7 @@ public class ProxyService {
     for (String name : headers.names()) {
       List<String> values = headers.getAll(name);
       for (String value : values) {
-        logger.info("{}: {}", name, value);
+        logger.debug("{}: {}", name, value);
       }
     }
   }
@@ -785,7 +785,7 @@ public class ProxyService {
         logger.warn("Removing X-Okapi-Token returned by module {} (RMB-478)", md.getId());
         resHeaders.remove(XOkapiHeaders.TOKEN);
       } else {
-        logger.info("New X-Okapi-Token returned by module {}", md.getId());
+        logger.debug("New X-Okapi-Token returned by module {}", md.getId());
       }
     }
   }
@@ -1223,7 +1223,7 @@ public class ProxyService {
       String baseurl = instance.getUrl();
       Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
       headers.put(XOkapiHeaders.URL_TO, baseurl);
-      logger.info("syscall begin {} {}{}", inst.getMethod(), baseurl, inst.getPath());
+      logger.debug("syscall begin {} {}{}", inst.getMethod(), baseurl, inst.getPath());
       OkapiClient cli = new OkapiClient(this.httpClient, baseurl, vertx, headers);
       String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
       cli.newReqId(reqId); // "tenant" or "tenantpermissions"
@@ -1233,11 +1233,11 @@ public class ProxyService {
       }
       final Timer.Sample sample = MetricsHelper.getTimerSample();
       cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
-        logger.info("syscall return {} {}{}", inst.getMethod(), baseurl, inst.getPath());
+        logger.debug("syscall return {} {}{}", inst.getMethod(), baseurl, inst.getPath());
         if (cres.failed()) {
           String msg = messages.getMessage("11101", inst.getMethod(),
               inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
-          logger.warn(msg);
+          logger.warn(msg, cres.cause());
           MetricsHelper.recordHttpClientError(tenantId, inst.getMethod().name(), inst.getPath());
           fut.handle(Future.failedFuture(msg));
           return;

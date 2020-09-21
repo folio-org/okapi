@@ -266,23 +266,23 @@ public class ProxyContext {
   }
 
   public void error(String msg) {
-    logger.error("{} {}", getReqId(), msg);
+    logger.error(msg);
   }
 
   public void warn(String msg) {
-    logger.warn("{} {}", getReqId(), msg);
+    logger.warn(msg);
   }
 
   public void warn(String msg, Throwable e) {
-    logger.warn("{} {}", getReqId(), msg, e);
+    logger.warn(msg, e);
   }
 
   public void debug(String msg) {
-    logger.debug("{} {}", getReqId(), msg);
+    logger.debug(msg);
   }
 
   public void trace(String msg) {
-    logger.trace("{} {}", getReqId(), msg);
+    logger.trace(msg);
   }
 
   public Timer.Sample getSample() {
