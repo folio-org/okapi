@@ -3,6 +3,7 @@ package org.folio.okapi.util;
 import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.service.impl.ProcessModuleHandle;
+import org.junit.Assume;
 import org.junit.Test;
 
 import io.vertx.core.Vertx;
@@ -150,9 +151,8 @@ public class ProcessModuleHandleTest {
   public void testCmdLineOk(TestContext context) {
     // Cannot rely on sh and kill on Windows
     String os = System.getProperty("os.name").toLowerCase();
-    if (os.contains("win")) {
-      return;
-    }
+    Assume.assumeFalse(os.contains("win"));
+
     LaunchDescriptor desc = new LaunchDescriptor();
     // program should operate OK
     desc.setCmdlineStart("java -DpidFile=test-module.pid " + testModuleArgs + " 2>&1 >/dev/null &");
@@ -166,9 +166,7 @@ public class ProcessModuleHandleTest {
   public void testBadCmdlineStop(TestContext context) {
     // Cannot rely on sh and kill on Windows
     String os = System.getProperty("os.name").toLowerCase();
-    if (os.contains("win")) {
-      return;
-    }
+    Assume.assumeFalse(os.contains("win"));
     LaunchDescriptor desc = new LaunchDescriptor();
     // start works (we don't check port) but stop fails
     desc.setCmdlineStart("echo %p; sleep 1 &");
@@ -182,9 +180,7 @@ public class ProcessModuleHandleTest {
   public void testCmdlineStartNoListener(TestContext context) {
     // Cannot rely on sh and kill on Windows
     String os = System.getProperty("os.name").toLowerCase();
-    if (os.contains("win")) {
-      return;
-    }
+    Assume.assumeFalse(os.contains("win"));
     LaunchDescriptor desc = new LaunchDescriptor();
     // start works , but does not listen on port
     desc.setCmdlineStart("echo %p; sleep 2");
@@ -198,9 +194,7 @@ public class ProcessModuleHandleTest {
   public void testCmdlineStartFails(TestContext context) {
     // Cannot rely on sh and kill on Windows
     String os = System.getProperty("os.name").toLowerCase();
-    if (os.contains("win")) {
-      return;
-    }
+    Assume.assumeFalse(os.contains("win"));
     LaunchDescriptor desc = new LaunchDescriptor();
     // start fails (no such file or directory)
     desc.setCmdlineStart("gyf %p");
