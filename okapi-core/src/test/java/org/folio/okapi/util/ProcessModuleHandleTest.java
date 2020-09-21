@@ -1,20 +1,19 @@
 package org.folio.okapi.util;
 
-import org.folio.okapi.service.ModuleHandle;
-import org.folio.okapi.bean.LaunchDescriptor;
-import org.folio.okapi.service.impl.ProcessModuleHandle;
-import org.junit.Assume;
-import org.junit.Test;
-
 import io.vertx.core.Vertx;
 import io.vertx.core.net.NetServer;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.service.ModuleHandle;
+import org.folio.okapi.service.impl.ProcessModuleHandle;
+import org.junit.Assume;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
