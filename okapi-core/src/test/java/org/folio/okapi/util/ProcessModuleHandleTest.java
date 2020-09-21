@@ -147,7 +147,7 @@ public class ProcessModuleHandleTest {
   }
 
   @Test
-  public void testCmdLineOk(TestContext context) {
+  public void testCmdlineOk(TestContext context) {
     // Cannot rely on sh and kill on Windows
     String os = System.getProperty("os.name").toLowerCase();
     Assume.assumeFalse(os.contains("win"));
