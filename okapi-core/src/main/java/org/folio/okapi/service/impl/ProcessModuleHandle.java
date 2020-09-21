@@ -120,7 +120,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
   }
 
   private NuProcess launch(Vertx vertx, String id, EnvEntry[] env,
-                           String [] command) throws IOException {
+                           String [] command) {
 
     NuProcessBuilder pb = new NuProcessBuilder(command);
     if (env != null) {
@@ -130,7 +130,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     }
     exitCode = 0;
     pb.setProcessListener(this);
-    NuProcess process = pb.start(); // may throw IOException (but the signature doesn't say
+    NuProcess process = pb.start();
     return process;
   }
 
@@ -161,16 +161,16 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
           }
           process = launch(vertx, id, env, l);
           process.waitFor(1, TimeUnit.SECONDS);
-        } catch (IOException ex) {
-          logger.warn("when starting {}", c, ex);
-          future.fail(ex);
-          return;
         } catch (InterruptedException ex) {
           logger.warn("when starting {}", c, ex);
           Thread.currentThread().interrupt();
         }
         if (!process.isRunning() && exitCode != 0) {
-          future.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
+          if (exitCode == Integer.MIN_VALUE) {
+            future.handle(Future.failedFuture(messages.getMessage("11504", c)));
+          } else {
+            future.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
+          }
           return;
         }
       }
@@ -241,13 +241,13 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
           pp.waitFor(30, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
           logger.debug("Wait done");
           if (!pp.isRunning() && exitCode != 0) {
-            future.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
+            if (exitCode == Integer.MIN_VALUE) {
+              future.handle(Future.failedFuture(messages.getMessage("11504", c)));
+            } else {
+              future.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
+            }
             return;
           }
-        } catch (IOException ex) {
-          logger.warn("when invoking {}", c, ex);
-          future.fail(ex);
-          return;
         } catch (InterruptedException ex) {
           logger.warn("when invoking {}", c, ex);
           future.fail(ex);

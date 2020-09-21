@@ -1,9 +1,15 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.NetServer;
+import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.util.LinkedList;
+import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
@@ -72,7 +78,9 @@ public class ProcessModuleHandleTest {
     desc.setExec("gyf 10 %p"); // bad program
     ModuleHandle mh = createModuleHandle(desc, 0);
 
-    mh.start(context.asyncAssertFailure());
+    mh.start(context.asyncAssertFailure(cause ->
+        context.assertEquals("Could not execute gyf 10 0", cause.getMessage())
+    ));
   }
 
   @Test
@@ -162,7 +170,7 @@ public class ProcessModuleHandleTest {
   }
 
   @Test
-  public void testBadCmdlineStop(TestContext context) {
+  public void testCmdlineStopNotFound(TestContext context) {
     // Cannot rely on sh and kill on Windows
     String os = System.getProperty("os.name").toLowerCase();
     Assume.assumeFalse(os.contains("win"));
@@ -172,7 +180,29 @@ public class ProcessModuleHandleTest {
     desc.setCmdlineStop("gyf");
     ModuleHandle mh = createModuleHandle(desc, 0);
 
-    mh.start(context.asyncAssertSuccess(res -> mh.stop(context.asyncAssertFailure())));
+    mh.start(context.asyncAssertSuccess(res ->
+        mh.stop(context.asyncAssertFailure(cause ->
+            context.assertEquals("Could not execute gyf", cause.getMessage())
+        ))
+    ));
+  }
+
+  @Test
+  public void testCmdlineStopBadExit(TestContext context) {
+    // Cannot rely on sh and kill on Windows
+    String os = System.getProperty("os.name").toLowerCase();
+    Assume.assumeFalse(os.contains("win"));
+    LaunchDescriptor desc = new LaunchDescriptor();
+    // start works (we don't check port) but stop fails
+    desc.setCmdlineStart("echo %p; sleep 1 &");
+    desc.setCmdlineStop("false");
+    ModuleHandle mh = createModuleHandle(desc, 0);
+
+    mh.start(context.asyncAssertSuccess(res ->
+        mh.stop(context.asyncAssertFailure(cause ->
+            context.assertEquals("Service returned with exit code 1", cause.getMessage())
+        ))
+    ));
   }
 
   @Test
@@ -190,7 +220,7 @@ public class ProcessModuleHandleTest {
   }
 
   @Test
-  public void testCmdlineStartFails(TestContext context) {
+  public void testCmdlineStartNotFound(TestContext context) {
     // Cannot rely on sh and kill on Windows
     String os = System.getProperty("os.name").toLowerCase();
     Assume.assumeFalse(os.contains("win"));
@@ -200,7 +230,46 @@ public class ProcessModuleHandleTest {
     desc.setCmdlineStop("gyf");
     ModuleHandle mh = createModuleHandle(desc, 0);
 
-    mh.start(context.asyncAssertFailure());
+    mh.start(context.asyncAssertFailure(cause ->
+        context.assertEquals("Could not execute gyf 0", cause.getMessage())
+    ));
   }
 
+  @Test
+  public void testExecMultiple(TestContext context) {
+    LaunchDescriptor desc = new LaunchDescriptor();
+    // program should operate OK
+    desc.setExec("java " + testModuleArgs);
+    int no = 9; // number of processes to spawn
+    ModuleHandle[] mhs = new ModuleHandle[no];
+    int i;
+    for (i = 0; i < no; i++) {
+      mhs[i] = createModuleHandle(desc, 9231+i);
+    }
+    logger.debug("Start");
+    List<Future> futures = new LinkedList<>();
+    for (ModuleHandle mh : mhs) {
+      Promise<Void> promise = Promise.promise();
+      mh.start(promise::handle);
+      futures.add(promise.future());
+    }
+    Async async1 = context.async();
+    CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(res -> async1.complete()));
+    async1.await();
+
+    logger.debug("Wait");
+    Async async = context.async();
+    vertx.setTimer(4000, x -> async.complete());
+    async.await();
+    logger.debug("Stop");
+    futures = new LinkedList<>();
+    for (ModuleHandle mh : mhs) {
+      Promise<Void> promise = Promise.promise();
+      mh.stop(promise::handle);
+      futures.add(promise.future());
+    }
+    Async async2 = context.async();
+    CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(res -> async2.complete()));
+    async2.await();
+  }
 }
