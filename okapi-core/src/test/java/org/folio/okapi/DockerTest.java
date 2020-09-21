@@ -14,6 +14,7 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -21,7 +22,6 @@ import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import java.util.LinkedList;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
@@ -37,14 +37,9 @@ public class DockerTest {
   private Vertx vertx;
   private final int port = 9230;
   private static final String LS = System.lineSeparator();
-  private final LinkedList<String> locations;
   private boolean haveDocker = false;
   private HttpClient client;
   private JsonArray dockerImages = new JsonArray();
-
-  public DockerTest() {
-    this.locations = new LinkedList<>();
-  }
 
   @Before
   public void setUp(TestContext context) {
@@ -80,55 +75,63 @@ public class DockerTest {
   @After
   public void tearDown(TestContext context) {
     logger.info("tearDown");
-    td(context, context.async());
-  }
 
-  private void td(TestContext context, Async async) {
-    if (locations.isEmpty()) {
-      vertx.close(x -> {
-        async.complete();
-      });
-    } else {
-      String l = locations.removeFirst();
-      client.delete(port, "localhost",  l).onComplete(res -> {
-        td(context, async);
-      });
-    }
+    Async async = context.async();
+    HttpClient httpClient = vertx.createHttpClient();
+    httpClient.request(HttpMethod.DELETE, port,
+        "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
+          request.end();
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(204, response.statusCode());
+            response.endHandler(x -> {
+              httpClient.close();
+              vertx.close(context.asyncAssertSuccess());
+              async.complete();
+            });
+          }));
+        }));
   }
 
   private void checkDocker(Handler<AsyncResult<JsonArray>> future) {
     final SocketAddress socketAddress
       = SocketAddress.domainSocketAddress("/var/run/docker.sock");
     final String url = "http://localhost/images/json?all=1";
-    client.get(new RequestOptions().setURI(url).setServer(socketAddress),
+    client.request(new RequestOptions().setURI(url).setServer(socketAddress).setMethod(HttpMethod.GET),
     res1 -> {
       if (res1.failed()) {
         future.handle(Future.failedFuture(res1.cause()));
         return;
       }
-      HttpClientResponse res = res1.result();
-      Buffer body = Buffer.buffer();
-      res.handler(body::appendBuffer);
-      res.endHandler(d -> {
-        if (res.statusCode() == 200) {
-          boolean gotIt = false;
-          try {
-            JsonArray ar = body.toJsonArray();
-            future.handle(Future.succeededFuture(ar));
-          } catch (Exception ex) {
-            logger.warn(ex);
-            future.handle(Future.failedFuture(ex));
-          }
-        } else {
-          String m = "checkDocker HTTP error " + res.statusCode() + "\n"
-              + body.toString();
-          logger.error(m);
-          future.handle(Future.failedFuture(m));
+      res1.result().end();
+      res1.result().onComplete(res2 -> {
+        if (res2.failed()) {
+          future.handle(Future.failedFuture(res2.cause()));
+          return;
         }
-      });
-      res.exceptionHandler(d -> {
-        logger.warn("exceptionHandler 2 " + d, d);
-        future.handle(Future.failedFuture(d));
+        HttpClientResponse res = res2.result();
+        Buffer body = Buffer.buffer();
+        res.handler(body::appendBuffer);
+        res.endHandler(d -> {
+          if (res.statusCode() == 200) {
+            boolean gotIt = false;
+            try {
+              JsonArray ar = body.toJsonArray();
+              future.handle(Future.succeededFuture(ar));
+            } catch (Exception ex) {
+              logger.warn(ex);
+              future.handle(Future.failedFuture(ex));
+            }
+          } else {
+            String m = "checkDocker HTTP error " + res.statusCode() + "\n"
+                + body.toString();
+            logger.error(m);
+            future.handle(Future.failedFuture(m));
+          }
+        });
+        res.exceptionHandler(d -> {
+          logger.warn("exceptionHandler 2 " + d, d);
+          future.handle(Future.failedFuture(d));
+        });
       });
     });
   }
@@ -198,7 +201,6 @@ public class DockerTest {
       .extract().response();
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
-    locations.add(r.getHeader("Location"));
 
     final String doc1 = "{" + LS
       + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
@@ -210,7 +212,6 @@ public class DockerTest {
       .body(doc1).post("/_/discovery/modules")
       .then().statusCode(201)
       .extract().response();
-    locations.add(r.getHeader("Location"));
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
   }
@@ -244,7 +245,6 @@ public class DockerTest {
       .extract().response();
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
-    locations.add(r.getHeader("Location"));
 
     final String doc1 = "{" + LS
       + "  \"srvcId\" : \"sample-unknown-1\"," + LS
@@ -301,7 +301,6 @@ public class DockerTest {
       .extract().response();
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
-    locations.add(r.getHeader("Location"));
 
     final String doc2 = "{" + LS
       + "  \"srvcId\" : \"mod-users-5.0.0-bad-listening-port\"," + LS
@@ -361,7 +360,6 @@ public class DockerTest {
       .extract().response();
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
-    locations.add(r.getHeader("Location"));
 
     final String doc2 = "{" + LS
       + "  \"srvcId\" : \"mod-users-5.0.0\"," + LS
@@ -382,7 +380,6 @@ public class DockerTest {
         || rBody.contains("port is already allocated"), "body is " + rBody);
     } else {
       context.assertEquals(201, statusCode);
-      locations.add(r.getHeader("Location"));
     }
   }
 }

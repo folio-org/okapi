@@ -497,7 +497,7 @@ public class ProxyService {
   }
 
   private void log(ProxyContext pc, HttpClientRequest creq) {
-    pc.debug(creq.method().name() + " " + creq.uri());
+    pc.debug(creq.getMethod().name() + " " + creq.getURI());
     for (Map.Entry<String, String> next : creq.headers()) {
       pc.debug(" " + next.getKey() + ":" + next.getValue());
     }
