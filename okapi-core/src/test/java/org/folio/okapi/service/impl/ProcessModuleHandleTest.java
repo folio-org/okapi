@@ -1,4 +1,4 @@
-package org.folio.okapi.util;
+package org.folio.okapi.service.impl;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
