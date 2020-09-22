@@ -12,6 +12,7 @@ import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.EnvEntry;
@@ -96,7 +97,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
   public void onStdout(ByteBuffer buffer, boolean closed) {
     byte[] bytes = new byte[buffer.remaining()];
     buffer.get(bytes);
-    String s = new String(bytes);
+    String s = new String(bytes, StandardCharsets.UTF_8);
     int prev = 0;
     // one log per line
     for (int i = 0; i < s.length(); i++) {
