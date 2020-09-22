@@ -1,5 +1,6 @@
 package org.folio.okapi.util;
 
+import com.zaxxer.nuprocess.NuProcess;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -34,7 +35,7 @@ public class TcpPortWaiting {
     this.port = port;
   }
 
-  private void tryConnect(Process process, int count, Handler<AsyncResult<Void>> startFuture) {
+  private void tryConnect(NuProcess process, int count, Handler<AsyncResult<Void>> startFuture) {
     NetClientOptions options = new NetClientOptions().setConnectTimeout(MILLISECONDS);
     NetClient c = vertx.createNetClient(options);
     logger.info("tryConnect() host {} port {} count {}", host, port, count);
@@ -43,18 +44,8 @@ public class TcpPortWaiting {
         logger.info("Connected to service at host {} port {} count {}", host, port, count);
         NetSocket socket = res.result();
         socket.close();
-        if (process != null) {
-          try {
-            process.getErrorStream().close();
-          } catch (Exception e) {
-            logger.error("Closing streams failed: {}", e.getMessage(), e);
-          }
-        }
         startFuture.handle(Future.succeededFuture());
-      } else if (process != null && !process.isAlive() && process.exitValue() != 0) {
-        logger.warn("Service returned with exit code {}", process.exitValue());
-        startFuture.handle(Future.failedFuture(messages.getMessage("11500", process.exitValue())));
-      } else if (count < maxIterations) {
+      } else if (count < maxIterations && (process == null || process.isRunning())) {
         vertx.setTimer((long) (count + 1) * MILLISECONDS,
             id -> tryConnect(process, count + 1, startFuture));
       } else {
@@ -73,7 +64,7 @@ public class TcpPortWaiting {
    * @param process Process to monitor
    * @param startFuture async result
    */
-  public void waitReady(Process process, Handler<AsyncResult<Void>> startFuture) {
+  public void waitReady(NuProcess process, Handler<AsyncResult<Void>> startFuture) {
     if (port == 0) {
       startFuture.handle(Future.succeededFuture());
     } else {
