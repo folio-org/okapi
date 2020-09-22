@@ -15,7 +15,6 @@ import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
-import org.folio.okapi.service.impl.ProcessModuleHandle;
 import org.junit.Assume;
 import org.junit.After;
 import org.junit.Before;
