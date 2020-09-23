@@ -1,4 +1,4 @@
-## 4.1.3 2020-09-13
+## 4.1.3 2020-09-23
 
  * [OKAPI-896](https://issues.folio.org/browse/OKAPI-896) OkapiClient: use WebClient rather than HttpClient
 
