@@ -119,23 +119,30 @@ public class ProxyTest {
   }
 
   private void myEdgeCallTest(RoutingContext ctx, String token) {
-    httpClient.get(port, "localhost", "/testb/1",
-        MultiMap.caseInsensitiveMultiMap().add("X-Okapi-Token", token),
-        res1 -> {
-          if (res1.failed()) {
-            ctx.response().setStatusCode(500);
-            ctx.response().end();
-            return;
-          }
-          HttpClientResponse res = res1.result();
-          Buffer resBuf = Buffer.buffer();
-          res.handler(resBuf::appendBuffer);
-          res.endHandler(res2 -> {
-            ctx.response().setStatusCode(res.statusCode());
-            ctx.response().end(resBuf);
-          });
-
+    httpClient.request(HttpMethod.GET, port, "localhost", "/testb/1").onComplete(req1 -> {
+      if (req1.failed()) {
+        ctx.response().setStatusCode(500);
+        ctx.response().end();
+        return;
+      }
+      HttpClientRequest req = req1.result();
+      req.putHeader("X-Okapi-Token", token);
+      req.end();
+      req.onComplete(res1 -> {
+        if (res1.failed()) {
+          ctx.response().setStatusCode(500);
+          ctx.response().end();
+          return;
+        }
+        HttpClientResponse res = res1.result();
+        Buffer resBuf = Buffer.buffer();
+        res.handler(resBuf::appendBuffer);
+        res.endHandler(res2 -> {
+          ctx.response().setStatusCode(res.statusCode());
+          ctx.response().end(resBuf);
         });
+      });
+    });
   }
 
   private void myEdgeHandle(RoutingContext ctx) {
@@ -161,28 +168,34 @@ public class ProxyTest {
             + "  \"username\" : \"peter\"," + LS
             + "  \"password\" : \"peter-password\"" + LS
             + "}";
-        httpClient.post(port, "localhost", "/authn/login",
-            MultiMap.caseInsensitiveMultiMap()
-            .add("Content-Type", "application/json")
-            .add("Accept", "application/json")
-            .add("X-Okapi-Tenant", tenant),
-        Buffer.buffer(docLogin),
-        res1 -> {
-          if (res1.failed()) {
+        httpClient.request(HttpMethod.POST, port, "localhost", "/authn/login").onComplete(req1 -> {
+          if (req1.failed()) {
             ctx.response().setStatusCode(500);
             ctx.response().end();
             return;
           }
-          HttpClientResponse response = res1.result();
-          Buffer loginBuf = Buffer.buffer();
-          response.handler(loginBuf::appendBuffer);
-          response.endHandler(x -> {
-            if (response.statusCode() != 200) {
-              ctx.response().setStatusCode(response.statusCode());
-              ctx.response().end(loginBuf);
-            } else {
-              myEdgeCallTest(ctx, response.getHeader("X-Okapi-Token"));
+          HttpClientRequest request = req1.result();
+          request.putHeader("Content-Type", "application/json")
+              .putHeader("Accept", "application/json")
+              .putHeader("X-Okapi-Tenant", tenant);
+          request.end(docLogin);
+          request.onComplete(res1 -> {
+            if (res1.failed()) {
+              ctx.response().setStatusCode(500);
+              ctx.response().end();
+              return;
             }
+            HttpClientResponse response = res1.result();
+            Buffer loginBuf = Buffer.buffer();
+            response.handler(loginBuf::appendBuffer);
+            response.endHandler(x -> {
+              if (response.statusCode() != 200) {
+                ctx.response().setStatusCode(response.statusCode());
+                ctx.response().end(loginBuf);
+              } else {
+                myEdgeCallTest(ctx, response.getHeader("X-Okapi-Token"));
+              }
+            });
           });
         });
       });
@@ -333,24 +346,22 @@ public class ProxyTest {
     future.onComplete(context.asyncAssertSuccess());
   }
 
-  private void td(TestContext context, Async async) {
-    vertx.close(x -> {
-      async.complete();
-    });
-  }
-
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();
-    httpClient.delete(port, "localhost", "/_/discovery/modules", res1 -> {
-          context.assertTrue(res1.succeeded());
-          HttpClientResponse response = res1.result();
-          context.assertEquals(204, response.statusCode());
-          response.endHandler(x -> {
-            httpClient.close();
-            td(context, async);
-          });
-        });
+    httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules",
+        context.asyncAssertSuccess(request -> {
+          request.end();
+          request.onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(204, response.statusCode());
+            response.endHandler(x -> {
+              httpClient.close();
+              async.complete();
+            });
+          }));
+        }));
+    async.await();
+    vertx.close(context.asyncAssertSuccess());
   }
 
   @Test

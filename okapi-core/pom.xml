@@ -72,6 +72,10 @@
       <classifier>linux-x86_64</classifier>
     </dependency>
     <dependency>
+      <groupId>com.zaxxer</groupId>
+      <artifactId>nuprocess</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.rest-assured</groupId>
       <artifactId>rest-assured</artifactId>
       <version>3.0.7</version>
