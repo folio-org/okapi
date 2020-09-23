@@ -1,3 +1,7 @@
+## 4.1.3 2020-09-13
+
+ * [OKAPI-896](https://issues.folio.org/browse/OKAPI-896) OkapiClient: use WebClient rather than HttpClient
+
 ## 4.1.2 2020-09-17
 
  * [OKAPI-882](https://issues.folio.org/browse/OKAPI-882) Fix passwords lesks in log
