@@ -2661,6 +2661,7 @@ indicates at which stage the error occurred. Stage is one of
  * `deploy`: module is being deployed
  * `call`: module is being called via system interface, such as `_tenant`,
     `_tenantPermissions`, ..
+ * `undeploy`: module is being undeployed
  * `done`: module is fully upgraded
 
 If no `message` property is present and `stage` is `pending`, the module
