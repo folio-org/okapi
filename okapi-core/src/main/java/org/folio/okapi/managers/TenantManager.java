@@ -845,7 +845,7 @@ public class TenantManager {
         if (options.getAsync()) {
           List<TenantModuleDescriptor> tml2 = new LinkedList<>();
           for (TenantModuleDescriptor tm : tml) {
-            tml2.add(tm.cloneLegacy());
+            tml2.add(tm.cloneWithoutStage());
           }
           promise.complete(tml2);
         }
@@ -901,7 +901,7 @@ public class TenantManager {
           }
           List<TenantModuleDescriptor> tml2 = new LinkedList<>();
           for (TenantModuleDescriptor tm : tml) {
-            tml2.add(tm.cloneLegacy());
+            tml2.add(tm.cloneWithoutStage());
           }
           promise.complete(tml2);
         });

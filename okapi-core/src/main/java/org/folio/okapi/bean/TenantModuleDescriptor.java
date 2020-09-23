@@ -80,7 +80,7 @@ public class TenantModuleDescriptor {
    * @return entry
    */
   @JsonIgnore
-  public TenantModuleDescriptor cloneLegacy() {
+  public TenantModuleDescriptor cloneWithoutStage() {
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     tm.action = this.action;
     tm.id = this.id;
