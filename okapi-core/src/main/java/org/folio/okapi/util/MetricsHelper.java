@@ -190,7 +190,8 @@ public class MetricsHelper {
       return null;
     }
     Counter counter = Counter.builder(event).tag(TAG_TENANT, tenant).tag(TAG_METHOD, httpMethod)
-        .tag(TAG_URL, urlPath).tag(TAG_USERID, userId).register(getRegistry());
+        .tag(TAG_URL, urlPath).tag(TAG_USERID, userId == null ? "null" : userId)
+        .register(getRegistry());
     counter.increment();
     return counter;
   }

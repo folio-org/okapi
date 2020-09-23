@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.concurrent.TimeUnit;
-import org.awaitility.Awaitility;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
@@ -111,6 +110,9 @@ class MetricsHelperTest {
 
     TokenCache cache = new TokenCache(ttl);
 
+    // test case where there is no userId
+    MetricsHelper.recordTokenCacheCached("tenant",  "GET",  "/foo/bar", null);
+    
     Counter cachedCounter =
         MetricsHelper.recordTokenCacheCached("tenant", "GET", "/foo/bar", userId);
     assertEquals(1, cachedCounter.count());
