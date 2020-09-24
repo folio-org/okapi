@@ -992,6 +992,16 @@ types:
             headers:
               X-Okapi-Trace:
                 description: Okapi trace and timing
+          201:
+            description: Install job created (async mode)
+            body:
+              application/json:
+                type: TenantModuleDescriptorList
+            headers:
+              Location:
+                description: URI to the install job
+              X-Okapi-Trace:
+                description: Okapi trace and timing
           400:
             description: Bad Request
             body:

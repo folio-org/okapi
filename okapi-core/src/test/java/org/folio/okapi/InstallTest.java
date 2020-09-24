@@ -278,7 +278,7 @@ public class InstallTest {
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    final String locationInstallJob = r.getHeader("Location");
+    String locationInstallJob = r.getHeader("Location");
 
     String suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
@@ -290,6 +290,25 @@ public class InstallTest {
         + "    \"action\" : \"enable\"," + LS
         + "    \"stage\" : \"done\"" + LS
         + "  } ]" + LS
+        + "}", job.encodePrettily());
+
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body("")
+        .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?async=true&deploy=true")
+        .then().statusCode(201)
+        .body(equalTo("[ ]"))
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    locationInstallJob = r.getHeader("Location");
+    suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    job = pollCompleteStrip(context, suffix);
+    context.assertEquals("{" + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ ]" + LS
         + "}", job.encodePrettily());
 
     // known installId but unknown tenantId

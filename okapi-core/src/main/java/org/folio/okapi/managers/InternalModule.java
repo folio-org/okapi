@@ -766,7 +766,16 @@ public class InternalModule {
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
     UUID installId = UUID.randomUUID();
     return tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, null)
-        .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
+        .compose(res -> {
+          String jsonResponse = Json.encodePrettily(res);
+          if (options.getAsync()) {
+            // using same location as install
+            String baseUri = pc.getCtx().request().uri().replace("/upgrade", "/install");
+            return location(pc, installId.toString(), baseUri, jsonResponse);
+          } else {
+            return Future.succeededFuture(jsonResponse);
+          }
+        });
   }
 
   private Future<String> upgradeModuleForTenant(ProxyContext pc, String tenantId,
