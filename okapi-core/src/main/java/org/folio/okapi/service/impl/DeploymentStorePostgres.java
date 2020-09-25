@@ -1,9 +1,8 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
-import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.service.DeploymentStore;
 
 
@@ -20,22 +19,22 @@ public class DeploymentStorePostgres implements DeploymentStore {
   }
 
   @Override
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
-    table.init(reset, fut);
+  public Future<Void> init(boolean reset) {
+    return table.init(reset);
   }
 
   @Override
-  public void insert(DeploymentDescriptor dd, Handler<ExtendedAsyncResult<Void>> fut) {
-    table.insert(dd, fut);
+  public Future<Void> insert(DeploymentDescriptor dd) {
+    return table.insert(dd);
   }
 
   @Override
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    table.delete(id, fut);
+  public Future<Boolean> delete(String id) {
+    return table.delete(id);
   }
 
   @Override
-  public void getAll(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    table.getAll(DeploymentDescriptor.class, fut);
+  public Future<List<DeploymentDescriptor>> getAll() {
+    return table.getAll(DeploymentDescriptor.class);
   }
 }

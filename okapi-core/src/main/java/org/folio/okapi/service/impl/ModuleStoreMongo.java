@@ -1,10 +1,9 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.service.ModuleStore;
 
 /**
@@ -21,31 +20,23 @@ public class ModuleStoreMongo implements ModuleStore {
   }
 
   @Override
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
-    util.init(reset, fut);
+  public Future<Void> init(boolean reset) {
+    return util.init(reset);
   }
 
   @Override
-  public void insert(ModuleDescriptor md,
-                     Handler<ExtendedAsyncResult<Void>> fut) {
-    util.insert(md, md.getId(), fut);
+  public Future<Void> insert(ModuleDescriptor md) {
+    return util.insert(md, md.getId());
   }
 
   @Override
-  public void update(ModuleDescriptor md,
-                     Handler<ExtendedAsyncResult<Void>> fut) {
-
-    util.add(md, md.getId(), fut);
+  public Future<List<ModuleDescriptor>> getAll() {
+    return util.getAll(ModuleDescriptor.class);
   }
 
   @Override
-  public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    util.getAll(ModuleDescriptor.class, fut);
-  }
-
-  @Override
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    util.delete(id, fut);
+  public Future<Boolean> delete(String id) {
+    return util.delete(id);
   }
 
 }

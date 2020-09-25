@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
@@ -40,15 +41,15 @@ public class DeploymentManagerTest {
     Async async = context.async();
     EnvManager em = new EnvManager(envStore);
     DeploymentStore ds = new DeploymentStoreNull();
-    em.init(vertx, res1 -> {
-      DiscoveryManager dis = new DiscoveryManager(ds);
-      dis.init(vertx, res2 -> {
-        dm = new DeploymentManager(vertx, dis, em, "myhost.index", 9230, "", config);
-        async.complete();
-      });
-    });
+    DiscoveryManager dis = new DiscoveryManager(ds);
+    em.init(vertx)
+        .compose(x -> dis.init(vertx))
+        .onComplete(context.asyncAssertSuccess(x -> {
+          dm = new DeploymentManager(vertx, dis, em, "myhost.index", 9230, "", config);
+          async.complete();
+        }));
     async.await();
-  }
+}
 
   private void createDeploymentManager(TestContext context) {
     DeploymentManagerTest.this.createDeploymentManager(context, new EnvStoreNull(), new JsonObject());
@@ -63,13 +64,13 @@ public class DeploymentManagerTest {
       "java -Dport=%p -jar "
       + "../okapi-test-module/target/okapi-test-module-fat.jar");
     DeploymentDescriptor dd = new DeploymentDescriptor("1", "sid", descriptor);
-    dm.deploy(dd, res1 -> {
+    dm.deploy(dd).onComplete(res1 -> {
       context.assertTrue(res1.succeeded());
-      dm.undeploy(res1.result().getInstId(), res2 -> {
+      dm.undeploy(res1.result().getInstId()).onComplete(res2 -> {
         // after undeploy so we have no stale process
         context.assertEquals("http://myhost.index:9231", res1.result().getUrl());
         context.assertTrue(res2.succeeded());
-        dm.shutdown(res3 -> {
+        dm.shutdown().onComplete(res3 -> {
           context.assertTrue(res3.succeeded());
           async.complete();
         });
@@ -87,7 +88,7 @@ public class DeploymentManagerTest {
             "java -Dport=%p -jar "
             + "../okapi-test-module/target/unknown.jar");
     DeploymentDescriptor dd = new DeploymentDescriptor("2", "sid", descriptor);
-    dm.deploy(dd, res -> {
+    dm.deploy(dd).onComplete(res -> {
       context.assertFalse(res.succeeded());
       context.assertEquals("Service returned with exit code 1", res.cause().getMessage());
       async.complete();
@@ -107,7 +108,7 @@ public class DeploymentManagerTest {
             "java -Dport=%p -jar "
             + "../okapi-test-module/target/unknown.jar");
     DeploymentDescriptor dd = new DeploymentDescriptor("2", "sid", descriptor);
-    dm.deploy(dd, res -> {
+    dm.deploy(dd).onComplete(res -> {
       context.assertFalse(res.succeeded());
       context.assertEquals("all ports in use", res.cause().getMessage());
       async.complete();
@@ -120,7 +121,7 @@ public class DeploymentManagerTest {
     createDeploymentManager(context);
     Async async = context.async();
     LaunchDescriptor descriptor = new LaunchDescriptor();
-    dm.undeploy("1234", res -> {
+    dm.undeploy("1234").onComplete(res -> {
       context.assertFalse(res.succeeded());
       context.assertEquals("not found: 1234", res.cause().getMessage());
       async.complete();

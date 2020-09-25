@@ -1,7 +1,6 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
@@ -91,8 +90,8 @@ class PostgresHandle {
     return connectOptions;
   }
 
-  public void getConnection(Handler<AsyncResult<SqlConnection>> con) {
-    pool.getConnection(con);
+  public Future<SqlConnection> getConnection() {
+    return pool.getConnection();
   }
 
   public PostgresQuery getQuery() {

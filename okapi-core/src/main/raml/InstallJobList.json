@@ -1,0 +1,9 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "InstallJobList",
+  "description": "List of install jobs",
+  "type": "array",
+  "items": {
+    "$ref": "InstallJob.json"
+  }
+}

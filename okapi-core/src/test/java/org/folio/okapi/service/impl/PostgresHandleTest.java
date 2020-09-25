@@ -102,19 +102,19 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
     configure("ssl = off");
     JsonObject config = config();
     config.remove("postgres_server_pem");
-    new PostgresHandle(vertx, config).getConnection(vtc.completing());
+    new PostgresHandle(vertx, config).getConnection().onComplete(vtc.completing());
   }
 
   @Test
   void rejectWithoutSsl(Vertx vertx, VertxTestContext vtc) {
     configure("ssl = off");
-    new PostgresHandle(vertx, config()).getConnection(vtc.failing(fail -> vtc.completeNow()));
+    new PostgresHandle(vertx, config()).getConnection().onComplete(vtc.failing(fail -> vtc.completeNow()));
   }
 
   @Test
   void tlsv1_3(Vertx vertx, VertxTestContext vtc) {
     configure("ssl = on");
-    new PostgresHandle(vertx, config()).getConnection(vtc.succeeding(connection -> vtc.verify(() -> {
+    new PostgresHandle(vertx, config()).getConnection().onComplete(vtc.succeeding(connection -> vtc.verify(() -> {
       assertThat(connection.isSSL()).isTrue();
       String sql = "SELECT version FROM pg_stat_ssl WHERE pid = pg_backend_pid()";
       connection.query(sql).execute(vtc.succeeding(rowset -> vtc.verify(() -> {
@@ -127,6 +127,6 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
   @Test
   void rejectTlsv1_2(Vertx vertx, VertxTestContext vtc) {
     configure("ssl = on", "ssl_min_protocol_version = TLSv1.2", "ssl_max_protocol_version = TLSv1.2");
-    new PostgresHandle(vertx, config()).getConnection(vtc.failing(fail -> vtc.completeNow()));
+    new PostgresHandle(vertx, config()).getConnection().onComplete(vtc.failing(fail -> vtc.completeNow()));
   }
 }

@@ -1,7 +1,7 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
@@ -18,16 +18,13 @@ import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.service.ModuleStore;
-import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.LockedTypedMap1;
+import org.folio.okapi.util.OkapiError;
 
 /**
  * Manages a list of modules known to Okapi's "/_/proxy". Maintains consistency
@@ -70,18 +67,13 @@ public class ModuleManager {
   /**
    * Initialize module manager.
    * @param vertx Vert.x handle
-   * @param fut async result
+   * @return future result
    */
-  public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> init(Vertx vertx) {
     this.vertx = vertx;
     consumeModulesUpdated();
-    modules.init(vertx, mapName, ires -> {
-      if (ires.failed()) {
-        fut.handle(new Failure<>(ires.getType(), ires.cause()));
-      } else {
-        loadModules(fut);
-      }
-    });
+    return modules.init(vertx, mapName)
+        .compose(x -> loadModules());
   }
 
   private void consumeModulesUpdated() {
@@ -98,46 +90,31 @@ public class ModuleManager {
 
   /**
    * Load the modules from the database, if not already loaded.
+   * @return future result
    */
-  private void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<Void> loadModules() {
     if (moduleStore == null) {
-      fut.handle(new Success<>());
-    } else {
-      modules.size(kres -> {
-        if (kres.failed()) {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, kres.cause()));
-        } else if (kres.result() > 0) {
-          logger.debug("Not loading modules, looks like someone already did");
-          fut.handle(new Success<>());
-        } else {
-          moduleStore.getAll(mres -> {
-            if (mres.failed()) {
-              fut.handle(new Failure<>(mres.getType(), mres.cause()));
-            } else {
-              CompList<Void> futures = new CompList<>(ErrorType.INTERNAL);
-              for (ModuleDescriptor md : mres.result()) {
-                Promise<Void> promise = Promise.promise();
-                modules.add(md.getId(), md, promise::handle);
-                futures.add(promise);
-              }
-              futures.all(fut);
-            }
-          });
-        }
-      });
+      return Future.succeededFuture();
     }
+    return modules.size().compose(kres -> {
+      if (kres > 0) {
+        logger.debug("Not loading modules, looks like someone already did");
+        return Future.succeededFuture();
+      }
+      return moduleStore.getAll().compose(res -> {
+        List<Future> futures = new LinkedList<>();
+        for (ModuleDescriptor md : res) {
+          futures.add(modules.add(md.getId(), md));
+        }
+        return CompositeFuture.all(futures).mapEmpty();
+      });
+    });
   }
 
-  void enableAndDisableCheck(Tenant tenant,
-                             ModuleDescriptor modFrom, ModuleDescriptor modTo,
-                             Handler<ExtendedAsyncResult<Void>> fut) {
+  Future<Void> enableAndDisableCheck(Tenant tenant, ModuleDescriptor modFrom,
+                                     ModuleDescriptor modTo) {
 
-    getEnabledModules(tenant, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
-      }
-      List<ModuleDescriptor> modlist = gres.result();
+    return getEnabledModules(tenant).compose(modlist -> {
       HashMap<String, ModuleDescriptor> mods = new HashMap<>(modlist.size());
       for (ModuleDescriptor md : modlist) {
         mods.put(md.getId(), md);
@@ -145,8 +122,7 @@ public class ModuleManager {
       if (modTo == null) {
         String deps = DepResolution.checkAllDependencies(mods);
         if (!deps.isEmpty()) {
-          fut.handle(new Success<>()); // failures even before we remove a module
-          return;
+          return Future.succeededFuture(); // failures even before we remove a module
         }
       }
       if (modFrom != null) {
@@ -155,19 +131,17 @@ public class ModuleManager {
       if (modTo != null) {
         ModuleDescriptor already = mods.get(modTo.getId());
         if (already != null) {
-          fut.handle(new Failure<>(ErrorType.USER,
+          return Future.failedFuture(new OkapiError(ErrorType.USER,
               "Module " + modTo.getId() + " already provided"));
-          return;
         }
         mods.put(modTo.getId(), modTo);
       }
       String conflicts = DepResolution.checkAllConflicts(mods);
       String deps = DepResolution.checkAllDependencies(mods);
       if (!conflicts.isEmpty() || !deps.isEmpty()) {
-        fut.handle(new Failure<>(ErrorType.USER, conflicts + " " + deps));
-        return;
+        return Future.failedFuture(new OkapiError(ErrorType.USER, conflicts + " " + deps));
       }
-      fut.handle(new Success<>());
+      return Future.succeededFuture();
     });
   }
 
@@ -178,13 +152,13 @@ public class ModuleManager {
    * @param check whether to check dependencies
    * @param preRelease whether to allow pre-release
    * @param npmSnapshot whether to allow npm snapshot
-   * @param fut future
+   * @return future
    */
-  public void create(ModuleDescriptor md, boolean check, boolean preRelease,
-                     boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> create(ModuleDescriptor md, boolean check, boolean preRelease,
+                             boolean npmSnapshot) {
     List<ModuleDescriptor> l = new LinkedList<>();
     l.add(md);
-    createList(l, check, preRelease, npmSnapshot, fut);
+    return createList(l, check, preRelease, npmSnapshot);
   }
 
   /**
@@ -194,17 +168,13 @@ public class ModuleManager {
    * @param check whether to check dependencies
    * @param preRelease whether to allow pre-releasee
    * @param npmSnapshot whether to allow npm-snapshot
-   * @param fut future
+   * @return future
    */
-  public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
-                         boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
-    getModulesWithFilter(preRelease, npmSnapshot, null, ares -> {
-      if (ares.failed()) {
-        fut.handle(new Failure<>(ares.getType(), ares.cause()));
-        return;
-      }
+  public Future<Void> createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
+                                 boolean npmSnapshot) {
+    return getModulesWithFilter(preRelease, npmSnapshot, null).compose(ares -> {
       Map<String, ModuleDescriptor> tempList = new HashMap<>();
-      for (ModuleDescriptor md : ares.result()) {
+      for (ModuleDescriptor md : ares) {
         tempList.put(md.getId(), md);
       }
       LinkedList<ModuleDescriptor> newList = new LinkedList<>();
@@ -215,8 +185,8 @@ public class ModuleManager {
           String exJson = Json.encodePrettily(exMd);
           String json = Json.encodePrettily(md);
           if (!json.equals(exJson)) {
-            fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10203", id)));
-            return;
+            return Future.failedFuture(new OkapiError(ErrorType.USER,
+                messages.getMessage("10203", id)));
           }
         } else {
           tempList.put(id, md);
@@ -226,171 +196,117 @@ public class ModuleManager {
       if (check) {
         String res = DepResolution.checkDependencies(tempList.values(), newList);
         if (!res.isEmpty()) {
-          fut.handle(new Failure<>(ErrorType.USER, res));
-          return;
+          return Future.failedFuture(new OkapiError(ErrorType.USER, res));
         }
       }
-      createList2(newList, fut);
+      return createList2(newList);
     });
   }
 
-  private void createList2(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
-    CompList<Void> futures = new CompList<>(ErrorType.INTERNAL);
+  private Future<Void> createList2(List<ModuleDescriptor> list) {
+    List<Future> futures = new LinkedList<>();
     for (ModuleDescriptor md : list) {
-      Promise<Void> promise = Promise.promise();
-      createList3(md, promise::handle);
-      futures.add(promise);
+      if (moduleStore != null) {
+        futures.add(moduleStore.insert(md));
+      }
+      futures.add(modules.add(md.getId(), md));
     }
-    futures.all(fut);
-  }
-
-  private void createList3(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    String id = md.getId();
-    if (moduleStore == null) {
-      modules.add(id, md, ares -> {
-        if (ares.failed()) {
-          fut.handle(new Failure<>(ares.getType(), ares.cause()));
-          return;
-        }
-        fut.handle(new Success<>());
-      });
-    } else {
-      moduleStore.insert(md, ires -> {
-        if (ires.failed()) {
-          fut.handle(new Failure<>(ires.getType(), ires.cause()));
-          return;
-        }
-        modules.add(id, md, ares -> {
-          if (ares.failed()) {
-            fut.handle(new Failure<>(ares.getType(), ares.cause()));
-            return;
-          }
-          fut.handle(new Success<>());
-        });
-      });
-    }
+    return CompositeFuture.all(futures).mapEmpty();
   }
 
   /**
    * Delete a module.
    *
    * @param id module ID
-   * @param fut future
+   * @return future
    */
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    modules.getAll(ares -> {
-      if (ares.failed()) {
-        fut.handle(new Failure<>(ares.getType(), ares.cause()));
-        return;
-      }
-      if (deleteCheckDep(id, fut, ares.result())) {
-        return;
-      }
-      tenantManager.getModuleUser(id, ures -> {
-        if (ures.failed()) {
-          if (ures.getType() == ErrorType.ANY) {
-            String ten = ures.cause().getMessage();
-            fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10206", id, ten)));
-          } else {
-            fut.handle(new Failure<>(ures.getType(), ures.cause()));
+  public Future<Void> delete(String id) {
+    return modules.getAll()
+        .compose(ares -> deleteCheckDep(id, ares))
+        .compose(check -> tenantManager.getModuleUser(id))
+        .compose(tenants -> {
+          if (!tenants.isEmpty()) {
+            return Future.failedFuture(new OkapiError(ErrorType.USER,
+                messages.getMessage("10206", id, tenants.get(0))));
           }
-        } else if (moduleStore == null) {
-          deleteInternal(id, fut);
-        } else {
-          moduleStore.delete(id, dres -> {
-            if (dres.failed()) {
-              fut.handle(new Failure<>(dres.getType(), dres.cause()));
-            } else {
-              deleteInternal(id, fut);
-            }
-          });
-        }
-      });
-    });
+          return Future.succeededFuture();
+        })
+        .compose(res2 -> {
+          if (moduleStore == null) {
+            return Future.succeededFuture(Boolean.TRUE);
+          } else {
+            return moduleStore.delete(id);
+          }
+        })
+        .compose(res3 -> {
+          if (Boolean.FALSE.equals(res3)) {
+            return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, id));
+          }
+          return deleteInternal(id).mapEmpty();
+        });
   }
 
-  private boolean deleteCheckDep(String id, Handler<ExtendedAsyncResult<Void>> fut,
-                                 LinkedHashMap<String, ModuleDescriptor> mods) {
-
+  private Future<Void> deleteCheckDep(String id, LinkedHashMap<String, ModuleDescriptor> mods) {
     if (!mods.containsKey(id)) {
-      fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10207")));
-      return true;
+      return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, messages.getMessage("10207")));
     }
     mods.remove(id);
     String res = DepResolution.checkAllDependencies(mods);
     if (!res.isEmpty()) {
-      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10208", id, res)));
-      return true;
-    } else {
-      return false;
+      return Future.failedFuture(new OkapiError(ErrorType.USER,
+          messages.getMessage("10208", id, res)));
     }
+    return Future.succeededFuture();
   }
 
-  private void deleteInternal(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<Void> deleteInternal(String id) {
     invalidateCacheEntry(id);
-    modules.remove(id, rres -> {
-      if (rres.failed()) {
-        fut.handle(new Failure<>(rres.getType(), rres.cause()));
-      } else {
-        fut.handle(new Success<>());
-      }
-    });
+    return modules.remove(id).mapEmpty();
   }
 
   /**
    * Get a module descriptor from ID.
    *
    * @param id to get. If null, returns a null.
-   * @param fut future with resulting Module Descriptor
+   * @returns fut future with resulting Module Descriptor
    */
-  public void get(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    if (id != null) {
-      modules.get(id, fut);
-    } else {
-      fut.handle(new Success<>(null));
+  public Future<ModuleDescriptor> get(String id) {
+    if (id == null) {
+      return Future.succeededFuture(null);
     }
+    return modules.getNotFound(id);
   }
 
-  void getLatest(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
+  Future<ModuleDescriptor> getLatest(String id) {
     ModuleId moduleId = new ModuleId(id);
     if (moduleId.hasSemVer()) {
-      get(id, fut);
-    } else {
-      modules.getKeys(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          String latest = moduleId.getLatest(res.result());
-          get(latest, fut);
-        }
-      });
+      return get(id);
     }
+    return modules.getKeys().compose(res -> {
+      String latest = moduleId.getLatest(res);
+      return get(latest);
+    });
   }
 
-  void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
-                            List<String> skipModules,
-                            Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+  Future<List<ModuleDescriptor>> getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
+                                                      List<String> skipModules) {
 
     Set<String> skipIds = new TreeSet<>();
     if (skipModules != null) {
       skipIds.addAll(skipModules);
     }
-    modules.getAll(kres -> {
-      if (kres.failed()) {
-        fut.handle(new Failure<>(kres.getType(), kres.cause()));
-      } else {
-        List<ModuleDescriptor> mdl = new LinkedList<>();
-        for (ModuleDescriptor md : kres.result().values()) {
-          String id = md.getId();
-          ModuleId idThis = new ModuleId(id);
-          if ((npmSnapshot || !idThis.hasNpmSnapshot())
-              && (preRelease || !idThis.hasPreRelease())
-              && !skipIds.contains(id)) {
-            mdl.add(md);
-          }
+    return modules.getAll().compose(kres -> {
+      List<ModuleDescriptor> mdl = new LinkedList<>();
+      for (ModuleDescriptor md : kres.values()) {
+        String id = md.getId();
+        ModuleId idThis = new ModuleId(id);
+        if ((npmSnapshot || !idThis.hasNpmSnapshot())
+            && (preRelease || !idThis.hasPreRelease())
+            && !skipIds.contains(id)) {
+          mdl.add(md);
         }
-        fut.handle(new Success<>(mdl));
       }
+      return Future.succeededFuture(mdl);
     });
   }
 
@@ -398,35 +314,27 @@ public class ModuleManager {
    * Get all modules that are enabled for the given tenant.
    *
    * @param ten tenant to check for
-   * @param fut callback with a list of ModuleDescriptors (may be empty list)
+   * @return fut callback with a list of ModuleDescriptors (may be empty list)
    */
-  public void getEnabledModules(Tenant ten,
-                                Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+  public Future<List<ModuleDescriptor>> getEnabledModules(Tenant ten) {
 
     List<ModuleDescriptor> mdl = new LinkedList<>();
-    CompList<List<ModuleDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
+    List<Future> futures = new LinkedList<>();
     for (String id : ten.getEnabled().keySet()) {
       if (enabledModulesCache.containsKey(id)) {
         ModuleDescriptor md = enabledModulesCache.get(id);
         mdl.add(md);
         updateExpandedPermModuleTenants(ten.getId(), md);
       } else {
-        Promise<ModuleDescriptor> promise = Promise.promise();
-        modules.get(id, res -> {
-          if (res.succeeded()) {
-            ModuleDescriptor md = res.result();
-            enabledModulesCache.put(id, md);
-            mdl.add(md);
-            updateExpandedPermModuleTenants(ten.getId(), md);
-          } else {
-            logger.warn("getEnabledModules id={} failed", id, res.cause());
-          }
-          promise.handle(res);
-        });
-        futures.add(promise);
+        futures.add(modules.get(id).compose(md -> {
+          enabledModulesCache.put(id, md);
+          mdl.add(md);
+          updateExpandedPermModuleTenants(ten.getId(), md);
+          return Future.succeededFuture();
+        }));
       }
     }
-    futures.all(mdl, fut);
+    return CompositeFuture.all(futures).compose(res -> Future.succeededFuture(mdl));
   }
 
   private void updateExpandedPermModuleTenants(String tenant, ModuleDescriptor md) {

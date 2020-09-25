@@ -1,12 +1,10 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.List;
 import org.folio.okapi.bean.EnvEntry;
-import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.service.EnvStore;
-
 
 public class EnvStoreMongo implements EnvStore {
 
@@ -18,22 +16,22 @@ public class EnvStoreMongo implements EnvStore {
   }
 
   @Override
-  public void add(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
-    util.add(env, env.getName(), fut);
+  public Future<Void> add(EnvEntry env) {
+    return util.add(env, env.getName());
   }
 
   @Override
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    util.delete(id, fut);
+  public Future<Boolean> delete(String id) {
+    return util.delete(id);
   }
 
   @Override
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
-    util.init(reset, fut);
+  public Future<Void> init(boolean reset) {
+    return util.init(reset);
   }
 
   @Override
-  public void getAll(Handler<ExtendedAsyncResult<List<EnvEntry>>> fut) {
-    util.getAll(EnvEntry.class, fut);
+  public Future<List<EnvEntry>> getAll() {
+    return util.getAll(EnvEntry.class);
   }
 }

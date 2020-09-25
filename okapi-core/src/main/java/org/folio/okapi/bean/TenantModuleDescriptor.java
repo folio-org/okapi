@@ -1,5 +1,6 @@
 package org.folio.okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
@@ -26,6 +27,13 @@ public class TenantModuleDescriptor {
   private Action action;
 
   private String message;
+
+  @java.lang.SuppressWarnings({"squid:S00115"})
+  public enum Stage {
+    pending, deploy, invoke, undeploy, done
+  }
+
+  private Stage stage;
 
   public String getId() {
     return id;
@@ -58,4 +66,27 @@ public class TenantModuleDescriptor {
   public void setMessage(String message) {
     this.message = message;
   }
+
+  public Stage getStage() {
+    return stage;
+  }
+
+  public void setStage(Stage stage) {
+    this.stage = stage;
+  }
+
+  /**
+   * Clone an entry with only original tenant module information (Before async install).
+   * @return entry
+   */
+  @JsonIgnore
+  public TenantModuleDescriptor cloneWithoutStage() {
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.action = this.action;
+    tm.id = this.id;
+    tm.from = this.from;
+    tm.message = this.message;
+    return tm;
+  }
+
 }

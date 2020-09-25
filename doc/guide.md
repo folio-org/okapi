@@ -35,7 +35,9 @@ managing and running microservices.
     * [Install modules per tenant](#install-modules-per-tenant)
     * [Upgrading modules per tenant](#upgrading-modules-per-tenant)
     * [Auto-deployment](#auto-deployment)
-    * [Purge](#purge)
+    * [Install jobs and asynchronous operations](#install-jobs-and-asynchronous-operations)
+    * [Ignoring errors during install](#ignoring-errors-during-install)
+    * [Purge module data](#purge-module-data)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
@@ -2621,14 +2623,86 @@ the install operation will also deploy and un-deploy as
 necessary. This will only work if the ModuleDescriptor has the
 launchDescriptor property.
 
-### Purge
+### Install jobs and asynchronous operations
+
+For Okapi 4.2.0 and later, the install operation can be asynchronous.
+The asynchronous operation is enabled by URI parameter 'async=true'.
+As for the "synchronous" operation, the dependency check is performed
+first and install/upgrade will return 400 HTTP error upon failure.
+
+Following that, the install operation will create an install "job" on the
+server side and return HTTP status 201 along with a location of the newly
+created install job. The returned JSON content is defined by schema
+([InstallJob.json](../okapi-core/src/main/raml/InstallJob.json)).
+
+This location can then be inspected with HTTP GET for the progress of
+the install operation. The location is same base URI as install, but
+with a slash + the job ID. The install job has properties such as
+
+ * `complete`: boolean which tells whether the job has completed
+ * `id`: job id
+ * `startDate`: start time of job in UTC ISO8601 format.
+ * `endDate`: end time of job in UTC ISO8601 format (only present when complete)
+ * `modules`: enable/disable list of modules along with status.
+
+Each module entry is defined by schema
+([TenantModuleDescriptor.json](../okapi-core/src/main/raml/TenantModuleDescriptor.json)).
+Brief list of properties:
+
+ * `id`: module ID
+ * `from`: old module ID (absent if not upgrading)
+ * `action`: enable/disable/uptodate
+ * `stage`: the current stage of the module
+ * `message`: present upon error (error message)
+
+If `message` property is present an error has occurred and `stage`
+indicates at which stage the error occurred. Stage is one of
+ * `pending`: module is yet to be upgraded/deployed/etc..
+ * `deploy`: module is being deployed
+ * `invoke`: module is being invoked via system interface, such as `_tenant`,
+    `_tenantPermissions`, ..
+ * `undeploy`: module is being undeployed
+ * `done`: module is fully upgraded
+
+If no `message` property is present and `stage` is `pending`, the module
+upgrade has not begun yet.
+
+If no `message` property is present and `stage` is `done`, the module
+the module upgrade is complete.
+
+Note that install jobs are also created for synchronous operations (default
+and when using async=false). However in order to stay backwards compatible
+HTTP status 200 is returned with JSON content defined by schema
+[TenantModuleDescriptorList.json](../okapi-core/src/main/raml/TenantModuleDescriptorList.json)).
+
+All install and upgrade jobs for a tenant can be retrieved with GET to
+`/_/proxy/tenants/tenant/install`. If successful, HTTP 200 is returned
+with JSON content defined by schema
+[InstallJobList.json](../okapi-core/src/main/raml/InstallJobList.json)).
+
+This allows to get a list of all install jobs - including ongoing ones
+regardless of whether they are asynchronous or not.
+
+### Ignoring errors during install
+
+Okapi 4.2.0 and later, it is possible to ignore errors during the
+install and upgrade operations.
+This is done by supplying parameter `ignoreErrors=true`
+for install/upgrade. In this case, Okapi will try to upgrade all
+modules in the modules list, regardless if one of them fails. However,
+for individual modules, if they fail, their upgrade will not be commited.
+
+This is an experimental parameter which was added to be able to inspect
+all problem(s) with module upgrade(s).
+
+### Purge module data
 
 By default when modules are disabled, persistent data is preserved.
 This can be changed with the optional parameter `purge`, which when
 set to `true`, instructs a module to purge (remove) all persistent
 data. This only has an effect on modules that are also disabled ; has
 no effect on modules that are enabled or upgraded. The purge parameter
-was added in Okapi version 2.16.0. The purge mode calls the `_tenant`
+was added in Okapi version 2.16.0. The purge mode invokes the `_tenant`
 interface with method DELETE if that is provided for the module.
 
 ## Reference

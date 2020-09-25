@@ -18,6 +18,11 @@
       "type" : "string",
       "enum" : [ "enable", "disable", "uptodate", "suggest", "conflict" ]
     },
+    "stage" : {
+      "description": "Stage for the module",
+      "type" : "string",
+      "enum" : [ "pending", "deploy", "invoke", "undeploy", "done" ]
+    },
     "message": {
       "description": "Diagnostic Message",
       "type": "string"
