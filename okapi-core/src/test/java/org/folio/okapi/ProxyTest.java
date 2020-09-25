@@ -1346,7 +1346,7 @@ public class ProxyTest {
       .then().statusCode(200)
       .header("Access-Control-Allow-Origin", "*")
       .header("Access-Control-Expose-Headers", containsString(
-        "ocation,X-Okapi-Trace,X-Okapi-Token,Authorization,X-Okapi-Request-Id"))
+        "Location,X-Okapi-Trace,X-Okapi-Token,Authorization,X-Okapi-Request-Id"))
       .body(equalTo("It works"));
 
     // Post request.
