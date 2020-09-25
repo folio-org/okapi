@@ -2675,7 +2675,7 @@ and when using async=false). However in order to stay backwards compatible
 HTTP status 200 is returned with JSON content defined by schema
 [TenantModuleDescriptorList.json](../okapi-core/src/main/raml/TenantModuleDescriptorList.json)).
 
-All install jobs for a tenant can be retrieved with GET to
+All install and upgrade jobs for a tenant can be retrieved with GET to
 `/_/proxy/tenants/tenant/install`. If successful, HTTP 200 is returned
 with JSON content defined by schema
 [InstallJobList.json](../okapi-core/src/main/raml/InstallJobList.json)).
@@ -2686,8 +2686,9 @@ regardless of whether they are asynchronous or not.
 ### Ignoring errors during install
 
 Okapi 4.2.0 and later, it is possible to ignore errors during the
-install operation. This is done by supplying parameter `ignoreErrors=true`
-for install/upgrade. When value is true, Okapi will try to upgrade all
+install and upgrade operations.
+This is done by supplying parameter `ignoreErrors=true`
+for install/upgrade. In this case, Okapi will try to upgrade all
 modules in the modules list, regardless if one of them fails. However,
 for individual modules, if they fail, their upgrade will not be commited.
 

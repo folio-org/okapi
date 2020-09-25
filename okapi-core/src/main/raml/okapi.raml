@@ -785,7 +785,7 @@ types:
                 text/plain:
     /install:
       get:
-        description: Retrieve information about all install
+        description: Retrieve information about all install/upgrade
           jobs - including those that are ongoing.
         responses:
           200:
@@ -835,8 +835,8 @@ types:
           ignoreErrors:
             description: |
               Okapi 4.2.0 and later, it is possible to ignore errors during the
-              install operation. This is done by supplying parameter `ignoreErrors=true`
-              for install/upgrade. When value is true, Okapi will try to upgrade all
+              install operation. This is done by supplying parameter `ignoreErrors=true`.
+              In this case, Okapi will try to upgrade all
               modules in the modules list, regardless if one of them fails. However,
               for individual modules, if they fail, their upgrade will not be commited.
               This is an experimental parameter which was added to be able to inspect
@@ -950,8 +950,8 @@ types:
           ignoreErrors:
             description: |
               Okapi 4.2.0 and later, it is possible to ignore errors during the
-              install operation. This is done by supplying parameter `ignoreErrors=true`
-              for install/upgrade. When value is true, Okapi will try to upgrade all
+              upgrade operation. This is done by supplying parameter `ignoreErrors=true`.
+              In this case, Okapi will try to upgrade all
               modules in the modules list, regardless if one of them fails. However,
               for individual modules, if they fail, their upgrade will not be commited.
               This is an experimental parameter which was added to be able to inspect
