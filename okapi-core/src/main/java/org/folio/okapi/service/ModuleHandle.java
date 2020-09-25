@@ -1,11 +1,10 @@
 package org.folio.okapi.service;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 
 public interface ModuleHandle {
 
-  void start(Handler<AsyncResult<Void>> startFuture);
+  Future<Void> start();
 
-  void stop(Handler<AsyncResult<Void>> stopFuture);
+  Future<Void> stop();
 }

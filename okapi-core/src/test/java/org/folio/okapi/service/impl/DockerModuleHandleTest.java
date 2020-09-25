@@ -66,7 +66,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
         "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, conf);
 
-    dh.start(context.asyncAssertFailure(cause ->
+    dh.start().onComplete(context.asyncAssertFailure(cause ->
           context.assertTrue(cause.getMessage().contains("java.net.ConnectException"),
               cause.getMessage())));
   }
@@ -82,25 +82,18 @@ public class DockerModuleHandleTest implements WithAssertions {
         "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, new JsonObject());
 
     JsonObject versionRes = new JsonObject();
-    Async async = context.async();
-    dh.getUrl("/version", res -> {
-      if (res.succeeded()) {
-        versionRes.put("result", res.result());
-      }
-      async.complete();
-    });
-    async.await(1000);
+    dh.getUrl("/version").onComplete(context.asyncAssertSuccess(res -> versionRes.put("result", res)));
     Assume.assumeTrue(versionRes.containsKey("result"));
     context.assertTrue(versionRes.getJsonObject("result").containsKey("Version"));
 
     // provoke 404 not found
-    dh.deleteUrl("/version", "msg", context.asyncAssertFailure(cause -> {
+    dh.deleteUrl("/version", "msg").onComplete(context.asyncAssertFailure(cause -> {
       context.assertTrue(cause.getMessage().startsWith("msg HTTP error 404"),
-        cause.getMessage());
+          cause.getMessage());
       // provoke 404 not found
-      dh.postUrlJson("/version", "msg", "{}", context.asyncAssertFailure(cause2 -> {
+      dh.postUrlJson("/version", "msg", "{}").onComplete(context.asyncAssertFailure(cause2 -> {
         context.assertTrue(cause2.getMessage().startsWith("msg HTTP error 404"),
-          cause2.getMessage());
+            cause2.getMessage());
       }));
     }));
   }

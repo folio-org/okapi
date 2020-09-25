@@ -1,9 +1,8 @@
 package org.folio.okapi.util;
 
 import com.zaxxer.nuprocess.NuProcess;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
@@ -35,24 +34,26 @@ public class TcpPortWaiting {
     this.port = port;
   }
 
-  private void tryConnect(NuProcess process, int count, Handler<AsyncResult<Void>> startFuture) {
+  private Future<Void> tryConnect(NuProcess process, int count) {
     NetClientOptions options = new NetClientOptions().setConnectTimeout(MILLISECONDS);
     NetClient c = vertx.createNetClient(options);
     logger.info("tryConnect() host {} port {} count {}", host, port, count);
+    Promise<Void> promise = Promise.promise();
     c.connect(port, host, res -> {
       if (res.succeeded()) {
         logger.info("Connected to service at host {} port {} count {}", host, port, count);
         NetSocket socket = res.result();
         socket.close();
-        startFuture.handle(Future.succeededFuture());
+        promise.complete();
       } else if (count < maxIterations && (process == null || process.isRunning())) {
         vertx.setTimer((long) (count + 1) * MILLISECONDS,
-            id -> tryConnect(process, count + 1, startFuture));
+            id -> tryConnect(process, count + 1).onComplete(promise::handle));
       } else {
-        startFuture.handle(Future.failedFuture(messages.getMessage("11501",
-            Integer.toString(port), res.cause().getMessage())));
+        promise.fail(messages.getMessage("11501",
+            Integer.toString(port), res.cause().getMessage()));
       }
     });
+    return promise.future();
   }
 
   public void setMaxIterations(int maxIterations) {
@@ -62,13 +63,12 @@ public class TcpPortWaiting {
   /**
    * Wait for process and server to be listening.
    * @param process Process to monitor
-   * @param startFuture async result
+   * @return startFuture async result
    */
-  public void waitReady(NuProcess process, Handler<AsyncResult<Void>> startFuture) {
+  public Future<Void> waitReady(NuProcess process) {
     if (port == 0) {
-      startFuture.handle(Future.succeededFuture());
-    } else {
-      tryConnect(process, 0, startFuture);
+      return Future.succeededFuture();
     }
+    return tryConnect(process, 0);
   }
 }

@@ -118,9 +118,7 @@ public class DeploymentManager {
     Collection<DeploymentDescriptor> col = list.values();
     for (DeploymentDescriptor dd : col) {
       ModuleHandle mh = dd.getModuleHandle();
-      Promise<Void> promise = Promise.promise();
-      mh.stop(promise::handle);
-      futures.add(promise.future());
+      futures.add(mh.stop());
     }
     return CompositeFuture.all(futures).mapEmpty();
   }
@@ -181,11 +179,11 @@ public class DeploymentManager {
       ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor,
           md1.getSrvcId(), ports, moduleHost, usePort, config);
       Promise<DeploymentDescriptor> promise = Promise.promise();
-      mh.start(future -> {
-        if (future.failed()) {
+      mh.start().onComplete(res -> {
+        if (res.failed()) {
           ports.free(usePort);
           logger.warn("Deploying {} failed", md1.getSrvcId());
-          promise.fail(new OkapiError(ErrorType.USER, future.cause().getMessage()));
+          promise.fail(new OkapiError(ErrorType.USER, res.cause().getMessage()));
           return;
         }
         DeploymentDescriptor md2
@@ -193,9 +191,7 @@ public class DeploymentManager {
             moduleUrl, descriptor, mh);
         md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
         list.put(md2.getInstId(), md2);
-        dm.add(md2).onComplete(res -> {
-          promise.complete(md2);
-        });
+        dm.add(md2).onComplete(res1 -> promise.handle(res1.map(md2)));
       });
       return promise.future();
     });
@@ -210,16 +206,10 @@ public class DeploymentManager {
     DeploymentDescriptor md = list.get(id);
     return dm.remove(md.getSrvcId(), md.getInstId()).compose(res -> {
       ModuleHandle mh = md.getModuleHandle();
-      Promise<Void> promise = Promise.promise();
-      mh.stop(future -> {
-        if (future.failed()) {
-          promise.fail(future.cause());
-          return;
-        }
+      return mh.stop().compose(x -> {
         list.remove(id);
-        promise.complete();
+        return Future.succeededFuture();
       });
-      return promise.future();
     }).mapEmpty();
   }
 

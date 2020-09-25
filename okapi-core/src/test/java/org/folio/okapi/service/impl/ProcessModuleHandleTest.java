@@ -2,7 +2,6 @@ package org.folio.okapi.service.impl;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.NetServer;
 import io.vertx.ext.unit.Async;
@@ -53,8 +52,9 @@ public class ProcessModuleHandleTest {
     desc.setExec("java -version %p");
     ModuleHandle mh = createModuleHandle(desc, 0);
 
-    mh.start(context.asyncAssertSuccess(res1 ->
-      mh.stop(context.asyncAssertSuccess())
+
+    mh.start().onComplete(context.asyncAssertSuccess(res1 ->
+      mh.stop().onComplete(context.asyncAssertSuccess())
     ));
   }
 
@@ -65,7 +65,7 @@ public class ProcessModuleHandleTest {
     desc.setExec("java -version %p");
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
-    mh.start(context.asyncAssertFailure(cause ->
+    mh.start().onComplete(context.asyncAssertFailure(cause ->
       context.assertTrue(cause.getMessage().startsWith("Deployment failed. Could not connect to port 9231"))
     ));
   }
@@ -77,7 +77,7 @@ public class ProcessModuleHandleTest {
     desc.setExec("gyf 10 %p"); // bad program
     ModuleHandle mh = createModuleHandle(desc, 0);
 
-    mh.start(context.asyncAssertFailure(cause ->
+    mh.start().onComplete(context.asyncAssertFailure(cause ->
         context.assertEquals("Could not execute gyf 10 0", cause.getMessage())
     ));
   }
@@ -89,7 +89,7 @@ public class ProcessModuleHandleTest {
     desc.setExec("java -Dport=%p -jar unknown.jar");
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
-    mh.start(context.asyncAssertFailure());
+    mh.start().onComplete(context.asyncAssertFailure());
   }
 
   @Test
@@ -98,7 +98,7 @@ public class ProcessModuleHandleTest {
     // no cmdlineStart, no exec
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
-    mh.start(context.asyncAssertFailure(cause ->
+    mh.start().onComplete(context.asyncAssertFailure(cause ->
       context.assertEquals("Can not deploy: No exec, no CmdlineStart in LaunchDescriptor", cause.getMessage())
     ));
   }
@@ -109,7 +109,7 @@ public class ProcessModuleHandleTest {
     desc.setExec("java -Dport=9000 -jar unknown.jar");
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
-    mh.start(context.asyncAssertFailure(cause ->
+    mh.start().onComplete(context.asyncAssertFailure(cause ->
       context.assertEquals("Can not deploy: No %p in the exec line", cause.getMessage())
     ));
   }
@@ -120,7 +120,7 @@ public class ProcessModuleHandleTest {
     desc.setCmdlineStart("java -Dport=9000 -jar unknown.jar");
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
-    mh.start(context.asyncAssertFailure(cause ->
+    mh.start().onComplete(context.asyncAssertFailure(cause ->
       context.assertEquals("Can not deploy: No %p in the cmdlineStart", cause.getMessage())
     ));
   }
@@ -132,8 +132,8 @@ public class ProcessModuleHandleTest {
     desc.setExec("java " + testModuleArgs);
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
-    mh.start(context.asyncAssertSuccess(res ->
-      mh.stop(context.asyncAssertSuccess())
+    mh.start().onComplete(context.asyncAssertSuccess(res ->
+      mh.stop().onComplete(context.asyncAssertSuccess())
     ));
   }
 
@@ -144,11 +144,11 @@ public class ProcessModuleHandleTest {
       LaunchDescriptor desc = new LaunchDescriptor();
       desc.setExec("java " + testModuleArgs);
       ModuleHandle mh = createModuleHandle(desc, 9231);
-      mh.start(context.asyncAssertFailure(cause -> {
+      mh.start().onComplete(context.asyncAssertFailure(cause -> {
         context.assertEquals("port 9231 already in use", cause.getMessage());
         ns.close();
         // stop is not necessary, but check that we can call it anyway
-        mh.stop(context.asyncAssertSuccess());
+        mh.stop().onComplete(context.asyncAssertSuccess());
       }));
     }));
   }
@@ -165,7 +165,8 @@ public class ProcessModuleHandleTest {
     desc.setCmdlineStop("kill `cat test-module.pid`; rm -f test-module.pid");
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
-    mh.start(context.asyncAssertSuccess(res -> mh.stop(context.asyncAssertSuccess())));
+    mh.start().onComplete(context.asyncAssertSuccess(
+        res -> mh.stop().onComplete(context.asyncAssertSuccess())));
   }
 
   @Test
@@ -179,8 +180,8 @@ public class ProcessModuleHandleTest {
     desc.setCmdlineStop("gyf");
     ModuleHandle mh = createModuleHandle(desc, 0);
 
-    mh.start(context.asyncAssertSuccess(res ->
-        mh.stop(context.asyncAssertFailure(cause ->
+    mh.start().onComplete(context.asyncAssertSuccess(res ->
+        mh.stop().onComplete(context.asyncAssertFailure(cause ->
             context.assertEquals("Could not execute gyf", cause.getMessage())
         ))
     ));
@@ -197,8 +198,8 @@ public class ProcessModuleHandleTest {
     desc.setCmdlineStop("false");
     ModuleHandle mh = createModuleHandle(desc, 0);
 
-    mh.start(context.asyncAssertSuccess(res ->
-        mh.stop(context.asyncAssertFailure(cause ->
+    mh.start().onComplete(context.asyncAssertSuccess(res ->
+        mh.stop().onComplete(context.asyncAssertFailure(cause ->
             context.assertEquals("Service returned with exit code 1", cause.getMessage())
         ))
     ));
@@ -215,7 +216,7 @@ public class ProcessModuleHandleTest {
     desc.setCmdlineStop("gyf");
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
-    mh.start(context.asyncAssertFailure());
+    mh.start().onComplete(context.asyncAssertFailure());
   }
 
   @Test
@@ -229,7 +230,7 @@ public class ProcessModuleHandleTest {
     desc.setCmdlineStop("gyf");
     ModuleHandle mh = createModuleHandle(desc, 0);
 
-    mh.start(context.asyncAssertFailure(cause ->
+    mh.start().onComplete(context.asyncAssertFailure(cause ->
         context.assertEquals("Could not execute gyf 0", cause.getMessage())
     ));
   }
@@ -248,9 +249,7 @@ public class ProcessModuleHandleTest {
     logger.debug("Start");
     List<Future> futures = new LinkedList<>();
     for (ModuleHandle mh : mhs) {
-      Promise<Void> promise = Promise.promise();
-      mh.start(promise::handle);
-      futures.add(promise.future());
+      futures.add(mh.start());
     }
     Async async1 = context.async();
     CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(res -> async1.complete()));
@@ -263,9 +262,7 @@ public class ProcessModuleHandleTest {
     logger.debug("Stop");
     futures = new LinkedList<>();
     for (ModuleHandle mh : mhs) {
-      Promise<Void> promise = Promise.promise();
-      mh.stop(promise::handle);
-      futures.add(promise.future());
+      futures.add(mh.stop());
     }
     Async async2 = context.async();
     CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(res -> async2.complete()));
