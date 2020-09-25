@@ -860,7 +860,7 @@ public class TenantManager {
         }
         for (TenantModuleDescriptor tm : tml) {
           future = future.compose(x -> {
-            tm.setStage(TenantModuleDescriptor.Stage.call);
+            tm.setStage(TenantModuleDescriptor.Stage.invoke);
             return jobs.put(t.getId(), job.getId(), job);
           });
           if (options.getIgnoreErrors()) {

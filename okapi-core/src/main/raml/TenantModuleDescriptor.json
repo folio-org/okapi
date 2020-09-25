@@ -21,7 +21,7 @@
     "stage" : {
       "description": "Stage for the module",
       "type" : "string",
-      "enum" : [ "pending", "deploy", "call", "undeploy", "done" ]
+      "enum" : [ "pending", "deploy", "invoke", "undeploy", "done" ]
     },
     "message": {
       "description": "Diagnostic Message",

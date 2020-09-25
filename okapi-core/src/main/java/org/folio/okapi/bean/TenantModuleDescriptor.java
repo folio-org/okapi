@@ -30,7 +30,7 @@ public class TenantModuleDescriptor {
 
   @java.lang.SuppressWarnings({"squid:S00115"})
   public enum Stage {
-    pending, deploy, call, undeploy, done
+    pending, deploy, invoke, undeploy, done
   }
 
   private Stage stage;

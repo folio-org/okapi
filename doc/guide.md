@@ -2659,7 +2659,7 @@ If `message` property is present an error has occurred and `stage`
 indicates at which stage the error occurred. Stage is one of
  * `pending`: module is yet to be upgraded/deployed/etc..
  * `deploy`: module is being deployed
- * `call`: module is being called via system interface, such as `_tenant`,
+ * `invoke`: module is being invoked via system interface, such as `_tenant`,
     `_tenantPermissions`, ..
  * `undeploy`: module is being undeployed
  * `done`: module is fully upgraded
@@ -2701,7 +2701,7 @@ This can be changed with the optional parameter `purge`, which when
 set to `true`, instructs a module to purge (remove) all persistent
 data. This only has an effect on modules that are also disabled ; has
 no effect on modules that are enabled or upgraded. The purge parameter
-was added in Okapi version 2.16.0. The purge mode calls the `_tenant`
+was added in Okapi version 2.16.0. The purge mode invokes the `_tenant`
 interface with method DELETE if that is provided for the module.
 
 ## Reference

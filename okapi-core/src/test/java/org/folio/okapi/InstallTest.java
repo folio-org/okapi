@@ -570,7 +570,7 @@ public class InstallTest {
         + "    \"id\" : \"timer-module-1.0.0\"," + LS
         + "    \"action\" : \"enable\"," + LS
         + "    \"message\" : \"No running instances for module timer-module-1.0.0. Can not invoke /_/tenant\"," + LS
-        + "    \"stage\" : \"call\"" + LS
+        + "    \"stage\" : \"invoke\"" + LS
         + "  } ]" + LS
         + "}", job.encodePrettily());
 
@@ -624,7 +624,7 @@ public class InstallTest {
         + "    \"id\" : \"timer-module-1.0.0\"," + LS
         + "    \"action\" : \"enable\"," + LS
         + "    \"message\" : \"POST request for timer-module-1.0.0 /_/tenant failed with 403: timer response\"," + LS
-        + "    \"stage\" : \"call\"" + LS
+        + "    \"stage\" : \"invoke\"" + LS
         + "  } ]" + LS
         + "}", job.encodePrettily());
 
@@ -655,7 +655,7 @@ public class InstallTest {
         + "    \"id\" : \"timer-module-1.0.0\"," + LS
         + "    \"action\" : \"enable\"," + LS
         + "    \"message\" : \"POST request for timer-module-1.0.0 /permissionscall failed with 500: timer permissions response\"," + LS
-        + "    \"stage\" : \"call\"" + LS
+        + "    \"stage\" : \"invoke\"" + LS
         + "  } ]" + LS
         + "}", job.encodePrettily());
 
@@ -750,7 +750,7 @@ public class InstallTest {
             + "    \"id\" : \"timer-module-1.0.0\"," + LS
             + "    \"action\" : \"enable\"," + LS
             + "    \"message\" : \"POST request for timer-module-1.0.0 /_/tenant failed with 401: timer response\"," + LS
-            + "    \"stage\" : \"call\"" + LS
+            + "    \"stage\" : \"invoke\"" + LS
             + "  } ]" + LS
             + "}", job.encodePrettily());
 
@@ -821,12 +821,12 @@ public class InstallTest {
             + "    \"id\" : \"timer-module-1.0.0\"," + LS
             + "    \"action\" : \"enable\"," + LS
             + "    \"message\" : \"POST request for timer-module-1.0.0 /_/tenant failed with 401: timer response\"," + LS
-            + "    \"stage\" : \"call\"" + LS
+            + "    \"stage\" : \"invoke\"" + LS
             + "  }, {" + LS
             + "    \"id\" : \"other-module-1.0.0\"," + LS
             + "    \"action\" : \"enable\"," + LS
             + "    \"message\" : \"POST request for other-module-1.0.0 /_/tenant failed with 401: timer response\"," + LS
-            + "    \"stage\" : \"call\"" + LS
+            + "    \"stage\" : \"invoke\"" + LS
             + "  } ]" + LS
             + "}", job.encodePrettily());
 
@@ -858,7 +858,7 @@ public class InstallTest {
             + "    \"id\" : \"timer-module-1.0.0\"," + LS
             + "    \"action\" : \"enable\"," + LS
             + "    \"message\" : \"POST request for timer-module-1.0.0 /_/tenant failed with 401: timer response\"," + LS
-            + "    \"stage\" : \"call\"" + LS
+            + "    \"stage\" : \"invoke\"" + LS
             + "  }, {" + LS
             + "    \"id\" : \"other-module-1.0.0\"," + LS
             + "    \"action\" : \"enable\"," + LS
