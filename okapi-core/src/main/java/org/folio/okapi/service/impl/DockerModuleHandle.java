@@ -9,6 +9,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
@@ -212,16 +213,20 @@ public class DockerModuleHandle implements ModuleHandle {
           });
           res.handler(body::appendBuffer);
           res.endHandler(d -> {
-            if (res.statusCode() == 200) {
-              JsonObject b = body.toJsonObject();
-              logger.info(b.encodePrettily());
-              promise.complete(b);
-            } else {
+            if (res.statusCode() != 200) {
               String m = url + " HTTP error "
                   + res.statusCode() + "\n"
                   + body.toString();
               logger.error(m);
               promise.fail(m);
+              return;
+            }
+            try {
+              JsonObject b = body.toJsonObject();
+              promise.complete(b);
+            } catch (DecodeException e) {
+              logger.warn("{}", e.getMessage(), e);
+              promise.fail(e);
             }
           });
           return promise.future();
@@ -311,7 +316,7 @@ public class DockerModuleHandle implements ModuleHandle {
     return doc;
   }
 
-  private Future<Void> createContainer(int exposedPort) {
+  Future<Void> createContainer(int exposedPort) {
     logger.info("create container from image {}", image);
 
     String doc = getCreateContainerDoc(exposedPort);
@@ -344,15 +349,16 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private Future<Void> prepareContainer() {
+    if (hostPort == 0) {
+      return Future.failedFuture(messages.getMessage("11300"));
+    }
     return getImage().compose(res1 -> {
-      if (hostPort == 0) {
-        return Future.failedFuture(messages.getMessage("11300"));
-      }
       int exposedPort;
       try {
         exposedPort = getExposedPort(res1);
-      } catch (Exception ex) {
-        return Future.failedFuture(ex);
+      } catch (Exception e) {
+        logger.warn("{}", e.getMessage(), e);
+        return Future.failedFuture(e);
       }
       return createContainer(exposedPort)
           .compose(res2 -> startContainer()
