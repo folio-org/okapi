@@ -147,7 +147,6 @@ public class DockerModuleHandleTest implements WithAssertions {
         "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
         9232, conf);
 
-
     {
       Async async = context.async();
       dockerMockStatus = 200;
@@ -280,7 +279,12 @@ public class DockerModuleHandleTest implements WithAssertions {
         "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, new JsonObject());
 
     JsonObject versionRes = new JsonObject();
-    dh.getUrl("/version").onComplete(context.asyncAssertSuccess(res -> versionRes.put("result", res)));
+    Async async = context.async();
+    dh.getUrl("/version").onComplete(context.asyncAssertSuccess(res -> {
+      versionRes.put("result", res);
+      async.complete();
+    }));
+    async.await();
     Assume.assumeTrue(versionRes.containsKey("result"));
     context.assertTrue(versionRes.getJsonObject("result").containsKey("Version"));
 
