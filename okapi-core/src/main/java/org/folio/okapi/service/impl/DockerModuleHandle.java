@@ -152,17 +152,17 @@ public class DockerModuleHandle implements ModuleHandle {
         .compose(res -> handle204(res, msg));
   }
 
-  private Future<Void> startContainer() {
+  Future<Void> startContainer() {
     logger.info("start container {} for image {}", containerId, image);
     return postUrl("/containers/" + containerId + "/start", "startContainer");
   }
 
-  private Future<Void> stopContainer() {
+  Future<Void> stopContainer() {
     logger.info("stop container {} image {}", containerId, image);
     return postUrl("/containers/" + containerId + "/stop", "stopContainer");
   }
 
-  private Future<Void> deleteContainer() {
+  Future<Void> deleteContainer() {
     logger.info("delete container {} image {}", containerId, image);
     return deleteUrl("/containers/" + containerId, "deleteContainer");
   }

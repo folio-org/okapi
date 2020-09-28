@@ -54,6 +54,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     Assert.assertEquals("", s.toString());
   }
 
+  @Test
   public void testNoDockerAtPort(TestContext context) {
     Vertx vertx = Vertx.vertx();
 
@@ -67,9 +68,22 @@ public class DockerModuleHandleTest implements WithAssertions {
         "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, conf);
 
     dh.start().onComplete(context.asyncAssertFailure(cause ->
-          context.assertTrue(cause.getMessage().contains("java.net.ConnectException"),
+          context.assertTrue(cause.getMessage().contains("Connection refused"),
               cause.getMessage())));
-  }
+    dh.stop().onComplete(context.asyncAssertFailure(cause ->
+        context.assertTrue(cause.getMessage().contains("Connection refused"),
+            cause.getMessage())));
+
+    dh.startContainer().onComplete(context.asyncAssertFailure(cause ->
+        context.assertTrue(cause.getMessage().contains("Connection refused"),
+            cause.getMessage())));
+    dh.stopContainer().onComplete(context.asyncAssertFailure(cause ->
+        context.assertTrue(cause.getMessage().contains("Connection refused"),
+            cause.getMessage())));
+    dh.deleteContainer().onComplete(context.asyncAssertFailure(cause ->
+        context.assertTrue(cause.getMessage().contains("Connection refused"),
+            cause.getMessage())));
+    }
 
   @Test
   public void testDockerVersionAtLocal(TestContext context) {
