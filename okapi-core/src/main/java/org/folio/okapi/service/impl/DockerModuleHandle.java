@@ -184,7 +184,7 @@ public class DockerModuleHandle implements ModuleHandle {
     }
   }
 
-  private Future<Void> getContainerLog() {
+  Future<Void> getContainerLog() {
     final String url = "/containers/" + containerId
         + "/logs?stderr=1&stdout=1&follow=1";
     return request(HttpMethod.GET, url, null, Buffer.buffer()).compose(res -> {

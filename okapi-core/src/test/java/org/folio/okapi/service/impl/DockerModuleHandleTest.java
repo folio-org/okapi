@@ -108,19 +108,24 @@ public class DockerModuleHandleTest implements WithAssertions {
         context.assertEquals("No exposedPorts in image", cause.getMessage())));
   }
 
-
   private int dockerMockStatus = 200;
+  private int dockerEmptyStatus = 200;
   private JsonObject dockerMockJson = null;
   private String dockerMockText = null;
 
   private void dockerMockHandle(RoutingContext ctx) {
-    ctx.response().setStatusCode(dockerMockStatus);
-    if (dockerMockJson != null) {
-      ctx.response().putHeader("Context-Type", "application/json");
-      ctx.response().end(Json.encodePrettily(dockerMockJson));
-    } else if (dockerMockText != null) {
-      ctx.response().end(dockerMockText);
+    if (ctx.request().method().equals(HttpMethod.GET) || ctx.request().path().endsWith("/create")) {
+      ctx.response().setStatusCode(dockerMockStatus);
+      if (dockerMockJson != null) {
+        ctx.response().putHeader("Context-Type", "application/json");
+        ctx.response().end(Json.encodePrettily(dockerMockJson));
+      } else if (dockerMockText != null) {
+        ctx.response().end(dockerMockText);
+      } else {
+        ctx.response().end();
+      }
     } else {
+      ctx.response().setStatusCode(dockerEmptyStatus);
       ctx.response().end();
     }
   }
@@ -138,14 +143,23 @@ public class DockerModuleHandleTest implements WithAssertions {
         .listen(dockerPort, context.asyncAssertSuccess());
 
     LaunchDescriptor ld = new LaunchDescriptor();
+    ld.setWaitIterations(2);
     ld.setDockerImage("folioci/mod-x");
     ld.setDockerPull(false);
+    EnvEntry[] env = new EnvEntry[1];
+    env[0] = new EnvEntry();
+    env[0].setName("varName");
+    env[0].setValue("varValue");
+    ld.setEnv(env);
+
+    String []cmd = {"command"};
+    ld.setDockerCmd(cmd);
     Ports ports = new Ports(9232, 9233);
     JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + dockerPort);
 
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
         "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
-        9232, conf);
+        9231, conf);
 
     {
       Async async = context.async();
@@ -264,9 +278,34 @@ public class DockerModuleHandleTest implements WithAssertions {
       async.await();
     }
 
+    {
+      Async async = context.async();
+      dockerEmptyStatus = 204;
+      dockerMockStatus = 200;
+      dockerMockJson = new JsonObject();
+      dockerMockJson.put("Config", new JsonObject().put("ExposedPorts",
+          new JsonObject().put("8000", "a")));
+
+      dh.start().onComplete(context.asyncAssertSuccess(res1 ->
+        dh.stop().onComplete(context.asyncAssertSuccess(res2 -> async.complete())
+      )));
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      dockerEmptyStatus = 204;
+      dockerMockStatus = 400;
+
+      dh.getContainerLog().onComplete(context.asyncAssertFailure(cause -> {
+        context.assertEquals("getContainerLog HTTP error 400", cause.getMessage());
+        async.complete();
+      }));
+      async.await();
+    }
+
     listen.close(context.asyncAssertSuccess());
   }
-
 
   @Test
   public void testDockerVersionAtLocal(TestContext context) {
