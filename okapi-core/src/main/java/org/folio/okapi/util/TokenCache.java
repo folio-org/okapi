@@ -109,7 +109,7 @@ public class TokenCache {
 
     @Override
     protected boolean removeEldestEntry(final Map.Entry<K, V> eldest) {
-      return size() > maxEntries;
+      return super.size() > maxEntries;
     }
 
     @Override
@@ -118,7 +118,7 @@ public class TokenCache {
         return false;
       }
       LruCache<?, ?> other = (LruCache<?, ?>) obj;
-      return maxEntries != other.maxEntries;
+      return this.maxEntries == other.maxEntries;
     }
 
     @Override

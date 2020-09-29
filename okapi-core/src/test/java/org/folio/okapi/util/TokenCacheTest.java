@@ -46,4 +46,22 @@ public class TokenCacheTest {
         .atMost(ttl + 100, TimeUnit.MILLISECONDS)
         .until(() -> cache.get("tenant", "method", "path", "userId", "foo") == null);
   }
+
+  @Test
+  public void testLruCacheEqualsHashCode() {
+    TokenCache.LruCache<String, String> cacheA = new TokenCache.LruCache<String, String>(10);
+    TokenCache.LruCache<String, String> cacheB = new TokenCache.LruCache<String, String>(10);
+    assertEquals(cacheA, cacheB);
+    assertEquals(cacheA.hashCode(), cacheB.hashCode());
+
+    // different entries
+    cacheA.put("key", "value");
+    assertNotEquals(cacheA, cacheB);
+    assertNotEquals(cacheA.hashCode(), cacheB.hashCode());
+
+    // different maxEntries
+    TokenCache.LruCache<String, String> cacheC = new TokenCache.LruCache<String, String>(11);
+    assertNotEquals(cacheB, cacheC);
+    assertNotEquals(cacheB.hashCode(), cacheC.hashCode());
+  }
 }
