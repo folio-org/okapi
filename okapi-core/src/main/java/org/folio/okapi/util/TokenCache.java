@@ -30,6 +30,7 @@ public class TokenCache {
    * @param maxSize the maximum number of entries that may be cached at once
    */
   private TokenCache(long ttl, int maxSize) {
+    logger.info("Initializing token cache w/ ttl: {}, maxSize: {}", ttl, maxSize);
     this.ttl = ttl;
 
     this.cache = Collections.synchronizedMap(new LruCache<>(maxSize));

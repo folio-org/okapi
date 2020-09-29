@@ -38,6 +38,7 @@ import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
 import org.folio.okapi.bean.Tenant;
+import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiClient;
@@ -103,9 +104,12 @@ public class ProxyService {
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
     httpClient = vertx.createHttpClient(opt);
+
+    String tcTtlMs = Config.getSysConf(TOKEN_CACHE_TTL_MS, null, config);
+    String tcMaxSize = Config.getSysConf(TOKEN_CACHE_MAX_SIZE, null, config);
     tokenCache = TokenCache.builder()
-        .withTtl(config.getLong(TOKEN_CACHE_TTL_MS, TokenCache.DEFAULT_TTL))
-        .withMaxSize(config.getInteger(TOKEN_CACHE_MAX_SIZE, TokenCache.DEFAULT_MAX_SIZE))
+        .withTtl(tcTtlMs != null ? Long.parseLong(tcTtlMs) : TokenCache.DEFAULT_TTL)
+        .withMaxSize(tcMaxSize != null ? Integer.parseInt(tcMaxSize) : TokenCache.DEFAULT_MAX_SIZE)
         .build();
   }
 
