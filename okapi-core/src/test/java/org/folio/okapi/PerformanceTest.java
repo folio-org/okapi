@@ -19,7 +19,7 @@ import org.junit.runner.RunWith;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
-public class OkapiPerformance {
+public class PerformanceTest {
 
   private final Logger logger = OkapiLogger.get();
 
