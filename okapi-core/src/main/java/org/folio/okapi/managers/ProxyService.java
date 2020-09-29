@@ -78,9 +78,10 @@ public class ProxyService {
   private static final Random random = new Random();
   private final int waitMs;
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
+  private static final String TOKEN_CACHE_MAX_SIZE = "token_cache_max_size";
+  private static final String TOKEN_CACHE_TTL_MS = "token_cache_ttl_ms";
   private final Messages messages = Messages.getInstance();
-
-  private TokenCache tokenCache = new TokenCache();
+  private final TokenCache tokenCache;
 
   /**
    * Construct Proxy service.
@@ -104,6 +105,10 @@ public class ProxyService {
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
     httpClient = vertx.createHttpClient(opt);
+    tokenCache = TokenCache.builder()
+        .withTtl(config.getLong(TOKEN_CACHE_TTL_MS, TokenCache.DEFAULT_TTL))
+        .withMaxSize(config.getInteger(TOKEN_CACHE_MAX_SIZE, TokenCache.DEFAULT_MAX_SIZE))
+        .build();
   }
 
   /**
@@ -186,8 +191,8 @@ public class ProxyService {
     String pathPattern = re.getPathPattern();
 
     CacheEntry cached = tokenCache.get(pc.getTenant(), req.method().name(),
-        pathPattern == null ? req.path() : pathPattern, req.headers().get(XOkapiHeaders.TOKEN),
-        req.getHeader(XOkapiHeaders.USER_ID));
+        pathPattern == null ? req.path() : pathPattern, req.getHeader(XOkapiHeaders.USER_ID),
+        req.headers().get(XOkapiHeaders.TOKEN));
 
     if (cached != null) {
       mi.setAuthToken(cached.token);
@@ -481,31 +486,26 @@ public class ProxyService {
         String id = mi.getModuleDescriptor().getId();
         String pathPattern = mi.getRoutingEntry().getPathPattern();
 
+        String tok = null;
         if (jo.containsKey(id)) {
-          String tok = jo.getString(id);
+          tok = jo.getString(id);
           mi.setAuthToken(tok);
           pc.debug("authResponse: token for " + id + ": " + tok);
-
-          tokenCache.put(pc.getTenant(),
-              req.method().name(),
-              pathPattern == null ? req.path() : pathPattern,
-              res.getHeader(XOkapiHeaders.USER_ID),
-              res.getHeader(XOkapiHeaders.PERMISSIONS),
-              req.getHeader(XOkapiHeaders.TOKEN),
-              tok);
         } else if (jo.containsKey("_")) {
-          String tok = jo.getString("_");
-          mi.setAuthToken(tok);
+          tok = jo.getString("_");
           pc.debug("authResponse: Default (_) token for " + id + ": " + tok);
-
-          tokenCache.put(pc.getTenant(),
-              req.method().name(),
-              pathPattern == null ? req.path() : pathPattern,
-              res.getHeader(XOkapiHeaders.USER_ID),
-              res.getHeader(XOkapiHeaders.PERMISSIONS),
-              req.getHeader(XOkapiHeaders.TOKEN),
-              tok);
+        } else {
+          continue;
         }
+
+        mi.setAuthToken(tok);
+        tokenCache.put(pc.getTenant(),
+            req.method().name(),
+            pathPattern == null ? req.path() : pathPattern,
+            res.getHeader(XOkapiHeaders.USER_ID),
+            res.getHeader(XOkapiHeaders.PERMISSIONS),
+            req.getHeader(XOkapiHeaders.TOKEN),
+            tok);
       }
     }
   }

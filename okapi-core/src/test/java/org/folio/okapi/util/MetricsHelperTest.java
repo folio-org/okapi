@@ -108,7 +108,9 @@ class MetricsHelperTest {
 
     long ttl = 2000L;
 
-    TokenCache cache = new TokenCache(ttl);
+    TokenCache cache = TokenCache.builder()
+        .withTtl(ttl)
+        .build();
 
     // test case where there is no userId
     MetricsHelper.recordTokenCacheCached("tenant",  "GET",  "/foo/bar", null);
@@ -124,12 +126,12 @@ class MetricsHelperTest {
     Counter missedCounter =
         MetricsHelper.recordTokenCacheMiss("tenant", "POST", "/foo/bar/123", userId);
     assertEquals(1, missedCounter.count());
-    cache.get("tenant", "POST", "/foo/bar/123", "keyToken", userId);
+    cache.get("tenant", "POST", "/foo/bar/123", userId, "keyToken");
     assertEquals(2, missedCounter.count());
 
     Counter hitCounter = MetricsHelper.recordTokenCacheHit("tenant", "GET", "/foo/bar", userId);
     assertEquals(1, hitCounter.count());
-    cache.get("tenant", "GET", "/foo/bar", "keyToken", userId);
+    cache.get("tenant", "GET", "/foo/bar", userId, "keyToken");
     assertEquals(2, hitCounter.count());
 
     Counter expiresCounter =
@@ -139,7 +141,7 @@ class MetricsHelperTest {
     await().with()
       .pollInterval(20, TimeUnit.MILLISECONDS)
       .atMost(ttl + 100, TimeUnit.MILLISECONDS)
-      .until(() -> cache.get("tenant", "GET", "/foo/bar", "keyToken", userId) == null);
+      .until(() -> cache.get("tenant", "GET", "/foo/bar", userId, "keyToken") == null);
 
     assertEquals(2, expiresCounter.count());
   }

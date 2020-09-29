@@ -2691,6 +2691,10 @@ Defaults to `localhost`.
 * `postgres_db_init`: For a value of `1`, Okapi will drop existing
 PostgreSQL database and prepare a new one. A value of `0` (null) will
 leave it unmodified (default).
+* `token_cache_max_size`: Maximum number of token cache entries.
+  Defaults to 10000.
+* `token_cache_ttl_ms`: Time to live in millisecods for token cache entries.
+  Defaults to 180000 (3 minutes).
 
 #### Command
 
