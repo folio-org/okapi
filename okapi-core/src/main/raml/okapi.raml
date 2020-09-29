@@ -9,6 +9,8 @@ types:
   ModuleList: !include ModuleList.json
   InterfaceDescriptor: !include InterfaceDescriptor.json
   InterfaceList: !include InterfaceList.json
+  InstallJob: !include InstallJob.json
+  InstallJobList: !include InstallJobList.json
   TenantDescriptor: !include TenantDescriptor.json
   TenantList: !include TenantList.json
   TenantModuleDescriptor: !include TenantModuleDescriptor.json
@@ -346,16 +348,17 @@ types:
         description: Whether to check dependencies
         type: boolean
         required: false
+        default: true
       preRelease:
         description: Whether to allow pre-release modules in dependency check
         type: boolean
         required: false
+        default: true
       npmSnapshot:
-        description: |
-          Whether to allow NPM module snapshots in dependency check
-          default: true
+        description: Whether to allow NPM module snapshots in dependency check
         type: boolean
         required: false
+        default: true
     body:
       application/json:
         type: ModuleDescriptor
@@ -385,6 +388,7 @@ types:
         description: If true, return Graphviz DOT content as plain text
         type: boolean
         required: false
+        default: false
       filter:
         description: Filter by module ID
         type: string
@@ -393,15 +397,16 @@ types:
         description: Whether full or compact MD should be returned
         type: boolean
         required: false
+        default: false
       latest:
         description: Limit to latest N releases (most likely 1 if given)
         type: integer
         required: false
       npmSnapshot:
         description: Whether to include NPM module snapshots
-          (default:true).
         type: boolean
         required: false
+        default: true
       order:
         description: Order
         enum: [desc, asc]
@@ -412,9 +417,9 @@ types:
         required: false
       preRelease:
         description: Whether to include modules with pre-release info
-          (default:true).
         type: boolean
         required: false
+        default: true
       provide:
         description: Limit to provided interface
         type: string
@@ -590,6 +595,7 @@ types:
             description: If true, return Graphviz DOT content as plain text
             type: boolean
             required: false
+            default: false
           filter:
             description: Filter by module ID
             type: string
@@ -598,15 +604,16 @@ types:
             description: Whether full or compact MD should be returned
             type: boolean
             required: false
+            default: false
           latest:
             description: Limit to latest N releases (most likely 1 if given)
             type: integer
             required: false
           npmSnapshot:
             description: Whether to include NPM module snapshots
-              (default:true).
             type: boolean
             required: false
+            default: true
           order:
             description: Order
             enum: [desc, asc]
@@ -617,9 +624,9 @@ types:
             required: false
           preRelease:
             description: Whether to include modules with pre-release info
-              (default:true).
             type: boolean
             required: false
+            default: true
           provide:
             description: Limit to provided interface
             type: string
@@ -655,13 +662,14 @@ types:
           invoke:
             description: |
               Whether to invoke for tenant init/permissions/purge
-              (default: true).
             type: boolean
             required: false
+            default: true
           purge:
             description: Disabled modules will also be purged.
             type: boolean
             required: false
+            default: false
           tenantParameters:
             description: Parameters for Tenant init
             type: string
@@ -708,15 +716,15 @@ types:
             This call will eventually be replaced by the 'install' service.
           queryParameters:
             invoke:
-              description: |
-                Whether to invoke for tenant init/permissions/purge
-                (default: true).
+              description: Whether to invoke for tenant init/permissions/purge
               type: boolean
               required: false
+              default: true
             purge:
               description: Disabled modules will also be purged.
               type: boolean
               required: false
+              default: false
             tenantParameters:
               description: Parameters for Tenant init
               type: string
@@ -752,15 +760,15 @@ types:
             This call will eventually be replaced by the 'install' service.
           queryParameters:
             invoke:
-              description: |
-                Whether to invoke for tenant init/permissions/purge
-                (default: true).
+              description: Whether to invoke for tenant init/permissions/purge
               type: boolean
               required: false
+              default: true
             purge:
               description: Disabled modules will also be purged.
               type: boolean
               required: false
+              default: false
             tenantParameters:
               description: Parameters for Tenant init
               type: string
@@ -776,6 +784,30 @@ types:
               body:
                 text/plain:
     /install:
+      get:
+        description: Retrieve information about all install/upgrade
+          jobs - including those that are ongoing.
+        responses:
+          200:
+            description: OK
+            body:
+              application/json:
+                type: InstallJobList
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+          400:
+            description: User error
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: User error
+            body:
+              text/plain:
       post:
         description: Enable, disable or upgrade one or more modules for
           tenant. The request body and response body is of the same type
@@ -790,34 +822,53 @@ types:
           must be deployed (optionally) and enabled/disabled by the existing
           tenants-modules CRUD service.
         queryParameters:
+          async:
+            description: Whether to install in the background
+            type: boolean
+            required: false
+            default: false
           deploy:
             description: Whether to deploy (or undeploy if disabling)
             type: boolean
             required: false
+            default: false
+          ignoreErrors:
+            description: |
+              Okapi 4.2.0 and later, it is possible to ignore errors during the
+              install operation. This is done by supplying parameter `ignoreErrors=true`.
+              In this case, Okapi will try to upgrade all
+              modules in the modules list, regardless if one of them fails. However,
+              for individual modules, if they fail, their upgrade will not be commited.
+              This is an experimental parameter which was added to be able to inspect
+              all problem(s) with module upgrade(s).
+            type: boolean
+            required: false
+            default: false
           invoke:
-            description: |
-              Whether to invoke for tenant init/permissions/purge
-              (default: true).
+            description: Whether to invoke for tenant init/permissions/purge
             type: boolean
             required: false
+            default: true
           npmSnapshot:
-            description: |
-              Whether to include NPM module snapshots (default:true).
+            description: Whether to include NPM module snapshots (default:true).
             type: boolean
             required: false
+            default: true
           preRelease:
-            description: Whether pre-releases should be considered for
-              installation.
+            description: Whether pre-releases should be considered for installation.
             type: boolean
             required: false
+            default: true
           purge:
             description: Disabled modules will also be purged.
             type: boolean
             required: false
+            default: false
           simulate:
             description: Whether the installation is simulated
             type: boolean
             required: false
+            default: false
           tenantParameters:
             description: Parameters for Tenant init
             type: string
@@ -834,6 +885,16 @@ types:
             headers:
               X-Okapi-Trace:
                 description: Okapi trace and timing
+          201:
+            description: Install job created (async mode)
+            body:
+              application/json:
+                type: TenantModuleDescriptorList
+            headers:
+              Location:
+                description: URI to the install job
+              X-Okapi-Trace:
+                description: Okapi trace and timing
           400:
             description: Bad Request
             body:
@@ -846,35 +907,78 @@ types:
             description: Server Error
             body:
               text/plain:
+      /{install_id}:
+        get:
+          description: Get install job status
+          responses:
+            200:
+              description: OK
+              body:
+                application/json:
+                  type: InstallJob
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
+            400:
+              description: User error
+              body:
+                text/plain:
+            404:
+              description: Not Found
+              body:
+                text/plain:
+            500:
+              description: User error
+              body:
+                text/plain:
     /upgrade:
       post:
         description: Check if newer modules exist, and upgrade for tenant.
           The response is a list of modules that should be enabled, disabled
           or upgraded to perform the upgrade.
         queryParameters:
+          async:
+            description: Whether to upgrade in the background
+            type: boolean
+            required: false
+            default: false
           deploy:
             description: Whether to deploy (or undeploy if disabling)
             type: boolean
             required: false
+            default: false
+          ignoreErrors:
+            description: |
+              Okapi 4.2.0 and later, it is possible to ignore errors during the
+              upgrade operation. This is done by supplying parameter `ignoreErrors=true`.
+              In this case, Okapi will try to upgrade all
+              modules in the modules list, regardless if one of them fails. However,
+              for individual modules, if they fail, their upgrade will not be commited.
+              This is an experimental parameter which was added to be able to inspect
+              all problem(s) with module upgrade(s).
+            type: boolean
+            required: false
+            default: false
           invoke:
-            description: |
-              Whether to invoke for tenant init/permissions/purge
-              (default: true).
+            description: Whether to invoke for tenant init/permissions/purge
             type: boolean
             required: false
+            default: true
           preRelease:
-            description: |
-              Whether pre-releases should be considered for installation.
+            description: Whether pre-releases should be considered for installation.
             type: boolean
             required: false
+            default: true
           purge:
-            description: Disabled modules will also be purged.
+            description: Disabled modules will also be purged
             type: boolean
             required: false
+            default: false
           simulate:
             description: Whether the upgrade is simulated
             type: boolean
             required: false
+            default: false
           tenantParameters:
             description: Parameters for Tenant init
             type: string
@@ -886,6 +990,16 @@ types:
               application/json:
                 type: TenantModuleDescriptorList
             headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+          201:
+            description: Install job created (async mode)
+            body:
+              application/json:
+                type: TenantModuleDescriptorList
+            headers:
+              Location:
+                description: URI to the install job
               X-Okapi-Trace:
                 description: Okapi trace and timing
           400:
@@ -908,6 +1022,7 @@ types:
             description: Whether brief or full interface list
             type: boolean
             required: false
+            default: false
           type:
             description: Limit by interfaceType
             type: string

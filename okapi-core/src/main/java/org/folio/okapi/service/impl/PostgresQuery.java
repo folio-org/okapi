@@ -1,16 +1,13 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.SqlConnection;
 import io.vertx.sqlclient.Tuple;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class PostgresQuery {
@@ -24,64 +21,22 @@ public class PostgresQuery {
     this.conn = null;
   }
 
-  private void getCon(Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<SqlConnection> getCon() {
     if (conn != null) {
-      fut.handle(new Success<>());
-      return;
+      return Future.succeededFuture(conn);
     }
-    pg.getConnection(res -> {
-      if (res.failed()) {
-        logger.fatal("getCon failed {}", res.cause().getMessage());
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        return;
-      }
-      conn = res.result();
-      fut.handle(new Success<>());
+    return pg.getConnection().compose(res -> {
+      conn = res;
+      return Future.succeededFuture(res);
     });
   }
 
-  void query(String sql, Tuple tuple,
-             Handler<ExtendedAsyncResult<RowSet<Row>>> fut) {
-
-    getCon(gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
-      }
-      logger.debug("preparedQuery sql {}", sql);
-      conn.preparedQuery(sql).execute(tuple, qres -> {
-        if (qres.failed()) {
-          logger.fatal("preparedQuery sql {} failed: {}",
-              sql, qres.cause().getMessage());
-          close();
-          fut.handle(new Failure<>(ErrorType.INTERNAL, qres.cause()));
-          return;
-        }
-        fut.handle(new Success<>(qres.result()));
-      });
-    });
+  Future<RowSet<Row>> query(String sql, Tuple tuple) {
+    return getCon().compose(x -> x.preparedQuery(sql).execute(tuple)).onFailure(x -> close());
   }
 
-  void query(String sql,
-             Handler<ExtendedAsyncResult<RowSet<Row>>> fut) {
-
-    getCon(gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
-      }
-      logger.debug("query sql {}", sql);
-      conn.query(sql).execute(qres -> {
-        if (qres.failed()) {
-          logger.fatal("query sql {} failed: {}",
-              sql, qres.cause().getMessage());
-          close();
-          fut.handle(new Failure<>(ErrorType.INTERNAL, qres.cause()));
-        } else {
-          fut.handle(new Success<>(qres.result()));
-        }
-      });
-    });
+  Future<RowSet<Row>> query(String sql) {
+    return getCon().compose(x -> x.query(sql).execute()).onFailure(x -> close());
   }
 
   void close() {

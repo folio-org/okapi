@@ -1,6 +1,6 @@
 package org.folio.okapi.util;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,12 +15,9 @@ import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 
 public class DepResolution {
 
@@ -233,13 +230,11 @@ public class DepResolution {
    * @param modsAvailable available modules
    * @param modsEnabled enabled modules (for some tenant)
    * @param tml install list with actions
-   * @param fut future
+   * @return future
    */
-  public static void installSimulate(Map<String, ModuleDescriptor> modsAvailable,
-                                     Map<String, ModuleDescriptor> modsEnabled,
-                                     List<TenantModuleDescriptor> tml,
-                                     Handler<ExtendedAsyncResult<Boolean>> fut) {
-
+  public static Future<Void> installSimulate(Map<String, ModuleDescriptor> modsAvailable,
+                                             Map<String, ModuleDescriptor> modsEnabled,
+                                             List<TenantModuleDescriptor> tml) {
     List<String> errors = new LinkedList<>();
     for (TenantModuleDescriptor tm : tml) {
       String id = tm.getId();
@@ -267,86 +262,79 @@ public class DepResolution {
       }
     }
     if (!errors.isEmpty()) {
-      fut.handle(new Failure<>(ErrorType.USER, String.join(". ", errors)));
-      return;
+      return Future.failedFuture(new OkapiError(ErrorType.USER,
+          String.join(". ", errors)));
     }
     final int lim = tml.size();
+    Future<Void> future = Future.succeededFuture();
     for (int i = 0; i <= lim; i++) {
       logger.info("outer loop i {} tml.size {}", i, tml.size());
       TenantModuleDescriptor tm = getNextTM(modsEnabled, tml);
       if (tm == null) {
         break;
       }
-      if (tmAction(tm, modsAvailable, modsEnabled, tml, fut)) {
-        return;
+      future = future.compose(x -> tmAction(tm, modsAvailable, modsEnabled, tml));
+    }
+    return future.compose(x -> {
+      String s = DepResolution.checkAllDependencies(modsEnabled);
+      if (!s.isEmpty()) {
+        logger.warn("installModules.checkAllDependencies: {}", s);
+        return Future.failedFuture(new OkapiError(ErrorType.USER, s));
       }
-    }
-    String s = DepResolution.checkAllDependencies(modsEnabled);
-    if (!s.isEmpty()) {
-      logger.warn("installModules.checkAllDependencies: {}", s);
-      fut.handle(new Failure<>(ErrorType.USER, s));
-      return;
-    }
-
-    logger.info("installModules.returning OK");
-    fut.handle(new Success<>(Boolean.TRUE));
+      logger.info("installModules.returning OK");
+      return Future.succeededFuture();
+    });
   }
 
-  private static boolean tmAction(TenantModuleDescriptor tm,
-                                  Map<String, ModuleDescriptor> modsAvailable,
-                                  Map<String, ModuleDescriptor> modsEnabled,
-                                  List<TenantModuleDescriptor> tml,
-                                  Handler<ExtendedAsyncResult<Boolean>> fut) {
+  private static Future<Void> tmAction(TenantModuleDescriptor tm,
+                                       Map<String, ModuleDescriptor> modsAvailable,
+                                       Map<String, ModuleDescriptor> modsEnabled,
+                                       List<TenantModuleDescriptor> tml) {
     String id = tm.getId();
     TenantModuleDescriptor.Action action = tm.getAction();
     if (null == action) {
-      fut.handle(new Failure<>(ErrorType.INTERNAL,
+      return Future.failedFuture(new OkapiError(ErrorType.INTERNAL,
           messages.getMessage("10404", "null")));
-      return true;
-    } else {
-      switch (action) {
-        case enable:
-          return tmEnable(id, modsAvailable, modsEnabled, tml, fut);
-        case uptodate:
-          return false;
-        case disable:
-          return tmDisable(id, modsAvailable, modsEnabled, tml, fut);
-        default:
-          fut.handle(new Failure<>(ErrorType.INTERNAL,
-              messages.getMessage("10404", action.name())));
-          return true;
-      }
     }
+    switch (action) {
+      case enable:
+        return tmEnable(id, modsAvailable, modsEnabled, tml);
+      case uptodate:
+        return Future.succeededFuture();
+      case disable:
+        return tmDisable(id, modsAvailable, modsEnabled, tml);
+      default:
+        return Future.failedFuture(new OkapiError(ErrorType.INTERNAL,
+            messages.getMessage("10404", action.name())));
+    }
+
   }
 
-  private static boolean tmEnable(
+  private static Future<Void> tmEnable(
       String id, Map<String, ModuleDescriptor> modsAvailable,
-      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-      Handler<ExtendedAsyncResult<Boolean>> fut) {
+      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
 
     List<String> ret = addModuleDependencies(modsAvailable.get(id), modsAvailable,
         modsEnabled, tml);
     if (ret.isEmpty()) {
       upgradeLeafs(modsAvailable.get(id), modsAvailable, modsEnabled, tml);
-      return false;
+      return Future.succeededFuture();
     }
-    fut.handle(new Failure<>(ErrorType.USER, "enable " + id
+    return Future.failedFuture(new OkapiError(ErrorType.USER, "enable " + id
         + " failed: " + String.join(". ", ret)));
-    return true;
   }
 
-  private static boolean tmDisable(String id, Map<String, ModuleDescriptor> modsAvailable,
-                                   Map<String, ModuleDescriptor> modsEnabled,
-                                   List<TenantModuleDescriptor> tml,
-                                   Handler<ExtendedAsyncResult<Boolean>> fut) {
+  private static Future<Void> tmDisable(
+      String id, Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
+
     List<String> ret = removeModuleDependencies(modsAvailable.get(id),
         modsEnabled, tml);
     if (ret.isEmpty()) {
-      return false;
+      return Future.succeededFuture();
     }
-    fut.handle(new Failure<>(ErrorType.USER, "disable " + id + " failed: "
+    return Future.failedFuture(new OkapiError(ErrorType.USER, "disable " + id + " failed: "
         + String.join(". ", ret)));
-    return true;
   }
 
   private static List<String> checkInterfaceDependency(ModuleDescriptor md, InterfaceDescriptor req,

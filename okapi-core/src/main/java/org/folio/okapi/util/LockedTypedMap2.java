@@ -1,12 +1,10 @@
 package org.folio.okapi.util;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import java.util.LinkedList;
 import java.util.List;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Success;
+import org.folio.okapi.common.ErrorType;
 
 public class LockedTypedMap2<T> extends LockedStringMap {
 
@@ -16,48 +14,61 @@ public class LockedTypedMap2<T> extends LockedStringMap {
     this.clazz = c;
   }
 
-  public void add(String k, String k2, T value, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> add(String k, String k2, T value) {
     String json = Json.encode(value);
-    addOrReplace(false, k, k2, json, fut);
+    return addOrReplace(false, k, k2, json);
   }
 
-  public void put(String k, String k2, T value, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> put(String k, String k2, T value) {
     String json = Json.encode(value);
-    addOrReplace(true, k, k2, json, fut);
+    return addOrReplace(true, k, k2, json);
   }
 
   /**
    * get and deserialize value from shared map.
    * @param k primary-level key
    * @param k2 secondary-level key
-   * @param fut async result with deserialized value on success
+   * @return fut async result with deserialized value on success
    */
-  public void get(String k, String k2, Handler<ExtendedAsyncResult<T>> fut) {
-    getString(k, k2, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        fut.handle(new Success<>(Json.decodeValue(res.result(), clazz)));
+  public Future<T> getNotFound(String k, String k2) {
+    return get(k, k2).compose(res -> {
+      if (res == null) {
+        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, k + "/" + k2));
       }
+      return Future.succeededFuture(res);
+    });
+  }
+
+  /**
+   * get and deserialize value from shared map.
+   * @param k primary-level key
+   * @param k2 secondary-level key
+   * @return fut async result with deserialized value on success (null if not found)
+   */
+  public Future<T> get(String k, String k2) {
+    return getString(k, k2).compose(res -> {
+      if (res == null) {
+        return Future.succeededFuture(null);
+      }
+      return Future.succeededFuture(Json.decodeValue(res, clazz));
     });
   }
 
   /**
    * get and deserialize values from shared map.
    * @param k primary-level key
-   * @param fut async result with deserialized values on success
+   * @return fut async result with deserialized values on success
    */
-  public void get(String k, Handler<ExtendedAsyncResult<List<T>>> fut) {
-    getString(k, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        LinkedList<T> t = new LinkedList<>();
-        for (String s : res.result()) {
-          t.add(Json.decodeValue(s, clazz));
-        }
-        fut.handle(new Success<>(t));
+  public Future<List<T>> get(String k) {
+    return getPrefix(k).compose(res -> {
+      if (res == null) {
+        return Future.succeededFuture(null);
       }
+      LinkedList<T> t = new LinkedList<>();
+      for (String s : res) {
+        t.add(Json.decodeValue(s, clazz));
+      }
+      return Future.succeededFuture(t);
     });
   }
 }

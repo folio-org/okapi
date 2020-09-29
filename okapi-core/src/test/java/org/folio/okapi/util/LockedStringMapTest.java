@@ -1,6 +1,9 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -9,9 +12,11 @@ import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.runner.RunWith;
+
+import java.util.LinkedList;
+import java.util.List;
 
 @RunWith(VertxUnitRunner.class)
 public class LockedStringMapTest {
@@ -19,7 +24,6 @@ public class LockedStringMapTest {
   private final Logger logger = OkapiLogger.get();
 
   private Vertx vertx;
-  private Async async;
   private LockedStringMap map = new LockedStringMap();
 
   @Before
@@ -30,160 +34,333 @@ public class LockedStringMapTest {
 
   @After
   public void tearDown(TestContext context) {
-    async = context.async();
-    vertx.close(x -> {
-      async.complete();
-    });
+    vertx.close(context.asyncAssertSuccess());
   }
 
   @Test
-  public void testit(TestContext context) {
-    async = context.async();
-    map.init(vertx, "FooMap", res -> {
-      listEmpty(context);
-    });
+  public void test1(TestContext context) {
+    {
+      Async async = context.async();
+      map.init(vertx, "FooMap").onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getKeys().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("[]", res.result().toString());
+        async.complete();
+      });
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      map.addOrReplace(false, "k1", null, "v1").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.addOrReplace(false, "k1", null, "v2").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      map.getString("k1", null).onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+
   }
 
-  public void listEmpty(TestContext context) {
-    map.getKeys(res -> {
-      assertTrue(res.succeeded());
-      assertEquals("[]", res.result().toString());
-      testadd(context);
-    });
+  @Test
+  public void test2(TestContext context) {
+    {
+      Async async = context.async();
+      map.init(vertx, "FooMap").onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getKeys().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("[]", res.result().toString());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.size().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals(0, res.result());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.addOrReplace(false, "k1", "k2", "FOOBAR").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getString("k1", "k2").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("FOOBAR", res.result());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getString("k1", "k3").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals(null, res.result());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getString("foo", "k2").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals(null, res.result());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.addOrReplace(true, "k1", "k2", "FOOBAR").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      map.addOrReplace(false, "k1", "k2", "FOOBAR").onComplete(res -> {
+        context.assertFalse(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getPrefix("k1").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("[FOOBAR]", res.result().toString());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.addOrReplace(false, "k1", "k2.2", "SecondFoo").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.size().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals(1, res.result());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.addOrReplace(false, "k1.1", "x", "SecondKey").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.size().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals(2, res.result());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getPrefix("k1").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("[FOOBAR, SecondFoo]", res.result().toString());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getPrefix("i").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertNull(res.result());
+        async.complete();
+      });
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      map.getKeys().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("[k1, k1.1]", res.result().toString());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.removeNotFound("k1", "k2").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.removeNotFound("k1", "k2").onComplete(res -> {
+        context.assertFalse(res.succeeded());
+        context.assertEquals(ErrorType.NOT_FOUND, OkapiError.getType(res.cause()));
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getKeys().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("[k1, k1.1]", res.result().toString());
+        async.complete();
+      });
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      map.remove("k1", "k2.2").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertTrue(res.result()); // no keys left
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getKeys().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("[k1.1]", res.result().toString());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.remove("k1.1", "x").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertTrue(res.result());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.removeNotFound("k", "x").onComplete(res -> {
+        context.assertTrue(res.failed());
+        context.assertEquals(ErrorType.NOT_FOUND, OkapiError.getType(res.cause()));
+        context.assertEquals("k/x", res.cause().getMessage());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getKeys().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("[]", res.result().toString());
+        async.complete();
+      });
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      map.remove("k").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertFalse(res.result());
+        async.complete();
+      });
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      map.removeNotFound("k").onComplete(res -> {
+        context.assertTrue(res.failed());
+        context.assertEquals(ErrorType.NOT_FOUND, OkapiError.getType(res.cause()));
+        async.complete();
+      });
+      async.await();
+    }
+
   }
 
-  public void testadd(TestContext context) {
-    map.addOrReplace(false, "k1", "k2", "FOOBAR", res -> {
-      assertTrue(res.succeeded());
-      testReplaceTrue(context);
-    });
-  }
+  @Test
+  public void testConcurrent(TestContext context) {
+    {
+      Async async = context.async();
+      map.init(vertx, "FooMap").onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      async.await();
+    }
+    {
+      List<Future> futures = new LinkedList<>();
+      for (int i = 0; i < 10; i++) {
+        futures.add(map.addOrReplace(true,"k", "l", Integer.toString(i)));
+      }
+      Async async = context.async();
+      CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      async.await();
+    }
+    {
+      List<Future> futures = new LinkedList<>();
+      for (int i = 0; i < 10; i++) {
+        futures.add(map.addOrReplace(true,"k", Integer.toString(i), Integer.toString(i)));
+      }
+      Async async = context.async();
+      CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      async.await();
+    }
 
-  public void testReplaceTrue(TestContext context) {
-    map.addOrReplace(true, "k1", "k2", "FOOBAR", res -> {
-      assertTrue(res.succeeded());
-      testReplaceFalse(context);
-    });
+    {
+      List<Future> futures = new LinkedList<>();
+      for (int i = 0; i < 10; i++) {
+        futures.add(map.remove("k", "l"));
+        futures.add(map.remove("k", Integer.toString(i)));
+      }
+      Async async = context.async();
+      CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      async.await();
+    }
   }
-
-  public void testReplaceFalse(TestContext context) {
-    map.addOrReplace(false, "k1", "k2", "FOOBAR", res -> {
-      assertTrue(res.failed());
-      testgetK12(context);
-    });
-  }
-
-  private void testgetK12(TestContext context) {
-    map.getString("k1", "k2", res -> {
-      assertTrue(res.succeeded());
-      assertEquals("FOOBAR", res.result());
-      testgetK13(context);
-    });
-  }
-
-  private void testgetK13(TestContext context) {
-    map.getString("k1", "k3", res -> {
-      assertTrue(res.failed());
-      assertEquals(ErrorType.NOT_FOUND, res.getType());
-      testgetK14(context);
-    });
-  }
-
-  private void testgetK14(TestContext context) {
-    map.getString("foo", "bar", res -> {
-      assertTrue(res.failed());
-      assertEquals(ErrorType.NOT_FOUND, res.getType());
-      testgetK1(context);
-    });
-  }
-
-  private void testgetK1(TestContext context) {
-    map.getString("k1", res -> {
-      assertTrue(res.succeeded());
-      assertEquals("[FOOBAR]", res.result().toString());
-      addAnother(context);
-    });
-  }
-
-  public void addAnother(TestContext context) {
-    map.addOrReplace(false, "k1", "k2.2", "SecondFoo", res -> {
-      assertTrue(res.succeeded());
-      addSecondK1(context);
-    });
-  }
-
-  public void addSecondK1(TestContext context) {
-    map.addOrReplace(false, "k1.1", "x", "SecondKey", res -> {
-      assertTrue(res.succeeded());
-      testgetK1Again(context);
-    });
-  }
-
-  private void testgetK1Again(TestContext context) {
-    map.getString("k1", res -> {
-      assertTrue(res.succeeded());
-      assertEquals("[FOOBAR, SecondFoo]", res.result().toString());
-      listKeys(context);
-    });
-  }
-
-  public void listKeys(TestContext context) {
-    map.getKeys(res -> {
-      assertTrue(res.succeeded());
-      assertEquals("[k1, k1.1]", res.result().toString());
-      deleteKey1(context);
-    });
-  }
-
-  private void deleteKey1(TestContext context) {
-    map.remove("k1", "k2", res -> {
-      assertTrue(res.succeeded());
-      assertFalse(res.result()); // there is still k1/k2.2 left
-      deleteKey1again(context);
-    });
-  }
-
-  private void deleteKey1again(TestContext context) {
-    map.remove("k1", "k2", res -> {
-      assertTrue(res.failed());
-      listKeys1(context);
-    });
-  }
-
-  private void listKeys1(TestContext context) {
-    map.getKeys(res -> {
-      assertTrue(res.succeeded());
-      assertEquals("[k1, k1.1]", res.result().toString());
-      deleteKey2(context);
-    });
-  }
-
-  private void deleteKey2(TestContext context) {
-    map.remove("k1", "k2.2", res -> {
-      assertTrue(res.succeeded());
-      assertTrue(res.result()); // no keys left
-      testgek1Lower(context);
-    });
-  }
-
-  private void testgek1Lower(TestContext context) {
-    map.getString("k1", res -> {
-      assertTrue(res.failed());
-      assertEquals(ErrorType.NOT_FOUND, res.getType());
-      listKeys2(context);
-    });
-  }
-
-  private void listKeys2(TestContext context) {
-    map.getKeys(res -> {
-      assertTrue(res.succeeded());
-      assertEquals("[k1.1]", res.result().toString());
-      done(context);
-    });
-  }
-
-  private void done(TestContext context) {
-    async.complete();
-  }
-
 }
