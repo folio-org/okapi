@@ -370,11 +370,10 @@ public class DockerModuleHandle implements ModuleHandle {
 
   @Override
   public Future<Void> start() {
-    Future<Void> future = Future.succeededFuture();
     if (dockerPull) {
-      future = future.compose(x -> pullImage());
+      return pullImage().compose(x -> prepareContainer());
     }
-    return future.compose(x -> prepareContainer());
+    return prepareContainer();
   }
 
   @Override
