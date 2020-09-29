@@ -13,7 +13,6 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,10 +27,6 @@ public class OkapiPerformance {
   private Async async;
 
   private String locationTenant;
-  private String locationSample;
-  private String locationSample2;
-  private String locationSample3;
-  private String locationAuth;
   private String okapiToken;
   private final String okapiTenant = "roskilde";
   private long startTime;
@@ -124,8 +119,6 @@ public class OkapiPerformance {
           request.onComplete(context.asyncAssertSuccess(response -> {
             logger.debug("deployAuth: " + response.statusCode() + " " + response.statusMessage());
             context.assertEquals(201, response.statusCode());
-            locationAuth = response.getHeader("Location");
-            context.assertNotNull(locationAuth);
             response.endHandler(x -> {
               declareSample(context);
             });
@@ -176,8 +169,6 @@ public class OkapiPerformance {
           request.end(doc);
           request.onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
-            locationSample = response.getHeader("Location");
-            Assert.assertNotNull(locationSample);
             response.endHandler(x -> {
               createTenant(context);
             });
@@ -213,7 +204,7 @@ public class OkapiPerformance {
         + "}";
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
         context.asyncAssertSuccess(request -> {
-          request.end();
+          request.end(doc);
           request.onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> tenantEnableModuleSample(context));
@@ -227,7 +218,7 @@ public class OkapiPerformance {
         + "}";
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
         context.asyncAssertSuccess(request -> {
-          request.end();
+          request.end(doc);
           request.onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> doLogin(context));
@@ -331,7 +322,6 @@ public class OkapiPerformance {
           request.end(doc);
           request.onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
-            locationSample2 = response.getHeader("Location");
             response.endHandler(x -> {
               tenantEnableModuleSample2(context);
             });
@@ -398,7 +388,6 @@ public class OkapiPerformance {
           request.end(doc);
           request.onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
-            locationSample3 = response.getHeader("Location");
             response.endHandler(x -> {
               tenantEnableModuleSample3(context);
             });
@@ -473,10 +462,9 @@ public class OkapiPerformance {
         context.asyncAssertSuccess(request -> {
           request.onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
-            response.endHandler(x -> {
-              done(context);
-            });
+            response.endHandler(x -> done(context));
           }));
+          request.end();
         }));
   }
 
