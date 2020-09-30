@@ -63,7 +63,7 @@ public class TcpPortWaiting {
   /**
    * Wait for process and server to be listening.
    * @param process Process to monitor
-   * @return startFuture async result
+   * @return async result
    */
   public Future<Void> waitReady(NuProcess process) {
     if (port == 0) {

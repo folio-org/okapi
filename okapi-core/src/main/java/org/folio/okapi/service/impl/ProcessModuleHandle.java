@@ -9,7 +9,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
-import io.vertx.core.net.NetSocket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
@@ -73,24 +72,16 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
 
   @Override
   public Future<Void> start() {
-    Promise<Void> promise = Promise.promise();
     if (port == 0) {
-      promise.complete();
-    } else {
-      // fail if port is already in use
-      NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
-      NetClient c = vertx.createNetClient(options);
-      c.connect(port, "localhost").onComplete(res -> {
-        if (res.succeeded()) {
-          NetSocket socket = res.result();
-          socket.close();
-          promise.fail(messages.getMessage("11502", Integer.toString(port)));
-        } else {
-          promise.complete();
-        }
-      });
+      return start2();
     }
-    return promise.future().compose(x -> start2());
+    // fail if port is already in use
+    NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
+    NetClient c = vertx.createNetClient(options);
+    return c.connect(port, "localhost").compose(socket -> {
+      socket.close();
+      return Future.failedFuture(messages.getMessage("11502", Integer.toString(port)));
+    }, fail -> start2());
   }
 
   @Override
@@ -179,9 +170,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
   }
 
   private Future<Void> start3() {
-    return tcpPortWaiting.waitReady(process).onFailure(x -> {
-      this.stopProcess();
-    });
+    return tcpPortWaiting.waitReady(process).onFailure(x -> stopProcess());
   }
 
   private Future<Void> waitPortToClose(int iter) {
@@ -190,21 +179,16 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     }
     NetClientOptions options = new NetClientOptions().setConnectTimeout(50);
     NetClient c = vertx.createNetClient(options);
-    Promise<Void> promise = Promise.promise();
-    c.connect(port, "localhost").onComplete(res -> {
-      if (res.succeeded()) {
-        NetSocket socket = res.result();
-        socket.close();
-        if (iter > 0) {
-          vertx.setTimer(100, id -> waitPortToClose(iter - 1).onComplete(promise::handle));
-        } else {
-          promise.fail(messages.getMessage("11503", Integer.toString(port)));
-        }
+    return c.connect(port, "localhost").compose(socket -> {
+      socket.close();
+      if (iter > 0) {
+        Promise<Void> promise = Promise.promise();
+        vertx.setTimer(100, id -> waitPortToClose(iter - 1).onComplete(promise::handle));
+        return promise.future();
       } else {
-        promise.complete();
+        return Future.failedFuture(messages.getMessage("11503", Integer.toString(port)));
       }
-    });
-    return promise.future();
+    }, fail -> Future.succeededFuture());
   }
 
   @SuppressWarnings("indentation")

@@ -2,7 +2,6 @@ package org.folio.okapi.managers;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
@@ -145,6 +144,7 @@ public class DeploymentManager {
     return deploy2(usePort, md1);
   }
 
+  @SuppressWarnings("indentation")  // indentation of fail -> {
   private Future<DeploymentDescriptor> deploy2(int usePort, DeploymentDescriptor md1) {
 
     LaunchDescriptor descriptor = md1.getDescriptor();
@@ -178,22 +178,18 @@ public class DeploymentManager {
       }
       ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor,
           md1.getSrvcId(), ports, moduleHost, usePort, config);
-      Promise<DeploymentDescriptor> promise = Promise.promise();
-      mh.start().onComplete(res -> {
-        if (res.failed()) {
-          ports.free(usePort);
-          logger.warn("Deploying {} failed", md1.getSrvcId());
-          promise.fail(new OkapiError(ErrorType.USER, res.cause().getMessage()));
-          return;
-        }
+      return mh.start().compose(res -> {
         DeploymentDescriptor md2
             = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
             moduleUrl, descriptor, mh);
         md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
         list.put(md2.getInstId(), md2);
-        dm.add(md2).onComplete(res1 -> promise.handle(res1.map(md2)));
+        return dm.add(md2).map(md2);
+      }, fail -> {
+        ports.free(usePort);
+        logger.warn("Deploying {} failed", md1.getSrvcId());
+        return Future.failedFuture(new OkapiError(ErrorType.USER, fail.getMessage()));
       });
-      return promise.future();
     });
   }
 
