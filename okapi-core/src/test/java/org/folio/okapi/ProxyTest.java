@@ -24,9 +24,9 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.Pump;
+import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Arrays;
@@ -35,18 +35,18 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiLogger;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.folio.okapi.common.XOkapiHeaders;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.junit.runner.RunWith;
-import org.folio.okapi.common.HttpResponse;
-import org.folio.okapi.common.XOkapiHeaders;
 
 @RunWith(VertxUnitRunner.class)
 public class ProxyTest {
@@ -1345,8 +1345,8 @@ public class ProxyTest {
       .get("/testb")
       .then().statusCode(200)
       .header("Access-Control-Allow-Origin", "*")
-      .header("Access-Control-Expose-Headers", containsString(
-        "ocation,X-Okapi-Trace,X-Okapi-Token,Authorization,X-Okapi-Request-Id"))
+      .header("Access-Control-Expose-Headers", startsWithIgnoringCase(
+        "Location,X-Okapi-Trace,X-Okapi-Token,Authorization,X-Okapi-Request-Id"))
       .body(equalTo("It works"));
 
     // Post request.
