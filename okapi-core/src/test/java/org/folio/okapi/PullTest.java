@@ -481,68 +481,122 @@ public class PullTest {
   public void test3() {
     RestAssuredClient c;
 
-    // pull frome dummy server
+    // pull from dummy server
     final String pullPort3 = "{" + LS
-      + "\"urls\" : [" + LS
-      + "  \"http://localhost:" + port3 + "\"" + LS
-      + "  ]" + LS
-      + "}";
+        + "\"urls\" : [" + LS
+        + "  \"http://localhost:" + port3 + "\"" + LS
+        + "  ]" + LS
+        + "}";
     c = api.createRestAssured3();
     c.given().port(port2)
-      .header("Content-Type", "application/json")
-      .body(pullPort3).post("/_/proxy/pull/modules").then()
-      .statusCode(400).log().ifValidationFails();
+        .header("Content-Type", "application/json")
+        .body(pullPort3).post("/_/proxy/pull/modules").then()
+        .statusCode(404).log().ifValidationFails();
     Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
 
     // pull from non-existing server
     final String pullPort4 = "{" + LS
-      + "\"urls\" : [" + LS
-      + "  \"http://localhost:" + port4 + "\"" + LS
-      + "  ]" + LS
-      + "}";
+        + "\"urls\" : [" + LS
+        + "  \"http://localhost:" + port4 + "\"" + LS
+        + "  ]" + LS
+        + "}";
     c = api.createRestAssured3();
     c.given().port(port2)
-      .header("Content-Type", "application/json")
-      .body(pullPort4).post("/_/proxy/pull/modules").then()
-      .statusCode(404).log().ifValidationFails();
+        .header("Content-Type", "application/json")
+        .body(pullPort4).post("/_/proxy/pull/modules").then()
+        .statusCode(404).log().ifValidationFails();
     Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+  }
+
+  @Test
+  public void testNonExistingDummy() {
+    RestAssuredClient c;
 
     // first non-existing, then dummy
-    final String pullBoth1 = "{" + LS
-      + "\"urls\" : [" + LS
-      + "  \"http://localhost:" + port3 + "\"," + LS
-      + "  \"http://localhost:" + port4 + "\"" + LS
-      + "  ]" + LS
-      + "}";
+    final String doc = "{" + LS
+        + "\"urls\" : [" + LS
+        + "  \"http://localhost:" + port3 + "\"," + LS
+        + "  \"http://localhost:" + port4 + "\"" + LS
+        + "  ]" + LS
+        + "}";
 
     // pull from from both
     c = api.createRestAssured3();
     c.given().port(port2)
-      .header("Content-Type", "application/json")
-      .body(pullBoth1).post("/_/proxy/pull/modules").then().statusCode(400).log().ifValidationFails();
+        .header("Content-Type", "application/json")
+        .body(doc).post("/_/proxy/pull/modules").then().statusCode(404).log().ifValidationFails();
     Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+  }
+
+  @Test
+  public void testNonExisting() {
+    RestAssuredClient c;
+
+    // non-existing server
+    final String doc = "{" + LS
+        + "\"urls\" : [" + LS
+        + "  \"http://localhost:" + port4 + "\"" + LS
+        + "  ]" + LS
+        + "}";
+
+    // pull from from both
+    c = api.createRestAssured3();
+    c.given().port(port2)
+        .header("Content-Type", "application/json")
+        .body(doc).post("/_/proxy/pull/modules").then().statusCode(404).log().ifValidationFails();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+  }
+
+  @Test
+  public void testDummy() {
+    RestAssuredClient c;
+
+    final String doc = "{" + LS
+        + "\"urls\" : [" + LS
+        + "  \"http://localhost:" + port3 + "\"" + LS
+        + "  ]" + LS
+        + "}";
+
+    // pull from from both
+    c = api.createRestAssured3();
+    c.given().port(port2)
+        .header("Content-Type", "application/json")
+        .body(doc).post("/_/proxy/pull/modules").then().statusCode(404).log().ifValidationFails();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+  }
+
+  @Test
+  public void testDummyNonExisting() {
+    RestAssuredClient c;
 
     // first dummy, then non-existing
-    final String pullBoth2 = "{" + LS
-      + "\"urls\" : [" + LS
-      + "  \"http://localhost:" + port4 + "\"," + LS
-      + "  \"http://localhost:" + port3 + "\"" + LS
-      + "  ]" + LS
-      + "}";
+    final String doc = "{" + LS
+        + "\"urls\" : [" + LS
+        + "  \"http://localhost:" + port4 + "\"," + LS
+        + "  \"http://localhost:" + port3 + "\"" + LS
+        + "  ]" + LS
+        + "}";
 
     // pull from from both
     c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .body(pullBoth2).post("/_/proxy/pull/modules").then().statusCode(400).log().ifValidationFails();
+      .body(doc).post("/_/proxy/pull/modules").then().statusCode(404).log().ifValidationFails();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
   }
+
 }

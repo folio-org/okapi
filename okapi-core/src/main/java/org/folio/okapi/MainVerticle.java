@@ -41,6 +41,7 @@ import org.folio.okapi.service.impl.TenantStoreNull;
 import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.EventBusChecker;
 import org.folio.okapi.util.LogHelper;
+import org.folio.okapi.util.OkapiError;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
@@ -139,7 +140,7 @@ public class MainVerticle extends AbstractVerticle {
         @Override
         public void run() {
           CountDownLatch latch = new CountDownLatch(1);
-          deploymentManager.shutdown(ar -> latch.countDown());
+          deploymentManager.shutdown().onComplete(ar -> latch.countDown());
           try {
             if (!latch.await(2, TimeUnit.MINUTES)) {
               logger.error("Timed out waiting to undeploy all");
@@ -190,7 +191,7 @@ public class MainVerticle extends AbstractVerticle {
     Future<Void> fut = startDatabases();
     if (initMode == InitMode.NORMAL) {
       fut = fut.compose(x -> EventBusChecker.check(vertx, clusterManager));
-      fut = fut.compose(x -> startModmanager());
+      fut = fut.compose(x -> startModuleManager());
       fut = fut.compose(x -> startTenants());
       fut = fut.compose(x -> checkInternalModules());
       fut = fut.compose(x -> startEnv());
@@ -214,18 +215,14 @@ public class MainVerticle extends AbstractVerticle {
     return storage.prepareDatabases(initMode);
   }
 
-  private Future<Void> startModmanager() {
-    logger.info("startModmanager");
-    Promise<Void> promise = Promise.promise();
-    moduleManager.init(vertx, promise::handle);
-    return promise.future();
+  private Future<Void> startModuleManager() {
+    logger.info("startModuleManager");
+    return moduleManager.init(vertx);
   }
 
   private Future<Void> startTenants() {
     logger.info("startTenants");
-    Promise<Void> promise = Promise.promise();
-    tenantManager.init(vertx, promise::handle);
-    return promise.future();
+    return tenantManager.init(vertx);
   }
 
   private Future<Void> checkInternalModules() {
@@ -234,7 +231,7 @@ public class MainVerticle extends AbstractVerticle {
     final ModuleDescriptor md = InternalModule.moduleDescriptor(okapiVersion);
     final String okapiModule = md.getId();
     final String interfaceVersion = md.getProvides()[0].getVersion();
-    moduleManager.get(okapiModule, gres -> {
+    moduleManager.get(okapiModule).onComplete(gres -> {
       if (gres.succeeded()) { // we already have one, go on
         logger.debug("checkInternalModules: Already have {} "
             + " with interface version {}", okapiModule, interfaceVersion);
@@ -242,26 +239,25 @@ public class MainVerticle extends AbstractVerticle {
         checkSuperTenant(okapiModule, promise);
         return;
       }
-      if (gres.getType() != ErrorType.NOT_FOUND) {
+      if (OkapiError.getType(gres.cause()) != ErrorType.NOT_FOUND) {
         promise.fail(gres.cause()); // something went badly wrong
         return;
       }
       logger.debug("Creating the internal Okapi module {} with interface version {}",
           okapiModule, interfaceVersion);
-      moduleManager.create(md, true, true, true, ires -> {
+      moduleManager.create(md, true, true, true).onComplete(ires -> {
         if (ires.failed()) {
           promise.fail(ires.cause()); // something went badly wrong
           return;
         }
         checkSuperTenant(okapiModule, promise);
       });
-
     });
     return promise.future();
   }
 
   private void checkSuperTenant(String okapiModule, Promise<Void> promise) {
-    tenantManager.get(XOkapiHeaders.SUPERTENANT_ID, gres -> {
+    tenantManager.get(XOkapiHeaders.SUPERTENANT_ID).onComplete(gres -> {
       if (gres.succeeded()) { // we already have one, go on
         logger.info("checkSuperTenant: Already have " + XOkapiHeaders.SUPERTENANT_ID);
         Tenant st = gres.result();
@@ -286,25 +282,26 @@ public class MainVerticle extends AbstractVerticle {
           logger.warn("checkSuperTenant: This Okapi is too old,"
                   + "{} we already have {} in the database. Use that!",
               okapiVersion, ev);
-        } else {
-          logger.info("checkSuperTenant: Need to upgrade the stored version from {} to {}",
-              ev, okapiModule);
-          // Use the commit, easier interface.
-          // the internal module can not have dependencies
-          // See Okapi-359 about version checks across the cluster
-          tenantManager.updateModuleCommit(st, ev, okapiModule, ures -> {
-            if (ures.failed()) {
-              promise.fail(ures.cause());
-              return;
-            }
-            logger.info("Upgraded the InternalModule version from '{}' to '{}' for {}",
-                ev, okapiModule, XOkapiHeaders.SUPERTENANT_ID);
-          });
+          promise.complete();
+          return;
         }
-        promise.complete();
+        logger.info("checkSuperTenant: Need to upgrade the stored version from {} to {}",
+            ev, okapiModule);
+        // Use the commit, easier interface.
+        // the internal module can not have dependencies
+        // See Okapi-359 about version checks across the cluster
+        tenantManager.updateModuleCommit(st, ev, okapiModule).onComplete(ures -> {
+          if (ures.failed()) {
+            promise.fail(ures.cause());
+            return;
+          }
+          logger.info("Upgraded the InternalModule version from '{}' to '{}' for {}",
+              ev, okapiModule, XOkapiHeaders.SUPERTENANT_ID);
+          promise.complete();
+        });
         return;
       }
-      if (gres.getType() != ErrorType.NOT_FOUND) {
+      if (OkapiError.getType(gres.cause()) != ErrorType.NOT_FOUND) {
         promise.fail(gres.cause()); // something went badly wrong
         return;
       }
@@ -320,33 +317,25 @@ public class MainVerticle extends AbstractVerticle {
           + "}"
           + "}";
       final Tenant ten = Json.decodeValue(docTenant, Tenant.class);
-      tenantManager.insert(ten, res -> promise.handle(res.mapEmpty()));
+      tenantManager.insert(ten).onComplete(res -> promise.handle(res.mapEmpty()));
     });
   }
 
   private Future<Void> startEnv() {
     logger.info("starting env");
-    Promise<Void> promise = Promise.promise();
-    envManager.init(vertx, promise::handle);
-    return promise.future();
+    return envManager.init(vertx);
   }
 
   private Future<Void> startDiscovery() {
     logger.info("Starting discovery");
-    Promise<Void> promise = Promise.promise();
-    discoveryManager.init(vertx, promise::handle);
-    return promise.future();
+    return discoveryManager.init(vertx);
   }
 
   private Future<Void> startDeployment() {
-    Promise<Void> promise = Promise.promise();
     if (deploymentManager == null) {
-      promise.complete();
-    } else {
-      logger.info("Starting deployment");
-      deploymentManager.init(promise::handle);
+      return Future.succeededFuture();
     }
-    return promise.future();
+    return deploymentManager.init();
   }
 
   private Future<Void> startListening() {
@@ -370,41 +359,29 @@ public class MainVerticle extends AbstractVerticle {
       router.route("/*").handler(proxyService::proxy);
     }
 
-    Promise<Void> promise = Promise.promise();
     logger.debug("About to start HTTP server");
     HttpServerOptions so = new HttpServerOptions()
         .setHandle100ContinueAutomatically(true);
-    vertx.createHttpServer(so)
+    return vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(port,
-            result -> {
-              if (result.succeeded()) {
-                logger.info("API Gateway started PID {}. Listening on port {}",
-                    ManagementFactory.getRuntimeMXBean().getName(), port);
-              } else {
-                logger.fatal("createHttpServer failed for port {}", port, result.cause());
-              }
-              promise.handle(result.mapEmpty());
-            }
-        );
-    return promise.future();
+        .listen(port)
+        .onComplete(result -> {
+          if (result.succeeded()) {
+            logger.info("API Gateway started PID {}. Listening on port {}",
+                ManagementFactory.getRuntimeMXBean().getName(), port);
+          } else {
+            logger.fatal("createHttpServer failed for port {}", port, result.cause());
+          }
+        })
+        .mapEmpty();
   }
 
   private Future<Void> startRedeploy() {
-    Promise<Void> promise = Promise.promise();
-    discoveryManager.restartModules(res -> {
-      if (res.succeeded()) {
-        logger.info("Deploy completed succesfully");
-      } else {
-        // not reporting failure if re-deploy fails
-        logger.info("Deploy failed", res.cause());
+    return discoveryManager.restartModules().compose(res -> {
+      if (!enableProxy) {
+        return Future.succeededFuture();
       }
-      if (enableProxy) {
-        tenantManager.startTimers(promise, discoveryManager);
-      } else {
-        promise.complete();
-      }
+      return tenantManager.startTimers(discoveryManager);
     });
-    return promise.future();
   }
 }

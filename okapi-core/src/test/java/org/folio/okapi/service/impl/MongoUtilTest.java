@@ -23,7 +23,6 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
-import org.folio.okapi.common.ErrorType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -266,7 +265,7 @@ public class MongoUtilTest {
 
     @Override
     public Future<String> insert(String string, JsonObject jo) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      return Future.failedFuture("insert failed");
     }
 
     @Override
@@ -281,7 +280,7 @@ public class MongoUtilTest {
 
     @Override
     public Future<MongoClientUpdateResult> updateCollectionWithOptions(String string, JsonObject jo, JsonObject jo1, UpdateOptions uo) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      return Future.failedFuture("updateCollectionWithOptions failed");
     }
 
     @Override
@@ -306,7 +305,7 @@ public class MongoUtilTest {
 
     @Override
     public Future<List<JsonObject>> find(String string, JsonObject jo) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      return Future.failedFuture("find failed");
     }
 
     @Override
@@ -366,7 +365,11 @@ public class MongoUtilTest {
 
     @Override
     public Future<MongoClientDeleteResult> removeDocument(String string, JsonObject jo) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      if ("404".equals(jo.getString("_id"))) {
+        MongoClientDeleteResult res = new MongoClientDeleteResult0Hits();
+        return Future.succeededFuture(res);
+      }
+      return Future.failedFuture("removeDocument failed");
     }
 
     @Override
@@ -386,7 +389,7 @@ public class MongoUtilTest {
 
     @Override
     public Future<Void> dropCollection(String string) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      return Future.failedFuture("dropCollection failed");
     }
 
     @Override
@@ -470,10 +473,9 @@ public class MongoUtilTest {
   public void testDelete(TestContext context) {
     MongoClient cli = new FakeMongoClient();
     MongoUtil<String> util = new MongoUtil<>("collection", cli);
-    util.delete("1", res -> {
+    util.delete("1").onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals("removeDocument failed", res.cause().getMessage());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
     });
   }
 
@@ -481,10 +483,9 @@ public class MongoUtilTest {
   public void testDelete404(TestContext context) {
     MongoClient cli = new FakeMongoClient();
     MongoUtil<String> util = new MongoUtil<>("collection", cli);
-    util.delete("404", res -> {
-      context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.NOT_FOUND, res.getType());
-      context.assertEquals("404", res.cause().getMessage());
+    util.delete("404").onComplete(res -> {
+      context.assertTrue(res.succeeded());
+      context.assertEquals(Boolean.FALSE, res.result());
     });
   }
 
@@ -493,7 +494,7 @@ public class MongoUtilTest {
   public void testInit(TestContext context) {
     MongoClient cli = new FakeMongoClient();
     MongoUtil<String> util = new MongoUtil<>("collection", cli);
-    util.init(true, res -> {
+    util.init(true).onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals("dropCollection failed", res.cause().getMessage());
     });
@@ -503,7 +504,7 @@ public class MongoUtilTest {
   public void testAdd(TestContext context) {
     MongoClient cli = new FakeMongoClient();
     MongoUtil<DeploymentDescriptor> util = new MongoUtil<>("collection", cli);
-    util.add(new DeploymentDescriptor(), "1", res -> {
+    util.add(new DeploymentDescriptor(), "1").onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals("updateCollectionWithOptions failed", res.cause().getMessage());
     });
@@ -513,7 +514,7 @@ public class MongoUtilTest {
   public void testInsert(TestContext context) {
     MongoClient cli = new FakeMongoClient();
     MongoUtil<DeploymentDescriptor> util = new MongoUtil<>("collection", cli);
-    util.insert(new DeploymentDescriptor(), "1", res -> {
+    util.insert(new DeploymentDescriptor(), "1").onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals("insert failed", res.cause().getMessage());
     });
@@ -523,7 +524,7 @@ public class MongoUtilTest {
   public void testGetAll(TestContext context) {
     MongoClient cli = new FakeMongoClient();
     MongoUtil<DeploymentDescriptor> util = new MongoUtil<>("collection", cli);
-    util.getAll(DeploymentDescriptor.class, res -> {
+    util.getAll(DeploymentDescriptor.class).onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals("find failed", res.cause().getMessage());
     });

@@ -1,6 +1,6 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
@@ -10,10 +10,6 @@ import java.util.List;
 import java.util.SortedMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
-import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.service.TenantStore;
 
 /**
@@ -35,70 +31,54 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   @Override
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
-    pgTable.init(reset, fut);
+  public Future<Void> init(boolean reset) {
+    return pgTable.init(reset);
   }
 
   @Override
-  public void insert(Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
-    pgTable.insert(t, fut);
+  public Future<Void> insert(Tenant t) {
+    return pgTable.insert(t);
   }
 
   @Override
-  public void updateDescriptor(TenantDescriptor td,
-                               Handler<ExtendedAsyncResult<Void>> fut) {
-
+  public Future<Void> updateDescriptor(TenantDescriptor td) {
     Tenant t = new Tenant(td);
-    pgTable.update(t, fut);
+    return pgTable.update(t);
   }
 
   @Override
-  public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
-    pgTable.getAll(Tenant.class, fut);
+  public Future<List<Tenant>> listTenants() {
+    return pgTable.getAll(Tenant.class);
   }
 
   @Override
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    pgTable.delete(id, fut);
+  public Future<Boolean> delete(String id) {
+    return pgTable.delete(id);
   }
 
-  private void updateModuleR(PostgresQuery q, String id,
-                             SortedMap<String, Boolean> enabled,
-                             Iterator<Row> it, Handler<ExtendedAsyncResult<Void>> fut) {
 
-    if (!it.hasNext()) {
-      fut.handle(new Success<>());
-      q.close();
-      return;
+  private Future<Boolean> updateModule(PostgresQuery q, String id,
+                                      SortedMap<String, Boolean> enabled,
+                                      RowSet<Row> set) {
+    Future<Boolean> future = Future.succeededFuture(Boolean.FALSE);
+    for (Row r : set) {
+      String sql = "UPDATE " + TABLE + " SET " + JSON_COLUMN + " = $2 WHERE " + ID_SELECT;
+      JsonObject o = (JsonObject) r.getValue(0);
+      Tenant t = o.mapTo(Tenant.class);
+      t.setEnabled(enabled);
+      JsonObject doc = JsonObject.mapFrom(t);
+      future = future.compose(a -> q.query(sql, Tuple.of(id, doc)).map(Boolean.TRUE));
     }
-    Row r = it.next();
-    String sql = "UPDATE " + TABLE + " SET " + JSON_COLUMN + " = $2 WHERE " + ID_SELECT;
-    JsonObject o = (JsonObject) r.getValue(0);
-    Tenant t = o.mapTo(Tenant.class);
-    t.setEnabled(enabled);
-    JsonObject doc = JsonObject.mapFrom(t);
-    q.query(sql, Tuple.of(id, doc), res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-      } else {
-        updateModuleR(q, id, enabled, it, fut);
-      }
-    });
+    return future;
   }
 
   @Override
-  public void updateModules(String id, SortedMap<String, Boolean> enabled,
-                            Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Boolean> updateModules(String id, SortedMap<String, Boolean> enabled) {
 
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + JSON_COLUMN + " FROM " + TABLE + " WHERE " + ID_SELECT;
-    q.query(sql, Tuple.of(id), res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        return;
-      }
-      RowSet<Row> rs = res.result();
-      updateModuleR(q, id, enabled, rs.iterator(), fut);
-    });
+    return q.query(sql, Tuple.of(id))
+        .compose(res -> updateModule(q, id, enabled, res))
+        .onComplete(x -> q.close());
   }
 }

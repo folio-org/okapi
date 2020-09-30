@@ -1,10 +1,7 @@
 package org.folio.okapi.util;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import java.util.Collection;
-import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 
 public class LockedTypedMap1Faulty<T> extends LockedTypedMap1<T> {
 
@@ -19,12 +16,16 @@ public class LockedTypedMap1Faulty<T> extends LockedTypedMap1<T> {
   }
 
   @Override
-  public void get(String k, Handler<ExtendedAsyncResult<T>> fut) {
+  public Future<T> getNotFound(String k) {
+    return get(k);
+  }
+
+  @Override
+  public Future<T> get(String k) {
     if (getError != null) {
-      fut.handle(new Failure<>(ErrorType.INTERNAL, getError));
-      return;
+      return Future.failedFuture(getError);
     }
-    super.get(k, fut);
+    return super.get(k);
   }
 
   private String addError;
@@ -34,12 +35,11 @@ public class LockedTypedMap1Faulty<T> extends LockedTypedMap1<T> {
   }
 
   @Override
-  public void add(String k, T value, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> add(String k, T value) {
     if (addError != null) {
-      fut.handle(new Failure<>(ErrorType.INTERNAL, addError));
-      return;
+      return Future.failedFuture(addError);
     }
-    super.add(k, value, fut);
+    return super.add(k, value);
   }
 
   private String getKeysError;
@@ -48,13 +48,13 @@ public class LockedTypedMap1Faulty<T> extends LockedTypedMap1<T> {
     this.getKeysError = getKeysError;
   }
 
+
   @Override
-  public void getKeys(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
+  public Future<Collection<String>> getKeys() {
     if (getKeysError != null) {
-      fut.handle(new Failure<>(ErrorType.INTERNAL, getKeysError));
-      return;
+      return Future.failedFuture(getKeysError);
     }
-    super.getKeys(fut);
+    return super.getKeys();
   }
 
 }

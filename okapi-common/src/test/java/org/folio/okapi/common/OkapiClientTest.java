@@ -4,12 +4,10 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -20,9 +18,7 @@ import java.util.HashMap;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.junit.runner.RunWith;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -125,11 +121,11 @@ public class OkapiClientTest {
     Async async = context.async();
     final String bogusUrl = "http://xxxx.index.gyf:9231";
     OkapiClient cli = new OkapiClient(bogusUrl, vertx, null);
-    assertEquals(bogusUrl, cli.getOkapiUrl());
+    context.assertEquals(bogusUrl, cli.getOkapiUrl());
 
     cli.get("/test1", res -> {
-      assertTrue(res.failed());
-      assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
     });
   }
@@ -141,7 +137,7 @@ public class OkapiClientTest {
     HashMap<String, String> headers = new HashMap<>();
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
-    assertEquals(URL, cli.getOkapiUrl());
+    context.assertEquals(URL, cli.getOkapiUrl());
 
     cli.get("/test2?p=%2Ftest1", res -> {
       context.assertTrue(res.failed());
@@ -154,7 +150,6 @@ public class OkapiClientTest {
 
   @Test
   public void test1(TestContext context) {
-    Async async = context.async();
     final String tenant = "test-lib";
 
     HashMap<String, String> headers = new HashMap<>();
@@ -163,7 +158,7 @@ public class OkapiClientTest {
     headers.put(XOkapiHeaders.REQUEST_ID, "919");
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
-    assertEquals(URL, cli.getOkapiUrl());
+    context.assertEquals(URL, cli.getOkapiUrl());
     cli.disableInfoLog();
     cli.enableInfoLog();
 
@@ -175,84 +170,90 @@ public class OkapiClientTest {
     String e = new String(encodedBytes);
     String tokenStr = "method." + e + ".trail";
     OkapiToken t = new OkapiToken(tokenStr);
-    assertEquals("test-lib", t.getTenantWithoutValidation());
+    context.assertEquals("test-lib", t.getTenantWithoutValidation());
 
     cli.setOkapiToken(tokenStr);
-    assertEquals(tokenStr, cli.getOkapiToken());
+    context.assertEquals(tokenStr, cli.getOkapiToken());
 
     cli.newReqId("920");
 
-    cli.get("/test1", (ExtendedAsyncResult<String> res) -> {
-      assertTrue(res.succeeded());
-      assertEquals("hello test-lib", res.result());
-      assertEquals(res.result(), cli.getResponsebody());
-      MultiMap respH = cli.getRespHeaders();
-      assertNotNull(respH);
-      assertEquals("text/plain", respH.get("Content-Type"));
-
-      test2(cli, async);
-    });
-  }
-
-  private void test2(OkapiClient cli, Async async) {
-    cli.request(HttpMethod.GET, "/test_not_found", "", res -> {
-      assertTrue(res.failed());
-      assertEquals(ErrorType.NOT_FOUND, res.getType());
-      test3(cli, async);
-    });
-  }
-
-  private void test3(OkapiClient cli, Async async) {
-    cli.post("/test1", "FOOBAR", res -> {
-      assertTrue(res.succeeded());
-      assertEquals("FOOBAR", res.result());
-      test4(cli, async);
-    });
-  }
-
-  private void test4(OkapiClient cli, Async async) {
-    cli.get("/test2?p=%2Ftest1", res -> {
-      assertTrue(res.succeeded());
-      assertEquals("\"hello test-lib\"", res.result());
-      assertEquals(200, cli.getStatusCode());
-      test5(cli, async);
-    });
-  }
-
-  private void test5(OkapiClient cli, Async async) {
-    cli.get("/test2?p=%2Fbad", res -> {
-      assertTrue(res.failed());
-      test6(cli, async);
-    });
-  }
-
-  private void test6(OkapiClient cli, Async async) {
-    cli.delete("/test1", res -> {
-      assertTrue(res.succeeded());
-      test7(cli, async);
-    });
-  }
-
-  private void test7(OkapiClient cli, Async async) {
-    cli.head("/test1", res -> {
-      assertTrue(res.succeeded());
-      test8(cli, async);
-    });
-  }
-
-  private void test8(OkapiClient cli, Async async) {
-    Buffer buf = Buffer.buffer();
-    buf.appendString("FOOBAR");
-    cli.request(HttpMethod.POST, "/test1", buf, res -> {
-      assertTrue(res.succeeded());
-      assertEquals("FOOBAR", res.result());
-      testdone(cli, async);
-    });
-  }
-
-  private void testdone(OkapiClient cli, Async async) {
+    {
+      Async async = context.async();
+      cli.get("/test1", (ExtendedAsyncResult<String> res) -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("hello test-lib", res.result());
+        context.assertEquals(res.result(), cli.getResponsebody());
+        MultiMap respH = cli.getRespHeaders();
+        context.assertNotNull(respH);
+        context.assertEquals("text/plain", respH.get("Content-Type"));
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      cli.request(HttpMethod.GET, "/test_not_found", "", res -> {
+        context.assertTrue(res.failed());
+        context.assertEquals(ErrorType.NOT_FOUND, res.getType());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      cli.post("/test1", "FOOBAR", res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("FOOBAR", res.result());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      cli.get("/test2?p=%2Ftest1", res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("\"hello test-lib\"", res.result());
+        context.assertEquals(200, cli.getStatusCode());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      cli.get("/test2?p=%2Fbad", res -> {
+        context.assertTrue(res.failed());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      cli.delete("/test1", res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      cli.head("/test1", res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      Buffer buf = Buffer.buffer();
+      buf.appendString("FOOBAR");
+      cli.request(HttpMethod.POST, "/test1", buf, res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("FOOBAR", res.result());
+        async.complete();
+      });
+      async.await();
+    }
     cli.close();
-    async.complete();
   }
 
   @Test
@@ -260,7 +261,7 @@ public class OkapiClientTest {
     Async async = context.async();
 
     OkapiClient cli = new OkapiClient(URL, vertx, null);
-    assertEquals(URL, cli.getOkapiUrl());
+    context.assertEquals(URL, cli.getOkapiUrl());
     cli.newReqId("920");
 
     cli.get("/test1?e=403", res -> {
@@ -276,7 +277,7 @@ public class OkapiClientTest {
     Async async = context.async();
 
     OkapiClient cli = new OkapiClient(URL, vertx, null);
-    assertEquals(URL, cli.getOkapiUrl());
+    context.assertEquals(URL, cli.getOkapiUrl());
 
     cli.get("/test1?e=400", res -> {
       context.assertTrue(res.failed());
@@ -291,7 +292,7 @@ public class OkapiClientTest {
     Async async = context.async();
 
     OkapiClient cli = new OkapiClient(URL, vertx, null);
-    assertEquals(URL, cli.getOkapiUrl());
+    context.assertEquals(URL, cli.getOkapiUrl());
 
     cli.get("/test1?e=500", res -> {
       context.assertTrue(res.failed());

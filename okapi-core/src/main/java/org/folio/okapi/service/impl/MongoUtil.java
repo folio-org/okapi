@@ -1,6 +1,6 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.mongo.MongoClient;
@@ -8,11 +8,7 @@ import io.vertx.ext.mongo.UpdateOptions;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 class MongoUtil<T> {
@@ -26,83 +22,52 @@ class MongoUtil<T> {
     this.cli = cli;
   }
 
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Boolean> delete(String id) {
     JsonObject jq = new JsonObject().put("_id", id);
-    cli.removeDocument(collection, jq, rres -> {
-      if (rres.failed()) {
-        logger.warn("MongoUtil.delete {} failed {}", id, rres.cause().getMessage());
-        fut.handle(new Failure<>(ErrorType.INTERNAL, rres.cause()));
-      } else if (rres.result().getRemovedCount() == 0) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
+    return cli.removeDocument(collection, jq).compose(res -> {
+      if (res.getRemovedCount() == 0) {
+        return Future.succeededFuture(Boolean.FALSE);
       } else {
-        fut.handle(new Success<>());
+        return Future.succeededFuture(Boolean.TRUE);
       }
     });
   }
 
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> init(boolean reset) {
     if (!reset) {
-      fut.handle(new Success<>());
-    } else {
-      cli.dropCollection(collection, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        } else {
-          fut.handle(new Success<>());
-        }
-      });
+      return Future.succeededFuture();
     }
+    return cli.dropCollection(collection);
   }
 
-  public void add(T env, String id, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> add(T env, String id) {
     JsonObject jq = new JsonObject().put("_id", id);
     String s = Json.encodePrettily(env);
     JsonObject document = new JsonObject(s);
     encode(document, null); // _id can not be put for Vert.x 3.5.1
     UpdateOptions options = new UpdateOptions().setUpsert(true);
-    cli.updateCollectionWithOptions(collection, jq,
-        new JsonObject().put("$set", document), options, res -> {
-          if (res.succeeded()) {
-            fut.handle(new Success<>());
-          } else {
-            logger.warn("MongoUtil.add {} failed: {}", id, res.cause().getMessage());
-            logger.warn("Document: {}", document.encodePrettily());
-            fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-          }
-        });
+    return cli.updateCollectionWithOptions(collection, jq,
+        new JsonObject().put("$set", document), options).mapEmpty();
   }
 
-  public void insert(T md, String id, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> insert(T md, String id) {
     String s = Json.encodePrettily(md);
     JsonObject document = new JsonObject(s);
     encode(document, id);
-    cli.insert(collection, document, res -> {
-      if (res.succeeded()) {
-        fut.handle(new Success<>());
-      } else {
-        logger.warn("MongoUtil.insert {} failed: {}", id, res.cause().getMessage());
-        logger.warn("Document: {}", document::encodePrettily);
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-      }
-    });
+    return cli.insert(collection, document).mapEmpty();
   }
 
-  public void getAll(Class<T> clazz, Handler<ExtendedAsyncResult<List<T>>> fut) {
+  public Future<List<T>> getAll(Class<T> clazz) {
     final String q = "{}";
     JsonObject jq = new JsonObject(q);
-    cli.find(collection, jq, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-      } else {
-        List<JsonObject> resl = res.result();
-        List<T> ml = new LinkedList<>();
-        for (JsonObject jo : resl) {
-          decode(jo);
-          T env = Json.decodeValue(jo.encode(), clazz);
-          ml.add(env);
-        }
-        fut.handle(new Success<>(ml));
+    return cli.find(collection, jq).compose(resl -> {
+      List<T> ml = new LinkedList<>();
+      for (JsonObject jo : resl) {
+        decode(jo);
+        T env = Json.decodeValue(jo.encode(), clazz);
+        ml.add(env);
       }
+      return Future.succeededFuture(ml);
     });
   }
 
