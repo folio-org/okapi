@@ -1,16 +1,15 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
@@ -109,78 +108,64 @@ public class DockerModuleHandle implements ModuleHandle {
     return u + "/" + DEFAULT_DOCKER_VERSION;
   }
 
-  private void handle204(AsyncResult<HttpClientResponse> res, String msg,
-                         Handler<AsyncResult<Void>> future) {
-    if (res.failed()) {
-      future.handle(res.mapEmpty());
-      return;
-    }
-    HttpClientResponse result = res.result();
+  private Future<Void> handle204(HttpClientResponse result, String msg) {
     Buffer body = Buffer.buffer();
     result.handler(body::appendBuffer);
+    Promise<Void> promise = Promise.promise();
     result.endHandler(d -> {
       if (result.statusCode() == 204) {
-        future.handle(Future.succeededFuture());
+        promise.complete();
       } else {
         String m = msg + " HTTP error "
             + result.statusCode() + "\n"
             + body.toString();
         logger.error(m);
-        future.handle(Future.failedFuture(m));
+        promise.fail(m);
       }
     });
+    return promise.future();
   }
 
-  private void request(HttpMethod method, String url, MultiMap headers, Buffer body,
-                       Handler<AsyncResult<HttpClientResponse>> response) {
+  private Future<HttpClientResponse> request(HttpMethod method, String url,
+                                             MultiMap headers, Buffer body) {
+
     RequestOptions requestOptions = new RequestOptions()
         .setMethod(method)
         .setAbsoluteURI(dockerUrl + url);
     if (socketAddress != null) {
       requestOptions.setServer(socketAddress);
     }
-    client.request(requestOptions, req1 -> {
-      if (req1.failed()) {
-        response.handle(Future.failedFuture(req1.cause()));
-        return;
-      }
-      HttpClientRequest request = req1.result();
-      request.onComplete(response);
-      request.exceptionHandler(d -> response.handle(Future.failedFuture(d)));
+    return client.request(requestOptions).compose(request -> {
       if (headers != null) {
         request.headers().setAll(headers);
       }
-      request.end(body);
+      return request.send(body);
     });
   }
 
-  void postUrl(String url, String msg,
-               Handler<AsyncResult<Void>> future) {
-
-    request(HttpMethod.POST, url, null, Buffer.buffer(),
-        res -> handle204(res, msg, future));
+  Future<Void> postUrl(String url, String msg) {
+    return request(HttpMethod.POST, url, null, Buffer.buffer())
+        .compose(res -> handle204(res, msg));
   }
 
-  void deleteUrl(String url, String msg,
-                 Handler<AsyncResult<Void>> future) {
-
-    request(HttpMethod.DELETE, url, null, Buffer.buffer(),
-        res -> handle204(res, msg, future));
+  Future<Void> deleteUrl(String url, String msg) {
+    return request(HttpMethod.DELETE, url, null, Buffer.buffer())
+        .compose(res -> handle204(res, msg));
   }
 
-  private void startContainer(Handler<AsyncResult<Void>> future) {
+  Future<Void> startContainer() {
     logger.info("start container {} for image {}", containerId, image);
-    postUrl("/containers/" + containerId + "/start", "startContainer", future);
+    return postUrl("/containers/" + containerId + "/start", "startContainer");
   }
 
-  private void stopContainer(Handler<AsyncResult<Void>> future) {
+  Future<Void> stopContainer() {
     logger.info("stop container {} image {}", containerId, image);
-    postUrl("/containers/" + containerId + "/stop", "stopContainer", future);
+    return postUrl("/containers/" + containerId + "/stop", "stopContainer");
   }
 
-  private void deleteContainer(Handler<AsyncResult<Void>> future) {
+  Future<Void> deleteContainer() {
     logger.info("delete container {} image {}", containerId, image);
-    deleteUrl("/containers/" + containerId, "deleteContainer", future);
+    return deleteUrl("/containers/" + containerId, "deleteContainer");
   }
 
   private void logHandler(Buffer b) {
@@ -199,93 +184,85 @@ public class DockerModuleHandle implements ModuleHandle {
     }
   }
 
-  private void getContainerLog(Handler<AsyncResult<Void>> future) {
+  Future<Void> getContainerLog() {
     final String url = "/containers/" + containerId
         + "/logs?stderr=1&stdout=1&follow=1";
-    request(HttpMethod.GET, url, null, Buffer.buffer(), hndlr -> {
-      if (hndlr.failed()) {
-        future.handle(hndlr.mapEmpty());
-        return;
-      }
-      HttpClientResponse res = hndlr.result();
+    return request(HttpMethod.GET, url, null, Buffer.buffer()).compose(res -> {
       if (res.statusCode() == 200) {
         // stream OK. Continue other work but keep fetching!
         // remove 8 bytes of binary data and final newline
         res.handler(this::logHandler);
-        tcpPortWaiting.waitReady(null, future);
+        return tcpPortWaiting.waitReady(null);
       } else {
         String m = "getContainerLog HTTP error "
             + res.statusCode();
         logger.error(m);
-        future.handle(Future.failedFuture(m));
+        return Future.failedFuture(m);
       }
     });
   }
 
-  void getUrl(String url, Handler<AsyncResult<JsonObject>> future) {
-    request(HttpMethod.GET, url, null, Buffer.buffer(), hndlr -> {
-      if (hndlr.failed()) {
-        future.handle(hndlr.mapEmpty());
-        return;
-      }
-      HttpClientResponse res = hndlr.result();
-      Buffer body = Buffer.buffer();
-      res.exceptionHandler(d -> {
-        logger.warn("{}: {}", url, d.getMessage());
-        future.handle(Future.failedFuture(url + ": " + d.getMessage()));
-      });
-      res.handler(body::appendBuffer);
-      res.endHandler(d -> {
-        if (res.statusCode() == 200) {
-          JsonObject b = body.toJsonObject();
-          logger.info(b.encodePrettily());
-          future.handle(Future.succeededFuture(b));
-        } else {
-          String m = url + " HTTP error "
-              + res.statusCode() + "\n"
-              + body.toString();
-          logger.error(m);
-          future.handle(Future.failedFuture(m));
-        }
-      });
-    });
+  Future<JsonObject> getUrl(String url) {
+    return request(HttpMethod.GET, url, null, Buffer.buffer())
+        .compose(res -> {
+          Buffer body = Buffer.buffer();
+          Promise<JsonObject> promise = Promise.promise();
+          res.exceptionHandler(d -> {
+            logger.warn("{}: {}", url, d.getMessage());
+            promise.fail(url + ": " + d.getMessage());
+          });
+          res.handler(body::appendBuffer);
+          res.endHandler(d -> {
+            if (res.statusCode() != 200) {
+              String m = url + " HTTP error "
+                  + res.statusCode() + "\n"
+                  + body.toString();
+              logger.error(m);
+              promise.fail(m);
+              return;
+            }
+            try {
+              JsonObject b = body.toJsonObject();
+              promise.complete(b);
+            } catch (DecodeException e) {
+              logger.warn("{}", e.getMessage(), e);
+              promise.fail(e);
+            }
+          });
+          return promise.future();
+        });
   }
 
-  private void getImage(Handler<AsyncResult<JsonObject>> future) {
-    getUrl("/images/" + image + "/json", future);
+  private Future<JsonObject> getImage() {
+    return getUrl("/images/" + image + "/json");
   }
 
-  private void pullImage(Handler<AsyncResult<Void>> future) {
+  private Future<Void> pullImage() {
     logger.info("pull image {}", image);
-    postUrlJson("/images/create?fromImage=" + image, "pullImage", "",
-        res -> future.handle(res.mapEmpty()));
+    return postUrlJson("/images/create?fromImage=" + image, "pullImage", "")
+        .mapEmpty();
   }
 
-  void postUrlJson(String url, String msg, String doc,
-                   Handler<AsyncResult<Buffer>> future) {
-
+  Future<Buffer> postUrlJson(String url, String msg, String doc) {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     headers.add("Content-Type", "application/json");
-    request(HttpMethod.POST, url, headers, Buffer.buffer(doc), hndlr -> {
-      if (hndlr.failed()) {
-        future.handle(hndlr.mapEmpty());
-        return;
-      }
-      HttpClientResponse res = hndlr.result();
+    return request(HttpMethod.POST, url, headers, Buffer.buffer(doc)).compose(res -> {
+      Promise<Buffer> promise = Promise.promise();
       Buffer body = Buffer.buffer();
-      res.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
+      res.exceptionHandler(d -> promise.fail(d));
       res.handler(body::appendBuffer);
       res.endHandler(d -> {
         if (res.statusCode() >= 200 && res.statusCode() <= 201) {
-          future.handle(Future.succeededFuture(body));
+          promise.complete(body);
         } else {
           String m = msg + " HTTP error "
               + res.statusCode() + "\n"
               + body.toString();
           logger.error(m);
-          future.handle(Future.failedFuture(m));
+          promise.fail(m);
         }
       });
+      return promise.future();
     });
   }
 
@@ -339,15 +316,13 @@ public class DockerModuleHandle implements ModuleHandle {
     return doc;
   }
 
-  private void createContainer(int exposedPort, Handler<AsyncResult<Void>> future) {
+  Future<Void> createContainer(int exposedPort) {
     logger.info("create container from image {}", image);
 
     String doc = getCreateContainerDoc(exposedPort);
-    postUrlJson("/containers/create", "createContainer", doc, res -> {
-      if (res.succeeded()) {
-        containerId = res.result().toJsonObject().getString("Id");
-      }
-      future.handle(res.mapEmpty());
+    return postUrlJson("/containers/create", "createContainer", doc).compose(res -> {
+      containerId = res.toJsonObject().getString("Id");
+      return Future.succeededFuture();
     });
   }
 
@@ -373,64 +348,39 @@ public class DockerModuleHandle implements ModuleHandle {
     return exposedPort;
   }
 
-  private void prepareContainer(Handler<AsyncResult<Void>> startFuture) {
-    getImage(res1 -> {
-      if (res1.failed()) {
-        logger.warn("getImage failed 1 : {}", res1.cause().getMessage());
-        startFuture.handle(Future.failedFuture(res1.cause()));
-        return;
-      }
-      if (hostPort == 0) {
-        startFuture.handle(Future.failedFuture(messages.getMessage("11300")));
-        return;
-      }
+  private Future<Void> prepareContainer() {
+    if (hostPort == 0) {
+      return Future.failedFuture(messages.getMessage("11300"));
+    }
+    return getImage().compose(res1 -> {
       int exposedPort;
       try {
-        exposedPort = getExposedPort(res1.result());
-      } catch (Exception ex) {
-        startFuture.handle(Future.failedFuture(ex));
-        return;
+        exposedPort = getExposedPort(res1);
+      } catch (Exception e) {
+        logger.warn("{}", e.getMessage(), e);
+        return Future.failedFuture(e);
       }
-      createContainer(exposedPort, res2 -> {
-        if (res2.failed()) {
-          startFuture.handle(res2);
-          return;
-        }
-        startContainer(res3 -> {
-          if (res3.failed()) {
-            deleteContainer(x -> startFuture.handle(res3));
-            return;
-          }
-          getContainerLog(res4 -> {
-            if (res4.failed()) {
-              this.stop(x -> startFuture.handle(res4));
-              return;
-            }
-            startFuture.handle(res4);
-          });
-        });
-      });
+      return createContainer(exposedPort)
+          .compose(res2 -> startContainer()
+              .onFailure(cause -> deleteContainer())
+              .compose(res3 -> getContainerLog())
+      );
     });
   }
 
   @Override
-  public void start(Handler<AsyncResult<Void>> startFuture) {
+  public Future<Void> start() {
     if (dockerPull) {
-      pullImage(res -> prepareContainer(startFuture));
-    } else {
-      prepareContainer(startFuture);
+      return pullImage().compose(x -> prepareContainer());
     }
+    return prepareContainer();
   }
 
   @Override
-  public void stop(Handler<AsyncResult<Void>> stopFuture) {
-    stopContainer(res -> {
-      if (res.failed()) {
-        stopFuture.handle(Future.failedFuture(res.cause()));
-      } else {
-        ports.free(hostPort);
-        deleteContainer(stopFuture);
-      }
+  public Future<Void> stop() {
+    return stopContainer().compose(res -> {
+      ports.free(hostPort);
+      return deleteContainer();
     });
   }
 }

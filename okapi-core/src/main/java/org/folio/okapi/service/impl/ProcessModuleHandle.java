@@ -3,14 +3,12 @@ package org.folio.okapi.service.impl;
 import com.zaxxer.nuprocess.NuAbstractProcessHandler;
 import com.zaxxer.nuprocess.NuProcess;
 import com.zaxxer.nuprocess.NuProcessBuilder;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
-import io.vertx.core.net.NetSocket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
@@ -73,24 +71,17 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
   }
 
   @Override
-  public void start(Handler<AsyncResult<Void>> startFuture) {
-    if (port > 0) {
-      // fail if port is already in use
-      NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
-      NetClient c = vertx.createNetClient(options);
-      c.connect(port, "localhost", res -> {
-        if (res.succeeded()) {
-          NetSocket socket = res.result();
-          socket.close();
-          startFuture.handle(Future.failedFuture(
-              messages.getMessage("11502", Integer.toString(port))));
-        } else {
-          start2(startFuture);
-        }
-      });
-    } else {
-      start2(startFuture);
+  public Future<Void> start() {
+    if (port == 0) {
+      return start2();
     }
+    // fail if port is already in use
+    NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
+    NetClient c = vertx.createNetClient(options);
+    return c.connect(port, "localhost").compose(socket -> {
+      socket.close();
+      return Future.failedFuture(messages.getMessage("11502", Integer.toString(port)));
+    }, fail -> start2());
   }
 
   @Override
@@ -135,8 +126,8 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
   }
 
   @SuppressWarnings("indentation")
-  private void start2(Handler<AsyncResult<Void>> startFuture) {
-    vertx.executeBlocking(future -> {
+  private Future<Void> start2() {
+    return vertx.executeBlocking(future -> {
       if (process == null) {
         String c = "";
         try {
@@ -175,100 +166,74 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
         }
       }
       future.complete();
-    }, false, result -> {
-      if (result.failed()) {
-        logger.debug("ProcessModuleHandle.start2() executeBlocking failed {}",
-            result.cause().getMessage());
-        startFuture.handle(Future.failedFuture(result.cause()));
-      } else {
-        start3(startFuture);
-      }
-    });
+    }, false).compose(x -> start3());
   }
 
-  private void start3(Handler<AsyncResult<Void>> startFuture) {
-    tcpPortWaiting.waitReady(process, x -> {
-      if (x.failed()) {
-        this.stopProcess(y -> startFuture.handle(Future.failedFuture(x.cause())));
-      } else {
-        startFuture.handle(Future.succeededFuture());
-      }
-    });
+  private Future<Void> start3() {
+    return tcpPortWaiting.waitReady(process).onFailure(x -> stopProcess());
   }
 
-  private void waitPortToClose(Handler<AsyncResult<Void>> stopFuture, int iter) {
-    if (port > 0) {
-      // fail if port is already in use
-      NetClientOptions options = new NetClientOptions().setConnectTimeout(50);
-      NetClient c = vertx.createNetClient(options);
-      c.connect(port, "localhost", res -> {
-        if (res.succeeded()) {
-          NetSocket socket = res.result();
-          socket.close();
-          if (iter > 0) {
-            vertx.setTimer(100, x -> waitPortToClose(stopFuture, iter - 1));
-          } else {
-            stopFuture.handle(Future.failedFuture(
-                messages.getMessage("11503", Integer.toString(port))));
-          }
-        } else {
-          stopFuture.handle(Future.succeededFuture());
-        }
-      });
-    } else {
-      stopFuture.handle(Future.succeededFuture());
+  private Future<Void> waitPortToClose(int iter) {
+    if (port == 0) {
+      return Future.succeededFuture();
     }
+    NetClientOptions options = new NetClientOptions().setConnectTimeout(50);
+    NetClient c = vertx.createNetClient(options);
+    return c.connect(port, "localhost").compose(socket -> {
+      socket.close();
+      if (iter > 0) {
+        Promise<Void> promise = Promise.promise();
+        vertx.setTimer(100, id -> waitPortToClose(iter - 1).onComplete(promise::handle));
+        return promise.future();
+      } else {
+        return Future.failedFuture(messages.getMessage("11503", Integer.toString(port)));
+      }
+    }, fail -> Future.succeededFuture());
   }
 
   @SuppressWarnings("indentation")
   @Override
-  public void stop(Handler<AsyncResult<Void>> stopFuture) {
+  public Future<Void> stop() {
     if (process == null) {
       ports.free(port);
-      stopFuture.handle(Future.succeededFuture());
-      return;
+      return Future.succeededFuture();
     }
     if (cmdlineStop == null) {
-      stopProcess(stopFuture);
-    } else {
-      vertx.executeBlocking(future -> {
-        String c = "";
-        try {
-          c = cmdlineStop.replace("%p", Integer.toString(port));
-          String[] l = new String[]{"sh", "-c", c};
-          NuProcess pp = launch(vertx, id, env, l);
-          logger.debug("Waiting for the port to be closed");
-          pp.waitFor(30, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
-          logger.debug("Wait done");
-          if (!pp.isRunning() && exitCode != 0) {
-            if (exitCode == Integer.MIN_VALUE) {
-              future.handle(Future.failedFuture(messages.getMessage("11504", c)));
-            } else {
-              future.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
-            }
-            return;
+      return stopProcess();
+    }
+    return vertx.executeBlocking(promise -> {
+      String c = "";
+      try {
+        c = cmdlineStop.replace("%p", Integer.toString(port));
+        String[] l = new String[]{"sh", "-c", c};
+        NuProcess pp = launch(vertx, id, env, l);
+        logger.debug("Waiting for the port to be closed");
+        pp.waitFor(30, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
+        logger.debug("Wait done");
+        if (!pp.isRunning() && exitCode != 0) {
+          if (exitCode == Integer.MIN_VALUE) {
+            promise.handle(Future.failedFuture(messages.getMessage("11504", c)));
+          } else {
+            promise.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
           }
-        } catch (InterruptedException ex) {
-          logger.warn("when invoking {}", c, ex);
-          future.fail(ex);
-          Thread.currentThread().interrupt();
           return;
         }
-        future.complete();
-      }, false, result -> {
-        if (result.failed()) {
-          stopFuture.handle(Future.failedFuture(result.cause()));
-        } else {
-          ports.free(port);
-          waitPortToClose(stopFuture, 10);
-        }
-      });
-    }
+      } catch (InterruptedException ex) {
+        logger.warn("when invoking {}", c, ex);
+        promise.fail(ex);
+        Thread.currentThread().interrupt();
+        return;
+      }
+      promise.complete();
+    }, false).compose(x -> {
+      ports.free(port);
+      return waitPortToClose(10);
+    });
   }
 
   @SuppressWarnings("indentation")
-  private void stopProcess(Handler<AsyncResult<Void>> stopFuture) {
-    vertx.executeBlocking(future -> {
+  private Future<Void> stopProcess() {
+    return vertx.executeBlocking(promise -> {
       process.destroy(true);
       while (process.isRunning()) {
         boolean exited = true;
@@ -278,14 +243,10 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
           Thread.currentThread().interrupt();
         }
       }
-      future.complete();
-    }, false, result -> {
-      if (result.failed()) {
-        stopFuture.handle(Future.failedFuture(result.cause()));
-      } else {
-        ports.free(port);
-        waitPortToClose(stopFuture, 10);
-      }
+      promise.complete();
+    }, false).compose(res -> {
+      ports.free(port);
+      return waitPortToClose(10);
     });
   }
 }
