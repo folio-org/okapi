@@ -2,7 +2,6 @@ package org.folio.okapi.managers;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
@@ -118,9 +117,7 @@ public class DeploymentManager {
     Collection<DeploymentDescriptor> col = list.values();
     for (DeploymentDescriptor dd : col) {
       ModuleHandle mh = dd.getModuleHandle();
-      Promise<Void> promise = Promise.promise();
-      mh.stop(promise::handle);
-      futures.add(promise.future());
+      futures.add(mh.stop());
     }
     return CompositeFuture.all(futures).mapEmpty();
   }
@@ -147,6 +144,7 @@ public class DeploymentManager {
     return deploy2(usePort, md1);
   }
 
+  @SuppressWarnings("indentation")  // indentation of fail -> {
   private Future<DeploymentDescriptor> deploy2(int usePort, DeploymentDescriptor md1) {
 
     LaunchDescriptor descriptor = md1.getDescriptor();
@@ -180,24 +178,18 @@ public class DeploymentManager {
       }
       ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor,
           md1.getSrvcId(), ports, moduleHost, usePort, config);
-      Promise<DeploymentDescriptor> promise = Promise.promise();
-      mh.start(future -> {
-        if (future.failed()) {
-          ports.free(usePort);
-          logger.warn("Deploying {} failed", md1.getSrvcId());
-          promise.fail(new OkapiError(ErrorType.USER, future.cause().getMessage()));
-          return;
-        }
+      return mh.start().compose(res -> {
         DeploymentDescriptor md2
             = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
             moduleUrl, descriptor, mh);
         md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
         list.put(md2.getInstId(), md2);
-        dm.add(md2).onComplete(res -> {
-          promise.complete(md2);
-        });
+        return dm.add(md2).map(md2);
+      }, fail -> {
+        ports.free(usePort);
+        logger.warn("Deploying {} failed", md1.getSrvcId());
+        return Future.failedFuture(new OkapiError(ErrorType.USER, fail.getMessage()));
       });
-      return promise.future();
     });
   }
 
@@ -210,16 +202,10 @@ public class DeploymentManager {
     DeploymentDescriptor md = list.get(id);
     return dm.remove(md.getSrvcId(), md.getInstId()).compose(res -> {
       ModuleHandle mh = md.getModuleHandle();
-      Promise<Void> promise = Promise.promise();
-      mh.stop(future -> {
-        if (future.failed()) {
-          promise.fail(future.cause());
-          return;
-        }
+      return mh.stop().compose(x -> {
         list.remove(id);
-        promise.complete();
+        return Future.succeededFuture();
       });
-      return promise.future();
     }).mapEmpty();
   }
 
