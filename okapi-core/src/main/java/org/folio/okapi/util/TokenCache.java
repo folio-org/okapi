@@ -17,13 +17,6 @@ public class TokenCache {
   private static final Logger logger = OkapiLogger.get(TokenCache.class);
 
   /**
-   * Convenience constructor using the default TTL and max size.
-   */
-  public TokenCache() {
-    this(DEFAULT_TTL, DEFAULT_MAX_SIZE);
-  }
-
-  /**
    * Constructor using the provided TTL and maxSize.
    * 
    * @param ttl cache entry time to live in milliseconds
@@ -53,7 +46,7 @@ public class TokenCache {
     CacheEntry entry = new CacheEntry(token, userId, xokapiPerms, now + ttl);
     String key = genKey(method, path, userId, keyToken);
     MetricsHelper.recordTokenCacheCached(tenant, method, path, userId);
-    logger.info("Caching: {} -> {}", key, token);
+    logger.debug("Caching: {} -> {}", key, token);
     cache.put(key, entry);
   }
 
@@ -72,16 +65,16 @@ public class TokenCache {
     CacheEntry ret = cache.get(key);
     if (ret == null) {
       MetricsHelper.recordTokenCacheMiss(tenant, method, path, userId);
-      logger.info("Cache Miss: {}", key);
+      logger.debug("Cache Miss: {}", key);
       return ret;
     } else if (ret.isExpired()) {
       MetricsHelper.recordTokenCacheExpired(tenant, method, path, userId);
-      logger.info("Cache Hit (Expired): {}", key);
+      logger.debug("Cache Hit (Expired): {}", key);
       cache.remove(key);
       return null;
     } else {
       MetricsHelper.recordTokenCacheHit(tenant, method, path, userId);
-      logger.info("Cache Hit: {} -> {}", key, ret.token);
+      logger.debug("Cache Hit: {} -> {}", key, ret.token);
       return ret;
     }
   }

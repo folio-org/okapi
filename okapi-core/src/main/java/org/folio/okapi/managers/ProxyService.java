@@ -268,8 +268,14 @@ public class ProxyService {
     mods.sort(cmp);
 
     if (skipAuth) {
-      pc.debug("Skipping auth, have cached token.");
-      mods.remove(0);
+      for (int i = 0; i < mods.size(); i++) {
+        ModuleInstance mod = mods.get(i);
+        if (mod.getRoutingEntry().getPhase().equals(XOkapiHeaders.FILTER_AUTH)) {
+          pc.debug("Skipping auth, have cached token.");
+          mods.remove(i);
+          break;
+        }
+      }
     }
 
     // Check that our pipeline has a real module in it, not just filters,
