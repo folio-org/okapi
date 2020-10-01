@@ -304,7 +304,7 @@ public class InternalModule {
         + "   {" // proxy, health
         + "    \"methods\" :  [ \"GET\" ],"
         + "    \"pathPattern\" : \"/_/proxy/health\","
-        + "    \"permissionsRequired\" : [  \"okapi.proxy.health.get\" ], "
+        + "    \"permissionsRequired\" : [ ], "
         + "    \"type\" : \"internal\" "
         + "   },"
         + "   {" // proxy, pull
@@ -492,11 +492,6 @@ public class InternalModule {
         + "   \"displayName\" : \"Okapi - Get version\", "
         + "   \"description\" : \"Get version\" "
         + " }, "
-        + " { "
-        + "   \"permissionName\" : \"okapi.proxy.health.get\", "
-        + "   \"displayName\" : \"Okapi - health\", "
-        + "   \"description\" : \"Get health info\" "
-        + " }, "
         // Permission sets
         + " { "
         + "   \"permissionName\" : \"okapi.deploy\", "
@@ -575,7 +570,6 @@ public class InternalModule {
         + "     \"okapi.proxy.tenants.modules.list\", "
         + "     \"okapi.proxy.tenants.modules.enabled.get\", "
         + "     \"okapi.interfaces\", "
-        + "     \"okapi.proxy.health.get\", "
         + "     \"okapi.version.get\" "
         + "   ]"
         + " }, "
@@ -587,7 +581,6 @@ public class InternalModule {
         + "     \"okapi.deploy\",  \"okapi.modules\", "
         + "     \"okapi.tenants\", \"okapi.tenantmodules\", "
         + "     \"okapi.interfaces\", "
-        + "     \"okapi.proxy.health.get\", "
         + "     \"okapi.version.get\", "
         + "     \"okapi.env\" "
         + "   ]"
