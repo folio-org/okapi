@@ -60,6 +60,7 @@ public class ProxyTest {
   private final int portPre = 9236;
   private final int portPost = 9237;
   private final int portEdge = 9238;
+  private final int portHealth = 9239;
   private final int port = 9230;
   private Buffer preBuffer;
   private Buffer postBuffer;
@@ -322,6 +323,7 @@ public class ProxyTest {
         .setConfig(new JsonObject()
             .put("loglevel", "info")
             .put("port", Integer.toString(port))
+            .put("healthPort", Integer.toString(portHealth))
             .put("httpCache", true));
     Promise<Void> promise = Promise.promise();
     vertx.deployVerticle(MainVerticle.class.getName(), opt, x -> promise.handle(x.mapEmpty()));
@@ -361,6 +363,12 @@ public class ProxyTest {
         }));
     async.await();
     vertx.close(context.asyncAssertSuccess());
+  }
+
+  @Test
+  public void testHealth(TestContext context) {
+    given().port(portHealth).get("/readiness").then().statusCode(204);
+    given().port(portHealth).get("/liveness").then().statusCode(204);
   }
 
   @Test
