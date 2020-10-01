@@ -1,3 +1,7 @@
+## 4.1.4 2020-10-01
+
+ * [OKAPI-905](https://issues.folio.org/browse/OKAPI-905) Remove permissions required for proxy health service
+
 ## 4.1.3 2020-09-23
 
  * [OKAPI-896](https://issues.folio.org/browse/OKAPI-896) OkapiClient: use WebClient rather than HttpClient
