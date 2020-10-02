@@ -25,7 +25,13 @@ A single implementation may implement multiple interfaces (for example **mod-inv
 
 But this conceptual separation has been badly muddied by the pragmatic choice early in the system design that the interface definition does not have its own existence separate from the implementation. Instead, an interface is specifed as part of the `provides` array in a implementation's module descriptor.
 
-This has several undesirable consequences. For example, it is not possible to point directly to an interface. The `/settings/developer/okapi-paths` facility in FOLIO would be more useful if it stated what interface each listed path belongs to, and linked to that interface -- but it can't, because interfaces don't really exist.
+This has several undesirable consequences. For example:
+
+* There is no such thing as the canonical definition of an interface. We cannot generate authoritative documentation of our interfaces automatically because, ATM, it does not exist.
+
+* It is therefore not possible to point directly to an interface. The `/settings/developer/okapi-paths` facility in FOLIO would be more useful if it stated what interface each listed path belongs to, and linked to that interface -- but it can't.
+
+* FOLIO client code cannot validate the shapes of the objects they receive because they have no way of looking up the pertinent schemas. A client's package file specifies what interfaces it depends on, but there is no way to get from interface names to JSON schemas, since the schemas are only available as part of the implementation.
 
 The problem is seen most painfully in the case of the Codex modules: although in principle they each implement the same `codex` interface, in practice all three implementations contain their own copy of that interface's definition, and those definitions have drifted apart so that they do not in fact implement exactly the same interface at all! (See the relevant sections in the module descriptors for
 [**mod-codex-mux**](https://github.com/folio-org/mod-codex-mux/blob/6ecaf885a6c5d1d62df6ecd4823a81e4c9071ad9/descriptors/ModuleDescriptor-template.json#L6-L29),
