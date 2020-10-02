@@ -1,3 +1,8 @@
+## 4.1.5 2020-10-02
+
+ * [OKAPI-889](https://issues.folio.org/browse/OKAPI-889) Upgrade to Vert.x 4.0.0 Beta 2
+ * [OKAPI-907](https://issues.folio.org/browse/OKAPI-907) CORS Rejected - Invalid origin
+
 ## 4.1.4 2020-10-01
 
  * [OKAPI-905](https://issues.folio.org/browse/OKAPI-905) Remove permissions required for proxy health service
