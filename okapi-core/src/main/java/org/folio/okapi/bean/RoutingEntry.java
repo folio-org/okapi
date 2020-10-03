@@ -33,6 +33,7 @@ public class RoutingEntry {
   private String[] permissionsRequired;
   private String[] permissionsDesired;
   private String[] modulePermissions;
+  private String[] permissionsTenant;
   @JsonInclude(JsonInclude.Include.NON_DEFAULT)
   private boolean delegateCors;
   private static final String INVALID_PATH_CHARS = "\\%+{}()[].;:=?@#^$\"' ";
@@ -299,6 +300,14 @@ public class RoutingEntry {
     }
   }
 
+  public String[] getPermissionsTenant() {
+    return permissionsTenant;
+  }
+
+  public void setPermissionsTenant(String[] permissionsTenant) {
+    this.permissionsTenant = permissionsTenant;
+  }
+
   static int cutUri(String uri) {
     int len = uri.indexOf('?');
     if (len == -1) {
@@ -351,6 +360,21 @@ public class RoutingEntry {
       }
     }
     return uriI == uriLength;
+  }
+
+  /**
+   * Match uri against routing entry with tenant.
+   * Method is NOT considered.
+   * @param uri acutal path
+   * @param tenant current tenant
+   * @return true if tenant matches tenantId in pathPattern; false otherwise
+   */
+  public boolean matchUriTenant(String uri, String tenant) {
+    if (pathPattern == null || !pathPattern.contains("{tenantId}")) {
+      return false;
+    }
+    String replacedPattern = pathPattern.replace("{tenantId}", tenant);
+    return fastMatch(replacedPattern, uri);
   }
 
   private boolean matchUri(String uri) {

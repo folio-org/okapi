@@ -339,12 +339,17 @@ public class ProxyService {
     Set<String> extraperms = new HashSet<>();
 
     Map<String, String[]> modperms = new HashMap<>(modlist.size()); //!!
-
     for (ModuleInstance mod : modlist) {
       RoutingEntry re = mod.getRoutingEntry();
-      String[] reqp = re.getPermissionsRequired();
-      if (reqp != null) {
-        req.addAll(Arrays.asList(reqp));
+
+      if (re.getPermissionsTenant() != null
+          && re.matchUriTenant(pc.getCtx().request().path(), pc.getTenant())) {
+        req.addAll(Arrays.asList(re.getPermissionsTenant()));
+      } else {
+        String[] reqp = re.getPermissionsRequired();
+        if (reqp != null) {
+          req.addAll(Arrays.asList(reqp));
+        }
       }
       String[] wap = re.getPermissionsDesired();
       if (wap != null) {

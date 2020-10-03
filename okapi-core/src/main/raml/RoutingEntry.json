@@ -69,6 +69,13 @@
         "type": "string"
       }
     },
+    "permissionsTenant": {
+      "description": "Desired permissions when tenant matches pathPattern",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "delegateCORS": {
       "description": "Okapi handles CORS by default. Set to true to delegate CORS handling to the module. This only applies to calls made via /_/invoke/tenant/<tid>/<path>",
       "type": "boolean"
