@@ -1,3 +1,10 @@
+## 4.1.6 2020-10-05
+
+ * [OKAPI-863](https://issues.folio.org/browse/OKAPI-863) Module and interface discovery for current tenant wo permissions.
+   This feature fixes a problem which was the cause of [OKAPI-835](https://issues.folio.org/browse/OKAPI-835) work.
+   However, instead of just removing the permission bits, this will ensure that only current tenant can see its own
+   modules and interfaces.
+
 ## 4.1.5 2020-10-02
 
  * [OKAPI-889](https://issues.folio.org/browse/OKAPI-889) Upgrade to Vert.x 4.0.0 Beta 2
