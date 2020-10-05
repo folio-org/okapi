@@ -70,7 +70,7 @@
       }
     },
     "permissionsTenant": {
-      "description": "Desired permissions when tenant matches pathPattern",
+      "description": "Required permissions when tenant matches pathPattern",
       "type": "array",
       "items": {
         "type": "string"

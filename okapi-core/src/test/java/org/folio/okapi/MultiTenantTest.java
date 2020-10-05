@@ -155,7 +155,7 @@ public class MultiTenantTest {
   }
 
   @Test
-  public void test1() {
+  public void test1(TestContext context) {
     Response res;
     JsonArray ja;
 
@@ -334,6 +334,13 @@ public class MultiTenantTest {
     logger.info(res.body().asString());
     ja = new JsonArray(res.body().asString());
     Assert.assertEquals(3, ja.size()); // two sample modules and auth module
+
+    res = given()
+        .header("Content-Type", "application/json")
+        .header("X-Okapi-Tenant", tenant2)
+        .get("/_/proxy/tenants/" + tenant2 + "/modules")
+        .then().statusCode(401).log().ifValidationFails()
+        .extract().response();
 
     res = given()
         .header("Content-Type", "application/json")

@@ -343,7 +343,8 @@ public class ProxyService {
       RoutingEntry re = mod.getRoutingEntry();
 
       if (re.getPermissionsTenant() != null
-          && re.matchUriTenant(pc.getCtx().request().path(), pc.getTenant())) {
+          && mod.getAuthToken() != null
+          && re.matchUriTenant(mod.getPath(), pc.getTenant())) {
         req.addAll(Arrays.asList(re.getPermissionsTenant()));
       } else {
         String[] reqp = re.getPermissionsRequired();
@@ -359,7 +360,7 @@ public class ProxyService {
       if (modp != null) {
         // replace module permissions with auto generated permission set id
         if (moduleManager.getExpandedPermModuleTenants().contains(pc.getTenant())) {
-          modp = new String[] {re.generateSystemId(mod.getModuleDescriptor().getId())};
+          modp = new String[]{re.generateSystemId(mod.getModuleDescriptor().getId())};
         }
         if (re.getProxyType() == ProxyType.REDIRECT) {
           extraperms.addAll(Arrays.asList(modp));
