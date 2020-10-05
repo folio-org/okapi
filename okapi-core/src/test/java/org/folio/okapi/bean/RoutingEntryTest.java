@@ -257,4 +257,34 @@ class RoutingEntryTest {
     assertEquals(HttpMethod.POST, t.getDefaultMethod(HttpMethod.PUT));
   }
 
+  @Test
+  void testMatchUriTenant() {
+    RoutingEntry t = new RoutingEntry();
+    String[] methods = new String[1];
+    methods[0] = "GET";
+    t.setMethods(methods);
+
+    assertNull(t.getPermissionsRequiredTenant());
+    t.setPermissionsRequiredTenant(new String[0]);
+    assertNotNull(t.getPermissionsRequiredTenant());
+
+    assertFalse(t.matchUriTenant("/y/b", "diku"));
+
+    t.setPathPattern("/{x}/b");
+
+    assertFalse(t.matchUriTenant("/y/b", "diku"));
+
+    assertFalse(t.matchUriTenant("/y/b", "diku"));
+
+    t.setPathPattern("/{tenantId}/b");
+    assertFalse(t.matchUriTenant("/testlib/b", "diku"));
+    assertTrue(t.matchUriTenant("/diku/b", "diku"));
+
+    t.setPathPattern("/{tenantId}/b/{tenantId}");
+    assertFalse(t.matchUriTenant("/diku/b/other", "diku"));
+    assertTrue(t.matchUriTenant("/diku/b/diku", "diku"));
+
+    t.setPathPattern("/{tenantId}/b/{moduleId}");
+    assertTrue(t.matchUriTenant("/diku/b/other", "diku"));
+  }
 }
