@@ -33,7 +33,7 @@ public class RoutingEntry {
   private String[] permissionsRequired;
   private String[] permissionsDesired;
   private String[] modulePermissions;
-  private String[] permissionsTenant;
+  private String[] permissionsRequiredTenant;
   @JsonInclude(JsonInclude.Include.NON_DEFAULT)
   private boolean delegateCors;
   private static final String INVALID_PATH_CHARS = "\\%+{}()[].;:=?@#^$\"' ";
@@ -300,12 +300,12 @@ public class RoutingEntry {
     }
   }
 
-  public String[] getPermissionsTenant() {
-    return permissionsTenant;
+  public String[] getPermissionsRequiredTenant() {
+    return permissionsRequiredTenant;
   }
 
-  public void setPermissionsTenant(String[] permissionsTenant) {
-    this.permissionsTenant = permissionsTenant;
+  public void setPermissionsRequiredTenant(String[] permissionsRequiredTenant) {
+    this.permissionsRequiredTenant = permissionsRequiredTenant;
   }
 
   static int cutUri(String uri) {

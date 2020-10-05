@@ -69,7 +69,7 @@
         "type": "string"
       }
     },
-    "permissionsTenant": {
+    "permissionsRequired1Tenant": {
       "description": "Required permissions when tenant matches pathPattern",
       "type": "array",
       "items": {

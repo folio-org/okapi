@@ -342,10 +342,10 @@ public class ProxyService {
     for (ModuleInstance mod : modlist) {
       RoutingEntry re = mod.getRoutingEntry();
 
-      if (re.getPermissionsTenant() != null
+      if (re.getPermissionsRequiredTenant() != null
           && mod.getAuthToken() != null
           && re.matchUriTenant(mod.getPath(), pc.getTenant())) {
-        req.addAll(Arrays.asList(re.getPermissionsTenant()));
+        req.addAll(Arrays.asList(re.getPermissionsRequiredTenant()));
       } else {
         String[] reqp = re.getPermissionsRequired();
         if (reqp != null) {

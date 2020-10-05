@@ -264,9 +264,9 @@ class RoutingEntryTest {
     methods[0] = "GET";
     t.setMethods(methods);
 
-    assertNull(t.getPermissionsTenant());
-    t.setPermissionsTenant(new String[0]);
-    assertNotNull(t.getPermissionsTenant());
+    assertNull(t.getPermissionsRequiredTenant());
+    t.setPermissionsRequiredTenant(new String[0]);
+    assertNotNull(t.getPermissionsRequiredTenant());
 
     assertFalse(t.matchUriTenant("/y/b", "diku"));
 
