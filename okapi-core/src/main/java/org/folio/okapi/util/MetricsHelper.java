@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Timer.Sample;
+import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.vertx.core.VertxOptions;
 import io.vertx.micrometer.MicrometerMetricsOptions;
@@ -36,6 +37,8 @@ public class MetricsHelper {
       + ".responseTime";
   private static final String METRICS_HTTP_CLIENT_ERRORS = METRICS_HTTP_CLIENT
       + ".errors";
+  private static final String METRICS_CODE = METRICS_PREFIX + ".code";
+  private static final String METRICS_CODE_EXECUTION_TIME = METRICS_CODE + ".executionTime";
 
   private static final String TAG_HOST = "host";
   private static final String TAG_TENANT = "tenant";
@@ -145,6 +148,25 @@ public class MetricsHelper {
     return counter;
   }
 
+  /**
+   * Record code execution time.
+   *
+   * @param sample - {@link Sample} that tells the starting time
+   * @param name   - name of the code block for tagging purpose
+   *
+   * @return {@link Timer} or null if metrics is not enabled
+   */
+  public static Timer recordCodeExecutionTime(Sample sample, String name) {
+    if (!enabled) {
+      return null;
+    }
+    Timer timer = Timer.builder(METRICS_CODE_EXECUTION_TIME)
+        .tag("name", name)
+        .register(getRegistry());
+    sample.stop(timer);
+    return timer;
+  }
+
   private static Timer recordHttpTime(Sample sample, String tenant, int httpStatusCode,
       String httpMethod, ModuleInstance moduleInstance, boolean server) {
     if (!enabled) {
@@ -192,6 +214,7 @@ public class MetricsHelper {
       registry = Optional.ofNullable(BackendRegistries.getDefaultNow())
           .orElse(new SimpleMeterRegistry());
       registry.config().commonTags(TAG_HOST, getHost());
+      new ProcessorMetrics().bindTo(registry);
     }
     return registry;
   }

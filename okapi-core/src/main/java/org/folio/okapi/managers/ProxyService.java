@@ -120,7 +120,10 @@ public class ProxyService {
   }
 
   private boolean match(RoutingEntry e, HttpServerRequest req) {
-    return e.match(req.uri(), req.method().name());
+    Timer.Sample sample = MetricsHelper.getTimerSample();
+    boolean matchResult = e.match(req.uri(), req.method().name());
+    MetricsHelper.recordCodeExecutionTime(sample, "ProxyService.match");
+    return matchResult;
   }
 
   private boolean resolveRedirects(ProxyContext pc,
@@ -186,6 +189,9 @@ public class ProxyService {
   private List<ModuleInstance> getModulesForRequest(ProxyContext pc,
                                                     List<ModuleDescriptor> enabledModules) {
 
+    Timer.Sample sample = MetricsHelper.getTimerSample();
+    final String name = "ProxyService.getModulesForRequest";
+
     List<ModuleInstance> mods = new ArrayList<>();
     HttpServerRequest req = pc.getCtx().request();
     final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
@@ -220,6 +226,7 @@ public class ProxyService {
           mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
           mods.add(mi);
           if (!resolveRedirects(pc, mods, re, enabledModules, "", req.uri())) {
+            MetricsHelper.recordCodeExecutionTime(sample, name);
             return null;
           }
           pc.debug("getMods:   Added " + md.getId() + " "
@@ -247,8 +254,11 @@ public class ProxyService {
     }
     if (!found) {
       pc.responseError(404, messages.getMessage("10103", req.path(), pc.getTenant()));
+      MetricsHelper.recordCodeExecutionTime(sample, name);
       return null;
     }
+
+    MetricsHelper.recordCodeExecutionTime(sample, name);
     return mods;
   }
 
@@ -439,6 +449,7 @@ public class ProxyService {
    * received one.
    */
   private void authResponse(HttpClientResponse res, ProxyContext pc) {
+    Timer.Sample sample = MetricsHelper.getTimerSample();
     String modTok = res.headers().get(XOkapiHeaders.MODULE_TOKENS);
     if (modTok != null && !modTok.isEmpty()) {
       JsonObject jo = new JsonObject(modTok);
@@ -455,6 +466,7 @@ public class ProxyService {
         }
       }
     }
+    MetricsHelper.recordCodeExecutionTime(sample, "ProxyService.authResponse");
   }
 
   /**
