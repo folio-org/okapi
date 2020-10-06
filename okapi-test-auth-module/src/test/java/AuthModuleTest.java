@@ -320,7 +320,38 @@ public class AuthModuleTest {
   }
 
   @Test
-  public void testPermissions(TestContext context) {
+  public void testModulePermissions(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+    headers.put("Content-Type", "application/json");
+
+    JsonObject modulePermissions = new JsonObject();
+    modulePermissions.put("modulea-1.0.0", new JsonArray().add("perm1"));
+    modulePermissions.put("moduleb-1.0.0", new JsonArray().add("perm2").add("perm3"));
+    headers.put(XOkapiHeaders.MODULE_PERMISSIONS, modulePermissions.encode());
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+
+    JsonObject j = new JsonObject();
+    j.put("tenant", "my-lib");
+    j.put("username", "foo");
+    j.put("password", "foo-password");
+    String body = j.encodePrettily();
+
+    cli.get("/normal", res -> {
+      context.assertTrue(res.succeeded());
+      JsonObject permsEcho = new JsonObject(cli.getRespHeaders().get(XOkapiHeaders.MODULE_TOKENS));
+      context.assertTrue(permsEcho.containsKey("modulea-1.0.0"));
+      context.assertTrue(permsEcho.containsKey("moduleb-1.0.0"));
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testPermissionsRequired(TestContext context) {
 
     HashMap<String, String> headers = new HashMap<>();
     headers.put(XOkapiHeaders.URL, URL);

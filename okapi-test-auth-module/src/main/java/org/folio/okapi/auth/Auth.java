@@ -226,7 +226,7 @@ class Auth {
     }
     if (req != null) {
       ctx.response().headers().add("X-Auth-Permissions-Required", req);
-      if (permissions != null && !permissions.isEmpty()) {
+      if (permissions != null) {
         String[] reqList = req.split(",");
         for (String r : reqList) {
           if (!permissions.contains(r)) {
