@@ -12,15 +12,18 @@ class LoginParameters {
   private final String tenant;
   private final String username;
   private final String password;
+  private final String [] permissions;
 
   @JsonCreator
   public LoginParameters(
           @JsonProperty("tenant") String tenant,
           @JsonProperty("username") String username,
-          @JsonProperty("password") String password) {
+          @JsonProperty("password") String password,
+          @JsonProperty("permissions") String [] permissions) {
     this.tenant = tenant;
     this.username = username;
     this.password = password;
+    this.permissions = permissions;
   }
 
   public String getTenant() {
@@ -33,6 +36,10 @@ class LoginParameters {
 
   public String getPassword() {
     return password;
+  }
+
+  public String [] getPermissions() {
+    return permissions;
   }
 
 }
