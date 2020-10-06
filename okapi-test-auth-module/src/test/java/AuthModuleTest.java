@@ -2,6 +2,7 @@
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -317,6 +318,57 @@ public class AuthModuleTest {
       });
     });
   }
+
+  @Test
+  public void testPermissions(TestContext context) {
+
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+    headers.put("Content-Type", "application/json");
+
+    {
+      Async async = context.async();
+      JsonObject j = new JsonObject();
+      j.put("tenant", "my-lib");
+      j.put("username", "foo");
+      j.put("password", "foo-password");
+      j.put("permissions", new JsonArray(Arrays.asList("perm-a")));
+      String body = j.encodePrettily();
+      OkapiClient cli = new OkapiClient(URL, vertx, headers);
+
+      cli.post("/authn/login", body, res -> {
+        context.assertTrue(res.succeeded());
+        headers.put(XOkapiHeaders.TOKEN, cli.getRespHeaders().get(XOkapiHeaders.TOKEN));
+        async.complete();
+      });
+      async.await();
+      cli.close();
+    }
+    {
+      Async async = context.async();
+      headers.put(XOkapiHeaders.PERMISSIONS_REQUIRED, "perm-a");
+      OkapiClient cli = new OkapiClient(URL, vertx, headers);
+      cli.get("/normal", res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+      cli.close();
+    }
+    {
+      Async async = context.async();
+      headers.put(XOkapiHeaders.PERMISSIONS_REQUIRED, "perm-a,perm-b");
+      OkapiClient cli = new OkapiClient(URL, vertx, headers);
+      cli.get("/normal", res -> {
+        context.assertTrue(res.failed());
+        async.complete();
+      });
+      async.await();
+      cli.close();
+    }
+  }
+
 
   @Test
   public void testFilterResponse(TestContext context) {

@@ -9,6 +9,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiLogger;
@@ -38,12 +39,15 @@ class Auth {
    * @param user user string
    * @return the token
    */
-  private String token(String tenant, String user)  {
+  private String token(String tenant, String user, String [] permissions)  {
 
     // Create a dummy JWT token with the correct tenant
     JsonObject payload = new JsonObject()
         .put("sub", user)
         .put("tenant", tenant);
+    if (permissions != null) {
+      payload.put("permissions", permissions);
+    }
     String encodedpl = payload.encode();
     logger.debug("test-auth: payload: {}", encodedpl);
     byte[] bytes = encodedpl.getBytes();
@@ -79,7 +83,7 @@ class Auth {
       return;
     }
     String tok;
-    tok = token(p.getTenant(), p.getUsername());
+    tok = token(p.getTenant(), p.getUsername(), p.getPermissions());
     logger.info("test-auth: Ok login for {}: {}", u, tok);
     HttpResponse.responseJson(ctx, 200).putHeader(XOkapiHeaders.TOKEN, tok).end(json);
   }
@@ -106,7 +110,7 @@ class Auth {
           }
           permstr.append(p);
         }
-        tokens.put(mod, token(mod, permstr.toString()));
+        tokens.put(mod, token(mod, permstr.toString(), null));
       }
     }
     if (!tokens.isEmpty()) { // return also a 'clean' token
@@ -152,6 +156,7 @@ class Auth {
     MultiMap headers = ctx.request().headers();
     final String req = headers.get(XOkapiHeaders.PERMISSIONS_REQUIRED);
     String tenant = headers.get(XOkapiHeaders.TENANT);
+    List<String> permissions = null;
     if (tenant == null) {
       tenant = "supertenant";
     }
@@ -163,7 +168,7 @@ class Auth {
         HttpResponse.responseError(ctx, 401, "Permissions required: " + req);
         return;
       }
-      tok = token(tenant, "-"); // create a dummy token without username
+      tok = token(tenant, "-", null); // create a dummy token without username
       // We call /_/tenant and /_/tenantPermissions in our tests without a token.
       // In real life, this is more complex, mod-authtoken creates a non-
       // login token, possibly with modulePermissions, and then checks that
@@ -192,7 +197,10 @@ class Auth {
         logger.debug("test-auth: check payload: {}", decodedJson);
         JsonObject jtok = new JsonObject(decodedJson);
         userId = jtok.getString("sub", "");
-
+        JsonArray jsonArray = jtok.getJsonArray("permissions");
+        if (jsonArray != null) {
+          permissions = jsonArray.getList();
+        }
       } catch (IllegalArgumentException e) {
         HttpResponse.responseError(ctx, 400, "Bad Json payload " + payload);
         return;
@@ -218,6 +226,15 @@ class Auth {
     }
     if (req != null) {
       ctx.response().headers().add("X-Auth-Permissions-Required", req);
+      if (permissions != null && !permissions.isEmpty()) {
+        String[] reqList = req.split(",");
+        for (String r : reqList) {
+          if (!permissions.contains(r)) {
+            HttpResponse.responseError(ctx, 403, "Call requires permission " + r);
+            return;
+          }
+        }
+      }
     }
     if (des != null) {
       ctx.response().headers().add("X-Auth-Permissions-Desired", des);

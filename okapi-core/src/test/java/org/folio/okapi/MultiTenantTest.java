@@ -270,7 +270,8 @@ public class MultiTenantTest {
     final String docLoginTenant2 = "{" + LS
       + "  \"tenant\" : \"" + tenant2 + "\"," + LS
       + "  \"username\" : \"peter\"," + LS
-      + "  \"password\" : \"peter-password\"" + LS
+      + "  \"password\" : \"peter-password\"," + LS
+      + "  \"permissions\" : [ \"okapi.proxy.tenants.install.post\", \"okapi.proxy.modules.delete\" ]" + LS
       + "}";
     final String okapiTokenTenant2 = given()
       .header("Content-Type", "application/json").body(docLoginTenant2)
@@ -335,6 +336,7 @@ public class MultiTenantTest {
     ja = new JsonArray(res.body().asString());
     Assert.assertEquals(3, ja.size()); // two sample modules and auth module
 
+    // almost permissionsRequiredTenant - but no token so failing
     res = given()
         .header("Content-Type", "application/json")
         .header("X-Okapi-Tenant", tenant2)
@@ -342,6 +344,7 @@ public class MultiTenantTest {
         .then().statusCode(401).log().ifValidationFails()
         .extract().response();
 
+    // permissionsRequiredTenant and we have a winner
     res = given()
         .header("Content-Type", "application/json")
         .header("X-Okapi-Token", okapiTokenTenant2)
@@ -349,11 +352,12 @@ public class MultiTenantTest {
         .then().statusCode(200).log().ifValidationFails()
         .extract().response();
 
+    // permissionsRequired because tenant1 != tenant2
     res = given()
         .header("Content-Type", "application/json")
         .header("X-Okapi-Token", okapiTokenTenant2)
         .get("/_/proxy/tenants/" + tenant1 + "/modules")
-        .then().statusCode(200).log().ifValidationFails()
+        .then().statusCode(403).log().ifValidationFails()
         .extract().response();
 
     // undeploy sample-module-1.2.0
