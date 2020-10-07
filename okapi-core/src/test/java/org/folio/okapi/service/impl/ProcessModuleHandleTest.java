@@ -138,6 +138,21 @@ public class ProcessModuleHandleTest {
   }
 
   @Test
+  public void testDoubleStartStop(TestContext context) {
+    LaunchDescriptor desc = new LaunchDescriptor();
+    // program should operate OK
+    desc.setExec("java " + testModuleArgs);
+    ModuleHandle mh = createModuleHandle(desc, 9231);
+
+    mh.start().onComplete(context.asyncAssertSuccess(res -> {
+      mh.start().onComplete(context.asyncAssertFailure());
+      mh.stop().onComplete(context.asyncAssertSuccess(res2 ->
+          mh.stop().onComplete(context.asyncAssertSuccess())
+      ));
+    }));
+  }
+
+  @Test
   public void testPortAlreadyInUse(TestContext context) {
     final NetServer ns = vertx.createNetServer().connectHandler( res -> { res.close(); });
     ns.listen(9231, context.asyncAssertSuccess(res -> {
