@@ -23,28 +23,7 @@ public class HealthManagerTest {
   }
 
   @Test
-  void testPortPortOK(Vertx vertx, VertxTestContext context) {
-    final int port = 9130;
-    HealthManager m = new HealthManager(port);
-    m.init(vertx, Collections.emptyList()).onComplete(context.succeedingThenComplete());
-  }
-
-  @Test
-  void testPortReadinessSuccess(Vertx vertx, VertxTestContext context) {
-    final int port = 9130;
-    HealthManager m = new HealthManager(port);
-    m.init(vertx, Collections.emptyList()).onComplete(context.succeeding(res -> {
-      WebClient client = WebClient.create(vertx);
-      client.get(port, "localhost", "/readiness")
-          .send(context.succeeding(response -> {
-            assertThat(response.statusCode()).isEqualTo(204);
-            context.completeNow();
-          }));
-    }));
-  }
-
-  @Test
-  void testPortReadiness(Vertx vertx, VertxTestContext context) {
+  void testPortReadinessPort9130(Vertx vertx, VertxTestContext context) {
     final int port = 9130;
     HealthManager m = new HealthManager(port);
     m.init(vertx, Collections.emptyList()).onComplete(context.succeeding(res -> {
@@ -75,7 +54,7 @@ public class HealthManagerTest {
   void testPortLivenessFailure(Vertx vertx, VertxTestContext context) {
     final int port = 9130;
     HealthManager m = new HealthManager(port);
-    m.init(vertx, Arrays.asList(new IsNotAlive())).onComplete(context.succeeding(res -> {
+    m.init(vertx, Arrays.asList(new IsAlive(), new IsNotAlive())).onComplete(context.succeeding(res -> {
       WebClient client = WebClient.create(vertx);
       client.get(port, "localhost", "/liveness")
           .send(context.succeeding(response -> {
