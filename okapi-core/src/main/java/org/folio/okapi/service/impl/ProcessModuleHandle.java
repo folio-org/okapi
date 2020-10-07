@@ -31,6 +31,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
   private final String id;
   private final String cmdlineStart;
   private final String cmdlineStop;
+  private String commandLine; // actual command line string
   private final EnvEntry[] env;
   private final Messages messages = Messages.getInstance();
 
@@ -72,6 +73,9 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
 
   @Override
   public Future<Void> start() {
+    if (process != null) {
+      return Future.failedFuture("already started " + commandLine);
+    }
     if (port == 0) {
       return start2();
     }
@@ -126,10 +130,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
   }
 
   private Future<Void> start2() {
-    if (process != null) {
-      return Future.failedFuture("already started");
-    }
-    String commandLine = "";
+    commandLine = "";
     String[] l;
     if (exec != null) {
       if (!exec.contains("%p")) {
@@ -199,17 +200,14 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     NuProcess pp = launch(vertx, id, env, l);
     Promise<Void> promise = Promise.promise();
     vertx.setTimer(1000, timerRes -> {
-      if (pp.isRunning()) {
-        promise.fail("Still running " + commandLine);
-        return;
-      }
-      if (exitCode != 0) {
+      if (!pp.isRunning() && exitCode != 0) {
         if (exitCode == Integer.MIN_VALUE) {
           promise.handle(Future.failedFuture(messages.getMessage("11504", commandLine)));
         } else {
           promise.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
         }
       } else {
+        // stop process may still be running, but we'll wait for the port to close
         promise.complete();
       }
     });

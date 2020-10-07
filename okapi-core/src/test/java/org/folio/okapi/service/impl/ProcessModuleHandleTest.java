@@ -154,9 +154,12 @@ public class ProcessModuleHandleTest {
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
     mh.start().onComplete(context.asyncAssertSuccess(res -> {
-      mh.start().onComplete(context.asyncAssertFailure());
-      mh.stop().onComplete(context.asyncAssertSuccess(res2 ->
-          mh.stop().onComplete(context.asyncAssertSuccess())
+      mh.start().onComplete(context.asyncAssertFailure(cause ->
+        mh.stop().onComplete(context.asyncAssertSuccess(res2 -> {
+            context.assertEquals("already started "
+                + "java -Dport=9231 -jar ../okapi-test-module/target/okapi-test-module-fat.jar", cause.getMessage());
+            mh.stop().onComplete(context.asyncAssertSuccess());
+         }))
       ));
     }));
   }
