@@ -125,48 +125,42 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     return process;
   }
 
-  @SuppressWarnings("indentation")
   private Future<Void> start2() {
-    return vertx.executeBlocking(future -> {
-      if (process == null) {
-        String c = "";
-        try {
-          String[] l;
-          if (exec != null) {
-            if (!exec.contains("%p")) {
-              future.fail("Can not deploy: No %p in the exec line");
-              return;
-            }
-            c = exec.replace("%p", Integer.toString(port));
-            l = c.split(" ");
-          } else if (cmdlineStart != null) {
-            if (!cmdlineStart.contains("%p")) {
-              future.fail("Can not deploy: No %p in the cmdlineStart");
-              return;
-            }
-            c = cmdlineStart.replace("%p", Integer.toString(port));
-            l = new String[]{"sh", "-c", c};
-          } else {
-            future.fail("Can not deploy: No exec, no CmdlineStart in LaunchDescriptor");
-            return;
-          }
-          process = launch(vertx, id, env, l);
-          process.waitFor(1, TimeUnit.SECONDS);
-        } catch (InterruptedException ex) {
-          logger.warn("when starting {}", c, ex);
-          Thread.currentThread().interrupt();
-        }
-        if (!process.isRunning() && exitCode != 0) {
-          if (exitCode == Integer.MIN_VALUE) {
-            future.handle(Future.failedFuture(messages.getMessage("11504", c)));
-          } else {
-            future.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
-          }
-          return;
-        }
+    if (process != null) {
+      return Future.failedFuture("already started");
+    }
+    String commandLine = "";
+    String[] l;
+    if (exec != null) {
+      if (!exec.contains("%p")) {
+        return Future.failedFuture("Can not deploy: No %p in the exec line");
       }
-      future.complete();
-    }, false).compose(x -> start3());
+      commandLine = exec.replace("%p", Integer.toString(port));
+      l = commandLine.split(" ");
+    } else if (cmdlineStart != null) {
+      if (!cmdlineStart.contains("%p")) {
+        return Future.failedFuture("Can not deploy: No %p in the cmdlineStart");
+      }
+      commandLine = cmdlineStart.replace("%p", Integer.toString(port));
+      l = new String[]{"sh", "-c", commandLine};
+    } else {
+      return Future.failedFuture("Can not deploy: No exec, no CmdlineStart in LaunchDescriptor");
+    }
+    final String commandLineF = commandLine;
+    process = launch(vertx, id, env, l);
+    Promise<Void> promise = Promise.promise();
+    vertx.setTimer(1000, timerRes -> {
+      if (!process.isRunning() && exitCode != 0) {
+        if (exitCode == Integer.MIN_VALUE) {
+          promise.fail(messages.getMessage("11504", commandLineF));
+        } else {
+          promise.fail(messages.getMessage("11500", exitCode));
+        }
+      } else {
+        promise.complete();
+      }
+    });
+    return promise.future().compose(x -> start3());
   }
 
   private Future<Void> start3() {
@@ -191,7 +185,6 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     }, fail -> Future.succeededFuture());
   }
 
-  @SuppressWarnings("indentation")
   @Override
   public Future<Void> stop() {
     if (process == null) {
@@ -201,52 +194,34 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     if (cmdlineStop == null) {
       return stopProcess();
     }
-    return vertx.executeBlocking(promise -> {
-      String c = "";
-      try {
-        c = cmdlineStop.replace("%p", Integer.toString(port));
-        String[] l = new String[]{"sh", "-c", c};
-        NuProcess pp = launch(vertx, id, env, l);
-        logger.debug("Waiting for the port to be closed");
-        pp.waitFor(30, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
-        logger.debug("Wait done");
-        if (!pp.isRunning() && exitCode != 0) {
-          if (exitCode == Integer.MIN_VALUE) {
-            promise.handle(Future.failedFuture(messages.getMessage("11504", c)));
-          } else {
-            promise.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
-          }
-          return;
-        }
-      } catch (InterruptedException ex) {
-        logger.warn("when invoking {}", c, ex);
-        promise.fail(ex);
-        Thread.currentThread().interrupt();
+    String commandLine = cmdlineStop.replace("%p", Integer.toString(port));
+    String[] l = new String[]{"sh", "-c", commandLine};
+    NuProcess pp = launch(vertx, id, env, l);
+    Promise<Void> promise = Promise.promise();
+    vertx.setTimer(1000, timerRes -> {
+      if (pp.isRunning()) {
+        promise.fail("Still running " + commandLine);
         return;
       }
-      promise.complete();
-    }, false).compose(x -> {
+      if (exitCode != 0) {
+        if (exitCode == Integer.MIN_VALUE) {
+          promise.handle(Future.failedFuture(messages.getMessage("11504", commandLine)));
+        } else {
+          promise.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
+        }
+      } else {
+        promise.complete();
+      }
+    });
+    return promise.future().compose(x -> {
       ports.free(port);
       return waitPortToClose(10);
     });
   }
 
-  @SuppressWarnings("indentation")
   private Future<Void> stopProcess() {
-    return vertx.executeBlocking(promise -> {
-      process.destroy(true);
-      while (process.isRunning()) {
-        boolean exited = true;
-        try {
-          process.waitFor(0, TimeUnit.SECONDS);
-        } catch (InterruptedException ex) {
-          Thread.currentThread().interrupt();
-        }
-      }
-      promise.complete();
-    }, false).compose(res -> {
-      ports.free(port);
-      return waitPortToClose(10);
-    });
+    process.destroy(true);
+    ports.free(port);
+    return waitPortToClose(10);
   }
 }

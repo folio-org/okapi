@@ -17,7 +17,11 @@ import org.folio.okapi.service.ModuleHandle;
 import org.junit.Assume;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
@@ -39,6 +43,13 @@ public class ProcessModuleHandleTest {
     vertx.close(context.asyncAssertSuccess());
   }
 
+  @Rule
+  public TestRule watcher = new TestWatcher() {
+    protected void starting(Description description) {
+      System.out.println("Starting test: " + description.getMethodName());
+    }
+  };
+
   private ModuleHandle createModuleHandle(LaunchDescriptor desc, int port) {
     desc.setWaitIterations(15);
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, "test", ports, port);
@@ -51,8 +62,6 @@ public class ProcessModuleHandleTest {
     // program starts OK, we don't check port
     desc.setExec("java -version %p");
     ModuleHandle mh = createModuleHandle(desc, 0);
-
-
     mh.start().onComplete(context.asyncAssertSuccess(res1 ->
       mh.stop().onComplete(context.asyncAssertSuccess())
     ));
@@ -270,11 +279,6 @@ public class ProcessModuleHandleTest {
     CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(res -> async1.complete()));
     async1.await();
 
-    logger.debug("Wait");
-    Async async = context.async();
-    vertx.setTimer(4000, x -> async.complete());
-    async.await();
-    logger.debug("Stop");
     futures = new LinkedList<>();
     for (ModuleHandle mh : mhs) {
       futures.add(mh.stop());
