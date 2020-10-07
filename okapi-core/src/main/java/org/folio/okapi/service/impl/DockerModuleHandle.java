@@ -363,8 +363,9 @@ public class DockerModuleHandle implements ModuleHandle {
       return createContainer(exposedPort)
           .compose(res2 -> startContainer()
               .onFailure(cause -> deleteContainer())
-              .compose(res3 -> getContainerLog())
-      );
+              .compose(res3 -> getContainerLog()
+                  .onFailure(cause -> this.stop()))
+          );
     });
   }
 
