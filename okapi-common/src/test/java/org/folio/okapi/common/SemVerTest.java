@@ -25,6 +25,7 @@ public class SemVerTest {
     assertNull(v);
   }
 
+  @java.lang.SuppressWarnings({"squid:S5961"}) // more than 25 assertions
   @Test
   public void test() {
     SemVer v1 = createVersion("1", false, false);
