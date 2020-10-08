@@ -374,9 +374,11 @@ public class DockerModuleHandle implements ModuleHandle {
 
   @Override
   public Future<Void> stop() {
-    return stopContainer().compose(res -> {
-      ports.free(hostPort);
-      return deleteContainer();
-    });
+    return stopContainer()
+        .compose(
+            x -> deleteContainer(),
+            // if stopContainer fails with e run deleteContainer but return original failure e
+            e -> deleteContainer().onComplete(x -> Future.failedFuture(e)))
+        .onComplete(x -> ports.free(hostPort));
   }
 }
