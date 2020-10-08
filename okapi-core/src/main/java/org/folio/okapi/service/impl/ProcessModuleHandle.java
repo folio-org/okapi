@@ -149,22 +149,21 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     final String commandLineF = commandLine;
     process = launch(vertx, id, env, l);
     Promise<Void> promise = Promise.promise();
-    vertx.setTimer(1000, timerRes -> {
-      if (!process.isRunning() && exitCode != 0) {
-        if (exitCode == Integer.MIN_VALUE) {
-          promise.fail(messages.getMessage("11504", commandLineF));
-        } else {
-          promise.fail(messages.getMessage("11500", exitCode));
-        }
-      } else {
+    // time to wait for process status.. when a port is present (always in real life)..
+    // The waitReady will check if process eventually starts listening on port
+    vertx.setTimer(port == 0 ? 3000 : 1000, timerRes -> {
+      if (process.isRunning() || exitCode == 0) {
         promise.complete();
+        return;
+      }
+      if (exitCode == Integer.MIN_VALUE) {
+        promise.fail(messages.getMessage("11504", commandLineF));
+      } else {
+        promise.fail(messages.getMessage("11500", exitCode));
       }
     });
-    return promise.future().compose(x -> start3());
-  }
-
-  private Future<Void> start3() {
-    return tcpPortWaiting.waitReady(process).onFailure(x -> stopProcess());
+    return promise.future()
+        .compose(x -> tcpPortWaiting.waitReady(process).onFailure(y -> stopProcess()));
   }
 
   private Future<Void> waitPortToClose(int iter) {
@@ -198,16 +197,17 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     String[] l = new String[]{"sh", "-c", commandLine};
     NuProcess pp = launch(vertx, id, env, l);
     Promise<Void> promise = Promise.promise();
-    vertx.setTimer(1000, timerRes -> {
-      if (!pp.isRunning() && exitCode != 0) {
-        if (exitCode == Integer.MIN_VALUE) {
-          promise.handle(Future.failedFuture(messages.getMessage("11504", commandLine)));
-        } else {
-          promise.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
-        }
-      } else {
-        // stop process may still be running, but we'll wait for the port to close
+    // time to wait for process that shuts down service.. when a port is present (always in prod)
+    // The waitPortClose will wait for service to stut down
+    vertx.setTimer(port == 0 ? 3000 : 1000, timerRes -> {
+      if (pp.isRunning() || exitCode == 0) {
         promise.complete();
+        return;
+      }
+      if (exitCode == Integer.MIN_VALUE) {
+        promise.handle(Future.failedFuture(messages.getMessage("11504", commandLine)));
+      } else {
+        promise.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
       }
     });
     return promise.future().compose(x -> {
