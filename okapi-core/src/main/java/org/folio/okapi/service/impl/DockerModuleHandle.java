@@ -165,7 +165,7 @@ public class DockerModuleHandle implements ModuleHandle {
 
   Future<Void> deleteContainer() {
     logger.info("delete container {} image {}", containerId, image);
-    return deleteUrl("/containers/" + containerId, "deleteContainer");
+    return deleteUrl("/containers/" + containerId + "?force=true", "deleteContainer");
   }
 
   private void logHandler(Buffer b) {
