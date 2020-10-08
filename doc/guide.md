@@ -40,6 +40,7 @@ managing and running microservices.
     * [Purge module data](#purge-module-data)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
+    * [Logging](#logging)
     * [Environment Variables](#environment-variables)
     * [Web Service](#web-service)
     * [Internal Module](#internal-module)
@@ -2790,6 +2791,20 @@ These options are at the end of the command line:
 * `-cluster-host` _ip_ -- Vertx cluster host
 * `-cluster-port` _port_ -- Vertx cluster port
 
+### Logging
+
+Okapi uses [log4j2](https://logging.apache.org/log4j/2.x/) for logging.
+Bundled with the Okapi program (jar) there are two log4j configurations:
+
+ * `log4j2.properties` console/line based logger and it is the default
+ * `log4j2-json.properties` JSON structured logging
+
+Configuration can be specified with property `log4j.configurationFile`.
+For example, to enable the JSON based logging, one could use:
+
+```
+  java -Dlog4j.configurationFile=log4j2-json.properties -jar okapi-core-fat.jar dev
+```
 
 ### Environment Variables
 
