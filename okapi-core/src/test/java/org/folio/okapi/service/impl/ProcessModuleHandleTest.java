@@ -267,7 +267,7 @@ public class ProcessModuleHandleTest {
     LaunchDescriptor desc = new LaunchDescriptor();
     // program should operate OK
     desc.setExec("java " + testModuleArgs);
-    int no = 9; // number of processes to spawn
+    int no = 3; // number of processes to spawn
     ModuleHandle[] mhs = new ModuleHandle[no];
     int i;
     for (i = 0; i < no; i++) {
