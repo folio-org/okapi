@@ -11,7 +11,6 @@ import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
