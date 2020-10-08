@@ -82,8 +82,8 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
     NetClient c = vertx.createNetClient(options);
     return c.connect(port, "localhost").compose(socket -> {
-      socket.close();
-      return Future.failedFuture(messages.getMessage("11502", Integer.toString(port)));
+      return socket.close().otherwiseEmpty()
+          .compose(x -> Future.failedFuture(messages.getMessage("11502", Integer.toString(port))));
     }, fail -> start2());
   }
 
