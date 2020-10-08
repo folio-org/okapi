@@ -352,21 +352,16 @@ public class DockerModuleHandle implements ModuleHandle {
     if (hostPort == 0) {
       return Future.failedFuture(messages.getMessage("11300"));
     }
-    return getImage().compose(res1 -> {
-      int exposedPort;
+    return getImage().map(res -> {
       try {
-        exposedPort = getExposedPort(res1);
+        return getExposedPort(res);
       } catch (Exception e) {
         logger.warn("{}", e.getMessage(), e);
-        return Future.failedFuture(e);
+        throw e;
       }
-      return createContainer(exposedPort)
-          .compose(res2 -> startContainer()
-              .onFailure(cause -> deleteContainer())
-              .compose(res3 -> getContainerLog()
-                  .onFailure(cause -> this.stop()))
-          );
-    });
+    }).compose(this::createContainer)
+        .compose(res -> startContainer().onFailure(cause -> deleteContainer()))
+        .compose(res -> getContainerLog().onFailure(cause -> stop()));
   }
 
   @Override
