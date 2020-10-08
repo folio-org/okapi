@@ -1,4 +1,5 @@
 {
+  "id": "Permission.json",
   "title": "Permissions Definition Schema",
   "description": "Permission entity",
   "type": "object",

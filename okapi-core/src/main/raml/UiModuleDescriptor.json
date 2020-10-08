@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "UiModuleDescriptor.json",
   "title": "UiModuleDescriptor",
   "description": "UI Module description",
   "type": ["object", "null"],
