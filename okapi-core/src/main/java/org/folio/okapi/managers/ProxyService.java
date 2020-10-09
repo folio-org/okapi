@@ -198,8 +198,8 @@ public class ProxyService {
 
     if (cached != null) {
       mi.setAuthToken(cached.token);
-      mi.setxOkapiUserId(cached.userId);
-      mi.setxOkapiPermissions(cached.permissions);
+      mi.setUserId(cached.userId);
+      mi.setPermissions(cached.permissions);
 
       skipAuth = true;
     } else {
@@ -1044,14 +1044,14 @@ public class ProxyService {
         ctx.request().headers().add(XOkapiHeaders.TOKEN, token);
       }
 
-      String userId = mi.getxOkapiUserId();
+      String userId = mi.getUserId();
       if (userId != null) {
         ctx.request().headers().remove(XOkapiHeaders.USER_ID);
         ctx.request().headers().add(XOkapiHeaders.USER_ID, userId);
         pc.debug("Using X-Okapi-User-Id: " + userId);
       }
 
-      String perms = mi.getxOkapiPermissions();
+      String perms = mi.getPermissions();
       if (perms != null) {
         ctx.request()
             .headers()
