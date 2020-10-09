@@ -1,5 +1,6 @@
 package org.folio.okapi.util;
 
+import io.micrometer.core.instrument.Timer;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
@@ -50,7 +51,10 @@ public class LockedTypedMap1<T> extends LockedStringMap {
       if (res == null) {
         return Future.succeededFuture(null);
       }
-      return Future.succeededFuture(Json.decodeValue(res, clazz));
+      Timer.Sample sample = MetricsHelper.getTimerSample();
+      T t = Json.decodeValue(res, clazz);
+      MetricsHelper.recordCodeExecutionTime(sample, "LockedTypedMap1.get.decodeValue");
+      return Future.succeededFuture(t);
     });
   }
 
@@ -66,7 +70,9 @@ public class LockedTypedMap1<T> extends LockedStringMap {
       List<Future> futures = new LinkedList<>();
       for (String key : keys) {
         futures.add(getString(key, (String) null).compose(res -> {
+          Timer.Sample sample = MetricsHelper.getTimerSample();
           T t = Json.decodeValue(res, clazz);
+          MetricsHelper.recordCodeExecutionTime(sample, "LockedTypedMap1.getAll.decodeValue");
           results.put(key, t);
           return Future.succeededFuture();
         }));

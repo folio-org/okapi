@@ -120,7 +120,10 @@ public class ProxyService {
   }
 
   private boolean match(RoutingEntry e, HttpServerRequest req) {
-    return e.match(req.uri(), req.method().name());
+    Timer.Sample sample = MetricsHelper.getTimerSample();
+    boolean matchResult = e.match(req.uri(), req.method().name());
+    MetricsHelper.recordCodeExecutionTime(sample, "ProxyService.match");
+    return matchResult;
   }
 
   private boolean resolveRedirects(ProxyContext pc,
@@ -186,11 +189,15 @@ public class ProxyService {
   private List<ModuleInstance> getModulesForRequest(ProxyContext pc,
                                                     List<ModuleDescriptor> enabledModules) {
 
+    Timer.Sample sample = MetricsHelper.getTimerSample();
+    final String name = "ProxyService.getModulesForRequest";
+
     List<ModuleInstance> mods = new ArrayList<>();
     HttpServerRequest req = pc.getCtx().request();
     final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
     pc.debug("getMods: Matching " + req.method() + " " + req.uri());
 
+    Timer.Sample sampleLoopEnabledModules = MetricsHelper.getTimerSample();
     for (ModuleDescriptor md : enabledModules) {
       pc.debug("getMods:  looking at " + md.getId());
       List<RoutingEntry> rr = null;
@@ -200,6 +207,7 @@ public class ProxyService {
         rr = md.getMultiRoutingEntries();
       }
       if (rr != null) {
+        Timer.Sample sampleLoopRoutingEntries = MetricsHelper.getTimerSample();
         for (RoutingEntry re : rr) {
           if (match(re, req)) {
             ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method(), true);
@@ -212,14 +220,22 @@ public class ProxyService {
             break;
           }
         }
+        MetricsHelper.recordCodeExecutionTime(sampleLoopRoutingEntries,
+            name + ".loopRoutingEntries");
       }
       rr = md.getFilterRoutingEntries();
+      Timer.Sample sampleLoopFilterEntries = MetricsHelper.getTimerSample();
       for (RoutingEntry re : rr) {
         if (match(re, req)) {
           ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method(), false);
           mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
           mods.add(mi);
           if (!resolveRedirects(pc, mods, re, enabledModules, "", req.uri())) {
+            MetricsHelper.recordCodeExecutionTime(sampleLoopFilterEntries,
+                name + ".loopFilterEntries");
+            MetricsHelper.recordCodeExecutionTime(sampleLoopEnabledModules,
+                name + ".loopEnabledModules");
+            MetricsHelper.recordCodeExecutionTime(sample, name);
             return null;
           }
           pc.debug("getMods:   Added " + md.getId() + " "
@@ -227,13 +243,20 @@ public class ProxyService {
               + re.getPhase() + "/" + re.getLevel());
         }
       }
+      MetricsHelper.recordCodeExecutionTime(sampleLoopFilterEntries, name + ".loopFilterEntries");
     }
+    MetricsHelper.recordCodeExecutionTime(sampleLoopEnabledModules, name + ".loopEnabledModules");
+
+    Timer.Sample sampleSortModuleInstances = MetricsHelper.getTimerSample();
     Comparator<ModuleInstance> cmp = (ModuleInstance a, ModuleInstance b)
         -> a.getRoutingEntry().getPhaseLevel().compareTo(b.getRoutingEntry().getPhaseLevel());
     mods.sort(cmp);
+    MetricsHelper.recordCodeExecutionTime(sampleSortModuleInstances,
+        name + ".sortModuleInstances");
 
     // Check that our pipeline has a real module in it, not just filters,
     // so that we can return a proper 404 for requests that only hit auth
+    Timer.Sample sampleCheckForHandler = MetricsHelper.getTimerSample();
     pc.debug("Checking filters for " + req.uri());
     boolean found = false;
     for (ModuleInstance inst : mods) {
@@ -245,10 +268,14 @@ public class ProxyService {
         found = true;
       }
     }
+    MetricsHelper.recordCodeExecutionTime(sampleCheckForHandler, name + ".checkForHandler");
     if (!found) {
       pc.responseError(404, messages.getMessage("10103", req.path(), pc.getTenant()));
+      MetricsHelper.recordCodeExecutionTime(sample, name);
       return null;
     }
+
+    MetricsHelper.recordCodeExecutionTime(sample, name);
     return mods;
   }
 
@@ -439,6 +466,7 @@ public class ProxyService {
    * received one.
    */
   private void authResponse(HttpClientResponse res, ProxyContext pc) {
+    Timer.Sample sample = MetricsHelper.getTimerSample();
     String modTok = res.headers().get(XOkapiHeaders.MODULE_TOKENS);
     if (modTok != null && !modTok.isEmpty()) {
       JsonObject jo = new JsonObject(modTok);
@@ -455,6 +483,7 @@ public class ProxyService {
         }
       }
     }
+    MetricsHelper.recordCodeExecutionTime(sample, "ProxyService.authResponse");
   }
 
   /**

@@ -24,7 +24,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 @SuppressWarnings({"squid:S1192"})
 public class ProxyContext {
 
-  private final Logger logger = OkapiLogger.get();
+  private static final Logger logger = OkapiLogger.get();
   private List<ModuleInstance> modList;
   private final String reqId;
   private String tenant;
@@ -210,6 +210,7 @@ public class ProxyContext {
    * @param tenant tenant
    */
   public final void logRequest(RoutingContext ctx, String tenant) {
+    Timer.Sample sample = MetricsHelper.getTimerSample();
     StringBuilder mods = new StringBuilder();
     if (modList != null && !modList.isEmpty()) {
       for (ModuleInstance mi : modList) {
@@ -221,6 +222,7 @@ public class ProxyContext {
           ctx.request().remoteAddress(), tenant, ctx.request().method(),
           ctx.request().path(), mods);
     }
+    MetricsHelper.recordCodeExecutionTime(sample, "ProxyContext.logRequest");
   }
 
   /**
@@ -230,10 +232,12 @@ public class ProxyContext {
    * @param statusCode HTTP status
    */
   public void logResponse(String module, String url, int statusCode) {
+    Timer.Sample sample = MetricsHelper.getTimerSample();
     if (logger.isInfoEnabled()) {
       logger.info("{} RES {} {} {} {}", reqId,
           statusCode, timeDiff(), module, url);
     }
+    MetricsHelper.recordCodeExecutionTime(sample, "ProxyContext.logResponse");
   }
 
   public void responseError(ErrorType t, Throwable cause) {
@@ -277,8 +281,15 @@ public class ProxyContext {
     logger.warn(msg, e);
   }
 
+  /**
+   * Log a debug message.
+   *
+   * @param msg - debug message
+   */
   public void debug(String msg) {
-    logger.debug(msg);
+    if (logger.isDebugEnabled()) {
+      logger.debug(msg);
+    }
   }
 
   public void trace(String msg) {

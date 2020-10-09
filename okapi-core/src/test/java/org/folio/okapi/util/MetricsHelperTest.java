@@ -42,6 +42,7 @@ class MetricsHelperTest {
     assertNull(MetricsHelper.recordHttpClientResponse(null, "a", 0, "b", null));
     assertNull(MetricsHelper.recordHttpServerProcessingTime(null, "a", 0, "b", null));
     assertNull(MetricsHelper.recordHttpClientError("a", "b", "c"));
+    assertNull(MetricsHelper.recordCodeExecutionTime(null, "a"));
   }
 
   @Test
@@ -106,6 +107,13 @@ class MetricsHelperTest {
     // increment by one
     MetricsHelper.recordHttpClientError("a", "GET", "/a");
     assertEquals(2, counter.count());
+  }
+
+  @Test
+  void testRecordCodeExecutionTime() {
+    Timer.Sample sample = MetricsHelper.getTimerSample();
+    Timer timer = MetricsHelper.recordCodeExecutionTime(sample, "a");
+    assertEquals(1, timer.count());
   }
 
   @Test
