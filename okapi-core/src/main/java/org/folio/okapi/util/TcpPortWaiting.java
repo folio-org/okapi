@@ -6,7 +6,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
-import io.vertx.core.net.NetSocket;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
@@ -42,15 +41,15 @@ public class TcpPortWaiting {
     c.connect(port, host, res -> {
       if (res.succeeded()) {
         logger.info("Connected to service at host {} port {} count {}", host, port, count);
-        NetSocket socket = res.result();
-        socket.close();
-        promise.complete();
+        c.close().onComplete(x -> promise.complete());
       } else if (count < maxIterations && (process == null || process.isRunning())) {
-        vertx.setTimer((long) (count + 1) * MILLISECONDS,
-            id -> tryConnect(process, count + 1).onComplete(promise::handle));
+        c.close().onComplete(x -> vertx.setTimer((long) (count + 1) * MILLISECONDS,
+            id -> tryConnect(process, count + 1).onComplete(promise::handle)));
       } else {
-        promise.fail(messages.getMessage("11501",
-            Integer.toString(port), res.cause().getMessage()));
+        c.close().onComplete(x -> {
+          promise.fail(messages.getMessage("11501",
+              Integer.toString(port), res.cause().getMessage()));
+        });
       }
     });
     return promise.future();

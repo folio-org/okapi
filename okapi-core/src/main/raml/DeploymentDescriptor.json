@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "DeploymentDescriptor.json",
   "title": "DeploymentDescriptor",
   "description" : "Module deployment information. There are two modes: deployment managed by Okapi (with nodeId specified) and remote module (with URL specified).",
   "type": "object",
