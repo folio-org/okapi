@@ -266,28 +266,23 @@ public class ProxyService {
         -> a.getRoutingEntry().getPhaseLevel().compareTo(b.getRoutingEntry().getPhaseLevel());
     mods.sort(cmp);
 
-    if (skipAuth) {
-      for (int i = 0; i < mods.size(); i++) {
-        ModuleInstance mod = mods.get(i);
-        String phase = mod.getRoutingEntry().getPhase();
-        if (phase != null && phase.equals(XOkapiHeaders.FILTER_AUTH)) {
-          pc.debug("Skipping auth, have cached token.");
-          mods.remove(i);
-          break;
-        }
-      }
-    }
-
     // Check that our pipeline has a real module in it, not just filters,
     // so that we can return a proper 404 for requests that only hit auth
     pc.debug("Checking filters for " + req.uri());
     boolean found = false;
-    for (ModuleInstance inst : mods) {
-      pc.debug("getMods: Checking " + inst.getRoutingEntry().getPathPattern() + " "
-          + "'" + inst.getRoutingEntry().getPhase() + "' "
-          + "'" + inst.getRoutingEntry().getLevel() + "' "
-      );
-      if (inst.isHandler()) {
+    Iterator<ModuleInstance> iter = mods.iterator();
+    while (iter.hasNext()) {
+      ModuleInstance inst = iter.next();
+      RoutingEntry re = inst.getRoutingEntry();
+      String phase = re.getPhase();
+
+      pc.debug("getMods: Checking " + re.getPathPattern() + " " + "'" + phase + "' " + "'"
+          + re.getLevel() + "' ");
+
+      if (skipAuth && phase != null && phase.equals(XOkapiHeaders.FILTER_AUTH)) {
+        pc.debug("Skipping auth, have cached token.");
+        iter.remove();
+      } else if (inst.isHandler()) {
         found = true;
       }
     }
