@@ -363,5 +363,6 @@ public class DockerModuleHandleTest implements WithAssertions {
         .contains("\"%p\" : \"9232\"")
         .doesNotContain("foobar")  // no env values in the log because they may contain credentials
         .doesNotContain("uvwxyz");
+    Assert.assertEquals(launchDescriptor.getDockerArgs().properties().get("%p"), "%p");
   }
 }
