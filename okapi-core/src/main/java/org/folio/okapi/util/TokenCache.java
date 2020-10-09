@@ -1,6 +1,7 @@
 package org.folio.okapi.util;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.logging.log4j.Logger;
@@ -19,6 +20,15 @@ public class TokenCache {
   /**
    * Constructor using the provided TTL and maxSize.
    * 
+   * <p>Once the cache reaches maximum capcity, the least-recently accessed entry will be evicted
+   * upon insertion of a new entry
+   *
+   * <p>Cache entries will be pruned if they're expired upon access via the <code>get(...)</code>
+   * method.
+   *
+   * <p>The <code>put(...)</code> method attempts to shrink the cache size by pruning the 2
+   * least-recently accessed entries if they're expired.
+   *
    * @param ttl cache entry time to live in milliseconds
    * @param maxSize the maximum number of entries that may be cached at once
    */
@@ -26,7 +36,7 @@ public class TokenCache {
     logger.info("Initializing token cache w/ ttl: {}, maxSize: {}", ttl, maxSize);
     this.ttl = ttl;
 
-    this.cache = Collections.synchronizedMap(new LruCache<>(maxSize));
+    this.cache = Collections.synchronizedMap(new LruCache(maxSize));
   }
 
   /**
@@ -92,7 +102,7 @@ public class TokenCache {
     return cache.size();
   }
   
-  public static final class LruCache<K, V> extends LinkedHashMap<K, V> {
+  public static final class LruCache extends LinkedHashMap<String, CacheEntry> {
 
     private static final long serialVersionUID = -6197036022604882327L;
     private final int maxEntries;
@@ -103,7 +113,26 @@ public class TokenCache {
     }
 
     @Override
-    protected boolean removeEldestEntry(final Map.Entry<K, V> eldest) {
+    public CacheEntry put(String key, CacheEntry value) {
+      CacheEntry prev = super.put(key, value);
+
+      if (super.size() >= 3) {
+        Iterator<Map.Entry<String, CacheEntry>> iter = entrySet().iterator();
+        for (int i = 0; i < 2; i++) {
+          Map.Entry<String, CacheEntry> entry = iter.next();
+          if (entry.getValue().isExpired()) {
+            iter.remove();
+          } else {
+            break;
+          }
+        }
+      }
+
+      return prev;
+    }
+
+    @Override
+    protected boolean removeEldestEntry(final Map.Entry<String, CacheEntry> eldest) {
       return super.size() > maxEntries;
     }
 
@@ -112,7 +141,7 @@ public class TokenCache {
       if (!super.equals(obj)) {
         return false;
       }
-      LruCache<?, ?> other = (LruCache<?, ?>) obj;
+      LruCache other = (LruCache) obj;
       return this.maxEntries == other.maxEntries;
     }
 

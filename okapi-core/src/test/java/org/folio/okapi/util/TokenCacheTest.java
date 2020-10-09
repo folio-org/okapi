@@ -1,5 +1,7 @@
 package org.folio.okapi.util;
 
+import org.folio.okapi.util.TokenCache.CacheEntry;
+import org.folio.okapi.util.TokenCache.LruCache;
 import org.junit.Test;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.*;
@@ -49,19 +51,47 @@ public class TokenCacheTest {
 
   @Test
   public void testLruCacheEqualsHashCode() {
-    TokenCache.LruCache<String, String> cacheA = new TokenCache.LruCache<String, String>(10);
-    TokenCache.LruCache<String, String> cacheB = new TokenCache.LruCache<String, String>(10);
+    LruCache cacheA = new LruCache(10);
+    LruCache cacheB = new LruCache(10);
     assertEquals(cacheA, cacheB);
     assertEquals(cacheA.hashCode(), cacheB.hashCode());
 
     // different entries
-    cacheA.put("key", "value");
+    cacheA.put("key", new CacheEntry("token", "userId", "permissions", (System.currentTimeMillis() + 1000)));
     assertNotEquals(cacheA, cacheB);
     assertNotEquals(cacheA.hashCode(), cacheB.hashCode());
 
     // different maxEntries
-    TokenCache.LruCache<String, String> cacheC = new TokenCache.LruCache<String, String>(11);
+    LruCache cacheC = new LruCache(11);
     assertNotEquals(cacheB, cacheC);
     assertNotEquals(cacheB.hashCode(), cacheC.hashCode());
+  }
+
+  @Test
+  public void testPruneOnPut() {
+    long ttl = 50L;
+    int cap = 10;
+
+    TokenCache cache = TokenCache.builder()
+        .withMaxSize(cap)
+        .withTtl(ttl)
+        .build();
+
+    // fill to capacity.
+    for (int i = 0; i < cap; i++) {
+      cache.put("tenant", "method", "path", "userId", "xokapiPerms", "foo" + i, "fooTok" + i);
+    }
+    assertEquals(cap, cache.size());
+
+    long start = System.currentTimeMillis();
+
+    // ensure there are expired entries.
+    await().with()
+      .pollInterval(10, TimeUnit.MILLISECONDS)
+      .until(() -> System.currentTimeMillis() > (start + ttl));
+
+    // cache one more entry, which should result in pruning two expired entries
+    cache.put("tenant", "method", "path", "userId", "xokapiPerms", "bar", "barTok");
+    assertEquals(cap - 2, cache.size());
   }
 }
