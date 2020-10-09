@@ -37,6 +37,11 @@ public class MetricsHelper {
       + ".responseTime";
   private static final String METRICS_HTTP_CLIENT_ERRORS = METRICS_HTTP_CLIENT
       + ".errors";
+  private static final String METRICS_TOKEN_CACHE = METRICS_PREFIX + ".tokenCache";
+  private static final String METRICS_TOKEN_CACHE_HITS = METRICS_TOKEN_CACHE + ".hits";
+  private static final String METRICS_TOKEN_CACHE_MISSES = METRICS_TOKEN_CACHE + ".misses";
+  private static final String METRICS_TOKEN_CACHE_CACHED = METRICS_TOKEN_CACHE + ".cached";
+  private static final String METRICS_TOKEN_CACHE_EXPIRED = METRICS_TOKEN_CACHE + ".expired";
   private static final String METRICS_CODE = METRICS_PREFIX + ".code";
   private static final String METRICS_CODE_EXECUTION_TIME = METRICS_CODE + ".executionTime";
 
@@ -47,6 +52,7 @@ public class MetricsHelper {
   private static final String TAG_MODULE = "module";
   private static final String TAG_URL = "url";
   private static final String TAG_PHASE = "phase";
+  private static final String TAG_USERID = "userId";
   private static final String TAG_EMPTY = "null";
 
   static final String HOST_UNKNOWN = "unknown";
@@ -178,6 +184,38 @@ public class MetricsHelper {
         .register(getRegistry());
     sample.stop(timer);
     return timer;
+  }
+
+  public static Counter recordTokenCacheMiss(String tenant, String httpMethod, String urlPath,
+      String userId) {
+    return recordTokenCacheEvent(METRICS_TOKEN_CACHE_MISSES, tenant, httpMethod, urlPath, userId);
+  }
+
+  public static Counter recordTokenCacheHit(String tenant, String httpMethod, String urlPath,
+      String userId) {
+    return recordTokenCacheEvent(METRICS_TOKEN_CACHE_HITS, tenant, httpMethod, urlPath, userId);
+  }
+
+  public static Counter recordTokenCacheCached(String tenant, String httpMethod, String urlPath,
+      String userId) {
+    return recordTokenCacheEvent(METRICS_TOKEN_CACHE_CACHED, tenant, httpMethod, urlPath, userId);
+  }
+
+  public static Counter recordTokenCacheExpired(String tenant, String httpMethod, String urlPath,
+      String userId) {
+    return recordTokenCacheEvent(METRICS_TOKEN_CACHE_EXPIRED, tenant, httpMethod, urlPath, userId);
+  }
+
+  private static Counter recordTokenCacheEvent(String event, String tenant, String httpMethod,
+      String urlPath, String userId) {
+    if (!enabled) {
+      return null;
+    }
+    Counter counter = Counter.builder(event).tag(TAG_TENANT, tenant).tag(TAG_METHOD, httpMethod)
+        .tag(TAG_URL, urlPath).tag(TAG_USERID, userId == null ? "null" : userId)
+        .register(getRegistry());
+    counter.increment();
+    return counter;
   }
 
   private static List<Tag> createHttpTags(String tenant, int httpStatusCode, String httpMethod,

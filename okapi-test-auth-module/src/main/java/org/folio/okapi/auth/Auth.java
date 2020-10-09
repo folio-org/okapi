@@ -7,6 +7,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -44,10 +45,12 @@ class Auth {
     // Create a dummy JWT token with the correct tenant
     JsonObject payload = new JsonObject()
         .put("sub", user)
-        .put("tenant", tenant);
+        .put("tenant", tenant)
+        .put("iat", Instant.now().getEpochSecond());;
     if (permissions != null) {
       payload.put("permissions", permissions);
     }
+
     String encodedpl = payload.encode();
     logger.debug("test-auth: payload: {}", encodedpl);
     byte[] bytes = encodedpl.getBytes();

@@ -38,6 +38,7 @@ import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
 import org.folio.okapi.bean.Tenant;
+import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiClient;
@@ -49,6 +50,8 @@ import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.MetricsHelper;
 import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.ProxyContext;
+import org.folio.okapi.util.TokenCache;
+import org.folio.okapi.util.TokenCache.CacheEntry;
 
 
 /**
@@ -74,7 +77,10 @@ public class ProxyService {
   private static final Random random = new Random();
   private final int waitMs;
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
+  private static final String TOKEN_CACHE_MAX_SIZE = "token_cache_max_size";
+  private static final String TOKEN_CACHE_TTL_MS = "token_cache_ttl_ms";
   private final Messages messages = Messages.getInstance();
+  private final TokenCache tokenCache;
 
   /**
    * Construct Proxy service.
@@ -98,6 +104,13 @@ public class ProxyService {
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
     httpClient = vertx.createHttpClient(opt);
+
+    String tcTtlMs = Config.getSysConf(TOKEN_CACHE_TTL_MS, null, config);
+    String tcMaxSize = Config.getSysConf(TOKEN_CACHE_MAX_SIZE, null, config);
+    tokenCache = TokenCache.builder()
+        .withTtl(tcTtlMs != null ? Long.parseLong(tcTtlMs) : TokenCache.DEFAULT_TTL)
+        .withMaxSize(tcMaxSize != null ? Integer.parseInt(tcMaxSize) : TokenCache.DEFAULT_MAX_SIZE)
+        .build();
   }
 
   /**
@@ -178,6 +191,36 @@ public class ProxyService {
   }
 
   /**
+   * Checks for a cached token, userId, permissions and updates the provided ModuleInstance
+   * accordingly.
+   *
+   * @param tenant The tenant, used to tag cache event metrics
+   * @param req Request, used for accessing headers, etc.
+   * @param pathPattern Path pattern used in generation of the cache key
+   * @param mi ModuleInstance to be updated
+   * @return <code>true</code> if the ModuleInstance is updated with cached values,
+   *         <code>false</code> otherwise.
+   */
+  private boolean checkTokenCache(String tenant, HttpServerRequest req, String pathPattern,
+      ModuleInstance mi) {
+    CacheEntry cached =
+        tokenCache.get(tenant, req.method().name(), pathPattern == null ? req.path() : pathPattern,
+            req.getHeader(XOkapiHeaders.USER_ID), req.headers().get(XOkapiHeaders.TOKEN));
+
+    if (cached != null) {
+      mi.setAuthToken(cached.token);
+      mi.setUserId(cached.userId);
+      mi.setPermissions(cached.permissions);
+      return true;
+    } else {
+      mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
+      mi.setUserId(null);
+      mi.setPermissions(null);
+      return false;
+    }
+  }
+
+  /**
    * Builds the pipeline of modules to be invoked for a request. Sets the
    * default authToken for each ModuleInstance. Later, these can be overwritten
    * by the ModuleTokens from the auth, if needed.
@@ -197,7 +240,9 @@ public class ProxyService {
     final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
     pc.debug("getMods: Matching " + req.method() + " " + req.uri());
 
+    boolean skipAuth = false;
     Timer.Sample sampleLoopEnabledModules = MetricsHelper.getTimerSample();
+
     for (ModuleDescriptor md : enabledModules) {
       pc.debug("getMods:  looking at " + md.getId());
       List<RoutingEntry> rr = null;
@@ -211,12 +256,11 @@ public class ProxyService {
         for (RoutingEntry re : rr) {
           if (match(re, req)) {
             ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method(), true);
-            mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
+
+            skipAuth = checkTokenCache(pc.getTenant(), req, re.getPathPattern(), mi);
             mods.add(mi);
-            pc.setHandlerModuleInstance(mi);
-            pc.debug("getMods:   Added " + md.getId() + " "
-                + re.getPathPattern() + " " + re.getPath() + " "
-                + re.getPhase() + "/" + re.getLevel());
+            pc.debug("getMods:   Added " + md.getId() + " " + re.getPathPattern() + " "
+                + re.getPath() + " " + re.getPhase() + "/" + re.getLevel());
             break;
           }
         }
@@ -259,12 +303,19 @@ public class ProxyService {
     Timer.Sample sampleCheckForHandler = MetricsHelper.getTimerSample();
     pc.debug("Checking filters for " + req.uri());
     boolean found = false;
-    for (ModuleInstance inst : mods) {
-      pc.debug("getMods: Checking " + inst.getRoutingEntry().getPathPattern() + " "
-          + "'" + inst.getRoutingEntry().getPhase() + "' "
-          + "'" + inst.getRoutingEntry().getLevel() + "' "
-      );
-      if (inst.isHandler()) {
+    Iterator<ModuleInstance> iter = mods.iterator();
+    while (iter.hasNext()) {
+      ModuleInstance inst = iter.next();
+      RoutingEntry re = inst.getRoutingEntry();
+      String phase = re.getPhase();
+
+      pc.debug("getMods: Checking " + re.getPathPattern() + " " + "'" + phase + "' " + "'"
+          + re.getLevel() + "' ");
+
+      if (skipAuth && phase != null && phase.equals(XOkapiHeaders.FILTER_AUTH)) {
+        pc.debug("Skipping auth, have cached token.");
+        iter.remove();
+      } else if (inst.isHandler()) {
         found = true;
       }
     }
@@ -468,19 +519,33 @@ public class ProxyService {
   private void authResponse(HttpClientResponse res, ProxyContext pc) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
     String modTok = res.headers().get(XOkapiHeaders.MODULE_TOKENS);
+    HttpServerRequest req = pc.getCtx().request();
     if (modTok != null && !modTok.isEmpty()) {
       JsonObject jo = new JsonObject(modTok);
       for (ModuleInstance mi : pc.getModList()) {
         String id = mi.getModuleDescriptor().getId();
+        String pathPattern = mi.getRoutingEntry().getPathPattern();
+
+        String tok = null;
         if (jo.containsKey(id)) {
-          String tok = jo.getString(id);
+          tok = jo.getString(id);
           mi.setAuthToken(tok);
           pc.debug("authResponse: token for " + id + ": " + tok);
         } else if (jo.containsKey("_")) {
-          String tok = jo.getString("_");
-          mi.setAuthToken(tok);
+          tok = jo.getString("_");
           pc.debug("authResponse: Default (_) token for " + id + ": " + tok);
+        } else {
+          continue;
         }
+
+        mi.setAuthToken(tok);
+        tokenCache.put(pc.getTenant(),
+            req.method().name(),
+            pathPattern == null ? req.path() : pathPattern,
+            res.getHeader(XOkapiHeaders.USER_ID),
+            res.getHeader(XOkapiHeaders.PERMISSIONS),
+            req.getHeader(XOkapiHeaders.TOKEN),
+            tok);
       }
     }
     MetricsHelper.recordCodeExecutionTime(sample, "ProxyService.authResponse");
@@ -1022,6 +1087,24 @@ public class ProxyService {
       String token = mi.getAuthToken();
       if (token != null && !token.isEmpty()) {
         ctx.request().headers().add(XOkapiHeaders.TOKEN, token);
+      }
+
+      String userId = mi.getUserId();
+      if (userId != null) {
+        ctx.request().headers().remove(XOkapiHeaders.USER_ID);
+        ctx.request().headers().add(XOkapiHeaders.USER_ID, userId);
+        pc.debug("Using X-Okapi-User-Id: " + userId);
+      }
+
+      String perms = mi.getPermissions();
+      if (perms != null) {
+        ctx.request()
+            .headers()
+            .remove(XOkapiHeaders.PERMISSIONS);
+        ctx.request()
+            .headers()
+            .add(XOkapiHeaders.PERMISSIONS, perms);
+        pc.debug("Using X-Okapi-Permissions: " + perms);
       }
 
       // Pass headers for filters

@@ -12,6 +12,8 @@ public class ModuleInstance {
   private String url; // Absolute URL to the module instance
   private final RoutingEntry re;
   private String authToken;
+  private String userId;
+  private String permissions;
   private final String path; // The relative URI from the proxy request
   private final HttpMethod method;
   private final boolean handler;  // is true if handler; false otherwise (filter)
@@ -85,5 +87,21 @@ public class ModuleInstance {
   public ModuleInstance withRetry() {
     this.withRetry = true;
     return this;
+  }
+
+  public String getUserId() {
+    return userId;
+  }
+
+  public void setUserId(String userId) {
+    this.userId = userId;
+  }
+
+  public String getPermissions() {
+    return permissions;
+  }
+
+  public void setPermissions(String permissions) {
+    this.permissions = permissions;
   }
 }
