@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "HealthStatusList.json",
   "title": "HealthStatusList",
   "description": "Health for each module as seen from proxy",
   "type": "array",
