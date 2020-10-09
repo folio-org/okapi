@@ -33,7 +33,7 @@ public class TokenCacheTest {
   
   @Test
   public void testTtl() {
-    long ttl = 500l;
+    long ttl = 50L;
 
     TokenCache cache = TokenCache.builder()
         .withTtl(ttl)
@@ -42,8 +42,8 @@ public class TokenCacheTest {
     cache.put("tenant", "method", "path", "userId", "xokapiPerms", "foo", "fooTok");
 
     await().with()
-        .pollInterval(100, TimeUnit.MILLISECONDS)
-        .atMost(ttl + 100, TimeUnit.MILLISECONDS)
+        .pollInterval(10, TimeUnit.MILLISECONDS)
+        .atMost(ttl + 20, TimeUnit.MILLISECONDS)
         .until(() -> cache.get("tenant", "method", "path", "userId", "foo") == null);
   }
 

@@ -106,7 +106,7 @@ class MetricsHelperTest {
     String userId = "03975dd7-8004-48cf-bd21-4d7ff2e74ca2";
     String anotherUserId = "54412e3d-a024-4914-8d54-8b84e66513a6";
 
-    long ttl = 2000L;
+    long ttl = 200L;
 
     TokenCache cache = TokenCache.builder()
         .withTtl(ttl)
@@ -139,8 +139,8 @@ class MetricsHelperTest {
     assertEquals(1, expiresCounter.count());
 
     await().with()
-      .pollInterval(20, TimeUnit.MILLISECONDS)
-      .atMost(ttl + 100, TimeUnit.MILLISECONDS)
+      .pollInterval(10, TimeUnit.MILLISECONDS)
+      .atMost(ttl + 20, TimeUnit.MILLISECONDS)
       .until(() -> cache.get("tenant", "GET", "/foo/bar", userId, "keyToken") == null);
 
     assertEquals(2, expiresCounter.count());
