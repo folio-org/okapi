@@ -7,6 +7,7 @@ import static org.junit.Assert.*;
 
 public class ModuleIdTest {
 
+  @java.lang.SuppressWarnings({"squid:S5961"}) // more than 25 assertions
   @Test
   public void test() {
     ModuleId module_1 = new ModuleId("module-1");
