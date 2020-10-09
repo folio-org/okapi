@@ -1,3 +1,8 @@
+## 4.1.7 2020-10-09
+
+ * [OKAPI-915](https://issues.folio.org/browse/OKAPI-915) Okapi Docker deployment URL/port mismatch on restart
+ * [OKAPI-909](https://issues.folio.org/browse/OKAPI-909) Default log4j2 logging should be patternlayout; not json
+
 ## 4.1.6 2020-10-05
 
  * [OKAPI-863](https://issues.folio.org/browse/OKAPI-863) Module and interface discovery for current tenant wo permissions.
