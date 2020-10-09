@@ -320,7 +320,7 @@ public class DockerModuleHandle implements ModuleHandle {
       j.put("Cmd", a);
     }
     if (dockerArgs != null) {
-      JsonObject dockerArgsJson = new JsonObject(dockerArgs.properties());
+      JsonObject dockerArgsJson = new JsonObject(dockerArgs.properties()).copy();
       VariableSubstitutor.replace(dockerArgsJson, Integer.toString(hostPort), containerHost);
       j.mergeIn(dockerArgsJson);
     }
