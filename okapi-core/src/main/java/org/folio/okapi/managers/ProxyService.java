@@ -187,25 +187,34 @@ public class ProxyService {
     return true;
   }
 
-  private boolean checkTokenCache(ProxyContext pc, HttpServerRequest req, RoutingEntry re,
+  /**
+   * Checks for a cached token, userId, permissions and updates the provided ModuleInstance
+   * accordingly.
+   *
+   * @param tenant The tenant, used to tag cache event metrics
+   * @param req Request, used for accessing headers, etc.
+   * @param pathPattern Path pattern used in generation of the cache key
+   * @param mi ModuleInstance to be updated
+   * @return <code>true</code> if the ModuleInstance is updated with cached values,
+   *         <code>false</code> otherwise.
+   */
+  private boolean checkTokenCache(String tenant, HttpServerRequest req, String pathPattern,
       ModuleInstance mi) {
-    boolean skipAuth = false;
-    String pathPattern = re.getPathPattern();
-
-    CacheEntry cached = tokenCache.get(pc.getTenant(), req.method().name(),
-        pathPattern == null ? req.path() : pathPattern, req.getHeader(XOkapiHeaders.USER_ID),
-        req.headers().get(XOkapiHeaders.TOKEN));
+    CacheEntry cached =
+        tokenCache.get(tenant, req.method().name(), pathPattern == null ? req.path() : pathPattern,
+            req.getHeader(XOkapiHeaders.USER_ID), req.headers().get(XOkapiHeaders.TOKEN));
 
     if (cached != null) {
       mi.setAuthToken(cached.token);
       mi.setUserId(cached.userId);
       mi.setPermissions(cached.permissions);
-
-      skipAuth = true;
+      return true;
     } else {
       mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
+      mi.setUserId(null);
+      mi.setPermissions(null);
+      return false;
     }
-    return skipAuth;
   }
 
   /**
@@ -239,7 +248,8 @@ public class ProxyService {
         for (RoutingEntry re : rr) {
           if (match(re, req)) {
             ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method(), true);
-            skipAuth = checkTokenCache(pc, req, re, mi);
+
+            skipAuth = checkTokenCache(pc.getTenant(), req, re.getPathPattern(), mi);
             mods.add(mi);
             pc.debug("getMods:   Added " + md.getId() + " " + re.getPathPattern() + " "
                 + re.getPath() + " " + re.getPhase() + "/" + re.getLevel());
