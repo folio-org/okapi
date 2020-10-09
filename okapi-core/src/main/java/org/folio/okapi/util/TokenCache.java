@@ -44,7 +44,7 @@ public class TokenCache {
       String keyToken, String token) {
     long now = System.currentTimeMillis();
     CacheEntry entry = new CacheEntry(token, userId, xokapiPerms, now + ttl);
-    String key = genKey(method, path, userId, keyToken);
+    String key = genKey(method, path, keyToken);
     MetricsHelper.recordTokenCacheCached(tenant, method, path, userId);
     logger.debug("Caching: {} -> {}", key, token);
     cache.put(key, entry);
@@ -61,7 +61,7 @@ public class TokenCache {
    * @return cache entry or null
    */
   public CacheEntry get(String tenant, String method, String path, String userId, String token) {
-    String key = genKey(method, path, userId, token);
+    String key = genKey(method, path, token);
     CacheEntry ret = cache.get(key);
     if (ret == null) {
       MetricsHelper.recordTokenCacheMiss(tenant, method, path, userId);
@@ -79,8 +79,9 @@ public class TokenCache {
     }
   }
 
-  private String genKey(String method, String path, String userId, String token) {
-    return (userId + "|" + method + "|" + path + "|" + token).replaceAll("[\n\t\r]", "");
+  private String genKey(String method, String path, String token) {
+    String tok = token == null ? "null" : token.replaceAll("[\n\t\r]", "");
+    return (method + "|" + path + "|" + tok);
   }
 
   public static Builder builder() {
@@ -143,8 +144,8 @@ public class TokenCache {
 
   public static final class CacheEntry {
     public final String token;
-    public final String xokapiPermissions;
-    public final String xokapiUserid;
+    public final String permissions;
+    public final String userId;
     public final long expires;
 
     private CacheEntry() {
@@ -156,14 +157,14 @@ public class TokenCache {
      * Create a cache entry.
      * 
      * @param token the access token to cache
-     * @param xokapiUserid the X-Okapi-User-Id header
-     * @param xokapiPermissions the X-Okapi-Permissions header
+     * @param userId the X-Okapi-User-Id header
+     * @param permissions the X-Okapi-Permissions header
      * @param expires instant in ms since epoch when this cache entry expires
      */
-    public CacheEntry(String token, String xokapiUserid, String xokapiPermissions, long expires) {
+    public CacheEntry(String token, String userId, String permissions, long expires) {
       this.token = token;
-      this.xokapiPermissions = xokapiPermissions;
-      this.xokapiUserid = xokapiUserid;
+      this.permissions = permissions;
+      this.userId = userId;
       this.expires = expires;
     }
 

@@ -198,8 +198,8 @@ public class ProxyService {
 
     if (cached != null) {
       mi.setAuthToken(cached.token);
-      mi.setxOkapiUserId(cached.xokapiUserid);
-      mi.setxOkapiPermissions(cached.xokapiPermissions);
+      mi.setxOkapiUserId(cached.userId);
+      mi.setxOkapiPermissions(cached.permissions);
 
       skipAuth = true;
     } else {
@@ -239,7 +239,6 @@ public class ProxyService {
         for (RoutingEntry re : rr) {
           if (match(re, req)) {
             ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method(), true);
-
             skipAuth = checkTokenCache(pc, req, re, mi);
             mods.add(mi);
             pc.debug("getMods:   Added " + md.getId() + " " + re.getPathPattern() + " "
@@ -270,7 +269,8 @@ public class ProxyService {
     if (skipAuth) {
       for (int i = 0; i < mods.size(); i++) {
         ModuleInstance mod = mods.get(i);
-        if (mod.getRoutingEntry().getPhase().equals(XOkapiHeaders.FILTER_AUTH)) {
+        String phase = mod.getRoutingEntry().getPhase();
+        if (phase != null && phase.equals(XOkapiHeaders.FILTER_AUTH)) {
           pc.debug("Skipping auth, have cached token.");
           mods.remove(i);
           break;
