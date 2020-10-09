@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "TenantDescriptor.json",
   "title": "TenantDescriptor",
   "description": "Tenant information",
   "type": "object",

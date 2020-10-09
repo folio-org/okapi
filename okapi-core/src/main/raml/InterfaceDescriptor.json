@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "InterfaceDescriptor.json",
   "title": "InterfaceDescriptor",
   "description": "An interface that a module can provide",
   "type": "object",
