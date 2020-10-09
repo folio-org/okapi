@@ -199,7 +199,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     NuProcess pp = launch(vertx, id, env, l);
     Promise<Void> promise = Promise.promise();
     // time to wait for process that shuts down service.. when a port is present (always in prod)
-    // The waitPortClose will wait for service to stut down
+    // The waitPortClose will wait for service to shut down
     vertx.setTimer(port == 0 ? 3000 : 1000, timerRes -> {
       if (pp.isRunning() || exitCode == 0) {
         promise.complete();
