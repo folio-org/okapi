@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "InstallJob.json",
   "title": "InstallJob",
   "description": "Install job",
   "type": "object",

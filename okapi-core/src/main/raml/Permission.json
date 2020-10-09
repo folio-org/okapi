@@ -1,4 +1,6 @@
 {
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "Permission.json",
   "title": "Permissions Definition Schema",
   "description": "Permission entity",
   "type": "object",
