@@ -39,6 +39,7 @@ import org.folio.okapi.service.impl.Storage;
 import org.folio.okapi.service.impl.Storage.InitMode;
 import org.folio.okapi.service.impl.TenantStoreNull;
 import org.folio.okapi.util.CorsHelper;
+import org.folio.okapi.util.EventBusChecker;
 import org.folio.okapi.util.LogHelper;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -188,6 +189,11 @@ public class MainVerticle extends AbstractVerticle {
   public void start(Promise<Void> promise) {
     Future<Void> fut = startDatabases();
     if (initMode == InitMode.NORMAL) {
+      fut = fut.compose(x -> EventBusChecker.check(vertx, clusterManager)
+          .recover(cause -> {
+            logger.warn("event bus check failed {}", cause.getMessage());
+            return Future.succeededFuture();
+          }));
       fut = fut.compose(x -> startModmanager());
       fut = fut.compose(x -> startTenants());
       fut = fut.compose(x -> checkInternalModules());
