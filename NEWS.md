@@ -1,3 +1,12 @@
+## 3.1.4 2020-10-12
+
+This is a special release that makes Okapi check for working event bus
+during startup. This is to investigate problems with timers that stops
+working after module upgrades.
+
+ * [OKAPI-891](https://issues.folio.org/browse/OKAPI-891) Event Bus check
+ * [OKAPI-873](https://issues.folio.org/browse/OKAPI-873) Update Netty (CVE-2019-16869) and Jackson (CVE-2019-14540)
+
 ## 3.1.3 2020-09-14
 
  * Log event bus events for timers (to analyze OKAPI-848 problem)
