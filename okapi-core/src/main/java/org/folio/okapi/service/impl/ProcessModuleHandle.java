@@ -219,6 +219,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
 
   private Future<Void> stopProcess() {
     process.destroy(true);
+    process = null;
     ports.free(port);
     return waitPortToClose(10);
   }
