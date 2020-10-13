@@ -113,8 +113,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     exitCode = code;
   }
 
-  private NuProcess launch(Vertx vertx, String id, EnvEntry[] env,
-                           String [] command) {
+  private NuProcess launch(EnvEntry[] env, String [] command) {
 
     NuProcessBuilder pb = new NuProcessBuilder(command);
     if (env != null) {
@@ -124,8 +123,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     }
     exitCode = 0;
     pb.setProcessListener(this);
-    NuProcess process = pb.start();
-    return process;
+    return pb.start();
   }
 
   private Future<Void> start2() {
@@ -147,7 +145,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
       return Future.failedFuture("Can not deploy: No exec, no CmdlineStart in LaunchDescriptor");
     }
     final String commandLineF = commandLine;
-    process = launch(vertx, id, env, l);
+    process = launch(env, l);
     Promise<Void> promise = Promise.promise();
     // time to wait for process status.. when a port is present (always in real life)..
     // The waitReady will check if process eventually starts listening on port
@@ -196,7 +194,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     }
     String commandLine = cmdlineStop.replace("%p", Integer.toString(port));
     String[] l = new String[]{"sh", "-c", commandLine};
-    NuProcess pp = launch(vertx, id, env, l);
+    NuProcess pp = launch(env, l);
     Promise<Void> promise = Promise.promise();
     // time to wait for process that shuts down service.. when a port is present (always in prod)
     // The waitPortClose will wait for service to shut down
