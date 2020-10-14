@@ -319,10 +319,12 @@ public class DockerModuleHandleTest implements WithAssertions {
 
     JsonObject versionRes = new JsonObject();
     Async async = context.async();
-    dh.getUrl("/version").onComplete(context.asyncAssertSuccess(res -> {
-      versionRes.put("result", res);
+    dh.getUrl("/version").onComplete(res -> {
+      if (res.succeeded()) {
+        versionRes.put("result", res.result());
+      }
       async.complete();
-    }));
+    });
     async.await();
     Assume.assumeTrue(versionRes.containsKey("result"));
     context.assertTrue(versionRes.getJsonObject("result").containsKey("Version"));
@@ -363,5 +365,6 @@ public class DockerModuleHandleTest implements WithAssertions {
         .contains("\"%p\" : \"9232\"")
         .doesNotContain("foobar")  // no env values in the log because they may contain credentials
         .doesNotContain("uvwxyz");
+    Assert.assertEquals(launchDescriptor.getDockerArgs().properties().get("%p"), "%p");
   }
 }

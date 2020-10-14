@@ -1,13 +1,11 @@
-Okapi — a multitenant API Gateway
-=================================
+# Okapi — a multitenant API Gateway
 
 Copyright (C) 2015-2020 The Open Library Foundation
 
 This software is distributed under the terms of the Apache License,
 Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
 
-System requirements
--------------------
+## System requirements
 
 The Okapi software has the following compile-time dependencies:
 
@@ -22,8 +20,7 @@ succeed.
 shut down microservices that it has spawned, and they may need to be
 terminated manually.*
 
-Quick start
------------
+## Quick start
 
 To build and run:
 
@@ -32,8 +29,20 @@ To build and run:
 
 Okapi listens on port 9130.
 
-Documentation
--------------
+## Developers
+
+When running unit tests, property `testStorage` controls what storage
+to use. It has a default value of `inmemory,postgres,mongo`.
+Tests will complete faster by specifying one storage type only.
+
+For example:
+
+    $ mvn -DtestStorage=inmemory install
+
+When filing bug reports with unit test output, always use Maven
+option `-B` to avoid control characters in output.
+
+## Documentation
 
 * [Okapi Guide and Reference](doc/guide.md)
 * [Documentation index](doc/index.md)

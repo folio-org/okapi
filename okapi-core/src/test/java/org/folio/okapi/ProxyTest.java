@@ -1345,6 +1345,22 @@ public class ProxyTest {
       .header("X-Auth-Permissions-Desired", containsString("sample.extra"))
       .header("X-Auth-Permissions-Required", "sample.needed")
       .body(containsString("It works"));
+
+    //CAM
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "HBL") // ask sample to report all headers
+      .header("X-Okapi-User-Id", "peter")
+      .get("/testb?query=foo&limit=10")
+      .then().statusCode(200)
+      .log().ifValidationFails()
+      .header("X-Okapi-Url", "http://localhost:9230") // no trailing slash!
+      .header("X-Okapi-User-Id", "peter")
+      .header("X-Url-Params", "query=foo&limit=10")
+      .header("X-Okapi-Permissions", containsString("sample.extra"))
+      .header("X-Okapi-Permissions", containsString("auth.extra"))
+      .body(containsString("It works"));
+
     // Check the CORS headers.
     // The presence of the Origin header should provoke the two extra headers.
     given().header("X-Okapi-Tenant", okapiTenant)

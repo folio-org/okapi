@@ -17,7 +17,11 @@ import org.folio.okapi.service.ModuleHandle;
 import org.junit.Assume;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
@@ -39,6 +43,13 @@ public class ProcessModuleHandleTest {
     vertx.close(context.asyncAssertSuccess());
   }
 
+  @Rule
+  public TestRule watcher = new TestWatcher() {
+    protected void starting(Description description) {
+      System.out.println("Starting test: " + description.getMethodName());
+    }
+  };
+
   private ModuleHandle createModuleHandle(LaunchDescriptor desc, int port) {
     desc.setWaitIterations(15);
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, "test", ports, port);
@@ -51,8 +62,6 @@ public class ProcessModuleHandleTest {
     // program starts OK, we don't check port
     desc.setExec("java -version %p");
     ModuleHandle mh = createModuleHandle(desc, 0);
-
-
     mh.start().onComplete(context.asyncAssertSuccess(res1 ->
       mh.stop().onComplete(context.asyncAssertSuccess())
     ));
@@ -135,6 +144,24 @@ public class ProcessModuleHandleTest {
     mh.start().onComplete(context.asyncAssertSuccess(res ->
       mh.stop().onComplete(context.asyncAssertSuccess())
     ));
+  }
+
+  @Test
+  public void testDoubleStartStop(TestContext context) {
+    LaunchDescriptor desc = new LaunchDescriptor();
+    // program should operate OK
+    desc.setExec("java " + testModuleArgs);
+    ModuleHandle mh = createModuleHandle(desc, 9231);
+
+    mh.start().onComplete(context.asyncAssertSuccess(res -> {
+      mh.start().onComplete(context.asyncAssertFailure(cause ->
+        mh.stop().onComplete(context.asyncAssertSuccess(res2 -> {
+            context.assertEquals("already started "
+                + "java -Dport=9231 -jar ../okapi-test-module/target/okapi-test-module-fat.jar", cause.getMessage());
+            mh.stop().onComplete(context.asyncAssertSuccess());
+         }))
+      ));
+    }));
   }
 
   @Test
@@ -240,7 +267,7 @@ public class ProcessModuleHandleTest {
     LaunchDescriptor desc = new LaunchDescriptor();
     // program should operate OK
     desc.setExec("java " + testModuleArgs);
-    int no = 9; // number of processes to spawn
+    int no = 3; // number of processes to spawn
     ModuleHandle[] mhs = new ModuleHandle[no];
     int i;
     for (i = 0; i < no; i++) {
@@ -255,11 +282,6 @@ public class ProcessModuleHandleTest {
     CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(res -> async1.complete()));
     async1.await();
 
-    logger.debug("Wait");
-    Async async = context.async();
-    vertx.setTimer(4000, x -> async.complete());
-    async.await();
-    logger.debug("Stop");
     futures = new LinkedList<>();
     for (ModuleHandle mh : mhs) {
       futures.add(mh.stop());

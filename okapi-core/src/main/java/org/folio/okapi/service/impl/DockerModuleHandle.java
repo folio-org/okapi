@@ -165,7 +165,7 @@ public class DockerModuleHandle implements ModuleHandle {
 
   Future<Void> deleteContainer() {
     logger.info("delete container {} image {}", containerId, image);
-    return deleteUrl("/containers/" + containerId, "deleteContainer");
+    return deleteUrl("/containers/" + containerId + "?force=true", "deleteContainer");
   }
 
   private void logHandler(Buffer b) {
@@ -297,7 +297,7 @@ public class DockerModuleHandle implements ModuleHandle {
       j.put("Cmd", a);
     }
     if (dockerArgs != null) {
-      JsonObject dockerArgsJson = new JsonObject(dockerArgs.properties());
+      JsonObject dockerArgsJson = new JsonObject(dockerArgs.properties()).copy();
       VariableSubstitutor.replace(dockerArgsJson, Integer.toString(hostPort), containerHost);
       j.mergeIn(dockerArgsJson);
     }
@@ -352,20 +352,16 @@ public class DockerModuleHandle implements ModuleHandle {
     if (hostPort == 0) {
       return Future.failedFuture(messages.getMessage("11300"));
     }
-    return getImage().compose(res1 -> {
-      int exposedPort;
+    return getImage().map(res -> {
       try {
-        exposedPort = getExposedPort(res1);
+        return getExposedPort(res);
       } catch (Exception e) {
         logger.warn("{}", e.getMessage(), e);
-        return Future.failedFuture(e);
+        throw e;
       }
-      return createContainer(exposedPort)
-          .compose(res2 -> startContainer()
-              .onFailure(cause -> deleteContainer())
-              .compose(res3 -> getContainerLog())
-      );
-    });
+    }).compose(this::createContainer)
+        .compose(res -> startContainer().onFailure(cause -> deleteContainer()))
+        .compose(res -> getContainerLog().onFailure(cause -> stop()));
   }
 
   @Override
@@ -378,9 +374,11 @@ public class DockerModuleHandle implements ModuleHandle {
 
   @Override
   public Future<Void> stop() {
-    return stopContainer().compose(res -> {
-      ports.free(hostPort);
-      return deleteContainer();
-    });
+    return stopContainer()
+        .compose(
+            x -> deleteContainer(),
+            // if stopContainer fails with e run deleteContainer but return original failure e
+            e -> deleteContainer().onComplete(x -> Future.failedFuture(e)))
+        .onComplete(x -> ports.free(hostPort));
   }
 }

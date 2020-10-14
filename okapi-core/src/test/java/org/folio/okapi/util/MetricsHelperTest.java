@@ -1,9 +1,11 @@
 package org.folio.okapi.util;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
@@ -42,6 +44,7 @@ class MetricsHelperTest {
     assertNull(MetricsHelper.recordHttpClientResponse(null, "a", 0, "b", null));
     assertNull(MetricsHelper.recordHttpServerProcessingTime(null, "a", 0, "b", null));
     assertNull(MetricsHelper.recordHttpClientError("a", "b", "c"));
+    assertNull(MetricsHelper.recordCodeExecutionTime(null, "a"));
   }
 
   @Test
@@ -100,12 +103,64 @@ class MetricsHelperTest {
   }
 
   @Test
+  void testRecordTokenCacheEvent() {
+    String userId = "03975dd7-8004-48cf-bd21-4d7ff2e74ca2";
+    String anotherUserId = "54412e3d-a024-4914-8d54-8b84e66513a6";
+
+    long ttl = 200L;
+
+    TokenCache cache = TokenCache.builder()
+        .withTtl(ttl)
+        .build();
+
+    // test case where there is no userId
+    MetricsHelper.recordTokenCacheCached("tenant",  "GET",  "/foo/bar", null);
+    
+    Counter cachedCounter =
+        MetricsHelper.recordTokenCacheCached("tenant", "GET", "/foo/bar", userId);
+    assertEquals(1, cachedCounter.count());
+    cache.put("tenant", "GET", "/foo/bar", userId, "perms", "keyToken", "tokenToCache");
+    assertEquals(2, cachedCounter.count());
+    cache.put("tenant", "GET", "/foo/bar", anotherUserId, "perms", "keyToken", "tokenToCache");
+    assertEquals(2, cachedCounter.count());
+
+    Counter missedCounter =
+        MetricsHelper.recordTokenCacheMiss("tenant", "POST", "/foo/bar/123", userId);
+    assertEquals(1, missedCounter.count());
+    cache.get("tenant", "POST", "/foo/bar/123", userId, "keyToken");
+    assertEquals(2, missedCounter.count());
+
+    Counter hitCounter = MetricsHelper.recordTokenCacheHit("tenant", "GET", "/foo/bar", userId);
+    assertEquals(1, hitCounter.count());
+    cache.get("tenant", "GET", "/foo/bar", userId, "keyToken");
+    assertEquals(2, hitCounter.count());
+
+    Counter expiresCounter =
+        MetricsHelper.recordTokenCacheExpired("tenant", "GET", "/foo/bar", userId);
+    assertEquals(1, expiresCounter.count());
+
+    await().with()
+      .pollInterval(10, TimeUnit.MILLISECONDS)
+      .atMost(ttl + 20, TimeUnit.MILLISECONDS)
+      .until(() -> cache.get("tenant", "GET", "/foo/bar", userId, "keyToken") == null);
+
+    assertEquals(2, expiresCounter.count());
+  }
+
+  @Test
   void testRecordHttpClientError() {
     Counter counter = MetricsHelper.recordHttpClientError("a", "GET", "/a");
     assertEquals(1, counter.count());
     // increment by one
     MetricsHelper.recordHttpClientError("a", "GET", "/a");
     assertEquals(2, counter.count());
+  }
+
+  @Test
+  void testRecordCodeExecutionTime() {
+    Timer.Sample sample = MetricsHelper.getTimerSample();
+    Timer timer = MetricsHelper.recordCodeExecutionTime(sample, "a");
+    assertEquals(1, timer.count());
   }
 
   @Test

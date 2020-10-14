@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "NodeDescriptorList.json",
   "title": "NodeDescriptorList",
   "description": "List of Nodes",
   "type": "array",

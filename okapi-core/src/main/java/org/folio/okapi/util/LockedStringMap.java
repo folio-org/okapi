@@ -1,6 +1,7 @@
 package org.folio.okapi.util;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micrometer.core.instrument.Timer;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -61,7 +62,9 @@ public class LockedStringMap {
         return Future.succeededFuture(val);
       }
       StringMap stringMap = new StringMap();
+      Timer.Sample sample = MetricsHelper.getTimerSample();
       StringMap oldList = Json.decodeValue(val, StringMap.class);
+      MetricsHelper.recordCodeExecutionTime(sample, "LockedStringMap.getString.decodeValue");
       stringMap.strings.putAll(oldList.strings);
       return Future.succeededFuture(stringMap.strings.get(k2));
     });

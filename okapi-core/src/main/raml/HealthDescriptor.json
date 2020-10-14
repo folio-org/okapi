@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "HealthDescriptor.json",
   "title": "HealthDescriptor",
   "description": "Health for an instance",
   "type": "object",
