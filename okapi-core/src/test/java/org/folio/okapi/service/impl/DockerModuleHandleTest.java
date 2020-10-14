@@ -112,9 +112,15 @@ public class DockerModuleHandleTest implements WithAssertions {
   private int dockerEmptyStatus = 200;
   private JsonObject dockerMockJson = null;
   private String dockerMockText = null;
+  private int dockerPullStatus = 500;
+  private JsonObject dockerPullJson = null;
 
   private void dockerMockHandle(RoutingContext ctx) {
-    if (ctx.request().method().equals(HttpMethod.GET) || ctx.request().path().endsWith("/create")) {
+    if (ctx.request().method().equals(HttpMethod.POST) && ctx.request().path().contains("/images/create")) {
+      ctx.response().setStatusCode(dockerPullStatus);
+      ctx.response().putHeader("Context-Type", "application/json");
+      ctx.response().end(Json.encode(dockerPullJson));
+    } else if (ctx.request().method().equals(HttpMethod.GET) || ctx.request().path().endsWith("/create")) {
       ctx.response().setStatusCode(dockerMockStatus);
       if (dockerMockJson != null) {
         ctx.response().putHeader("Context-Type", "application/json");
@@ -145,12 +151,15 @@ public class DockerModuleHandleTest implements WithAssertions {
     LaunchDescriptor ld = new LaunchDescriptor();
     ld.setWaitIterations(2);
     ld.setDockerImage("folioci/mod-x");
-    ld.setDockerPull(false);
+    ld.setDockerPull(true);
     EnvEntry[] env = new EnvEntry[1];
     env[0] = new EnvEntry();
     env[0].setName("varName");
     env[0].setValue("varValue");
     ld.setEnv(env);
+
+    dockerPullJson = new JsonObject().put("message", "some message");
+    dockerPullStatus = 200;
 
     String []cmd = {"command"};
     ld.setDockerCmd(cmd);
@@ -172,6 +181,8 @@ public class DockerModuleHandleTest implements WithAssertions {
       }));
       async.await();
     }
+
+    dockerPullStatus = 500;
 
     {
       Async async = context.async();
