@@ -554,12 +554,12 @@ public class ProxyService {
         String originalToken = req.getHeader(XOkapiHeaders.TOKEN);
         if (originalToken != null) {
           tokenCache.put(pc.getTenant(),
-            req.method().name(),
-            pathPattern == null ? req.path() : pathPattern,
-            res.getHeader(XOkapiHeaders.USER_ID),
-            res.getHeader(XOkapiHeaders.PERMISSIONS),
-            originalToken,
-            tok);
+              req.method().name(),
+              pathPattern == null ? req.path() : pathPattern,
+              res.getHeader(XOkapiHeaders.USER_ID),
+              res.getHeader(XOkapiHeaders.PERMISSIONS),
+              originalToken,
+              tok);
         }
       }
     }
