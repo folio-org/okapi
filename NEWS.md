@@ -1,7 +1,7 @@
 ## 4.2.0 2020-10-16
 
-This release offers an important optimization: Token Caching (OKAPI-820).
-There is also support for async install/upgrade (OKAPI-874).
+This release offers an important optimization: Token Caching OKAPI-820.
+There is also support for async install/upgrade OKAPI-874.
 The code has also gone through a major clean up with a change to use
 Futurisation API - a change that modified more than 16% of the Java code.
 
