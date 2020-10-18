@@ -1,3 +1,33 @@
+## 4.2.0 2020-10-16
+
+This release offers an important optimization: Token Caching OKAPI-820.
+There is also support for async install/upgrade OKAPI-874.
+The code has also gone through a major clean up with a change to use
+Futurisation API - a change that modified more than 16% of the Java code.
+
+ * [OKAPI-845](https://issues.folio.org/browse/OKAPI-845) Consider 'onfailure=continue' parameter for install/upgrade
+ * [OKAPI-863](https://issues.folio.org/browse/OKAPI-863) Module and interface discovery for current tenant wo permissions
+ * [OKAPI-868](https://issues.folio.org/browse/OKAPI-868) Add timer to capture metrics of top slow methods
+ * [OKAPI-872](https://issues.folio.org/browse/OKAPI-872) Better structure for Okapi logs
+ * [OKAPI-874](https://issues.folio.org/browse/OKAPI-874) install/upgrade: async operation (install jobs) phase 1
+ * [OKAPI-882](https://issues.folio.org/browse/OKAPI-882) Fix Password leaks in log
+ * [OKAPI-883](https://issues.folio.org/browse/OKAPI-883) Log4j2Plugins.dat in fat jar causes "Unrecognized format specifier"
+ * [OKAPI-884](https://issues.folio.org/browse/OKAPI-884) % variable expansion in env breaks credentials
+ * [OKAPI-885](https://issues.folio.org/browse/OKAPI-885) Warning issued: sun.reflect.Reflection.getCallerClass is not supported
+ * [OKAPI-887](https://issues.folio.org/browse/OKAPI-887) Unit tests sporadically crash
+ * [OKAPI-888](https://issues.folio.org/browse/OKAPI-888) Test warning: Corrupted STDOUT by directly writing to native stream in forked JVM 1.
+ * [OKAPI-890](https://issues.folio.org/browse/OKAPI-890) Implement Token Cache
+ * [OKAPI-891](https://issues.folio.org/browse/OKAPI-891) Event Bus check
+ * [OKAPI-892](https://issues.folio.org/browse/OKAPI-892) Redirect stdout/stderr to log for process deployment
+ * [OKAPI-893](https://issues.folio.org/browse/OKAPI-893) Check for openjdk-11 in okapi startup script fails
+ * [OKAPI-896](https://issues.folio.org/browse/OKAPI-896) OkapiClient: use WebClient rather than HttpClient
+ * [OKAPI-898](https://issues.folio.org/browse/OKAPI-898) Upgrade to Vert.x 4.0.0 Beta 3
+ * [OKAPI-899](https://issues.folio.org/browse/OKAPI-899) Refactor Module handle to use Futurisation API
+ * [OKAPI-905](https://issues.folio.org/browse/OKAPI-905) Remove permissions for proxy health service
+ * [OKAPI-909](https://issues.folio.org/browse/OKAPI-909) Default log4j2 logging should be patternlayout; not json
+ * [OKAPI-914](https://issues.folio.org/browse/OKAPI-914) Enable standalone schema validation of ModuleDescriptor
+ * [OKAPI-915](https://issues.folio.org/browse/OKAPI-915) Okapi Docker deployment URL/port mismatch on restart
+
 ## 4.1.0 2020-08-25
 
  * [OKAPI-871](https://issues.folio.org/browse/OKAPI-871) PoC: structured logging with JSON in Okapi

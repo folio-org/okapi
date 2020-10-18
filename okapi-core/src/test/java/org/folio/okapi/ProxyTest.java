@@ -3733,7 +3733,7 @@ public class ProxyTest {
     setupBasicTenant(tenant);
 
     String moduleId = "module-1.0.0";
-    setupBasicModule(tenant, moduleId, "1.1", false);
+    setupBasicModule(tenant, moduleId, "1.1", false, false);
     RestAssuredClient c = api.createRestAssured3();
 
     String body = new JsonObject().put("id", "test").encode();
@@ -3764,6 +3764,47 @@ public class ProxyTest {
   }
 
   @Test
+  public void testTenantPermissionsUpgrade() {
+    String tenant = "test-tenant-permissions-tenant";
+    setupBasicTenant(tenant);
+
+    String moduleA0 = "moduleA-1.0.0";
+    timerPermissions.clear();
+    setupBasicOther(tenant, moduleA0, "ainterface");
+    Assert.assertEquals(0, timerPermissions.size());
+
+    String moduleId0 = "perm-1.0.0";
+    setupBasicModule(tenant, moduleId0, "1.0", false, true);
+    Assert.assertEquals(2, timerPermissions.size());
+    Assert.assertTrue(timerPermissions.containsKey(moduleId0));
+    Assert.assertTrue(timerPermissions.containsKey(moduleA0));
+    Assert.assertEquals("ainterface.post",
+        timerPermissions.getJsonArray(moduleA0).getJsonObject(0).getString("permissionName"));
+
+    String moduleId1 = "perm-1.0.1";
+    setupBasicModule(tenant, moduleId1, "1.0", false, true);
+    Assert.assertEquals(3, timerPermissions.size());
+    Assert.assertTrue(timerPermissions.containsKey(moduleId0));
+    Assert.assertTrue(timerPermissions.containsKey(moduleA0));
+    Assert.assertTrue(timerPermissions.containsKey(moduleId1));
+
+    String moduleA1 = "moduleA-1.0.1";
+    setupBasicOther(tenant, moduleA1, "binterface");
+    Assert.assertEquals(4, timerPermissions.size());
+    Assert.assertTrue(timerPermissions.containsKey(moduleA1));
+    Assert.assertEquals("binterface.post",
+        timerPermissions.getJsonArray(moduleA1).getJsonObject(0).getString("permissionName"));
+
+    given().delete("/_/proxy/tenants/" + tenant + "/modules").then().statusCode(204);
+    given().delete("/_/discovery/modules").then().statusCode(204);
+    given().delete("/_/proxy/modules/" + moduleA0).then().statusCode(204);
+    given().delete("/_/proxy/modules/" + moduleA1).then().statusCode(204);
+    given().delete("/_/proxy/modules/" + moduleId0).then().statusCode(204);
+    given().delete("/_/proxy/modules/" + moduleId1).then().statusCode(204);
+    given().delete("/_/proxy/tenants/" + tenant).then().statusCode(204);
+  }
+
+  @Test
   public void testTenantPermissionsVersion() {
     String tenant = "test-tenant-permissions-tenant";
     String moduleId = "test-tenant-permissions-basic-module-1.0.0";
@@ -3775,7 +3816,7 @@ public class ProxyTest {
     // test _tenantpermissions 1.0 vs 1.1
     for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1")) {
       timerPermissions.clear();
-      setupBasicModule(tenant, moduleId, tenantPermissionsVersion, true);
+      setupBasicModule(tenant, moduleId, tenantPermissionsVersion, true, true);
       setupBasicAuth(tenant, authModuleId);
       // system generates permission sets for 1.1 version
       if (tenantPermissionsVersion.equals("1.0")) {
@@ -3821,7 +3862,7 @@ public class ProxyTest {
     String body = new JsonObject().put("id", "test").encode();
 
     setupBasicTenant(tenant);
-    setupBasicModule(tenant, moduleId, "1.1", false);
+    setupBasicModule(tenant, moduleId, "1.1", false, false);
     setupBasicAuth(tenant, authModuleId);
 
     RestAssuredClient c = api.createRestAssured3();
@@ -3958,11 +3999,73 @@ public class ProxyTest {
       .then().statusCode(200).log().ifValidationFails();
   }
 
+  private void setupBasicOther(String tenant, String moduleId, String providedInterface) {
+    String requiredPermission = providedInterface + ".post";
+    String mdJson = new JsonObject()
+        .put("id", moduleId)
+        .put("provides", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "_tenant")
+                .put("version", "1.1")
+                .put("interfaceType", "system")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/_/tenant/disable")
+                        .put("permissionsRequired", new JsonArray()))
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST").add("DELETE"))
+                        .put("pathPattern", "/_/tenant")
+                        .put("permissionsRequired", new JsonArray()))))
+            .add(new JsonObject()
+                .put("id", providedInterface)
+                .put("version", "1.0")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/regularcall/" + providedInterface)
+                        .put("permissionsRequired", new JsonArray().add(requiredPermission))))))
+        .put("requires", new JsonArray())
+        .put("permissionSets", new JsonArray()
+            .add(new JsonObject()
+                .put("permissionName", requiredPermission)
+                .put("displayName", "d")))
+        .encodePrettily();
+
+    // registration
+    RestAssuredClient c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(mdJson).post("/_/proxy/modules")
+        .then().statusCode(201).log().ifValidationFails();
+
+    // discovery
+    String discoveryJson = new JsonObject()
+        .put("instId", "localhost-" + Integer.toString(portTimer) + moduleId)
+        .put("srvcId", moduleId)
+        .put("url", "http://localhost:" + Integer.toString(portTimer))
+        .encode();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(discoveryJson).post("/_/discovery/modules")
+        .then().statusCode(201).log().ifValidationFails();
+
+    // install
+    String installJson = new JsonArray()
+        .add(new JsonObject().put("id", moduleId).put("action", "enable"))
+        .encode();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(installJson)
+        .post("/_/proxy/tenants/" + tenant + "/install")
+        .then().statusCode(200).log().ifValidationFails();
+  }
+
   // add basic module
   private void setupBasicModule(String tenant, String moduleId, String tenantPermissionsVersion,
-                                boolean includeTimer) {
+                                boolean provideTimer, boolean provideTenantPermissions) {
     JsonArray providesAr = new JsonArray();
-    if (includeTimer) {
+    if (provideTimer) {
         providesAr.add(new JsonObject()
           .put("id", "_timer")
           .put("version", "1.0")
@@ -3980,6 +4083,18 @@ public class ProxyTest {
                   .put("pathPattern", "/timercall/{id}")
                   .put("permissionsRequired", new JsonArray().add("timercall.delete.id")))));
     }
+    if (provideTenantPermissions) {
+      providesAr.add(new JsonObject()
+              .put("id", "_tenantPermissions")
+              .put("version", tenantPermissionsVersion)
+              .put("interfaceType", "system")
+              .put("handlers", new JsonArray()
+                  .add(new JsonObject()
+                      .put("methods", new JsonArray().add("POST"))
+                      .put("pathPattern", "/permissionscall")
+                      .put("permissionsRequired", new JsonArray()))));
+
+    }
     String mdJson = new JsonObject()
       .put("id", moduleId)
       .put("provides", providesAr
@@ -3995,15 +4110,6 @@ public class ProxyTest {
             .add(new JsonObject()
               .put("methods", new JsonArray().add("POST").add("DELETE"))
               .put("pathPattern", "/_/tenant")
-              .put("permissionsRequired", new JsonArray()))))
-        .add(new JsonObject()
-          .put("id", "_tenantPermissions")
-          .put("version", tenantPermissionsVersion)
-          .put("interfaceType", "system")
-          .put("handlers", new JsonArray()
-            .add(new JsonObject()
-              .put("methods", new JsonArray().add("POST"))
-              .put("pathPattern", "/permissionscall")
               .put("permissionsRequired", new JsonArray()))))
         .add(new JsonObject()
           .put("id", "myint")
@@ -4052,7 +4158,7 @@ public class ProxyTest {
 
     // discovery
     String discoveryJson = new JsonObject()
-      .put("instId", "localhost-" + Integer.toString(portTimer))
+      .put("instId", "localhost-" + Integer.toString(portTimer) + moduleId)
       .put("srvcId", moduleId)
       .put("url", "http://localhost:" + Integer.toString(portTimer))
       .encode();

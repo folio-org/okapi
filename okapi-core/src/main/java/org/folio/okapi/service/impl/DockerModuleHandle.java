@@ -367,7 +367,8 @@ public class DockerModuleHandle implements ModuleHandle {
   @Override
   public Future<Void> start() {
     if (dockerPull) {
-      return pullImage().compose(x -> prepareContainer());
+      // ignore error for pullImage.. if image is not present locally prepareContainer will fail
+      return pullImage().recover(x -> Future.succeededFuture()).compose(x -> prepareContainer());
     }
     return prepareContainer();
   }
