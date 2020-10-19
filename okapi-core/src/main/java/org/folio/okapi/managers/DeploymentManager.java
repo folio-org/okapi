@@ -112,11 +112,12 @@ public class DeploymentManager {
    * @return fut async result
    */
   public Future<Void> shutdown() {
-    logger.info("fast shutdown");
+    logger.info("shutdown");
     List<Future> futures = new LinkedList<>();
     Collection<DeploymentDescriptor> col = list.values();
     for (DeploymentDescriptor dd : col) {
       ModuleHandle mh = dd.getModuleHandle();
+      logger.info("shutting down {}", dd.getSrvcId());
       futures.add(mh.stop());
     }
     return CompositeFuture.all(futures).mapEmpty();
