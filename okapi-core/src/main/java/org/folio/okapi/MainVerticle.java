@@ -11,6 +11,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
 import java.lang.management.ManagementFactory;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +29,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.managers.DeploymentManager;
 import org.folio.okapi.managers.DiscoveryManager;
 import org.folio.okapi.managers.EnvManager;
+import org.folio.okapi.managers.HealthManager;
 import org.folio.okapi.managers.InternalModule;
 import org.folio.okapi.managers.ModuleManager;
 import org.folio.okapi.managers.ProxyService;
@@ -55,6 +57,7 @@ public class MainVerticle extends AbstractVerticle {
   private DeploymentManager deploymentManager;
   private DiscoveryManager discoveryManager;
   private ClusterManager clusterManager;
+  private HealthManager healthManager;
   private Storage storage;
   private Storage.InitMode initMode = InitMode.NORMAL;
   private int port;
@@ -84,7 +87,6 @@ public class MainVerticle extends AbstractVerticle {
     if (okapiVersion2 != null) {
       okapiVersion = okapiVersion2;
     }
-
     if (clusterManager != null) {
       logger.info(messages.getMessage("10000", clusterManager.getNodeId()));
     } else {
@@ -128,6 +130,8 @@ public class MainVerticle extends AbstractVerticle {
 
     storage = new Storage(vertx, storageType, config);
 
+    healthManager = new HealthManager(Integer.parseInt(
+        Config.getSysConf("healthPort", "0", config)));
     envManager = new EnvManager(storage.getEnvStore());
     discoveryManager = new DiscoveryManager(storage.getDeploymentStore());
     if (clusterManager != null) {
@@ -213,6 +217,7 @@ public class MainVerticle extends AbstractVerticle {
       fut = fut.compose(x -> startDeployment());
       fut = fut.compose(x -> startListening());
       fut = fut.compose(x -> startRedeploy());
+      fut = fut.compose(x -> healthManager.init(vertx, Arrays.asList(tenantManager)));
     }
     fut.onComplete(x -> {
       if (x.failed()) {
@@ -398,4 +403,5 @@ public class MainVerticle extends AbstractVerticle {
       return tenantManager.startTimers(discoveryManager);
     });
   }
+
 }

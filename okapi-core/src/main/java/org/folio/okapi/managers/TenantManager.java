@@ -32,6 +32,7 @@ import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.service.Liveness;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.LockedTypedMap1;
@@ -44,7 +45,7 @@ import org.folio.okapi.util.TenantInstallOptions;
  * Manages the tenants in the shared map, and passes updates to the database.
  */
 @java.lang.SuppressWarnings({"squid:S1192"}) // String literals should not be duplicated
-public class TenantManager {
+public class TenantManager implements Liveness {
 
   private final Logger logger = OkapiLogger.get();
   private ModuleManager moduleManager;
@@ -1035,4 +1036,8 @@ public class TenantManager {
     });
   }
 
+  @Override
+  public Future<Void> isAlive() {
+    return tenantStore.listTenants().mapEmpty();
+  }
 } // class

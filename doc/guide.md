@@ -2738,6 +2738,7 @@ Defaults to `localhost`
 system-generated UUID (in cluster mode), or `localhost` (in dev mode)
 * `storage`: Defines the storage back end, `postgres`, `mongo` or (the default)
 `inmemory`
+* `healthPort`: port for the GET /readiness and GET /liveness health checks. Use 0 to disable, this is the default. They return 204 if Okapi is ready/responsive and 500 otherwise.
 * `lang`: Default language for messages returned by Okapi.
 * `loglevel`: The logging level. Defaults to `INFO`; other useful
 values are `DEBUG`, `TRACE`, `WARN` and `ERROR`.
