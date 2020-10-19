@@ -213,8 +213,7 @@ public class ProxyService {
 
     String pathComponent = pathPattern == null ? req.path() : pathPattern;
 
-    CacheEntry cached = tokenCache == null ? null
-        : tokenCache.get(tenant, req.method().name(),
+    CacheEntry cached = tokenCache.get(tenant, req.method().name(),
             pathComponent, req.getHeader(XOkapiHeaders.USER_ID),
             token);
 
