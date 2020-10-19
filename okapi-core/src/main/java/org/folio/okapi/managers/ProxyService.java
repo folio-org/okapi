@@ -203,9 +203,19 @@ public class ProxyService {
    */
   private boolean checkTokenCache(String tenant, HttpServerRequest req, String pathPattern,
       ModuleInstance mi) {
-    CacheEntry cached =
-        tokenCache.get(tenant, req.method().name(), pathPattern == null ? req.path() : pathPattern,
-            req.getHeader(XOkapiHeaders.USER_ID), req.headers().get(XOkapiHeaders.TOKEN));
+    String token = req.headers().get(XOkapiHeaders.TOKEN);
+    if (token == null) {
+      mi.setAuthToken(null);
+      mi.setUserId(null);
+      mi.setPermissions(null);
+      return false;
+    }
+
+    String pathComponent = pathPattern == null ? req.path() : pathPattern;
+
+    CacheEntry cached = tokenCache.get(tenant, req.method().name(),
+            pathComponent, req.getHeader(XOkapiHeaders.USER_ID),
+            token);
 
     if (cached != null) {
       mi.setAuthToken(cached.token);
@@ -539,13 +549,17 @@ public class ProxyService {
         }
 
         mi.setAuthToken(tok);
-        tokenCache.put(pc.getTenant(),
-            req.method().name(),
-            pathPattern == null ? req.path() : pathPattern,
-            res.getHeader(XOkapiHeaders.USER_ID),
-            res.getHeader(XOkapiHeaders.PERMISSIONS),
-            req.getHeader(XOkapiHeaders.TOKEN),
-            tok);
+
+        String originalToken = req.getHeader(XOkapiHeaders.TOKEN);
+        if (originalToken != null) {
+          tokenCache.put(pc.getTenant(),
+              req.method().name(),
+              pathPattern == null ? req.path() : pathPattern,
+              res.getHeader(XOkapiHeaders.USER_ID),
+              res.getHeader(XOkapiHeaders.PERMISSIONS),
+              originalToken,
+              tok);
+        }
       }
     }
     MetricsHelper.recordCodeExecutionTime(sample, "ProxyService.authResponse");
