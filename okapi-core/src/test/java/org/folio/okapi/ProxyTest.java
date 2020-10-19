@@ -3720,7 +3720,7 @@ public class ProxyTest {
   }
 
   @Test
-  public void testProxyClientFailure() {
+  public void testProxyClientFailure(TestContext context) {
     String tenant = "test-tenant-permissions-tenant";
     setupBasicTenant(tenant);
 
@@ -3739,7 +3739,10 @@ public class ProxyTest {
         .log().ifValidationFails();
 
     // shut down listener for module so proxy client fails
-    listenTimer.close();
+    Async async = context.async();
+    listenTimer.close().onComplete(x -> async.complete());
+    async.await();
+
     c.given()
         .header("Content-Type", "application/json")
         .header("X-Okapi-Tenant", tenant)
