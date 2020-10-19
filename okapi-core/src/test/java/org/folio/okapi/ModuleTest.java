@@ -1,5 +1,6 @@
 package org.folio.okapi;
 
+import de.flapdoodle.embed.mongo.distribution.Version;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -147,7 +148,7 @@ public class ModuleTest {
       if (mongoD == null) {
         MongodStarter starter = MongodStarter.getDefaultInstance();
         mongoExe = starter.prepare(new MongodConfigBuilder()
-          .version(de.flapdoodle.embed.mongo.distribution.Version.V3_4_1)
+          .version(Version.V3_6_0)
           .net(new Net("localhost", MONGO_PORT, Network.localhostIsIPv6()))
           .build());
         mongoD = mongoExe.start();
