@@ -1550,7 +1550,6 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    logger.info("node test!!!!!!!!!!!!");
     c = api.createRestAssured3();
     c.given().get("/_/discovery/nodes/http%3A%2F%2Flocalhost%3A9230")
       .then() // Note that get() encodes the url.
@@ -1757,58 +1756,24 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    ////////////////
-    /*
-    c = api.createRestAssured3();
-    c.given().delete(locationSampleModule).then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-*/
-    if ("inmemory".equals(conf.getString("storage"))) {
-      testDeployment2(async, context, locationSampleModule);
-    } else {
-      // just undeploy but keep it registered in discovery
-      logger.info("doc2 " + doc2);
-      JsonObject o2 = new JsonObject(doc2);
-      String instId = o2.getString("instId");
-      String loc = "http://localhost:9230/_/deployment/modules/" + instId;
-      c = api.createRestAssured3();
-      c.given().delete(loc).then().statusCode(204);
-      Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
-
+    if (!"inmemory".equals(conf.getString("storage"))) {
+      Async async1 = context.async();
       undeployFirst(x -> {
         conf.remove("mongo_db_init");
         conf.remove("postgres_db_init");
 
         DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
         vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-          waitDeployment2();
+          async1.complete();
         });
       });
-      waitDeployment2(async, context, locationSampleModule);
-    }
-  }
-
-  synchronized private void waitDeployment2() {
-    this.notify();
-  }
-
-  synchronized private void waitDeployment2(Async async, TestContext context,
-    String locationSampleModule) {
-    try {
-      this.wait();
-    } catch (Exception e) {
-      context.asyncAssertFailure();
-      async.complete();
-      return;
+      async1.await();
     }
     testDeployment2(async, context, locationSampleModule);
   }
 
   private void testDeployment2(Async async, TestContext context,
     String locationSampleModule1) {
-    logger.info("testDeployment2");
     Response r;
 
     RestAssuredClient c;
@@ -1944,7 +1909,7 @@ public class ModuleTest {
 
     checkDbIsEmpty("testDeployment done", context);
 
-    async.complete();
+    undeployFirst(x -> async.complete());
   }
 
   @Test
@@ -2219,7 +2184,6 @@ public class ModuleTest {
 
   @Test
   public void testMultipleInterface(TestContext context) {
-    logger.info("Redirect test starting");
     async = context.async();
     RestAssuredClient c;
     Response r;
@@ -2566,7 +2530,6 @@ public class ModuleTest {
 
   @Test
   public void testVersion(TestContext context) {
-    logger.info("testVersion starting");
     async = context.async();
     RestAssuredClient c;
     Response r;
@@ -2677,6 +2640,7 @@ public class ModuleTest {
   }
 
   private void undeployFirst(Handler<AsyncResult<Void>> fut) {
+    httpClient = null;
     Set<String> ids = vertx.deploymentIDs();
     Iterator<String> it = ids.iterator();
     if (it.hasNext()) {
@@ -2688,7 +2652,6 @@ public class ModuleTest {
 
   private void undeployFirstAndDeploy(TestContext context, Handler<AsyncResult<String>> fut) {
     async = context.async();
-    httpClient = null;
     undeployFirst(context.asyncAssertSuccess(handler -> {
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
       vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
