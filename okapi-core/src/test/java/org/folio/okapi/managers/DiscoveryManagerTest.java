@@ -1,10 +1,17 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.util.Arrays;
+import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
+import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.service.DeploymentStore;
+import org.folio.okapi.service.ModuleStore;
+import org.folio.okapi.service.impl.DeploymentStoreNull;
 import org.folio.okapi.util.TestBase;
 import org.junit.Assert;
 import org.junit.Test;
@@ -71,4 +78,46 @@ public class DiscoveryManagerTest extends TestBase {
     async.await();
   }
 
+  class ModuleManagerFake extends ModuleManager {
+
+    public ModuleManagerFake(ModuleStore moduleStore) {
+      super(moduleStore);
+    }
+    @Override
+    public Future<ModuleDescriptor> get(String id) {
+      return Future.succeededFuture(null); // null ModuleDescriptor
+    }
+  }
+
+  class DeploymentStoreFake extends DeploymentStoreNull {
+    final DeploymentDescriptor deploymentDescriptor;
+
+    DeploymentStoreFake(DeploymentDescriptor deploymentDescriptor) {
+      this.deploymentDescriptor = deploymentDescriptor;
+    }
+
+    @Override
+    public Future<List<DeploymentDescriptor>> getAll() {
+      return Future.succeededFuture(Arrays.asList(deploymentDescriptor));
+    }
+  }
+  @Test
+  public void restartModules(TestContext context) {
+    DeploymentDescriptor deploymentDescriptor = new DeploymentDescriptor();
+    deploymentDescriptor.setUrl("http://localhost:9231");
+    deploymentDescriptor.setSrvcId("module-1.2.3");
+    deploymentDescriptor.setInstId("123");
+    DeploymentStore deploymentStore = new DeploymentStoreFake(deploymentDescriptor);
+
+    ModuleManager moduleManager = new ModuleManagerFake(null);
+    Future<Void> future = deploymentStore.insert(deploymentDescriptor);
+    future = future.compose(x -> {
+      DiscoveryManager discoveryManager = new DiscoveryManager(deploymentStore);
+      discoveryManager.setModuleManager(moduleManager);
+      return discoveryManager.init(Vertx.vertx())
+          .compose(y -> discoveryManager.restartModules())
+          .compose(y -> discoveryManager.restartModules());
+    });
+    future.onComplete(context.asyncAssertSuccess());
+  }
 }

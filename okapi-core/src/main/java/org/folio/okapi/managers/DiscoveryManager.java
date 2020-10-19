@@ -75,7 +75,15 @@ public class DiscoveryManager implements NodeListener {
     return deploymentStore.getAll().compose(result -> {
       List<Future> futures = new LinkedList<>();
       for (DeploymentDescriptor dd : result) {
-        futures.add(addAndDeploy0(dd));
+        futures.add(deployments.get(dd.getSrvcId(), dd.getInstId()).compose(d -> {
+          if (d == null) {
+            logger.info("Restart: adding {} {}", dd.getSrvcId(), dd.getInstId());
+            return addAndDeploy0(dd);
+          } else {
+            logger.info("Restart: skipping {} {}", dd.getSrvcId(), dd.getInstId());
+            return Future.succeededFuture();
+          }
+        }));
       }
       return CompositeFuture.all(futures).mapEmpty();
     });

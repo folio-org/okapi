@@ -2720,7 +2720,7 @@ public class ModuleTest {
         context.assertTrue(cause.getMessage().contains(
           "password authentication failed for user "),
           cause.getMessage())));
-    async.await(1000);
+    async.await();
   }
 
   @Test
@@ -2729,7 +2729,7 @@ public class ModuleTest {
     conf.remove("postgres_db_init");
     conf.put("mode", "purgedatabase");
     undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await(1000);
+    async.await();
   }
 
   @Test
@@ -2737,15 +2737,15 @@ public class ModuleTest {
     conf.remove("mongo_db_init");
     conf.remove("postgres_db_init");
     undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await(1000);
+    async.await();
 
     conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
     undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await(1000);
+    async.await();
 
     conf.put("okapiVersion", "2.0.0"); // downgrade from 3.0.0 to 2.0.0
     undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await(1000);
+    async.await();
     conf.remove("okapiVersion");
   }
 
