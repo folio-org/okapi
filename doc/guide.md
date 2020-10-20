@@ -2752,8 +2752,9 @@ with a path like in `https://folio.example.com/okapi`.
 is. Defaults to `unix:///var/run/docker.sock`.
 * `dockerRegistries`: List of registries to use for Docker image pull. The
 value is a JSON array of objects where each object may have the following properties
-`username`, `password`, `email`, `serveraddress` and `registry`. The first 4 properties
-are passed as autentication to the Docker registry - refer to
+`username`, `password`, `email`, `serveraddress`, `identitytoken`
+and `registry`. The first 5 properties
+are passed as autentication to the Docker registry if given - refer to
 [Docker Authenticaton](https://docs.docker.com/engine/api/v1.40/#section/Authentication).
 The optional `registry` is a prefix for the image to allow pull from other
 registry than DockerHub. And empty object in the `dockerRegistries` pulls

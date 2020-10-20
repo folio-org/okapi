@@ -256,7 +256,8 @@ public class DockerModuleHandle implements ModuleHandle {
         continue;
       }
       JsonObject authObject = new JsonObject();
-      for (String member : Arrays.asList("username", "password", "email", "serveraddress")) {
+      for (String member : Arrays.asList(
+          "username", "password", "email", "serveraddress", "identitytoken")) {
         String value = registry.getString(member);
         if (value != null) {
           authObject.put(member, value);
