@@ -14,6 +14,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Base64;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.WithAssertions;
@@ -150,6 +151,25 @@ public class DockerModuleHandleTest implements WithAssertions {
     }
   }
 
+  boolean pullImage(TestContext context, Vertx vertx, String host, JsonObject conf) {
+    LaunchDescriptor ld = new LaunchDescriptor();
+    ld.setWaitIterations(2);
+    ld.setDockerImage("folioci/mod-x");
+    ld.setDockerPull(true);
+    Ports ports = new Ports(9232, 9233);
+    DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
+        "mod-users-5.0.0-SNAPSHOT", ports, host,
+        9231, conf);
+    Async async = context.async();
+    AtomicBoolean succeeded = new AtomicBoolean();
+    dh.pullImage().onComplete(done -> {
+      succeeded.set(done.succeeded());
+      async.complete();
+    });
+    async.await();
+    return succeeded.get();
+  }
+
   @Test
   public void testDockerPull(TestContext context) {
     Vertx vertx = Vertx.vertx();
@@ -162,108 +182,33 @@ public class DockerModuleHandleTest implements WithAssertions {
     HttpServer listen = vertx.createHttpServer(so)
         .requestHandler(router)
         .listen(dockerPort, context.asyncAssertSuccess());
-    LaunchDescriptor ld = new LaunchDescriptor();
-    ld.setWaitIterations(2);
-    ld.setDockerImage("folioci/mod-x");
-    ld.setDockerPull(true);
-
-    Ports ports = new Ports(9232, 9233);
-    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + dockerPort);
-
     dockerPullJson = new JsonObject().put("message", "some message");
     dockerPullStatus = 200;
 
-    {
-      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-          "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
-          9231, conf);
-      Async async = context.async();
-      dh.pullImage().onComplete(context.asyncAssertSuccess(x -> {
-        async.complete();
-      }));
-      async.await();
-    }
+    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + dockerPort);
+    context.assertTrue(pullImage(context, vertx, "localhost", conf));
 
     conf.put("dockerRegistries", new JsonArray());
-    {
-      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-          "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
-          9231, conf);
-      Async async = context.async();
-      dh.pullImage().onComplete(context.asyncAssertFailure(x -> {
-        async.complete();
-      }));
-      async.await();
-    }
-
-    conf.put("dockerRegistries", new JsonArray()
-        .add(new JsonObject())
-        .add(new JsonObject().put("username", "x").put("password", "y")));
-    {
-      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-          "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
-          9231, conf);
-      Async async = context.async();
-      dh.pullImage().onComplete(context.asyncAssertSuccess(x -> {
-        async.complete();
-      }));
-      async.await();
-    }
+    context.assertFalse(pullImage(context, vertx, "localhost", conf));
 
     conf.put("dockerRegistries", new JsonArray()
         .addNull()
         .add(new JsonObject().put("username", "x").put("password", "y")));
-    {
-      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-          "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
-          9231, conf);
-      Async async = context.async();
-      dh.pullImage().onComplete(context.asyncAssertFailure(x -> {
-        async.complete();
-      }));
-      async.await();
-    }
+    context.assertFalse(pullImage(context, vertx, "localhost", conf));
 
     conf.put("dockerRegistries", new JsonArray()
         .add(new JsonObject().put("username", "x").put("password", "y"))
         .add(new JsonObject().put("username", "x").put("password", "x"))
         .add(new JsonObject().put("username", "x").put("password", "z")));
-    {
-      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-          "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
-          9231, conf);
-      Async async = context.async();
-      dh.pullImage().onComplete(context.asyncAssertSuccess(x -> {
-        async.complete();
-      }));
-      async.await();
-    }
+    context.assertTrue(pullImage(context, vertx, "localhost", conf));
 
     conf.put("dockerRegistries", new JsonArray()
         .add(new JsonObject().put("registry", "localhost:5000")));
-    {
-      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-          "mod-users-5.0.0-SNAPSHOT", ports, "localhost:5000",
-          9231, conf);
-      Async async = context.async();
-      dh.pullImage().onComplete(context.asyncAssertSuccess(x -> {
-        async.complete();
-      }));
-      async.await();
-    }
+    context.assertTrue(pullImage(context, vertx, "localhost", conf));
 
     conf.put("dockerRegistries", new JsonArray()
         .add(new JsonObject().put("registry", "localhost:5000/")));
-    {
-      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-          "mod-users-5.0.0-SNAPSHOT", ports, "localhost:5000/",
-          9231, conf);
-      Async async = context.async();
-      dh.pullImage().onComplete(context.asyncAssertSuccess(x -> {
-        async.complete();
-      }));
-      async.await();
-    }
+    context.assertTrue(pullImage(context, vertx, "localhost", conf));
 
     listen.close(context.asyncAssertSuccess());
   }
