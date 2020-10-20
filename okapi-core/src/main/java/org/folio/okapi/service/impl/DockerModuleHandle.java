@@ -243,8 +243,8 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   Future<Void> pullImage() {
-    logger.info("pull image {}", image);
     if (dockerRegistries == null) {
+      logger.info("pull image {}", image);
       return postUrlJson("/images/create?fromImage=" + image, null, "pullImage", "")
           .mapEmpty();
     }
@@ -266,7 +266,13 @@ public class DockerModuleHandle implements ModuleHandle {
         if (Boolean.TRUE.equals(x)) {
           return Future.succeededFuture(x);
         }
-        return postUrlJson("/images/create?fromImage=" + image, authObject, "pullImage", "")
+        String prefix = registry.getString("registry", "");
+        if (!prefix.isEmpty() && !prefix.endsWith("/")) {
+          prefix = prefix + "/";
+        }
+        logger.info("pull image {}", prefix + image);
+        return postUrlJson("/images/create?fromImage=" + prefix + image,
+            authObject, "pullImage", "")
             .compose(res -> Future.succeededFuture(Boolean.TRUE),
                 res -> Future.succeededFuture(Boolean.FALSE));
       });
@@ -277,7 +283,7 @@ public class DockerModuleHandle implements ModuleHandle {
   Future<Buffer> postUrlJson(String url, JsonObject auth, String msg, String doc) {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     headers.add("Content-Type", "application/json");
-    if (auth != null) {
+    if (auth != null && auth.size() > 0) {
       headers.add("X-Registry-Auth",
           new String(Base64.getEncoder().encode(auth.encodePrettily().getBytes())));
     }

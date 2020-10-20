@@ -156,9 +156,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     int dockerPort = 9231;
 
     Router router = Router.router(vertx);
-    router.routeWithRegex("/.*").
-
-        handler(this::dockerMockHandle);
+    router.routeWithRegex("/.*").handler(this::dockerMockHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     HttpServer listen = vertx.createHttpServer(so)
@@ -200,7 +198,6 @@ public class DockerModuleHandleTest implements WithAssertions {
 
     conf.put("dockerRegistries", new JsonArray()
         .addNull()
-        .add(new JsonObject())
         .add(new JsonObject().put("username", "x").put("password", "y")));
     {
       DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
@@ -214,7 +211,6 @@ public class DockerModuleHandleTest implements WithAssertions {
     }
 
     conf.put("dockerRegistries", new JsonArray()
-        .add(new JsonObject())
         .add(new JsonObject().put("username", "x").put("password", "y"))
         .add(new JsonObject().put("username", "x").put("password", "x"))
         .add(new JsonObject().put("username", "x").put("password", "z")));
@@ -228,6 +224,33 @@ public class DockerModuleHandleTest implements WithAssertions {
       }));
       async.await();
     }
+
+    conf.put("dockerRegistries", new JsonArray()
+        .add(new JsonObject().put("registry", "localhost:5000")));
+    {
+      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
+          "mod-users-5.0.0-SNAPSHOT", ports, "localhost:5000",
+          9231, conf);
+      Async async = context.async();
+      dh.pullImage().onComplete(context.asyncAssertSuccess(x -> {
+        async.complete();
+      }));
+      async.await();
+    }
+
+    conf.put("dockerRegistries", new JsonArray()
+        .add(new JsonObject().put("registry", "localhost:5000/")));
+    {
+      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
+          "mod-users-5.0.0-SNAPSHOT", ports, "localhost:5000/",
+          9231, conf);
+      Async async = context.async();
+      dh.pullImage().onComplete(context.asyncAssertSuccess(x -> {
+        async.complete();
+      }));
+      async.await();
+    }
+
     listen.close(context.asyncAssertSuccess());
   }
 
