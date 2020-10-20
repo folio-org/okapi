@@ -191,6 +191,16 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
+  public void stop(Promise<Void> promise) {
+    logger.info("stop");
+    Future<Void> future = Future.succeededFuture();
+    if (deploymentManager != null) {
+      future = future.compose(x -> deploymentManager.shutdown());
+    }
+    future.compose(x -> discoveryManager.shutdown()).onComplete(promise::handle);
+  }
+
+  @Override
   public void start(Promise<Void> promise) {
     Future<Void> fut = startDatabases();
     if (initMode == InitMode.NORMAL) {

@@ -50,6 +50,10 @@ public class LockedStringMap {
     return list.size();
   }
 
+  public Future<Void> clear() {
+    return list.clear();
+  }
+
   /**
    * Get value from shared map - primary and secondary level keys.
    * @param k primary-level key
