@@ -197,6 +197,20 @@ public class DockerModuleHandleTest implements WithAssertions {
     }
 
     conf.put("dockerRegistries", new JsonArray()
+        .add(new JsonObject())
+        .add(new JsonObject().put("username", "x").put("password", "y")));
+    {
+      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
+          "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
+          9231, conf);
+      Async async = context.async();
+      dh.pullImage().onComplete(context.asyncAssertSuccess(x -> {
+        async.complete();
+      }));
+      async.await();
+    }
+
+    conf.put("dockerRegistries", new JsonArray()
         .addNull()
         .add(new JsonObject().put("username", "x").put("password", "y")));
     {
