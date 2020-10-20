@@ -2750,6 +2750,9 @@ there happens to be one, Okapi will remove it.  Note that it may end
 with a path like in `https://folio.example.com/okapi`.
 * `dockerUrl`: Tells the Okapi deployment where the Docker Daemon
 is. Defaults to `unix:///var/run/docker.sock`.
+* `dockerRegistries`: List of registries to use for Docker image pull. The
+value is a JSON array of of objects where each object may have the following values
+for docker authentication: `username`, `password`, `email`, `serveraddress`.
 * `containerHost`: Host where containers are running (as seen from Okapi).
 Defaults to `localhost`.
 * `postgres_host` : PostgreSQL host. Defaults to `localhost`.

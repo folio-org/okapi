@@ -6,12 +6,14 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Base64;
 import java.util.function.Supplier;
 import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.WithAssertions;
@@ -74,8 +76,8 @@ public class DockerModuleHandleTest implements WithAssertions {
         "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, conf);
 
     dh.start().onComplete(context.asyncAssertFailure(cause ->
-          context.assertTrue(cause.getMessage().contains("Connection refused"),
-              cause.getMessage())));
+        context.assertTrue(cause.getMessage().contains("Connection refused"),
+            cause.getMessage())));
     dh.stop().onComplete(context.asyncAssertFailure(cause ->
         context.assertTrue(cause.getMessage().contains("Connection refused"),
             cause.getMessage())));
@@ -89,7 +91,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     dh.deleteContainer().onComplete(context.asyncAssertFailure(cause ->
         context.assertTrue(cause.getMessage().contains("Connection refused"),
             cause.getMessage())));
-    }
+  }
 
   @Test
   public void testHostNoExposedPorts(TestContext context) {
@@ -117,6 +119,18 @@ public class DockerModuleHandleTest implements WithAssertions {
 
   private void dockerMockHandle(RoutingContext ctx) {
     if (ctx.request().method().equals(HttpMethod.POST) && ctx.request().path().contains("/images/create")) {
+      String auth = ctx.request().getHeader("X-Registry-Auth");
+      if (auth != null) {
+        JsonObject authObject = new JsonObject(new String(Base64.getDecoder().decode(auth)));
+        String username = authObject.getString("username");
+        String password = authObject.getString("password");
+        if (username == null || !username.equals(password)) {
+          ctx.response().putHeader("Context-Type", "application/json");
+          ctx.response().setStatusCode(500);
+          ctx.response().end("{\"message\": \"unauthorized: incorrect username or password\"}");
+          return;
+        }
+      }
       ctx.response().setStatusCode(dockerPullStatus);
       ctx.response().putHeader("Context-Type", "application/json");
       ctx.response().end(Json.encode(dockerPullJson));
@@ -134,6 +148,87 @@ public class DockerModuleHandleTest implements WithAssertions {
       ctx.response().setStatusCode(dockerEmptyStatus);
       ctx.response().end();
     }
+  }
+
+  @Test
+  public void testDockerPull(TestContext context) {
+    Vertx vertx = Vertx.vertx();
+    int dockerPort = 9231;
+
+    Router router = Router.router(vertx);
+    router.routeWithRegex("/.*").
+
+        handler(this::dockerMockHandle);
+
+    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    HttpServer listen = vertx.createHttpServer(so)
+        .requestHandler(router)
+        .listen(dockerPort, context.asyncAssertSuccess());
+    LaunchDescriptor ld = new LaunchDescriptor();
+    ld.setWaitIterations(2);
+    ld.setDockerImage("folioci/mod-x");
+    ld.setDockerPull(true);
+
+    Ports ports = new Ports(9232, 9233);
+    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + dockerPort);
+
+    dockerPullJson = new JsonObject().put("message", "some message");
+    dockerPullStatus = 200;
+
+    {
+      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
+          "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
+          9231, conf);
+      Async async = context.async();
+      dh.pullImage().onComplete(context.asyncAssertSuccess(x -> {
+        async.complete();
+      }));
+      async.await();
+    }
+
+    conf.put("dockerRegistries", new JsonArray());
+    {
+      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
+          "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
+          9231, conf);
+      Async async = context.async();
+      dh.pullImage().onComplete(context.asyncAssertFailure(x -> {
+        async.complete();
+      }));
+      async.await();
+    }
+
+    conf.put("dockerRegistries", new JsonArray()
+        .addNull()
+        .add(new JsonObject())
+        .add(new JsonObject().put("username", "x").put("password", "y")));
+    {
+      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
+          "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
+          9231, conf);
+      Async async = context.async();
+      dh.pullImage().onComplete(context.asyncAssertFailure(x -> {
+        async.complete();
+      }));
+      async.await();
+    }
+
+    conf.put("dockerRegistries", new JsonArray()
+        .add(new JsonObject())
+        .add(new JsonObject().put("username", "x").put("password", "y"))
+        .add(new JsonObject().put("username", "x").put("password", "x"))
+        .add(new JsonObject().put("username", "x").put("password", "z")));
+    {
+      DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
+          "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
+          9231, conf);
+      Async async = context.async();
+      dh.pullImage().onComplete(context.asyncAssertSuccess(x -> {
+        async.complete();
+      }));
+      async.await();
+    }
+    listen.close(context.asyncAssertSuccess());
   }
 
   @Test
@@ -345,7 +440,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       context.assertTrue(cause.getMessage().startsWith("msg HTTP error 404"),
           cause.getMessage());
       // provoke 404 not found
-      dh.postUrlJson("/version", "msg", "{}").onComplete(context.asyncAssertFailure(cause2 -> {
+      dh.postUrlJson("/version", null, "msg", "{}").onComplete(context.asyncAssertFailure(cause2 -> {
         context.assertTrue(cause2.getMessage().startsWith("msg HTTP error 404"),
             cause2.getMessage());
       }));

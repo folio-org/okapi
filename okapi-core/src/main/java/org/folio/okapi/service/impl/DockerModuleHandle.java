@@ -10,9 +10,12 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -49,6 +52,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private final boolean dockerPull;
   private final HttpClient client;
   private final StringBuilder logBuffer;
+  private final JsonArray dockerRegistries;
   private int logSkip;
   private final String id;
   private final Messages messages = Messages.getInstance();
@@ -56,7 +60,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private String containerId;
   private final SocketAddress socketAddress;
   static final String DEFAULT_DOCKER_URL = "unix:///var/run/docker.sock";
-  static final String DEFAULT_DOCKER_VERSION = "v1.25";
+  static final String DEFAULT_DOCKER_VERSION = "v1.35";
 
   DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
                      String id, Ports ports, String containerHost, int port, JsonObject config,
@@ -84,6 +88,7 @@ public class DockerModuleHandle implements ModuleHandle {
     } else {
       socketAddress = null;
     }
+    dockerRegistries = config.getJsonArray("dockerRegistries");
     tcpPortWaiting = new TcpPortWaiting(vertx, containerHost, port);
     if (desc.getWaitIterations() != null) {
       tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
@@ -237,15 +242,45 @@ public class DockerModuleHandle implements ModuleHandle {
     return getUrl("/images/" + image + "/json");
   }
 
-  private Future<Void> pullImage() {
+  Future<Void> pullImage() {
     logger.info("pull image {}", image);
-    return postUrlJson("/images/create?fromImage=" + image, "pullImage", "")
-        .mapEmpty();
+    if (dockerRegistries == null) {
+      return postUrlJson("/images/create?fromImage=" + image, null, "pullImage", "")
+          .mapEmpty();
+    }
+    logger.info("pull Image using dockerRegistries");
+    Future<Boolean> future = Future.succeededFuture(Boolean.FALSE);
+    for (int i = 0; i < dockerRegistries.size(); i++) {
+      JsonObject registry = dockerRegistries.getJsonObject(i);
+      if (registry == null) {
+        continue;
+      }
+      JsonObject authObject = new JsonObject();
+      for (String member : Arrays.asList("username", "password", "email", "serveraddress")) {
+        String value = registry.getString(member);
+        if (value != null) {
+          authObject.put(member, value);
+        }
+      }
+      future = future.compose(x -> {
+        if (Boolean.TRUE.equals(x)) {
+          return Future.succeededFuture(x);
+        }
+        return postUrlJson("/images/create?fromImage=" + image, authObject, "pullImage", "")
+            .compose(res -> Future.succeededFuture(Boolean.TRUE),
+                res -> Future.succeededFuture(Boolean.FALSE));
+      });
+    }
+    return future.compose(x -> x ? Future.succeededFuture() : Future.failedFuture(""));
   }
 
-  Future<Buffer> postUrlJson(String url, String msg, String doc) {
+  Future<Buffer> postUrlJson(String url, JsonObject auth, String msg, String doc) {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     headers.add("Content-Type", "application/json");
+    if (auth != null) {
+      headers.add("X-Registry-Auth",
+          new String(Base64.getEncoder().encode(auth.encodePrettily().getBytes())));
+    }
     return request(HttpMethod.POST, url, headers, Buffer.buffer(doc)).compose(res -> {
       Promise<Buffer> promise = Promise.promise();
       Buffer body = Buffer.buffer();
@@ -320,7 +355,7 @@ public class DockerModuleHandle implements ModuleHandle {
     logger.info("create container from image {}", image);
 
     String doc = getCreateContainerDoc(exposedPort);
-    return postUrlJson("/containers/create", "createContainer", doc).compose(res -> {
+    return postUrlJson("/containers/create", null,"createContainer", doc).compose(res -> {
       containerId = res.toJsonObject().getString("Id");
       return Future.succeededFuture();
     });
