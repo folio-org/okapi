@@ -2751,12 +2751,14 @@ with a path like in `https://folio.example.com/okapi`.
 * `dockerUrl`: Tells the Okapi deployment where the Docker Daemon
 is. Defaults to `unix:///var/run/docker.sock`.
 * `dockerRegistries`: List of registries to use for Docker image pull. The
-value is a JSON array of of objects where each object may have the following properties
+value is a JSON array of objects where each object may have the following properties
 `username`, `password`, `email`, `serveraddress` and `registry`. The first 4 properties
 are passed as autentication to the Docker registry - refer to
 [Docker Authenticaton](https://docs.docker.com/engine/api/v1.40/#section/Authentication).
 The optional `registry` is a prefix for the image to allow pull from other
-registry than DockerHub.
+registry than DockerHub. And empty object in the `dockerRegistries` pulls
+from DockerHub without authentication. Omitting `dockerRegistries` does
+the same and is the behavior for earlier versions of Okapi as well.
 * `containerHost`: Host where containers are running (as seen from Okapi).
 Defaults to `localhost`.
 * `postgres_host` : PostgreSQL host. Defaults to `localhost`.
