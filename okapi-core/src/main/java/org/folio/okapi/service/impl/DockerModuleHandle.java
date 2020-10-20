@@ -249,7 +249,7 @@ public class DockerModuleHandle implements ModuleHandle {
           .mapEmpty();
     }
     logger.info("pull Image using dockerRegistries");
-    Future<Boolean> future = Future.succeededFuture(Boolean.FALSE);
+    Future<Void> future = Future.failedFuture("");
     for (int i = 0; i < dockerRegistries.size(); i++) {
       JsonObject registry = dockerRegistries.getJsonObject(i);
       if (registry == null) {
@@ -262,22 +262,17 @@ public class DockerModuleHandle implements ModuleHandle {
           authObject.put(member, value);
         }
       }
-      future = future.compose(x -> {
-        if (Boolean.TRUE.equals(x)) {
-          return Future.succeededFuture(x);
-        }
+      future = future.recover(x -> {
         String prefix = registry.getString("registry", "");
         if (!prefix.isEmpty() && !prefix.endsWith("/")) {
           prefix = prefix + "/";
         }
         logger.info("pull image {}", prefix + image);
         return postUrlJson("/images/create?fromImage=" + prefix + image,
-            authObject, "pullImage", "")
-            .compose(res -> Future.succeededFuture(Boolean.TRUE),
-                res -> Future.succeededFuture(Boolean.FALSE));
+            authObject, "pullImage", "").mapEmpty();
       });
     }
-    return future.compose(x -> x ? Future.succeededFuture() : Future.failedFuture(""));
+    return future;
   }
 
   Future<Buffer> postUrlJson(String url, JsonObject auth, String msg, String doc) {
