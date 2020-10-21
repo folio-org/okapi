@@ -276,6 +276,7 @@ public class DepResolution {
       future = future.compose(x -> tmAction(tm, modsAvailable, modsEnabled, tml));
     }
     return future.compose(x -> {
+      upgradeLeafs(modsAvailable, modsEnabled, tml);
       String s = DepResolution.checkAllDependencies(modsEnabled);
       if (!s.isEmpty()) {
         logger.warn("installModules.checkAllDependencies: {}", s);
@@ -317,7 +318,7 @@ public class DepResolution {
     List<String> ret = addModuleDependencies(modsAvailable.get(id), modsAvailable,
         modsEnabled, tml);
     if (ret.isEmpty()) {
-      upgradeLeafs(modsAvailable.get(id), modsAvailable, modsEnabled, tml);
+      // upgradeLeafs(modsAvailable.get(id), modsAvailable, modsEnabled, tml);
       return Future.succeededFuture();
     }
     return Future.failedFuture(new OkapiError(ErrorType.USER, "enable " + id
@@ -424,9 +425,9 @@ public class DepResolution {
    */
   private static Boolean checkInterfaceDepAlreadyEnabled(
       Map<String, ModuleDescriptor> modsEnabled, InterfaceDescriptor req) {
+
     Boolean exist = null;
-    for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
-      ModuleDescriptor md = entry.getValue();
+    for (ModuleDescriptor md : modsEnabled.values()) {
       for (InterfaceDescriptor pi : md.getProvidesList()) {
         if (pi.isRegularHandler() && pi.getId().equals(req.getId())) {
           if (pi.isCompatible(req)) {
@@ -523,10 +524,49 @@ public class DepResolution {
         }
       }
       if (mdTo != null) {
+        logger.info("updateLeafs calling addModuleDependencies md={}", mdTo.getId());
         addModuleDependencies(mdTo, modsAvailable, modsEnabled, tml);
         it = modsEnabled.values().iterator();
       }
     }
+  }
+
+  private static void upgradeLeafs(
+      Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
+    while (true) {
+      List<String> ret = upgradeLeafs2(modsAvailable, modsEnabled, tml);
+      if (ret == null) { // nothing done
+        return;
+      }
+      if (!ret.isEmpty()) { // error
+        return;
+      }
+      // something upgraded.. try again
+    }
+  }
+
+  private static List<String> upgradeLeafs2(
+      Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
+
+    for (ModuleDescriptor md : modsEnabled.values()) {
+      for (ModuleDescriptor me : modsEnabled.values()) {
+        ModuleDescriptor mdTo = null;
+        for (InterfaceDescriptor prov : md.getProvidesList()) {
+          for (InterfaceDescriptor req : me.getRequiresOptionalList()) {
+            if (prov.getId().equals(req.getId()) && !prov.isCompatible(req)) {
+              mdTo = lookupAvailableForProvided(modsAvailable, me, prov, mdTo);
+            }
+          }
+        }
+        if (mdTo != null) {
+          logger.info("updateLeafs calling addModuleDependencies md={}", mdTo.getId());
+          return addModuleDependencies(mdTo, modsAvailable, modsEnabled, tml);
+        }
+      }
+    }
+    return null;
   }
 
   private static ModuleDescriptor lookupAvailableForProvided(
