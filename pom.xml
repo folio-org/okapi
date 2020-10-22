@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>3.1.5-SNAPSHOT</version>
+  <version>3.1.5</version>
   <name>okapi</name>
 
   <modules>
@@ -256,7 +256,7 @@
     <url>https://github.com/folio-org/okapi</url>
     <connection>scm:git:git://github.com/folio-org/okapi.git</connection>
     <developerConnection>scm:git:git@github.com:folio-org/okapi.git</developerConnection>
-    <tag>v3.1.0</tag>
+    <tag>v3.1.5</tag>
   </scm>
 
   <repositories>
