@@ -191,6 +191,9 @@ public class DockerModuleHandleTest implements WithAssertions {
     conf.put("dockerRegistries", new JsonArray());
     context.assertFalse(pullImage(context, vertx, "localhost", conf));
 
+    conf.put("dockerRegistries", new JsonArray().add(new JsonObject()));
+    context.assertTrue(pullImage(context, vertx, "localhost", conf));
+
     conf.put("dockerRegistries", new JsonArray()
         .addNull()
         .add(new JsonObject().put("username", "x").put("password", "y")));
