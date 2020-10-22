@@ -508,19 +508,12 @@ public class DepResolution {
   private static void upgradeLeafs(
       Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
-    while (true) {
-      List<String> ret = upgradeLeafs2(modsAvailable, modsEnabled, tml);
-      if (ret == null) { // nothing done
-        return;
-      }
-      if (!ret.isEmpty()) { // error
-        return;
-      }
+    while (upgradeLeafs2(modsAvailable, modsEnabled, tml)) {
       // something upgraded.. try again
     }
   }
 
-  private static List<String> upgradeLeafs2(
+  private static boolean upgradeLeafs2(
       Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
 
@@ -535,12 +528,11 @@ public class DepResolution {
           }
         }
         if (mdTo != null) {
-          logger.info("updateLeafs calling addModuleDependencies md={}", mdTo.getId());
-          return addModuleDependencies(mdTo, modsAvailable, modsEnabled, tml);
+          return addModuleDependencies(mdTo, modsAvailable, modsEnabled, tml).isEmpty();
         }
       }
     }
-    return null;
+    return false;
   }
 
   private static ModuleDescriptor lookupAvailableForProvided(
