@@ -84,6 +84,7 @@ public class DepResolutionTest {
     mdDA200 = new ModuleDescriptor();
     mdDA200.setId("moduleDA-2.0.0");
     mdDA200.setOptional(int20a);
+    mdDA200.setRequires(new InterfaceDescriptor[] {new InterfaceDescriptor("unknown-interface", "2.0")});
 
     mdE100 = new ModuleDescriptor();
     mdE100.setId("moduleE-1.0.0");
@@ -479,6 +480,40 @@ public class DepResolutionTest {
       context.assertEquals("enable", tml.get(1).getAction().name());
       async.complete();
     });
+  }
+
+  // upgrade base dependency and pull in module with unknown interface (results in error)
+  @Test
+  public void testInstallMajorBaseError(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA110.getId(), mdA110);
+    modsAvailable.put(mdA200.getId(), mdA200);
+    modsAvailable.put(mdD100.getId(), mdD100);
+    modsAvailable.put(mdD110.getId(), mdD110);
+
+    ModuleDescriptor mdD200F = new ModuleDescriptor();
+    mdD200F.setId(mdD200.getId());
+    mdD200F.setOptional(mdD200.getOptional());
+    mdD200F.setRequires(new InterfaceDescriptor[]{new InterfaceDescriptor("unknown", "2.0")});
+    modsAvailable.put(mdD200F.getId(), mdD200F);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+    modsEnabled.put(mdD100.getId(), mdD100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdA200.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(context.asyncAssertFailure(res -> {
+      context.assertEquals("Incompatible version for module moduleD-1.0.0 interface int. Need 1.0. Have 2.0/moduleA-2.0.0", res.getMessage());
+      async.complete();
+    }));
   }
 
   // upgrade optional dependency which require upgrading base dependency
@@ -1020,8 +1055,6 @@ public class DepResolutionTest {
 
   @Test
   public void testOkapi925(TestContext context) {
-    Async async = context.async();
-
     InterfaceDescriptor ont10 = new InterfaceDescriptor("ont", "1.0");
     InterfaceDescriptor int10 = new InterfaceDescriptor("int", "1.0");
     InterfaceDescriptor int20 = new InterfaceDescriptor("int", "2.0");
@@ -1058,30 +1091,58 @@ public class DepResolutionTest {
     modsAvailable.put(ot102.getId(), ot102);
     modsAvailable.put(p100.getId(), p100);
 
-    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
-    modsEnabled.put(ot100.getId(), ot100);
-    modsEnabled.put(st100.getId(), st100);
 
-    List<TenantModuleDescriptor> tml = new LinkedList<>();
-    TenantModuleDescriptor tm = new TenantModuleDescriptor();
-    tm.setAction(TenantModuleDescriptor.Action.enable);
-    tm.setId(st101.getId());
-    tml.add(tm);
-    tm = new TenantModuleDescriptor();
-    tm.setAction(TenantModuleDescriptor.Action.enable);
-    tm.setId(ot101.getId());
-    tml.add(tm);
+    {
+      Async async = context.async();
+      Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+      modsEnabled.put(ot100.getId(), ot100);
+      modsEnabled.put(st100.getId(), st100);
+      List<TenantModuleDescriptor> tml = new LinkedList<>();
+      TenantModuleDescriptor tm = new TenantModuleDescriptor();
+      tm.setAction(TenantModuleDescriptor.Action.enable);
+      tm.setId(st101.getId());
+      tml.add(tm);
+      tm = new TenantModuleDescriptor();
+      tm.setAction(TenantModuleDescriptor.Action.enable);
+      tm.setId(ot101.getId());
+      tml.add(tm);
+      DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(context.asyncAssertSuccess(res -> {
+        context.assertEquals(2, tml.size());
+        context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(0).getAction());
+        context.assertEquals("st-1.0.1", tml.get(0).getId());
+        context.assertEquals("st-1.0.0", tml.get(0).getFrom());
+        context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(1).getAction());
+        context.assertEquals("ot-1.0.1", tml.get(1).getId());
+        context.assertEquals("ot-1.0.0", tml.get(1).getFrom());
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(context.asyncAssertSuccess(res -> {
-      context.assertEquals(2, tml.size());
-      context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(0).getAction());
-      context.assertEquals("st-1.0.1", tml.get(0).getId());
-      context.assertEquals("st-1.0.0", tml.get(0).getFrom());
-      context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(1).getAction());
-      context.assertEquals("ot-1.0.1", tml.get(1).getId());
-      context.assertEquals("ot-1.0.0", tml.get(1).getFrom());
+        async.complete();
+      }));
+    }
+    {
+      Async async = context.async();
+      Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+      modsEnabled.put(ot100.getId(), ot100);
+      modsEnabled.put(st100.getId(), st100);
+      List<TenantModuleDescriptor> tml = new LinkedList<>();
+      TenantModuleDescriptor tm = new TenantModuleDescriptor();
+      tm.setAction(TenantModuleDescriptor.Action.enable);
+      tm.setId(st101.getId());
+      tml.add(tm);
+      DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(context.asyncAssertSuccess(res -> {
+        logger.info("result = {}", Json.encodePrettily(tml));
+        context.assertEquals(3, tml.size());
+        context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(0).getAction());
+        context.assertEquals("st-1.0.1", tml.get(0).getId());
+        context.assertEquals("st-1.0.0", tml.get(0).getFrom());
+        context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(1).getAction());
+        context.assertEquals("p-1.0.0", tml.get(1).getId());
+        context.assertEquals(null, tml.get(1).getFrom());
+        context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(2).getAction());
+        context.assertEquals("ot-1.0.2", tml.get(2).getId());
+        context.assertEquals("ot-1.0.0", tml.get(2).getFrom());
 
-      async.complete();
-    }));
+        async.complete();
+      }));
+    }
   }
 }
