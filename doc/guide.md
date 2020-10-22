@@ -2802,7 +2802,6 @@ These options are at the end of the command line:
 * `-hazelcast-config-cp` _file_ -- Read Hazelcast config from class path
 * `-hazelcast-config-file` _file_ -- Read Hazelcast config from local file
 * `-hazelcast-config-url` _url_ -- Read Hazelcast config from URL
-* `-enable-metrics` -- Enables the sending of various metrics to InfluxDB
 * `-cluster-host` _ip_ -- Vertx cluster host
 * `-cluster-port` _port_ -- Vertx cluster port
 
@@ -3050,23 +3049,18 @@ Use `modulePermissions` to grant permissions for the token.
 
 ### Instrumentation
 
-Okapi pushes instrumentation data to an InfluxDB backend, from which
-they can be shown with something like Grafana. Vert.x pushes some numbers
-automatically, but various parts of Okapi push their own numbers explicitly,
-so we can classify by tenant or module. Individual
-modules may push their own numbers as well, as needed. It is hoped that they
-will use a key naming scheme that is close to what we do in Okapi.
+Okapi uses Micrometer to managing metrics and reporting to backends. To enable it,
+add Java parameter `-Dvertx.metrics.options.enabled=true` first.
 
-Enabling the metrics via `-enable-metrics` will start sending metrics to `localhost:8086`
+More Java parameters are needed to config which backends to use
+* `-DinfluxDbOptions='{"uri": "http://localhost:8086", "db":"okapi"}'` - Send metrics to InfluxDB
+* `-DprometheusOptions='{"embeddedServerOptions": {"port": 9930}}'` - Expose `<server>:9930/metrics` for Prometheus
+* `-DjmxMetricsOptions='{"domain": "org.folio.metrics"}'` - JMX
 
-Follwing Java parameters can be used to config InfluxDB connection.
-* `influxUrl` - default to `http://localhost:8086`
-* `influxDbName` - default to `okapi`
-* `influxUser` - default to null
-* `influxPassword` - default to null
+Another Java parameter can be used to filter metrics
+* `-DmetricsPrefixFilter=org.folio` - Will only report metrics with name starting `org.folio`
 
-For example: `java -DinfluxUrl=http://influx.yourdomain.io:8086 -jar okapi-core/target/okapi-core-fat.jar dev -enable-metrics` then metrics
-will be sent to `http://influx.yourdomain.io:8086`
+A full example: `java -Dvertx.metrics.options.enabled=true -DmetricsPrefixFilter=org.folio -DinfluxDbOptions='{"uri": "http://localhost:8086", "db":"okapi"}' -DprometheusOptions='{"embeddedServerOptions": {"port": 9930}}' -DjmxMetricsOptions='{"domain": "org.folio"}' -jar okapi-core/target/okapi-core-fat.jar dev`
 
 ## Module Reference
 
