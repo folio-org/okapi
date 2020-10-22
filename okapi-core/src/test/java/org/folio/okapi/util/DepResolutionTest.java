@@ -1018,4 +1018,70 @@ public class DepResolutionTest {
     }
   }
 
+  @Test
+  public void testOkapi925(TestContext context) {
+    Async async = context.async();
+
+    InterfaceDescriptor ont10 = new InterfaceDescriptor("ont", "1.0");
+    InterfaceDescriptor int10 = new InterfaceDescriptor("int", "1.0");
+    InterfaceDescriptor int20 = new InterfaceDescriptor("int", "2.0");
+
+    ModuleDescriptor st100 = new ModuleDescriptor();
+    st100.setId("st-1.0.0");
+    st100.setProvides(new InterfaceDescriptor[]{int10});
+
+    ModuleDescriptor st101 = new ModuleDescriptor();
+    st101.setId("st-1.0.1");
+    st101.setProvides(new InterfaceDescriptor[]{int20});
+
+    ModuleDescriptor ot100 = new ModuleDescriptor();
+    ot100.setId("ot-1.0.0");
+    ot100.setRequires(new InterfaceDescriptor[] {int10});
+
+    ModuleDescriptor ot101 = new ModuleDescriptor();
+    ot101.setId("ot-1.0.1");
+    ot101.setRequires(new InterfaceDescriptor[] {int20});
+
+    ModuleDescriptor ot102 = new ModuleDescriptor();
+    ot102.setId("ot-1.0.2");
+    ot102.setRequires(new InterfaceDescriptor[] {int20, ont10});
+
+    ModuleDescriptor p100 = new ModuleDescriptor();
+    p100.setId("p-1.0.0");
+    p100.setProvides(new InterfaceDescriptor[]{ont10});
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(st100.getId(), st100);
+    modsAvailable.put(st101.getId(), st101);
+    modsAvailable.put(ot100.getId(), ot100);
+    modsAvailable.put(ot101.getId(), ot101);
+    modsAvailable.put(ot102.getId(), ot102);
+    modsAvailable.put(p100.getId(), p100);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(ot100.getId(), ot100);
+    modsEnabled.put(st100.getId(), st100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(st101.getId());
+    tml.add(tm);
+    tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(ot101.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(context.asyncAssertSuccess(res -> {
+      context.assertEquals(2, tml.size());
+      context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(0).getAction());
+      context.assertEquals("st-1.0.1", tml.get(0).getId());
+      context.assertEquals("st-1.0.0", tml.get(0).getFrom());
+      context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(1).getAction());
+      context.assertEquals("ot-1.0.1", tml.get(1).getId());
+      context.assertEquals("ot-1.0.0", tml.get(1).getFrom());
+
+      async.complete();
+    }));
+  }
 }

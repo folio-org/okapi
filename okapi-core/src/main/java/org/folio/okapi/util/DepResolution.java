@@ -318,7 +318,6 @@ public class DepResolution {
     List<String> ret = addModuleDependencies(modsAvailable.get(id), modsAvailable,
         modsEnabled, tml);
     if (ret.isEmpty()) {
-      // upgradeLeafs(modsAvailable.get(id), modsAvailable, modsEnabled, tml);
       return Future.succeededFuture();
     }
     return Future.failedFuture(new OkapiError(ErrorType.USER, "enable " + id
@@ -480,7 +479,7 @@ public class DepResolution {
 
   private static void addOrReplace(List<TenantModuleDescriptor> tml, ModuleDescriptor md,
                                    TenantModuleDescriptor.Action action, ModuleDescriptor fm) {
-    logger.info("addOrReplace id {}", md.getId());
+    logger.info("addOrReplace from {} to id {}", fm != null ? fm.getId() : "null", md.getId());
     Iterator<TenantModuleDescriptor> it = tml.iterator();
     boolean found = false;
     while (it.hasNext()) {
@@ -504,31 +503,6 @@ public class DepResolution {
       t.setFrom(fm.getId());
     }
     tml.add(t);
-  }
-
-  private static void upgradeLeafs(
-      ModuleDescriptor md, Map<String, ModuleDescriptor> modsAvailable,
-      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
-    Iterator<ModuleDescriptor> it = modsEnabled.values().iterator();
-    while (it.hasNext()) {
-      ModuleDescriptor me = it.next();
-      if (me.equals(md)) {
-        continue;
-      }
-      ModuleDescriptor mdTo = null;
-      for (InterfaceDescriptor prov : md.getProvidesList()) {
-        for (InterfaceDescriptor req : me.getRequiresOptionalList()) {
-          if (prov.getId().equals(req.getId()) && !prov.isCompatible(req)) {
-            mdTo = lookupAvailableForProvided(modsAvailable, me, prov, mdTo);
-          }
-        }
-      }
-      if (mdTo != null) {
-        logger.info("updateLeafs calling addModuleDependencies md={}", mdTo.getId());
-        addModuleDependencies(mdTo, modsAvailable, modsEnabled, tml);
-        it = modsEnabled.values().iterator();
-      }
-    }
   }
 
   private static void upgradeLeafs(
