@@ -1,3 +1,7 @@
+## 3.1.5 2020-10-22
+
+ * [OKAPI-925](https://issues.folio.org/browse/OKAPI-925) Fix install does not honor explicit dependencies
+
 ## 3.1.4 2020-10-12
 
 This is a special release that makes Okapi check for working event bus
