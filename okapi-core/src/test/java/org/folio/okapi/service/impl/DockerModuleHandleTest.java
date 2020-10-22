@@ -117,9 +117,11 @@ public class DockerModuleHandleTest implements WithAssertions {
   private String dockerMockText = null;
   private int dockerPullStatus = 500;
   private JsonObject dockerPullJson = null;
+  private String lastFromImage = null;
 
   private void dockerMockHandle(RoutingContext ctx) {
     if (ctx.request().method().equals(HttpMethod.POST) && ctx.request().path().contains("/images/create")) {
+      lastFromImage = ctx.request().getParam("fromImage");
       String auth = ctx.request().getHeader("X-Registry-Auth");
       if (auth != null) {
         JsonObject authObject = new JsonObject(new String(Base64.getDecoder().decode(auth)));
@@ -151,14 +153,14 @@ public class DockerModuleHandleTest implements WithAssertions {
     }
   }
 
-  boolean pullImage(TestContext context, Vertx vertx, String host, JsonObject conf) {
+  boolean pullImage(TestContext context, Vertx vertx, JsonObject conf) {
     LaunchDescriptor ld = new LaunchDescriptor();
     ld.setWaitIterations(2);
     ld.setDockerImage("folioci/mod-x");
     ld.setDockerPull(true);
     Ports ports = new Ports(9232, 9233);
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-        "mod-users-5.0.0-SNAPSHOT", ports, host,
+        "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
         9231, conf);
     Async async = context.async();
     AtomicBoolean succeeded = new AtomicBoolean();
@@ -173,7 +175,7 @@ public class DockerModuleHandleTest implements WithAssertions {
   @Test
   public void testDockerPull(TestContext context) {
     Vertx vertx = Vertx.vertx();
-    int dockerPort = 9231;
+    int mockDockerPort = 9231;
 
     Router router = Router.router(vertx);
     router.routeWithRegex("/.*").handler(this::dockerMockHandle);
@@ -181,37 +183,40 @@ public class DockerModuleHandleTest implements WithAssertions {
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     HttpServer listen = vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(dockerPort, context.asyncAssertSuccess());
+        .listen(mockDockerPort, context.asyncAssertSuccess());
     dockerPullJson = new JsonObject().put("message", "some message");
     dockerPullStatus = 200;
 
-    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + dockerPort);
-    context.assertTrue(pullImage(context, vertx, "localhost", conf));
+    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + mockDockerPort);
+    context.assertTrue(pullImage(context, vertx, conf));
 
     conf.put("dockerRegistries", new JsonArray());
-    context.assertFalse(pullImage(context, vertx, "localhost", conf));
+    context.assertFalse(pullImage(context, vertx, conf));
 
     conf.put("dockerRegistries", new JsonArray().add(new JsonObject()));
-    context.assertTrue(pullImage(context, vertx, "localhost", conf));
+    context.assertTrue(pullImage(context, vertx, conf));
 
     conf.put("dockerRegistries", new JsonArray()
         .addNull()
         .add(new JsonObject().put("username", "x").put("password", "y")));
-    context.assertFalse(pullImage(context, vertx, "localhost", conf));
+    context.assertFalse(pullImage(context, vertx, conf));
 
     conf.put("dockerRegistries", new JsonArray()
         .add(new JsonObject().put("username", "x").put("password", "y"))
         .add(new JsonObject().put("username", "x").put("password", "x"))
         .add(new JsonObject().put("username", "x").put("password", "z")));
-    context.assertTrue(pullImage(context, vertx, "localhost", conf));
+    context.assertTrue(pullImage(context, vertx, conf));
+    context.assertEquals("folioci/mod-x", lastFromImage);
 
     conf.put("dockerRegistries", new JsonArray()
         .add(new JsonObject().put("registry", "localhost:5000")));
-    context.assertTrue(pullImage(context, vertx, "localhost", conf));
+    context.assertTrue(pullImage(context, vertx, conf));
+    context.assertEquals("localhost:5000/folioci/mod-x", lastFromImage);
 
     conf.put("dockerRegistries", new JsonArray()
         .add(new JsonObject().put("registry", "localhost:5000/")));
-    context.assertTrue(pullImage(context, vertx, "localhost", conf));
+    context.assertTrue(pullImage(context, vertx, conf));
+    context.assertEquals("localhost:5000/folioci/mod-x", lastFromImage);
 
     listen.close(context.asyncAssertSuccess());
   }
@@ -219,14 +224,14 @@ public class DockerModuleHandleTest implements WithAssertions {
   @Test
   public void testDockerMock(TestContext context) {
     Vertx vertx = Vertx.vertx();
-    int dockerPort = 9231;
+    int mockDockerPort = 9231;
 
     Router router = Router.router(vertx);
     router.routeWithRegex("/.*").handler(this::dockerMockHandle);
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     HttpServer listen = vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(dockerPort, context.asyncAssertSuccess());
+        .listen(mockDockerPort, context.asyncAssertSuccess());
 
     LaunchDescriptor ld = new LaunchDescriptor();
     ld.setWaitIterations(2);
@@ -244,7 +249,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     String []cmd = {"command"};
     ld.setDockerCmd(cmd);
     Ports ports = new Ports(9232, 9233);
-    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + dockerPort);
+    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + mockDockerPort);
 
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
         "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
@@ -403,33 +408,54 @@ public class DockerModuleHandleTest implements WithAssertions {
     // native transport = call docker via unix domain socket
     Vertx vertx = Vertx.vertx(new VertxOptions().setPreferNativeTransport(true));
     LaunchDescriptor ld = new LaunchDescriptor();
+    ld.setDockerImage("folioci/mod-users:5.0.0-SNAPSHOT");
+    JsonObject conf = new JsonObject();
+    // tell local Docker to use registry on non-listening port
+    conf.put("dockerRegistries", new JsonArray().add(new JsonObject().put("registry", "localhost:9231")));
     Ports ports = new Ports(9232, 9233);
 
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-        "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, new JsonObject());
+        "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, conf);
 
     JsonObject versionRes = new JsonObject();
-    Async async = context.async();
-    dh.getUrl("/version").onComplete(res -> {
-      if (res.succeeded()) {
-        versionRes.put("result", res.result());
-      }
-      async.complete();
-    });
-    async.await();
+    {
+      Async async = context.async();
+      dh.getUrl("/version").onComplete(res -> {
+        if (res.succeeded()) {
+          versionRes.put("result", res.result());
+        }
+        async.complete();
+      });
+      async.await();
+    }
     Assume.assumeTrue(versionRes.containsKey("result"));
     context.assertTrue(versionRes.getJsonObject("result").containsKey("Version"));
 
-    // provoke 404 not found
-    dh.deleteUrl("/version", "msg").onComplete(context.asyncAssertFailure(cause -> {
-      context.assertTrue(cause.getMessage().startsWith("msg HTTP error 404"),
-          cause.getMessage());
+    {
+      Async async = context.async();
       // provoke 404 not found
-      dh.postUrlJson("/version", null, "msg", "{}").onComplete(context.asyncAssertFailure(cause2 -> {
-        context.assertTrue(cause2.getMessage().startsWith("msg HTTP error 404"),
-            cause2.getMessage());
+      dh.deleteUrl("/version", "msg").onComplete(context.asyncAssertFailure(cause -> {
+        context.assertTrue(cause.getMessage().startsWith("msg HTTP error 404"),
+            cause.getMessage());
+        // provoke 404 not found
+        dh.postUrlJson("/version", null, "msg", "{}").onComplete(context.asyncAssertFailure(cause2 -> {
+          context.assertTrue(cause2.getMessage().startsWith("msg HTTP error 404"),
+              cause2.getMessage());
+          async.complete();
+        }));
       }));
-    }));
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      dh.pullImage().onComplete(context.asyncAssertFailure(res -> {
+        context.assertTrue(res.getMessage().contains("9231: connect: connection refused"), res.getMessage());
+        async.complete();
+      }));
+      async.await();
+    }
+
   }
 
   @Test
