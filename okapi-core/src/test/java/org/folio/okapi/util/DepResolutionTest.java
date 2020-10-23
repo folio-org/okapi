@@ -865,6 +865,7 @@ public class DepResolutionTest {
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
     modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA110.getId(), mdA110);
     modsAvailable.put(mdB.getId(), mdB);
     modsAvailable.put(mdE100.getId(), mdE100);
     mdB.setReplaces(new String[]{mdA100.getProduct()});
@@ -879,6 +880,10 @@ public class DepResolutionTest {
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(0).getAction());
+      context.assertEquals("moduleB-1.0.0", tml.get(0).getId());
+      context.assertEquals("moduleE-1.0.0", tml.get(1).getId());
       async.complete();
     });
   }
@@ -889,6 +894,7 @@ public class DepResolutionTest {
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
     modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA110.getId(), mdA110);
     modsAvailable.put(mdB.getId(), mdB);
     modsAvailable.put(mdC.getId(), mdC);
     modsAvailable.put(mdE100.getId(), mdE100);
@@ -905,6 +911,10 @@ public class DepResolutionTest {
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(0).getAction());
+      context.assertEquals("moduleC-1.0.0", tml.get(0).getId());
+      context.assertEquals("moduleE-1.0.0", tml.get(1).getId());
       async.complete();
     });
   }
@@ -1050,6 +1060,82 @@ public class DepResolutionTest {
       available.put(mdD.getId(), mdD);
 
       Assert.assertEquals("", DepResolution.checkAllDependencies(available));
+    }
+  }
+
+  @Test
+  public void testPatch(TestContext context) {
+    InterfaceDescriptor int10 = new InterfaceDescriptor("int", "1.0");
+    InterfaceDescriptor int20 = new InterfaceDescriptor("int", "2.0");
+
+    ModuleDescriptor st100 = new ModuleDescriptor();
+    st100.setId("st-1.0.0");
+    st100.setProvides(new InterfaceDescriptor[]{int10});
+
+    ModuleDescriptor st101 = new ModuleDescriptor();
+    st101.setId("st-1.0.1");
+    st101.setProvides(new InterfaceDescriptor[]{int20});
+
+    ModuleDescriptor ot100 = new ModuleDescriptor();
+    ot100.setId("ot-1.0.0");
+    ot100.setRequires(new InterfaceDescriptor[] {int10});
+
+    ModuleDescriptor ot101 = new ModuleDescriptor();
+    ot101.setId("ot-1.0.1");
+    ot101.setRequires(new InterfaceDescriptor[] {int20});
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(st100.getId(), st100);
+    modsAvailable.put(st101.getId(), st101);
+    modsAvailable.put(ot100.getId(), ot100);
+    modsAvailable.put(ot101.getId(), ot101);
+
+    // patch to higher version
+    {
+      Async async = context.async();
+      Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+      List<TenantModuleDescriptor> tml = new LinkedList<>();
+      TenantModuleDescriptor tm = new TenantModuleDescriptor();
+      tm.setAction(TenantModuleDescriptor.Action.enable);
+      tm.setId(ot100.getId());
+      tml.add(tm);
+      tm = new TenantModuleDescriptor();
+      tm.setAction(TenantModuleDescriptor.Action.enable);
+      tm.setId(st101.getId());
+      tml.add(tm);
+      DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(context.asyncAssertSuccess(res -> {
+        logger.debug("tml result {}", Json.encodePrettily(tml));
+        context.assertEquals(2, tml.size());
+        context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(0).getAction());
+        context.assertEquals("st-1.0.1", tml.get(0).getId());
+        context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(1).getAction());
+        context.assertEquals("ot-1.0.1", tml.get(1).getId());
+        async.complete();
+      }));
+    }
+
+    // patch to lower version
+    {
+      Async async = context.async();
+      Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+      List<TenantModuleDescriptor> tml = new LinkedList<>();
+      TenantModuleDescriptor tm = new TenantModuleDescriptor();
+      tm.setAction(TenantModuleDescriptor.Action.enable);
+      tm.setId(ot101.getId());
+      tml.add(tm);
+      tm = new TenantModuleDescriptor();
+      tm.setAction(TenantModuleDescriptor.Action.enable);
+      tm.setId(st100.getId());
+      tml.add(tm);
+      DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(context.asyncAssertSuccess(res -> {
+        logger.debug("tml result {}", Json.encodePrettily(tml));
+        context.assertEquals(2, tml.size());
+        context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(0).getAction());
+        context.assertEquals("st-1.0.0", tml.get(0).getId());
+        context.assertEquals(TenantModuleDescriptor.Action.enable, tml.get(1).getAction());
+        context.assertEquals("ot-1.0.0", tml.get(1).getId());
+        async.complete();
+      }));
     }
   }
 
