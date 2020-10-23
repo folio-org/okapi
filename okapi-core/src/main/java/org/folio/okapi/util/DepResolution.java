@@ -197,7 +197,7 @@ public class DepResolution {
         }
       }
     }
-    return String.join(". ", conflicts);
+    return String.join(" ", conflicts);
   }
 
   private static TenantModuleDescriptor getNextTM(Map<String, ModuleDescriptor> modsEnabled,

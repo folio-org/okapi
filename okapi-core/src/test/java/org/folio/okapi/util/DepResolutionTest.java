@@ -48,15 +48,24 @@ public class DepResolutionTest {
     return map;
   }
 
-  private static List<TenantModuleDescriptor> createList(Action action, ModuleDescriptor... array) {
+  private static List<TenantModuleDescriptor> createList(Action action, boolean product,
+                                                         ModuleDescriptor... array) {
     List<TenantModuleDescriptor> list = new LinkedList<>();
     for (ModuleDescriptor md : array) {
       TenantModuleDescriptor tmd = new TenantModuleDescriptor();
       tmd.setAction(action);
-      tmd.setId(md.getId());
+      if (product) {
+        tmd.setId(md.getProduct());
+      } else {
+        tmd.setId(md.getId());
+      }
       list.add(tmd);
     }
     return list;
+  }
+
+  private static List<TenantModuleDescriptor> createList(Action action, ModuleDescriptor... array) {
+    return createList(action, false, array);
   }
 
   private static List<TenantModuleDescriptor> enableList(ModuleDescriptor... array) {
@@ -493,6 +502,33 @@ public class DepResolutionTest {
   }
 
   @Test
+  public void testInstallNewProduct(TestContext context) {
+    Async async = context.async();
+
+    List<TenantModuleDescriptor> tml = createList(Action.enable, true, mdE100, mdB);
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml).onComplete(res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      assertEnable(tml.get(0), mdB);
+      assertEnable(tml.get(1), mdE100);
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testInstallNewProductNonExisting(TestContext context) {
+    Async async = context.async();
+
+    List<TenantModuleDescriptor> tml = enableList(mdB);
+    DepResolution.installSimulate(map(mdA100), map(), tml).onComplete(res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals("Module moduleB-1.0.0 not found", res.cause().getMessage());
+      async.complete();
+    });
+  }
+
+  @Test
   public void testMultipleInterfacesMatch1(TestContext context) {
     Async async = context.async();
 
@@ -555,7 +591,7 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void testRemoveNonEnabled(TestContext context) {
+  public void testDisableNonEnabled(TestContext context) {
     Async async = context.async();
 
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100);
@@ -567,13 +603,87 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void testRemoveNonExisting(TestContext context) {
+  public void testDisableNonExisting(TestContext context) {
     Async async = context.async();
 
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100);
     DepResolution.installSimulate(map(mdB), map(), tml).onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals("Module moduleA-1.0.0 not found", res.cause().getMessage());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testDisable1(TestContext context) {
+    Async async = context.async();
+
+    List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100);
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml).onComplete(res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      assertDisable(tml.get(0), mdE100);
+      assertDisable(tml.get(1), mdA100);
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testDisableProduct(TestContext context) {
+    Async async = context.async();
+
+    List<TenantModuleDescriptor> tml = createList(Action.disable, true, mdA100);
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml).onComplete(res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      assertDisable(tml.get(0), mdE100);
+      assertDisable(tml.get(1), mdA100);
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testDisable2(TestContext context) {
+    Async async = context.async();
+
+    List<TenantModuleDescriptor> tml = createList(Action.disable, mdE100, mdA100);
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml).onComplete(res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      assertDisable(tml.get(0), mdE100);
+      assertDisable(tml.get(1), mdA100);
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testDisable3(TestContext context) {
+    Async async = context.async();
+
+    List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100, mdE100);
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml).onComplete(res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      assertDisable(tml.get(0), mdE100);
+      assertDisable(tml.get(1), mdA100);
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testUptodate(TestContext context) {
+    Async async = context.async();
+
+    List<TenantModuleDescriptor> tml = createList(Action.uptodate, mdA100);
+    DepResolution.installSimulate(map(mdA100), map(mdA100), tml).onComplete(res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(1, tml.size());
+      assertUptodate(tml.get(0), mdA100);
       async.complete();
     });
   }
@@ -753,5 +863,15 @@ public class DepResolutionTest {
         async.complete();
       }));
     }
+  }
+
+  @Test
+  public void testCheckAllConflicts() {
+    Assert.assertEquals("", DepResolution.checkAllConflicts(map(mdA100, mdE100)));
+    Assert.assertEquals("Interface int is provided by moduleA-1.0.0 and moduleA-1.1.0.",
+        DepResolution.checkAllConflicts(map(mdA100, mdA110)));
+    Assert.assertEquals("Interface int is provided by moduleA-1.0.0 and moduleA-1.1.0. "
+            +"Interface int is provided by moduleA-2.0.0 and moduleA-1.1.0.",
+        DepResolution.checkAllConflicts(map(mdA100, mdA110, mdA200)));
   }
 }
