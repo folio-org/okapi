@@ -876,15 +876,23 @@ public class TenantManager {
           } else {
             future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
           }
+          future = future.compose(x -> {
+            if (tm.getMessage() != null) {
+              return Future.succeededFuture();
+            }
+            tm.setStage(TenantModuleDescriptor.Stage.done);
+            return jobs.put(t.getId(), job.getId(), job);
+          });
         }
         if (options.getDeploy()) {
           future.compose(x -> autoUndeploy(t, job, modsAvailable, tml));
         }
         for (TenantModuleDescriptor tm : tml) {
           future = future.compose(x -> {
-            if (tm.getMessage() == null) {
-              tm.setStage(TenantModuleDescriptor.Stage.done);
+            if (tm.getMessage() != null) {
+              return Future.succeededFuture();
             }
+            tm.setStage(TenantModuleDescriptor.Stage.done);
             return jobs.put(t.getId(), job.getId(), job);
           });
         }
