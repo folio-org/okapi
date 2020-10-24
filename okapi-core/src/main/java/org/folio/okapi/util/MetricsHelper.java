@@ -1,21 +1,31 @@
 package org.folio.okapi.util;
 
+import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Timer.Sample;
+import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics;
+import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
+import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics;
+import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
+import io.micrometer.core.instrument.config.MeterFilter;
+import io.micrometer.influx.InfluxMeterRegistry;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.JsonObject;
 import io.vertx.micrometer.MicrometerMetricsOptions;
 import io.vertx.micrometer.VertxInfluxDbOptions;
-import io.vertx.micrometer.backends.BackendRegistries;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import io.vertx.micrometer.VertxJmxMetricsOptions;
+import io.vertx.micrometer.VertxPrometheusOptions;
+import io.vertx.micrometer.backends.JmxBackendRegistry;
+import io.vertx.micrometer.backends.PrometheusBackendRegistry;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.OkapiLogger;
@@ -25,9 +35,10 @@ import org.folio.okapi.common.OkapiLogger;
  */
 public class MetricsHelper {
 
-  private static final Logger logger = OkapiLogger.get();
+  private static final Logger logger = OkapiLogger.get(MetricsHelper.class);
 
-  private static final String METRICS_PREFIX = "org.folio.okapi";
+  static final String METRICS_PREFIX = "org.folio.metrics";
+
   private static final String METRICS_HTTP = METRICS_PREFIX + ".http";
   private static final String METRICS_HTTP_SERVER = METRICS_HTTP + ".server";
   private static final String METRICS_HTTP_CLIENT = METRICS_HTTP + ".client";
@@ -55,40 +66,137 @@ public class MetricsHelper {
   private static final String TAG_USERID = "userId";
   private static final String TAG_EMPTY = "null";
 
-  static final String HOST_UNKNOWN = "unknown";
+  static final String ENABLE_METRICS = "vertx.metrics.options.enabled";
+  static final String INFLUX_OPTS = "influxDbOptions";
+  static final String PROMETHEUS_OPTS = "prometheusOptions";
+  static final String JMX_OPTS = "jmxMetricsOptions";
+
+  static final String METRICS_FILTER = "metricsPrefixFilter";
+
+  private static final String HOST_ID = ManagementFactory.getRuntimeMXBean().getName();
 
   private static boolean enabled = false;
-  private static MeterRegistry registry;
+
+  static boolean isEnabled() {
+    return enabled;
+  }
+
+  static void setEnabled(boolean enabled) {
+    MetricsHelper.enabled = enabled;
+  }
+
+  private static CompositeMeterRegistry registry = new CompositeMeterRegistry();
+
+  static CompositeMeterRegistry getRegistry() {
+    return registry;
+  }
+
+  private static JvmGcMetrics jvmGcMetrics;
 
   private MetricsHelper() {
   }
 
   /**
-   * Config metrics options - specifically use InfluxDb micrometer options.
+   * Initialize metrics helper.
    *
-   * @param vertxOptions   - {@link VertxOptions}
-   * @param influxUrl      - default to http://localhost:8086
-   * @param influxDbName   - default to okapi
-   * @param influxUserName - default to null
-   * @param influxPassword - default to null
+   * @param vertxOptions - {@link VertxOptions}
    */
-  public static void config(VertxOptions vertxOptions, String influxUrl,
-      String influxDbName, String influxUserName, String influxPassword) {
-    VertxInfluxDbOptions influxDbOptions = new VertxInfluxDbOptions()
-        .setEnabled(true)
-        .setUri(influxUrl == null ? "http://localhost:8086" : influxUrl)
-        .setDb(influxDbName == null ? "okapi" : influxDbName);
-    if (influxUserName != null) {
-      influxDbOptions.setUserName(influxUserName);
+  public static void init(VertxOptions vertxOptions) {
+
+    if (!"true".equalsIgnoreCase(System.getProperty(ENABLE_METRICS))) {
+      logger.info("Metrics is not enabled");
+      enabled = false;
+      return;
     }
-    logger.info("Influx config: {}", () -> influxDbOptions.toJson().encodePrettily());
-    if (influxPassword != null) {
-      influxDbOptions.setPassword(influxPassword);
+
+    logger.info("Enabling metrics for " + HOST_ID);
+
+    String influxDbOptionsString = System.getProperty(INFLUX_OPTS);
+    if (influxDbOptionsString != null) {
+      VertxInfluxDbOptions influxDbOptions = new VertxInfluxDbOptions()
+          .setEnabled(true);
+      influxDbOptions = new VertxInfluxDbOptions(
+          influxDbOptions.toJson().mergeIn(new JsonObject(influxDbOptionsString), true));
+      InfluxMeterRegistry influxMeterRegistry = new InfluxMeterRegistry(
+          influxDbOptions.toMicrometerConfig(), Clock.SYSTEM);
+      influxMeterRegistry.config().commonTags(TAG_HOST, HOST_ID);
+      registry.add(influxMeterRegistry);
+      logger.info("Added {} for {}", INFLUX_OPTS, HOST_ID);
     }
+
+    String prometheusOptionsString = System.getProperty(PROMETHEUS_OPTS);
+    if (prometheusOptionsString != null) {
+      VertxPrometheusOptions prometheusOptions = new VertxPrometheusOptions()
+          .setEnabled(true)
+          .setStartEmbeddedServer(true)
+          .setEmbeddedServerOptions(new HttpServerOptions().setPort(9930));
+      prometheusOptions = new VertxPrometheusOptions(
+          prometheusOptions.toJson().mergeIn(new JsonObject(prometheusOptionsString), true));
+      PrometheusBackendRegistry prometheusBackendRegistry = new PrometheusBackendRegistry(
+          prometheusOptions);
+      prometheusBackendRegistry.init();
+      registry.add(prometheusBackendRegistry.getMeterRegistry());
+      logger.info("Added {} for {}", PROMETHEUS_OPTS, HOST_ID);
+    }
+
+    String jmxMetricsOptionsString = System.getProperty(JMX_OPTS);
+    if (jmxMetricsOptionsString != null) {
+      VertxJmxMetricsOptions jmxMetricsOptions = new VertxJmxMetricsOptions()
+          .setEnabled(true)
+          .setDomain(METRICS_PREFIX);
+      jmxMetricsOptions = new VertxJmxMetricsOptions(
+          jmxMetricsOptions.toJson().mergeIn(new JsonObject(jmxMetricsOptionsString), true));
+      registry.add(new JmxBackendRegistry(jmxMetricsOptions).getMeterRegistry());
+      logger.info("Added {} for {}", JMX_OPTS, HOST_ID);
+    }
+
+    if (registry.getRegistries().isEmpty()) {
+      logger.error("No metrics are enabled. Please check command line config for metrics backend");
+      enabled = false;
+      return;
+    }
+
+    String metricsPrefixFilter = System.getProperty(METRICS_FILTER);
+    if (metricsPrefixFilter != null) {
+      logger.info("Adding metrics prefix filters");
+      String[] strs = metricsPrefixFilter.split(",");
+      for (int i = 0, n = strs.length; i < n; i++) {
+        String prefix = strs[i].trim();
+        logger.info("Allowing metrics with prefix {}", prefix);
+        registry.config().meterFilter(MeterFilter.acceptNameStartsWith(prefix));
+      }
+      logger.info("Denying metrics that have no prefix of {}", metricsPrefixFilter);
+      registry.config().meterFilter(MeterFilter.deny());
+    }
+
+    new ClassLoaderMetrics().bindTo(registry);
+    new JvmMemoryMetrics().bindTo(registry);
+    jvmGcMetrics = new JvmGcMetrics();
+    jvmGcMetrics.bindTo(registry);
+    new ProcessorMetrics().bindTo(registry);
+    new JvmThreadMetrics().bindTo(registry);
+
     vertxOptions.setMetricsOptions(new MicrometerMetricsOptions()
         .setEnabled(true)
-        .setInfluxDbOptions(influxDbOptions));
+        .setMicrometerRegistry(registry));
     enabled = true;
+  }
+
+  /**
+   * Stop metrics helper and release resources.
+   */
+  public static void stop() {
+    enabled = false;
+    if (jvmGcMetrics != null) {
+      jvmGcMetrics.close();
+      jvmGcMetrics = null;
+    }
+    List<MeterRegistry> list = new ArrayList<>();
+    registry.getRegistries().forEach(r -> {
+      list.add(r);
+      r.close();
+    });
+    list.forEach(r -> registry.remove(r));
   }
 
   /**
@@ -97,7 +205,7 @@ public class MetricsHelper {
    * @return {@link Sample} or null if metrics is not enabled
    */
   public static Sample getTimerSample() {
-    return enabled ? Timer.start(getRegistry()) : null;
+    return enabled ? Timer.start(registry) : null;
   }
 
   /**
@@ -149,7 +257,7 @@ public class MetricsHelper {
         .tag(TAG_TENANT, tenant)
         .tag(TAG_METHOD, httpMethod)
         .tag(TAG_URL, urlPath)
-        .register(getRegistry());
+        .register(registry);
     counter.increment();
     return counter;
   }
@@ -168,7 +276,7 @@ public class MetricsHelper {
     }
     Timer timer = Timer.builder(METRICS_CODE_EXECUTION_TIME)
         .tag("name", name)
-        .register(getRegistry());
+        .register(registry);
     sample.stop(timer);
     return timer;
   }
@@ -181,7 +289,7 @@ public class MetricsHelper {
     String name = server ? METRICS_HTTP_SERVER_PROCESSING_TIME : METRICS_HTTP_CLIENT_RESPONSE_TIME;
     Timer timer = Timer.builder(name)
         .tags(createHttpTags(tenant, httpStatusCode, httpMethod, moduleInstance, !server))
-        .register(getRegistry());
+        .register(registry);
     sample.stop(timer);
     return timer;
   }
@@ -213,7 +321,7 @@ public class MetricsHelper {
     }
     Counter counter = Counter.builder(event).tag(TAG_TENANT, tenant).tag(TAG_METHOD, httpMethod)
         .tag(TAG_URL, urlPath).tag(TAG_USERID, userId == null ? "null" : userId)
-        .register(getRegistry());
+        .register(registry);
     counter.increment();
     return counter;
   }
@@ -245,33 +353,6 @@ public class MetricsHelper {
       }
     }
     return tags;
-  }
-
-  private static MeterRegistry getRegistry() {
-    if (registry == null) {
-      registry = Optional.ofNullable(BackendRegistries.getDefaultNow())
-          .orElse(new SimpleMeterRegistry());
-      registry.config().commonTags(TAG_HOST, getHost());
-      new ProcessorMetrics().bindTo(registry);
-    }
-    return registry;
-  }
-
-  static String getHost() {
-    try {
-      return InetAddress.getLocalHost().toString();
-    } catch (UnknownHostException e) {
-      logger.warn(e);
-    }
-    return HOST_UNKNOWN;
-  }
-
-  public static boolean isEnabled() {
-    return enabled;
-  }
-
-  public static void setEnabled(boolean enabled) {
-    MetricsHelper.enabled = enabled;
   }
 
 }
