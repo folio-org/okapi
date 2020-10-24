@@ -59,6 +59,16 @@
         <!-- use 1.4.2 because 1.5.2 in above POM link does not work -->
       </dependency>
       <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-registry-prometheus</artifactId>
+        <version>1.5.2</version> <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml -->
+      </dependency>
+      <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-registry-jmx</artifactId>
+        <version>1.5.2</version> <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml -->
+      </dependency>
+      <dependency>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast</artifactId>
         <version>4.0.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml -->
