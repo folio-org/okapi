@@ -82,6 +82,14 @@ parse_okapi_conf()  {
          OKAPI_OPTIONS+=" $CLUSTER_OPTIONS"
       fi
 
+      OKAPI_JAVA_OPTS+=" --add-modules java.se"
+      OKAPI_JAVA_OPTS+=" --add-exports java.base/jdk.internal.ref=ALL-UNNAMED"
+      OKAPI_JAVA_OPTS+=" --add-opens java.base/java.lang=ALL-UNNAMED"
+      OKAPI_JAVA_OPTS+=" --add-opens java.base/java.nio=ALL-UNNAMED"
+      OKAPI_JAVA_OPTS+=" --add-opens java.base/sun.nio.ch=ALL-UNNAMED"
+      OKAPI_JAVA_OPTS+=" --add-opens java.management/sun.management=ALL-UNNAMED"
+      OKAPI_JAVA_OPTS+=" --add-opens jdk.management/com.ibm.lang.management.internal=ALL-UNNAMED"
+      OKAPI_JAVA_OPTS+=" --add-opens jdk.management/com.sun.management.internal=ALL-UNNAMED"
    fi
 
    # Set performance metric options
