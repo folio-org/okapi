@@ -1,33 +1,14 @@
 package org.folio.okapi.util;
 
-import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Timer.Sample;
-import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics;
-import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
-import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics;
-import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
-import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
-import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
-import io.micrometer.core.instrument.config.MeterFilter;
-import io.micrometer.influx.InfluxMeterRegistry;
-import io.vertx.core.VertxOptions;
-import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.json.JsonObject;
-import io.vertx.micrometer.MicrometerMetricsOptions;
-import io.vertx.micrometer.VertxInfluxDbOptions;
-import io.vertx.micrometer.VertxJmxMetricsOptions;
-import io.vertx.micrometer.VertxPrometheusOptions;
-import io.vertx.micrometer.backends.JmxBackendRegistry;
-import io.vertx.micrometer.backends.PrometheusBackendRegistry;
-import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleInstance;
+import org.folio.okapi.common.MetricsUtil;
 import org.folio.okapi.common.OkapiLogger;
 
 /**
@@ -37,7 +18,7 @@ public class MetricsHelper {
 
   private static final Logger logger = OkapiLogger.get(MetricsHelper.class);
 
-  static final String METRICS_PREFIX = "org.folio.metrics";
+  static final String METRICS_PREFIX = MetricsUtil.METRICS_PREFIX + ".okapi";
 
   private static final String METRICS_HTTP = METRICS_PREFIX + ".http";
   private static final String METRICS_HTTP_SERVER = METRICS_HTTP + ".server";
@@ -48,155 +29,28 @@ public class MetricsHelper {
       + ".responseTime";
   private static final String METRICS_HTTP_CLIENT_ERRORS = METRICS_HTTP_CLIENT
       + ".errors";
+
   private static final String METRICS_TOKEN_CACHE = METRICS_PREFIX + ".tokenCache";
   private static final String METRICS_TOKEN_CACHE_HITS = METRICS_TOKEN_CACHE + ".hits";
   private static final String METRICS_TOKEN_CACHE_MISSES = METRICS_TOKEN_CACHE + ".misses";
   private static final String METRICS_TOKEN_CACHE_CACHED = METRICS_TOKEN_CACHE + ".cached";
   private static final String METRICS_TOKEN_CACHE_EXPIRED = METRICS_TOKEN_CACHE + ".expired";
+
   private static final String METRICS_CODE = METRICS_PREFIX + ".code";
   private static final String METRICS_CODE_EXECUTION_TIME = METRICS_CODE + ".executionTime";
 
-  private static final String TAG_HOST = "host";
   private static final String TAG_TENANT = "tenant";
-  private static final String TAG_CODE = "code";
-  private static final String TAG_METHOD = "method";
+  private static final String TAG_HTTP_CODE = "code";
+  private static final String TAG_HTTP_METHOD = "method";
   private static final String TAG_MODULE = "module";
   private static final String TAG_URL = "url";
   private static final String TAG_PHASE = "phase";
   private static final String TAG_USERID = "userId";
   private static final String TAG_EMPTY = "null";
 
-  static final String ENABLE_METRICS = "vertx.metrics.options.enabled";
-  static final String INFLUX_OPTS = "influxDbOptions";
-  static final String PROMETHEUS_OPTS = "prometheusOptions";
-  static final String JMX_OPTS = "jmxMetricsOptions";
-
-  static final String METRICS_FILTER = "metricsPrefixFilter";
-
-  private static final String HOST_ID = ManagementFactory.getRuntimeMXBean().getName();
-
-  private static boolean enabled = false;
-
-  static boolean isEnabled() {
-    return enabled;
-  }
-
-  static void setEnabled(boolean enabled) {
-    MetricsHelper.enabled = enabled;
-  }
-
-  private static CompositeMeterRegistry registry = new CompositeMeterRegistry();
-
-  static CompositeMeterRegistry getRegistry() {
-    return registry;
-  }
-
-  private static JvmGcMetrics jvmGcMetrics;
+  private static final String TAG_CODE_BLOCK_NAME = "codeBlockName";
 
   private MetricsHelper() {
-  }
-
-  /**
-   * Initialize metrics helper.
-   *
-   * @param vertxOptions - {@link VertxOptions}
-   */
-  public static void init(VertxOptions vertxOptions) {
-
-    if (!"true".equalsIgnoreCase(System.getProperty(ENABLE_METRICS))) {
-      logger.info("Metrics is not enabled");
-      enabled = false;
-      return;
-    }
-
-    logger.info("Enabling metrics for " + HOST_ID);
-
-    String influxDbOptionsString = System.getProperty(INFLUX_OPTS);
-    if (influxDbOptionsString != null) {
-      VertxInfluxDbOptions influxDbOptions = new VertxInfluxDbOptions()
-          .setEnabled(true);
-      influxDbOptions = new VertxInfluxDbOptions(
-          influxDbOptions.toJson().mergeIn(new JsonObject(influxDbOptionsString), true));
-      InfluxMeterRegistry influxMeterRegistry = new InfluxMeterRegistry(
-          influxDbOptions.toMicrometerConfig(), Clock.SYSTEM);
-      influxMeterRegistry.config().commonTags(TAG_HOST, HOST_ID);
-      registry.add(influxMeterRegistry);
-      logger.info("Added {} for {}", INFLUX_OPTS, HOST_ID);
-    }
-
-    String prometheusOptionsString = System.getProperty(PROMETHEUS_OPTS);
-    if (prometheusOptionsString != null) {
-      VertxPrometheusOptions prometheusOptions = new VertxPrometheusOptions()
-          .setEnabled(true)
-          .setStartEmbeddedServer(true)
-          .setEmbeddedServerOptions(new HttpServerOptions().setPort(9930));
-      prometheusOptions = new VertxPrometheusOptions(
-          prometheusOptions.toJson().mergeIn(new JsonObject(prometheusOptionsString), true));
-      PrometheusBackendRegistry prometheusBackendRegistry = new PrometheusBackendRegistry(
-          prometheusOptions);
-      prometheusBackendRegistry.init();
-      registry.add(prometheusBackendRegistry.getMeterRegistry());
-      logger.info("Added {} for {}", PROMETHEUS_OPTS, HOST_ID);
-    }
-
-    String jmxMetricsOptionsString = System.getProperty(JMX_OPTS);
-    if (jmxMetricsOptionsString != null) {
-      VertxJmxMetricsOptions jmxMetricsOptions = new VertxJmxMetricsOptions()
-          .setEnabled(true)
-          .setDomain(METRICS_PREFIX);
-      jmxMetricsOptions = new VertxJmxMetricsOptions(
-          jmxMetricsOptions.toJson().mergeIn(new JsonObject(jmxMetricsOptionsString), true));
-      registry.add(new JmxBackendRegistry(jmxMetricsOptions).getMeterRegistry());
-      logger.info("Added {} for {}", JMX_OPTS, HOST_ID);
-    }
-
-    if (registry.getRegistries().isEmpty()) {
-      logger.error("No metrics are enabled. Please check command line config for metrics backend");
-      enabled = false;
-      return;
-    }
-
-    String metricsPrefixFilter = System.getProperty(METRICS_FILTER);
-    if (metricsPrefixFilter != null) {
-      logger.info("Adding metrics prefix filters");
-      String[] strs = metricsPrefixFilter.split(",");
-      for (int i = 0, n = strs.length; i < n; i++) {
-        String prefix = strs[i].trim();
-        logger.info("Allowing metrics with prefix {}", prefix);
-        registry.config().meterFilter(MeterFilter.acceptNameStartsWith(prefix));
-      }
-      logger.info("Denying metrics that have no prefix of {}", metricsPrefixFilter);
-      registry.config().meterFilter(MeterFilter.deny());
-    }
-
-    new ClassLoaderMetrics().bindTo(registry);
-    new JvmMemoryMetrics().bindTo(registry);
-    jvmGcMetrics = new JvmGcMetrics();
-    jvmGcMetrics.bindTo(registry);
-    new ProcessorMetrics().bindTo(registry);
-    new JvmThreadMetrics().bindTo(registry);
-
-    vertxOptions.setMetricsOptions(new MicrometerMetricsOptions()
-        .setEnabled(true)
-        .setMicrometerRegistry(registry));
-    enabled = true;
-  }
-
-  /**
-   * Stop metrics helper and release resources.
-   */
-  public static void stop() {
-    enabled = false;
-    if (jvmGcMetrics != null) {
-      jvmGcMetrics.close();
-      jvmGcMetrics = null;
-    }
-    List<MeterRegistry> list = new ArrayList<>();
-    registry.getRegistries().forEach(r -> {
-      list.add(r);
-      r.close();
-    });
-    list.forEach(r -> registry.remove(r));
   }
 
   /**
@@ -205,7 +59,7 @@ public class MetricsHelper {
    * @return {@link Sample} or null if metrics is not enabled
    */
   public static Sample getTimerSample() {
-    return enabled ? Timer.start(registry) : null;
+    return MetricsUtil.getTimerSample();
   }
 
   /**
@@ -250,48 +104,41 @@ public class MetricsHelper {
    * @return {@link Counter} or null if metrics is not enabled
    */
   public static Counter recordHttpClientError(String tenant, String httpMethod, String urlPath) {
-    if (!enabled) {
+    if (!MetricsUtil.isEnabled()) {
       return null;
     }
-    Counter counter = Counter.builder(METRICS_HTTP_CLIENT_ERRORS)
-        .tag(TAG_TENANT, tenant)
-        .tag(TAG_METHOD, httpMethod)
-        .tag(TAG_URL, urlPath)
-        .register(registry);
-    counter.increment();
-    return counter;
+    List<Tag> tags = new ArrayList<>();
+    tags.add(Tag.of(TAG_TENANT, "" + tenant));
+    tags.add(Tag.of(TAG_HTTP_METHOD, "" + httpMethod));
+    tags.add(Tag.of(TAG_URL, "" + urlPath));
+    return MetricsUtil.recordCounter(METRICS_HTTP_CLIENT_ERRORS, tags);
   }
 
   /**
    * Record code execution time.
    *
-   * @param sample - {@link Sample} that tells the starting time
-   * @param name   - name of the code block for tagging purpose
+   * @param sample        - {@link Sample} that tells the starting time
+   * @param codeBlockName - name of the code block for tagging purpose
    *
    * @return {@link Timer} or null if metrics is not enabled
    */
-  public static Timer recordCodeExecutionTime(Sample sample, String name) {
-    if (!enabled) {
+  public static Timer recordCodeExecutionTime(Sample sample, String codeBlockName) {
+    if (!MetricsUtil.isEnabled()) {
       return null;
     }
-    Timer timer = Timer.builder(METRICS_CODE_EXECUTION_TIME)
-        .tag("name", name)
-        .register(registry);
-    sample.stop(timer);
-    return timer;
+    List<Tag> tags = new ArrayList<>();
+    tags.add(Tag.of(TAG_CODE_BLOCK_NAME, "" + codeBlockName));
+    return MetricsUtil.recordTimer(sample, METRICS_CODE_EXECUTION_TIME, tags);
   }
 
   private static Timer recordHttpTime(Sample sample, String tenant, int httpStatusCode,
       String httpMethod, ModuleInstance moduleInstance, boolean server) {
-    if (!enabled) {
+    if (!MetricsUtil.isEnabled()) {
       return null;
     }
     String name = server ? METRICS_HTTP_SERVER_PROCESSING_TIME : METRICS_HTTP_CLIENT_RESPONSE_TIME;
-    Timer timer = Timer.builder(name)
-        .tags(createHttpTags(tenant, httpStatusCode, httpMethod, moduleInstance, !server))
-        .register(registry);
-    sample.stop(timer);
-    return timer;
+    return MetricsUtil.recordTimer(sample, name,
+        createHttpTags(tenant, httpStatusCode, httpMethod, moduleInstance, !server));
   }
 
   public static Counter recordTokenCacheMiss(String tenant, String httpMethod, String urlPath,
@@ -316,32 +163,34 @@ public class MetricsHelper {
 
   private static Counter recordTokenCacheEvent(String event, String tenant, String httpMethod,
       String urlPath, String userId) {
-    if (!enabled) {
+    if (!MetricsUtil.isEnabled()) {
       return null;
     }
-    Counter counter = Counter.builder(event).tag(TAG_TENANT, tenant).tag(TAG_METHOD, httpMethod)
-        .tag(TAG_URL, urlPath).tag(TAG_USERID, userId == null ? "null" : userId)
-        .register(registry);
-    counter.increment();
-    return counter;
+    List<Tag> tags = new ArrayList<>();
+    tags.add(Tag.of(TAG_TENANT, "" + tenant));
+    tags.add(Tag.of(TAG_HTTP_METHOD, "" + httpMethod));
+    tags.add(Tag.of(TAG_URL, "" + urlPath));
+    tags.add(Tag.of(TAG_USERID, userId == null ? TAG_EMPTY : userId));
+    return MetricsUtil.recordCounter(event, tags);
   }
 
   private static List<Tag> createHttpTags(String tenant, int httpStatusCode, String httpMethod,
       ModuleInstance moduleInstance, boolean createPhaseTag) {
     List<Tag> tags = new ArrayList<>();
     tags.add(Tag.of(TAG_TENANT, tenant == null ? TAG_EMPTY : tenant));
-    tags.add(Tag.of(TAG_CODE, "" + httpStatusCode));
-    tags.add(Tag.of(TAG_METHOD, httpMethod == null ? TAG_EMPTY : httpMethod));
+    tags.add(Tag.of(TAG_HTTP_CODE, "" + httpStatusCode));
+    tags.add(Tag.of(TAG_HTTP_METHOD, httpMethod == null ? TAG_EMPTY : httpMethod));
     if (moduleInstance != null) {
-      tags.add(Tag.of(TAG_MODULE, moduleInstance.getModuleDescriptor().getId()));
+      tags.add(Tag.of(TAG_MODULE, "" + moduleInstance.getModuleDescriptor().getId()));
       // legacy case where module instance has no routing entry
       if (moduleInstance.getRoutingEntry() != null) {
         tags.add(Tag.of(TAG_URL, moduleInstance.getRoutingEntry().getStaticPath()));
         if (createPhaseTag) {
           tags.add(Tag.of(TAG_PHASE, moduleInstance.isHandler() ? "handler"
-              : moduleInstance.getRoutingEntry().getPhase()));
+              : "" + moduleInstance.getRoutingEntry().getPhase()));
         }
       } else {
+        logger.warn("legacy module instance {}", moduleInstance.getPath());
         tags.add(Tag.of(TAG_URL, moduleInstance.getPath()));
         tags.add(Tag.of(TAG_PHASE, moduleInstance.isHandler() ? "handler" : TAG_EMPTY));
       }

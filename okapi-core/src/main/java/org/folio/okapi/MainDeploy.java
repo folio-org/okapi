@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.MetricsUtil;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.MetricsHelper;
 
@@ -176,7 +177,7 @@ public class MainDeploy {
   }
 
   private void deploy(boolean clustered, Handler<AsyncResult<Vertx>> fut) {
-    MetricsHelper.init(vopt);
+    MetricsUtil.init(vopt);
     if (clustered) {
       deployClustered(fut);
     } else {
