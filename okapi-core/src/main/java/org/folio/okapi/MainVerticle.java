@@ -43,6 +43,7 @@ import org.folio.okapi.service.impl.TenantStoreNull;
 import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.EventBusChecker;
 import org.folio.okapi.util.LogHelper;
+import org.folio.okapi.util.MetricsHelper;
 import org.folio.okapi.util.OkapiError;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -193,6 +194,7 @@ public class MainVerticle extends AbstractVerticle {
   @Override
   public void stop(Promise<Void> promise) {
     logger.info("stop");
+    MetricsHelper.stop();
     Future<Void> future = Future.succeededFuture();
     if (deploymentManager != null) {
       future = future.compose(x -> deploymentManager.shutdown());
