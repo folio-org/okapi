@@ -3053,14 +3053,21 @@ Okapi uses Micrometer to managing metrics and reporting to backends. To enable i
 add Java parameter `-Dvertx.metrics.options.enabled=true` first.
 
 More Java parameters are needed to config which backends to use
-* `-DinfluxDbOptions='{"uri": "http://localhost:8086", "db":"okapi"}'` - Send metrics to InfluxDB
+* `-DinfluxDbOptions='{"uri": "http://localhost:8086", "db":"folio"}'` - Send metrics to InfluxDB
 * `-DprometheusOptions='{"embeddedServerOptions": {"port": 9930}}'` - Expose `<server>:9930/metrics` for Prometheus
-* `-DjmxMetricsOptions='{"domain": "org.folio.metrics"}'` - JMX
+* `-DjmxMetricsOptions='{"domain": "org.folio"}'` - JMX
 
 Another Java parameter can be used to filter metrics
 * `-DmetricsPrefixFilter=org.folio` - Will only report metrics with name starting `org.folio`
 
-A full example: `java -Dvertx.metrics.options.enabled=true -DmetricsPrefixFilter=org.folio -DinfluxDbOptions='{"uri": "http://localhost:8086", "db":"okapi"}' -DprometheusOptions='{"embeddedServerOptions": {"port": 9930}}' -DjmxMetricsOptions='{"domain": "org.folio"}' -jar okapi-core/target/okapi-core-fat.jar dev`
+A full example with all backends enabled and filter parameter configured:
+
+    java -Dvertx.metrics.options.enabled=true \
+      -DinfluxDbOptions='{"uri": "http://localhost:8086", "db":"folio"}' \
+      -DprometheusOptions='{"embeddedServerOptions": {"port": 9930}}' \
+      -DjmxMetricsOptions='{"domain": "org.folio"}' \
+      -DmetricsPrefixFilter=org.folio \
+      -jar okapi-core/target/okapi-core-fat.jar dev
 
 ## Module Reference
 
