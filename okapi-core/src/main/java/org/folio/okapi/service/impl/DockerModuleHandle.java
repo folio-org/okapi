@@ -10,7 +10,6 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
@@ -18,7 +17,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.function.Supplier;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.AnyDescriptor;
 import org.folio.okapi.bean.EnvEntry;
@@ -341,14 +339,19 @@ public class DockerModuleHandle implements ModuleHandle {
 
     String doc = j.encodePrettily();
 
-    logger.info("createContainer {}", (Supplier<String>) () -> {
-      if (! j.containsKey("env")) {
-        return doc;
+    if (logger.isInfoEnabled()) {
+      String logDoc = doc;
+
+      if (j.containsKey("env")) {
+        // don't show env variables that may contain sensitive credentials in the log
+        j.put("env", new JsonArray().add("..."));
+        logDoc = j.encodePrettily();
       }
-      // don't show env variables that may contain sensitive credentials in the log
-      j.put("env", new JsonArray().add("..."));
-      return j.encodePrettily();
-    });
+
+      // Cannot use a lambda because Mockito does not support
+      // matching a Supplier vararg when an Object vararg exists
+      logger.info("createContainer {}", logDoc);
+    }
 
     return doc;
   }
