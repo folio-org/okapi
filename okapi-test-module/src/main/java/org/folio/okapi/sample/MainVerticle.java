@@ -257,6 +257,7 @@ public class MainVerticle extends AbstractVerticle {
               logger.info("Writing {}", pid);
             } catch (IOException ex) {
               logger.error(ex);
+              return Future.failedFuture(ex);
             }
           }
           return Future.succeededFuture();
