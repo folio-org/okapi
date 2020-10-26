@@ -2751,6 +2751,53 @@ public class ModuleTest {
   }
 
   @Test
+  public void testEnvStored(TestContext context) {
+    conf.remove("mongo_db_init");
+    conf.remove("postgres_db_init");
+
+    RestAssuredClient c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("name", "name1").put("value", "value1").encode()).post("/_/env")
+        .then().statusCode(201)
+        .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .get("/_/env/name1")
+        .then().statusCode(200)
+        .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .delete("/_/env/name1")
+        .then().statusCode(204)
+        .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
+    async.await();
+
+    // check that it is still gone after Okapi is restarted with any storage OKAPI-931
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .get("/_/env/name1")
+        .then().statusCode(404)
+        .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+  }
+
+
+  @Test
   public void testNoTenant(TestContext context) {
     RestAssuredClient c;
     Response r;
