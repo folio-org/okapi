@@ -10,12 +10,6 @@ public class Permission {
   private String[] subPermissions;
   private Boolean visible;
 
-  /**
-   * Create Permission.
-   */
-  public Permission() {
-  }
-
   public String getPermissionName() {
     return permissionName;
   }
