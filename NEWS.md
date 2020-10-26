@@ -1,3 +1,11 @@
+## 4.2.2 2020-10-26
+
+Bug fix release. All 4.2.0 users should upgrade.
+
+ * [OKAPI-894](https://issues.folio.org/browse/OKAPI-894) Fix Hazelcast Warnings (due to Java 9 or later)
+ * [OKAPI-925](https://issues.folio.org/browse/OKAPI-925) Fix Install does not honor explicit dependencies
+ * [OKAPI-926](https://issues.folio.org/browse/OKAPI-926) Fix Install job status is complete but module stage is still invoke or pending
+
 ## 4.2.1 2020-10-19
 
 Bug fix release. All 4.2.0 users should upgrade.
