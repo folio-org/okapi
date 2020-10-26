@@ -15,7 +15,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.WithAssertions;
 import org.folio.okapi.bean.AnyDescriptor;
@@ -466,9 +465,10 @@ public class DockerModuleHandleTest implements WithAssertions {
     launchDescriptor.setDockerArgs(new AnyDescriptor().set("%p", "%p"));
     Logger logger = mock(Logger.class);
     StringBuilder logMessage = new StringBuilder();
+    when(logger.isInfoEnabled()).thenReturn(true);
     doAnswer(AdditionalAnswers.answerVoid(
-        (String msg, Supplier<Object> supplier) -> logMessage.append(msg).append(supplier.get())))
-    .when(logger).info(anyString(), any(Supplier.class));
+        (String msg, Object param) -> logMessage.append(msg).append(param.toString())))
+        .when(logger).info(anyString(), any(Object.class));
     DockerModuleHandle dockerModuleHandle = new DockerModuleHandle(Vertx.vertx(), launchDescriptor,
         "mod-users-5.0.0-SNAPSHOT", new Ports(9232, 9233), "localhost", 9232, new JsonObject(),
         logger);
