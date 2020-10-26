@@ -1,6 +1,6 @@
 package org.folio.okapi.common;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 public class UrlDecoder {
   private UrlDecoder() {
@@ -13,11 +13,7 @@ public class UrlDecoder {
    * @return decoded value
    */
   public static String decode(String url) {
-    try {
-      return java.net.URLDecoder.decode(url, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      throw new IllegalArgumentException(e);
-    }
+    return java.net.URLDecoder.decode(url, StandardCharsets.UTF_8);
   }
 
   /**
