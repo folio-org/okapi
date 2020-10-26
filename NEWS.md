@@ -1,7 +1,27 @@
+## 4.3.0 2020-10-26
+
+This release has Prometheus support for Micrometer metrics; Docker registry
+authentication and K8s liveness and readiness prope support.
+
+ * [OKAPI-894](https://issues.folio.org/browse/OKAPI-894) Fix Hazelcast Warnings (due to Java 9 or later)
+ * [OKAPI-900](https://issues.folio.org/browse/OKAPI-900) Enable Prometheus support for Micrometer metrics
+ * [OKAPI-903](https://issues.folio.org/browse/OKAPI-903) Fix Logging object reference rather than JSON
+ * [OKAPI-904](https://issues.folio.org/browse/OKAPI-904) K8s compatible liveness and readiness probes
+ * [OKAPI-912](https://issues.folio.org/browse/OKAPI-912) Docker pull with authenticated user (X-Registry-Auth)
+ * [OKAPI-921](https://issues.folio.org/browse/OKAPI-921) Don't use tokenCache when no token is provided in request
+ * [OKAPI-922](https://issues.folio.org/browse/OKAPI-922) Fix New Okapi member cannot join cluster
+ * [OKAPI-923](https://issues.folio.org/browse/OKAPI-923) Fix many unit tests not executed
+ * [OKAPI-924](https://issues.folio.org/browse/OKAPI-924) Fix starting postgresql-embed throws exception in unit tests
+ * [OKAPI-925](https://issues.folio.org/browse/OKAPI-925) Fix Install does not honor explicit dependencies
+ * [OKAPI-926](https://issues.folio.org/browse/OKAPI-926) Fix Install job status is complete but module stage is still invoke or pending
+ * [OKAPI-927](https://issues.folio.org/browse/OKAPI-927) DepResolutionTest code cleanup
+ * [OKAPI-928](https://issues.folio.org/browse/OKAPI-928) Move basic metrics code to okapi-common for sharing
+ * [OKAPI-931](https://issues.folio.org/browse/OKAPI-931) Fix env delete does not remove from storage
+
 ## 4.2.0 2020-10-16
 
-This release offers an important optimization: Token Caching OKAPI-820.
-There is also support for async install/upgrade OKAPI-874.
+This release offers an important optimization: Token Caching [OKAPI-820](https://issues.folio.org/browse/OKAPI-820).
+There is also support for async install/upgrade [OKAPI-874](https://issues.folio.org/browse/OKAPI-874).
 The code has also gone through a major clean up with a change to use
 Futurisation API - a change that modified more than 16% of the Java code.
 
