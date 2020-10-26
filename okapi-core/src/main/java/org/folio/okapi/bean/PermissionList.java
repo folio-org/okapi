@@ -18,16 +18,8 @@ public class PermissionList {
     return moduleId;
   }
 
-  public void setModuleId(String moduleId) {
-    this.moduleId = moduleId;
-  }
-
   public Permission[] getPerms() {
     return perms;
-  }
-
-  public void setPerms(Permission[] perms) {
-    this.perms = perms;
   }
 
 }
