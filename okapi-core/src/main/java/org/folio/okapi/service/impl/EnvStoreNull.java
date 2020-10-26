@@ -14,11 +14,6 @@ public class EnvStoreNull implements EnvStore {
   }
 
   @Override
-  public Future<Boolean> delete(String id) {
-    return Future.succeededFuture(Boolean.TRUE);
-  }
-
-  @Override
   public Future<Void> init(boolean reset) {
     return Future.succeededFuture();
   }

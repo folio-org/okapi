@@ -21,11 +21,6 @@ public class EnvStoreMongo implements EnvStore {
   }
 
   @Override
-  public Future<Boolean> delete(String id) {
-    return util.delete(id);
-  }
-
-  @Override
   public Future<Void> init(boolean reset) {
     return util.init(reset);
   }

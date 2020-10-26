@@ -22,11 +22,6 @@ public class EnvStorePostgres implements EnvStore {
   }
 
   @Override
-  public Future<Boolean> delete(String id) {
-    return table.delete(id);
-  }
-
-  @Override
   public Future<Void> init(boolean reset) {
     return table.init(reset);
   }

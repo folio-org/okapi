@@ -8,8 +8,6 @@ public interface EnvStore {
 
   Future<Void> add(EnvEntry env);
 
-  Future<Boolean> delete(String id);
-
   Future<Void> init(boolean reset);
 
   Future<List<EnvEntry>> getAll();
