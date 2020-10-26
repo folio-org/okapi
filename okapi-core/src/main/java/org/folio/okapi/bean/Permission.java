@@ -10,24 +10,6 @@ public class Permission {
   private String[] subPermissions;
   private Boolean visible;
 
-  /**
-   * Create Permission.
-   */
-  public Permission() {
-  }
-
-  /**
-   * Create permission from existing permission.
-   * @param other existing permission
-   */
-  public Permission(Permission other) {
-    this.permissionName = other.permissionName;
-    this.displayName = other.displayName;
-    this.description = other.description;
-    this.subPermissions = other.subPermissions;
-    this.visible = other.visible;
-  }
-
   public String getPermissionName() {
     return permissionName;
   }
