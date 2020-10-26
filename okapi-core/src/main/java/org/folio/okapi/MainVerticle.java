@@ -21,6 +21,7 @@ import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.MetricsUtil;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiLogger;
@@ -194,7 +195,7 @@ public class MainVerticle extends AbstractVerticle {
   @Override
   public void stop(Promise<Void> promise) {
     logger.info("stop");
-    MetricsHelper.stop();
+    MetricsUtil.stop();
     Future<Void> future = Future.succeededFuture();
     if (deploymentManager != null) {
       future = future.compose(x -> deploymentManager.shutdown());

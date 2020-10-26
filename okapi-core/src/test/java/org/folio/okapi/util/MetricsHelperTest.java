@@ -2,48 +2,48 @@ package org.folio.okapi.util;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
-import org.junit.jupiter.api.Order;
+import org.folio.okapi.common.MetricsUtil;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpMethod;
 
-@TestMethodOrder(OrderAnnotation.class)
 class MetricsHelperTest {
 
-  private static final CompositeMeterRegistry registry = MetricsHelper.getRegistry();
+  @BeforeAll
+  static void setupAll() {
+    System.getProperties().setProperty(MetricsUtil.ENABLE_METRICS, "true");
+    System.getProperties().setProperty(MetricsUtil.SIMPLE_OPTS, "{}");
+  }
+
+  @AfterAll
+  static void teardownAll() {
+    System.getProperties().remove(MetricsUtil.ENABLE_METRICS);
+    System.getProperties().remove(MetricsUtil.SIMPLE_OPTS);
+  }
 
   @BeforeEach
   void setup() {
-    MetricsHelper.setEnabled(true);
-    registry.add(new SimpleMeterRegistry());
-    assertEquals(1, registry.getRegistries().size());
+    MetricsUtil.init(new VertxOptions());
   }
 
   @AfterEach
   void teardown() {
-    MetricsHelper.stop();
-    assertTrue(registry.getRegistries().isEmpty());
+    MetricsUtil.stop();
   }
 
   @Test
-  @Order(1)
-  void testEnableMetricsWithoutSwitch() {
-    MetricsHelper.init(new VertxOptions());
+  void testNotEnabled() {
+    MetricsUtil.stop();
     assertNull(MetricsHelper.getTimerSample());
     assertNull(MetricsHelper.recordHttpClientResponse(null, "a", 0, "b", null));
     assertNull(MetricsHelper.recordHttpServerProcessingTime(null, "a", 0, "b", null));
@@ -53,46 +53,6 @@ class MetricsHelperTest {
     assertNull(MetricsHelper.recordTokenCacheExpired("a", "b", "c", "d"));
     assertNull(MetricsHelper.recordTokenCacheHit("a", "b", "c", "d"));
     assertNull(MetricsHelper.recordTokenCacheMiss("a", "b", "c", "d"));
-  }
-
-  @Test
-  @Order(2)
-  void testEnableMetricsWithoutBackendOptions() {
-    MetricsHelper.stop();
-    System.getProperties().setProperty(MetricsHelper.ENABLE_METRICS, "true");
-    MetricsHelper.init(new VertxOptions());
-    assertFalse(MetricsHelper.isEnabled());
-    assertNull(MetricsHelper.getTimerSample());
-    assertTrue(registry.getRegistries().isEmpty());
-    System.getProperties().remove(MetricsHelper.ENABLE_METRICS);
-  }
-
-  @Test
-  @Order(3)
-  void testEnableMetrics() {
-    Properties props = System.getProperties();
-    props.setProperty(MetricsHelper.ENABLE_METRICS, "true");
-    List<String> options = Arrays.asList(
-        MetricsHelper.INFLUX_OPTS,
-        MetricsHelper.PROMETHEUS_OPTS,
-        MetricsHelper.JMX_OPTS);
-    options.forEach(option -> {
-      MetricsHelper.stop();
-      options.forEach(opt -> props.remove(opt));
-      props.setProperty(option, "{}");
-      if (props.getProperty(MetricsHelper.METRICS_FILTER) == null) {
-        props.setProperty(MetricsHelper.METRICS_FILTER, MetricsHelper.METRICS_PREFIX + ",b,c");
-      } else {
-        props.remove(MetricsHelper.METRICS_FILTER);
-      }
-      MetricsHelper.init(new VertxOptions());
-      assertTrue(MetricsHelper.isEnabled());
-      assertNotNull(MetricsHelper.getTimerSample());
-      assertEquals(1, registry.getRegistries().size());
-    });
-    options.forEach(opt -> props.remove(opt));
-    props.remove(MetricsHelper.METRICS_FILTER);
-    System.getProperties().remove(MetricsHelper.ENABLE_METRICS);
   }
 
   @Test
