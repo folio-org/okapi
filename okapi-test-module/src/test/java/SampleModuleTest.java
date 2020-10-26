@@ -95,9 +95,26 @@ public class SampleModuleTest {
 
   public void testRecurse(TestContext context, OkapiClient cli, Async async) {
     cli.setHeaders(headers);
+    cli.get("/recurse", res -> {
+      context.assertTrue(res.succeeded());
+      context.assertEquals("1 Recursion done", cli.getResponsebody());
+      testRecurseDepth(context, cli, async);
+    });
+  }
+
+  public void testRecurseDepth(TestContext context, OkapiClient cli, Async async) {
+    cli.setHeaders(headers);
     cli.get("/recurse?depth=2", res -> {
       context.assertTrue(res.succeeded());
       context.assertEquals("2 1 Recursion done", cli.getResponsebody());
+      testRecurseDepthMinus(context, cli, async);
+    });
+  }
+
+  public void testRecurseDepthMinus(TestContext context, OkapiClient cli, Async async) {
+    cli.setHeaders(headers);
+    cli.get("/recurse?depth=-2", res -> {
+      context.assertTrue(res.failed());
       testTenantPost(context, cli, async);
     });
   }
@@ -113,14 +130,26 @@ public class SampleModuleTest {
   }
 
   public void testTenantPostWithParameters(TestContext context, OkapiClient cli, Async async) {
+    headers.put(XOkapiHeaders.TOKEN, "dummy-token");
     cli.post("/_/tenant", "{\"module_from\": \"m-1.0.0\", \"module_to\":\"m-1.0.1\", "
       + "\"parameters\" : [ {\"key\": \"a\",  \"value\" : \"b\"} ] }", res -> {
         context.assertTrue(res.succeeded());
         context.assertEquals("POST /_/tenant to okapi-test-module for "
           + "tenant my-lib\n",
           cli.getResponsebody());
-        testTenantDelete(context, cli, async);
+        testTenantPostCheck(context, cli, async);
       });
+  }
+
+  public void testTenantPostCheck(TestContext context, OkapiClient cli, Async async) {
+    headers.put("X-tenant-parameters", "yes");
+    cli.setHeaders(headers);
+    cli.get("/testb", res -> {
+      context.assertTrue(res.succeeded());
+      context.assertTrue(cli.getResponsebody().startsWith("It works Tenant parameters"),
+          cli.getResponsebody());
+      testTenantDelete(context, cli, async);
+    });
   }
 
   public void testTenantDelete(TestContext context, OkapiClient cli, Async async) {
@@ -193,6 +222,8 @@ public class SampleModuleTest {
     headers.put("X-all-headers", "HBL");
     headers.put("X-delay", "2");
     headers.put("X-my-header", "my");
+    headers.put("X-tenant-reqs", "yes");
+    headers.put("X-tenant-parameters", "yes");
     headers.put(XOkapiHeaders.URL, URL);
     headers.put(XOkapiHeaders.TENANT, "my-lib");
     headers.put(XOkapiHeaders.MATCH_PATH_PATTERN, "/testb");
@@ -208,6 +239,45 @@ public class SampleModuleTest {
       context.assertTrue(body.contains(" X-my-header:my"));
       context.assertTrue(body.contains(" X-all-headers:HBL"));
 
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testNoHeaders(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+
+    headers.put("X-all-headers", "X");
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+    cli.enableInfoLog();
+    cli.get("/testb?q=a", res -> {
+      context.assertTrue(res.succeeded());
+      context.assertEquals("It works", cli.getResponsebody());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testStop(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+
+    headers.put("X-stop-here", "X");
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+    cli.enableInfoLog();
+    cli.get("/testb", res -> {
+      context.assertTrue(res.succeeded());
+      context.assertEquals("X", cli.getRespHeaders().get("X-Okapi-Stop"));
+      context.assertEquals("It works", cli.getResponsebody());
       async.complete();
     });
   }

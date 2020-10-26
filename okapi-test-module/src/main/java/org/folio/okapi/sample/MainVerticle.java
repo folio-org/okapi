@@ -1,7 +1,7 @@
 package org.folio.okapi.sample;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.MultiMap;
+import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -14,7 +14,6 @@ import io.vertx.ext.web.RoutingContext;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.ModuleVersionReporter;
@@ -191,7 +190,7 @@ public class MainVerticle extends AbstractVerticle {
     if (d == null || d.isEmpty()) {
       d = "1";
     }
-    String depthstr = d; // must be final
+    final String depthstr = d;
     int depth = Integer.parseInt(depthstr);
     if (depth < 0) {
       HttpResponse.responseError(ctx, 400, "Bad recursion, can not be negative " + depthstr);
@@ -204,12 +203,6 @@ public class MainVerticle extends AbstractVerticle {
       ok.get("/recurse?depth=" + depth, res -> {
         ok.close();
         if (res.succeeded()) {
-          MultiMap respH = ok.getRespHeaders();
-          for (Map.Entry<String, String> e : respH.entries()) {
-            if (e.getKey().startsWith("X-") || e.getKey().startsWith("x-")) {
-              ctx.response().headers().add(e.getKey(), e.getValue());
-            }
-          }
           HttpResponse.responseText(ctx, 200);
           ctx.response().end(depthstr + " " + res.result());
         } else {
@@ -252,24 +245,22 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/recurse").handler(this::recurseHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-    vertx.createHttpServer(so)
+    Future<Void> future = vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(
-            port,
-            result -> {
-              if (result.succeeded()) {
-                final String pidFile = System.getProperty("pidFile");
-                if (pidFile != null && !pidFile.isEmpty()) {
-                  final String pid = name.split("@")[0];
-                  try (FileWriter fw = new FileWriter(pidFile)) {
-                    fw.write(pid);
-                    logger.info("Writing {}", pid);
-                  } catch (IOException ex) {
-                    logger.error(ex);
-                  }
-                }
-              }
-              promise.handle(result.mapEmpty());
-            });
+        .listen(port)
+        .compose(result -> {
+          final String pidFile = System.getProperty("pidFile");
+          if (pidFile != null && !pidFile.isEmpty()) {
+            final String pid = name.split("@")[0];
+            try (FileWriter fw = new FileWriter(pidFile)) {
+              fw.write(pid);
+              logger.info("Writing {}", pid);
+            } catch (IOException ex) {
+              logger.error(ex);
+            }
+          }
+          return Future.succeededFuture();
+        });
+    future.onComplete(promise::handle);
   }
 }
