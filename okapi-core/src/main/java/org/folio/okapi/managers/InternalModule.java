@@ -863,7 +863,7 @@ public class InternalModule {
       final boolean preRelease = ModuleUtil.getParamBoolean(req, "preRelease", true);
       final boolean npmSnapshot = ModuleUtil.getParamBoolean(req, "npmSnapshot", true);
 
-      String validerr = md.validate(pc);
+      String validerr = md.validate(logger);
       if (!validerr.isEmpty()) {
         logger.info("createModule validate failed: {}", validerr);
         return Future.failedFuture(new OkapiError(ErrorType.USER, validerr));
