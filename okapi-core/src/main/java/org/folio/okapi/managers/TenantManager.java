@@ -545,8 +545,7 @@ public class TenantManager implements Liveness {
   private Future<Void> invokePermissionsForModule(Tenant tenant, ModuleDescriptor mdTo,
                                                   ModuleDescriptor permsModule, ProxyContext pc) {
 
-    logger.debug("Loading permissions for {}", () -> mdTo.getName()
-        + " (using " + permsModule.getName() + ")");
+    logger.debug("Loading permissions for {} (using {})", mdTo.getName(), permsModule.getName());
     String moduleTo = mdTo.getId();
     PermissionList pl = null;
     InterfaceDescriptor permInt = permsModule.getSystemInterface("_tenantPermissions");
@@ -556,7 +555,7 @@ public class TenantManager implements Liveness {
       pl = new PermissionList(moduleTo, mdTo.getExpandedPermissionSets());
     }
     String pljson = Json.encodePrettily(pl);
-    logger.debug("tenantPerms Req: {}", () -> pljson);
+    logger.debug("tenantPerms Req: {}", pljson);
     String permPath = "";
     List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
     ModuleInstance permInst = null;
@@ -573,11 +572,11 @@ public class TenantManager implements Liveness {
           "Bad _tenantPermissions interface in module " + permsModule.getId()
               + ". No path to POST to"));
     }
-    logger.debug("tenantPerms: {} and {}", (Supplier<?>) () -> permsModule.getId(), permPath);
+    logger.debug("tenantPerms: {} and {}", permsModule.getId(), permPath);
     return proxyService.callSystemInterface(tenant, permInst, pljson, pc).compose(cres -> {
       pc.passOkapiTraceHeaders(cres);
       logger.debug("tenantPerms request to {} succeeded for module {} and tenant {}",
-          () -> permsModule.getId(), () -> moduleTo, () -> tenant.getId());
+          permsModule.getId(), moduleTo, tenant.getId());
       return Future.succeededFuture();
     });
   }
