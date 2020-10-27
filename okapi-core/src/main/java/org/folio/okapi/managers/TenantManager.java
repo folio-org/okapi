@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.util.Supplier;
 import org.folio.okapi.bean.InstallJob;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -544,7 +545,7 @@ public class TenantManager implements Liveness {
   private Future<Void> invokePermissionsForModule(Tenant tenant, ModuleDescriptor mdTo,
                                                   ModuleDescriptor permsModule, ProxyContext pc) {
 
-    pc.debug("Loading permissions for " + mdTo.getName()
+    logger.debug("Loading permissions for {}", () -> mdTo.getName()
         + " (using " + permsModule.getName() + ")");
     String moduleTo = mdTo.getId();
     PermissionList pl = null;
@@ -555,7 +556,7 @@ public class TenantManager implements Liveness {
       pl = new PermissionList(moduleTo, mdTo.getExpandedPermissionSets());
     }
     String pljson = Json.encodePrettily(pl);
-    pc.debug("tenantPerms Req: " + pljson);
+    logger.debug("tenantPerms Req: {}", () -> pljson);
     String permPath = "";
     List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
     ModuleInstance permInst = null;
@@ -572,11 +573,11 @@ public class TenantManager implements Liveness {
           "Bad _tenantPermissions interface in module " + permsModule.getId()
               + ". No path to POST to"));
     }
-    pc.debug("tenantPerms: " + permsModule.getId() + " and " + permPath);
+    logger.debug("tenantPerms: {} and {}", (Supplier<?>) () -> permsModule.getId(), permPath);
     return proxyService.callSystemInterface(tenant, permInst, pljson, pc).compose(cres -> {
       pc.passOkapiTraceHeaders(cres);
-      pc.debug("tenantPerms request to " + permsModule.getName()
-          + " succeeded for module " + moduleTo + " and tenant " + tenant.getId());
+      logger.debug("tenantPerms request to {} succeeded for module {} and tenant {}",
+          () -> permsModule.getId(), () -> moduleTo, () -> tenant.getId());
       return Future.succeededFuture();
     });
   }
