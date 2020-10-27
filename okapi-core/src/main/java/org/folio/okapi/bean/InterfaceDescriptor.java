@@ -193,9 +193,10 @@ public class InterfaceDescriptor {
   /**
    * Validate a moduleInterface.
    * Writes Warnings in the log in case of deprecated features.
-   *
-   * @param section "provides" or "requires" - the rules differ
-   * @return "" if ok, or a simple error message
+   * @param logger logger to use for validation info
+   * @param section "provides" or "requires"
+   * @param mod Module ID
+   * @return error message; empty string if no error
    */
   public String validate(Logger logger, String section, String mod) {
     if (id == null) {
