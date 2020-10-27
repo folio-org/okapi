@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Permission {
   private String permissionName;
+  private String[] renamedFrom;
   private String displayName;
   private String description;
   private String[] subPermissions;
@@ -22,6 +23,7 @@ public class Permission {
    */
   public Permission(Permission other) {
     this.permissionName = other.permissionName;
+    this.renamedFrom = other.renamedFrom;
     this.displayName = other.displayName;
     this.description = other.description;
     this.subPermissions = other.subPermissions;
@@ -66,6 +68,14 @@ public class Permission {
 
   public void setVisible(Boolean visible) {
     this.visible = visible;
+  }
+
+  public String[] getRenamedFrom() {
+    return renamedFrom;
+  }
+
+  public void setRenamedFrom(String[] renamedFrom) {
+    this.renamedFrom = renamedFrom;
   }
 
 }

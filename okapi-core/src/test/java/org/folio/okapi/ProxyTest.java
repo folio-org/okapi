@@ -235,7 +235,7 @@ public class ProxyTest {
           } else if (p.startsWith("/permissionscall")) {
             JsonObject permObject = new JsonObject(buf);
             if (timerTenantPermissionsStatus == 200) {
-              timerPermissions.put(permObject.getString("moduleId"), permObject.getJsonArray("perms"));
+              timerPermissions.put(permObject.getString("moduleId"), permObject.getJsonArray("newPermissions"));
             }
             ctx.response().setStatusCode(timerTenantPermissionsStatus);
             ctx.response().end("timer permissions response");
