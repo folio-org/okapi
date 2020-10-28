@@ -2048,7 +2048,8 @@ cat > /tmp/okapi-proxy-bar.json <<END
       "handlers": [
         {
           "methods": [ "GET", "POST" ],
-          "pathPattern": "/testb"
+          "pathPattern": "/testb",
+          "permissionsRequired": []
         }
       ]
     }
