@@ -1342,7 +1342,8 @@ cat > /tmp/okapi-module-auth.json <<END
       "handlers": [
         {
           "methods": [ "POST" ],
-          "pathPattern": "/authn/login"
+          "pathPattern": "/authn/login",
+          "permissionsRequired" : [ ]
         }
       ]
     },
@@ -1353,7 +1354,8 @@ cat > /tmp/okapi-module-auth.json <<END
       "handlers": [
         {
           "methods": [ "POST" ],
-          "pathPattern": "/_/tenantPermissions"
+          "pathPattern": "/_/tenantPermissions",
+          "permissionsRequired" : [ ]
         }
       ]
     }
@@ -1419,7 +1421,17 @@ Content-Length: 377
     "version" : "3.4",
     "handlers" : [ {
       "methods" : [ "POST" ],
-      "pathPattern" : "/authn/login"
+      "pathPattern" : "/authn/login",
+      "permissionsRequired" : [ ]
+    } ]
+  }, {
+    "id" : "_tenantPermissions",
+    "version" : "1.0",
+    "interfaceType" : "system",
+    "handlers" : [ {
+      "methods" : [ "POST" ],
+      "pathPattern" : "/_/tenantPermissions",
+      "permissionsRequired" : [ ]
     } ]
   } ],
   "filters" : [ {
