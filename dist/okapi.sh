@@ -62,7 +62,7 @@ parse_okapi_conf()  {
                  ${postgres_server_pem+,\$postgres_server_pem}
                }" > "${PID_DIR}/okapi-runtime.conf"
          echo "${PID_DIR}/okapi-runtime.conf = "
-         cat "${PID_DIR}/okapi-runtime.conf" | sed 's/\(password":\).*[^,]/\1 .../g'
+         cat "${PID_DIR}/okapi-runtime.conf" | sed 's/\(password":\|identitytoken":\).*[^,]/\1 .../g'
       fi
 
    fi
