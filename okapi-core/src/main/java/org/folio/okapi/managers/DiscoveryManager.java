@@ -229,7 +229,6 @@ public class DiscoveryManager implements NodeListener {
 
     List<Future> futures = new LinkedList<>();
     for (DeploymentDescriptor dd : ddList) {
-      logger.info("removeAndUndeploy {} {}", dd.getSrvcId(), dd.getInstId());
       futures.add(callUndeploy(dd)
           .compose(res -> deploymentStore.delete(dd.getInstId()))
           .mapEmpty());
@@ -243,10 +242,8 @@ public class DiscoveryManager implements NodeListener {
         md.getSrvcId(), md.getInstId(), md.getNodeId());
     final String nodeId = md.getNodeId();
     if (nodeId == null) {
-      logger.info("callUndeploy remove");
       return remove(md.getSrvcId(), md.getInstId()).mapEmpty();
     }
-    logger.info("callUndeploy calling..");
     return getNode(nodeId).compose(res ->
         vertx.eventBus().request(res.getUrl() + "/undeploy", md.getInstId(),
             deliveryOptions).mapEmpty()
