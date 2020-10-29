@@ -41,7 +41,6 @@ public class DockerModuleHandle implements ModuleHandle {
 
   private final int hostPort;
   private final Ports ports;
-  private final String image;
   private final String[] cmd;
   private final String dockerUrl;
   private final String containerHost;
@@ -59,6 +58,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private final SocketAddress socketAddress;
   static final String DEFAULT_DOCKER_URL = "unix:///var/run/docker.sock";
   static final String DEFAULT_DOCKER_VERSION = "v1.35";
+  private String image;
 
   DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
                      String id, Ports ports, String containerHost, int port, JsonObject config,
@@ -236,8 +236,28 @@ public class DockerModuleHandle implements ModuleHandle {
         });
   }
 
+  private static String getRegistryPrefix(JsonObject registry) {
+    String prefix = registry.getString("registry", "");
+    if (!prefix.isEmpty() && !prefix.endsWith("/")) {
+      return prefix + "/";
+    }
+    return prefix;
+  }
+
   private Future<JsonObject> getImage() {
-    return getUrl("/images/" + image + "/json");
+    if (dockerRegistries == null) {
+      return getUrl("/images/" + image + "/json");
+    }
+    Future<JsonObject> future = Future.failedFuture("");
+    for (int i = 0; i < dockerRegistries.size(); i++) {
+      JsonObject registry = dockerRegistries.getJsonObject(i);
+      String prefix = getRegistryPrefix(registry);
+      future = future.recover(x -> getUrl("/images/" + prefix + image + "/json")
+          .onSuccess(y -> {
+            image = prefix + image;
+          }));
+    }
+    return future;
   }
 
   Future<Void> pullImage() {
@@ -262,10 +282,7 @@ public class DockerModuleHandle implements ModuleHandle {
         }
       }
       future = future.recover(x -> {
-        String prefix = registry.getString("registry", "");
-        if (!prefix.isEmpty() && !prefix.endsWith("/")) {
-          prefix = prefix + "/";
-        }
+        String prefix = getRegistryPrefix(registry);
         logger.info("pull image {}", prefix + image);
         return postUrlJson("/images/create?fromImage=" + prefix + image,
             authObject, "pullImage", "").mapEmpty();
