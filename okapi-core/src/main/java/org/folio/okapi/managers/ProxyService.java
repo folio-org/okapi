@@ -79,7 +79,7 @@ public class ProxyService {
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
   private static final String TOKEN_CACHE_MAX_SIZE = "token_cache_max_size";
   private static final String TOKEN_CACHE_TTL_MS = "token_cache_ttl_ms";
-  private final Messages messages = Messages.getInstance();
+  private static final Messages messages = Messages.getInstance();
   private final TokenCache tokenCache;
 
   /**
