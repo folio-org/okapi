@@ -905,6 +905,7 @@ public class TenantManager implements Liveness {
             return;
           }
           if (x.failed()) {
+            logger.warn("job failed", x.cause());
             promise.fail(x.cause());
             return;
           }
