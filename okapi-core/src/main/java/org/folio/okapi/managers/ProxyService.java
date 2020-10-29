@@ -132,14 +132,14 @@ public class ProxyService {
     pc.logResponse(mi.getModuleDescriptor().getId(), url, statusCode);
   }
 
-  private boolean match(RoutingEntry e, HttpServerRequest req) {
+  private static boolean match(RoutingEntry e, HttpServerRequest req) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
     boolean matchResult = e.match(req.uri(), req.method().name());
     MetricsHelper.recordCodeExecutionTime(sample, "ProxyService.match");
     return matchResult;
   }
 
-  private boolean resolveRedirects(ProxyContext pc,
+  private static boolean resolveRedirects(ProxyContext pc,
                                    List<ModuleInstance> mods, RoutingEntry re,
                                    List<ModuleDescriptor> enabledModules,
                                    final String loop, final String uri) {
@@ -1300,8 +1300,11 @@ public class ProxyService {
           logger.debug("authForSystemInterface: {}",
               () -> Json.encode(cli.getRespHeaders().entries()));
           String modTok = cli.getRespHeaders().get(XOkapiHeaders.MODULE_TOKENS);
-          JsonObject jo = new JsonObject(modTok);
-          String token = jo.getString(modId, deftok);
+          String token = null;
+          if (modTok != null) {
+            JsonObject jo = new JsonObject(modTok);
+            token = jo.getString(modId, deftok);
+          }
           logger.debug("authForSystemInterface: Got token {}", token);
           return doCallSystemInterface(headers, tenantId, token, inst, null, request);
         });
