@@ -8,7 +8,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import java.util.Arrays;
 import java.util.List;
-import org.folio.okapi.util.ProxyContext;
+import org.apache.logging.log4j.Logger;
 
 /**
  * One entry in Okapi's routing table. Each entry contains one or more HTTP
@@ -460,24 +460,21 @@ public class RoutingEntry {
   /**
    * Validate handler of routing entry.
    * May log warnings via ProxyContext.warn.
-   * @param pc Proxy context
+   * @param logger Logger
    * @param mod module name
    * @return empty string if OK; non-empty string with message otherwise
    */
-  public String validateHandlers(ProxyContext pc, String mod) {
+  public String validateHandlers(Logger logger, String mod) {
     String section = "handlers";
-    String err = validateCommon(pc, section, mod);
+    String err = validateCommon(logger, section, mod);
     if (err.isEmpty()) {
       String prefix = "Module '" + mod + "' " + section;
       if (phase != null) {
-        pc.warn(prefix
-            + " uses 'phase' in the handlers section. "
-            + "Leave it out");
+        logger.warn("{} uses 'phase' in the handlers section. Leave it out", prefix);
       }
       if ("request-response".equals(type)) {
-        pc.warn(prefix
-            + " uses type=request-response. "
-            + "That is the default, you can leave it out");
+        logger.warn(prefix
+            + "{} uses type=request-response. That is the default, you can leave it out", prefix);
       }
     }
     return err;
@@ -486,24 +483,23 @@ public class RoutingEntry {
   /**
    * Validate filters of routing entry.
    * May log warnings via ProxyContext.warn.
-   * @param pc Proxy context
+   * @param logger Logger
    * @param mod module name
    * @return empty string if OK; non-empty string with message otherwise
    */
-  public String validateFilters(ProxyContext pc, String mod) {
-    return validateCommon(pc, "filters", mod);
+  public String validateFilters(Logger logger, String mod) {
+    return validateCommon(logger, "filters", mod);
   }
 
-  private String validateCommon(ProxyContext pc, String section, String mod) {
-    String prefix = "Module '" + mod + "' " + section;
+  private String validateCommon(Logger logger, String section, String mod) {
+    StringBuilder prefix = new StringBuilder("Module '" + mod + "' " + section);
     if (pathPattern != null && !pathPattern.isEmpty()) {
-      prefix += " " + pathPattern;
+      prefix.append(" " + pathPattern);
     } else if (path != null && !path.isEmpty()) {
-      prefix += " " + path;
+      prefix.append(" " + path);
     }
-    prefix += ": ";
-    pc.debug(prefix
-        + "Validating RoutingEntry " + Json.encode(this));
+    prefix.append(":");
+    logger.info("{} Validating RoutingEntry {}", () -> prefix, () -> Json.encode(this));
     if ((path == null || path.isEmpty())
         && (pathPattern == null || pathPattern.isEmpty())) {
       return "Bad routing entry, needs a pathPattern or at least a path";
@@ -515,30 +511,24 @@ public class RoutingEntry {
       }
     } else {
       if (redirectPath != null && !redirectPath.isEmpty()) {
-        pc.warn(prefix
-            + "has a redirectPath, even though it is not a redirect");
+        logger.warn("{} has a redirectPath, even though it is not a redirect", prefix);
       }
       if (pathPattern == null || pathPattern.isEmpty()) {
-        pc.warn(prefix
-            + " uses old type path"
-            + ". Use a pathPattern instead");
+        logger.warn("{} uses old type path. Use a pathPattern instead", prefix);
       }
       if (level != null) {
         String ph = "";
         if ("filters".equals(section)) {
           ph = "Use a phase=auth instead";
         }
-        pc.warn(prefix
-            + "uses DEPRECATED level. " + ph);
+        logger.warn("{} uses DEPRECATED level. {}", prefix, ph);
       }
 
       if (pathPattern != null && pathPattern.endsWith("/")) {
-        pc.warn(prefix
-            + "ends in a slash. Probably not what you intend");
+        logger.warn("{} ends in a slash. Probably not what you intend", prefix);
       }
       if ("system".equals(type)) {
-        pc.warn(prefix
-            + "uses DEPRECATED type 'system'");
+        logger.warn("{} uses DEPRECATED type 'system'", prefix);
       }
     }
     return "";
