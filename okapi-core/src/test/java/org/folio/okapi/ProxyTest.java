@@ -3,6 +3,7 @@ package org.folio.okapi;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
+import com.google.common.base.Charsets;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
@@ -21,6 +22,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.Pump;
@@ -29,12 +31,17 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Map.Entry;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.bean.InterfaceDescriptor;
+import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -72,7 +79,6 @@ public class ProxyTest {
   private HttpServer listenTimer;
   private JsonObject timerPermissions = new JsonObject();
   private JsonArray edgePermissionsAtInit = null;
-  private JsonObject timerTenantData;
 
   @Rule
   public TestWatcher watchman = new TestWatcher() {
@@ -207,10 +213,6 @@ public class ProxyTest {
 
   private void myTimerHandle(RoutingContext ctx) {
     final String p = ctx.request().path();
-    logger.info("myTimerHandle p=" + p);
-    for (Entry<String, String> ent : ctx.request().headers().entries()) {
-      logger.info(ent.getKey() + ":" + ent.getValue());
-    }
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
     } else if (HttpMethod.POST.equals(ctx.request().method())) {
@@ -228,8 +230,11 @@ public class ProxyTest {
       ctx.request().handler(buf::appendBuffer);
       ctx.request().endHandler(res -> {
         try {
-          if (p.startsWith("/_/tenant")) {
-            timerTenantData = new JsonObject(buf);
+          if (p.startsWith("/_/tenantpermissions")) {
+            logger.info("returning 200 in myTimerHandle");
+            ctx.response().setStatusCode(200);
+            ctx.response().end();
+          } else if (p.startsWith("/_/tenant")) {
             ctx.response().setStatusCode(timerTenantInitStatus);
             ctx.response().end("timer response");
           } else if (p.startsWith("/permissionscall")) {
@@ -252,14 +257,19 @@ public class ProxyTest {
             ctx.response().putHeader(CORS_TEST_HEADER, ctx.request().query());
             ctx.response().end("Response from CORS test");
           } else {
-            ctx.response().setStatusCode(404);
+            ctx.response().setStatusCode(200);
             ctx.response().end(p);
           }
         } catch (Exception ex) {
+          logger.info("400 in timerHandle... method={} p={} Buffer={}",
+              ctx.request().method().name(), p, buf.toString(Charsets.UTF_8));
           ctx.response().setStatusCode(400);
           ctx.response().end(ex.getMessage());
         }
       });
+    } else if (HttpMethod.GET.equals(ctx.request().method())) {
+      ctx.response().setStatusCode(200);
+      ctx.response().end("");
     } else {
       ctx.response().setStatusCode(404);
       ctx.response().end("Unsupported method");
@@ -494,7 +504,8 @@ public class ProxyTest {
         });
         res.endHandler(end -> {
           context.assertEquals(total + offset, cnt.get());
-          async.complete();});
+          async.complete();
+        });
       }));
       request.putHeader("X-Okapi-Tenant", tenant);
       request.putHeader("Content-Type", "text/plain");
@@ -4088,97 +4099,167 @@ public class ProxyTest {
     }
     if (provideTenantPermissions) {
       providesAr.add(new JsonObject()
-              .put("id", "_tenantPermissions")
-              .put("version", tenantPermissionsVersion)
-              .put("interfaceType", "system")
-              .put("handlers", new JsonArray()
-                  .add(new JsonObject()
-                      .put("methods", new JsonArray().add("POST"))
-                      .put("pathPattern", "/permissionscall")
-                      .put("permissionsRequired", new JsonArray()))));
+          .put("id", "_tenantPermissions")
+          .put("version", tenantPermissionsVersion)
+          .put("interfaceType", "system")
+          .put("handlers", new JsonArray()
+              .add(new JsonObject()
+                  .put("methods", new JsonArray().add("POST"))
+                  .put("pathPattern", "/permissionscall")
+                  .put("permissionsRequired", new JsonArray()))));
 
     }
     String mdJson = new JsonObject()
-      .put("id", moduleId)
-      .put("provides", providesAr
-        .add(new JsonObject()
-          .put("id", "_tenant")
-          .put("version", "1.1")
-          .put("interfaceType", "system")
-          .put("handlers", new JsonArray()
+        .put("id", moduleId)
+        .put("provides", providesAr
             .add(new JsonObject()
-              .put("methods", new JsonArray().add("POST"))
-              .put("pathPattern", "/_/tenant/disable")
-              .put("permissionsRequired", new JsonArray()))
+                .put("id", "_tenant")
+                .put("version", "1.1")
+                .put("interfaceType", "system")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/_/tenant/disable")
+                        .put("permissionsRequired", new JsonArray()))
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST").add("DELETE"))
+                        .put("pathPattern", "/_/tenant")
+                        .put("permissionsRequired", new JsonArray()))))
             .add(new JsonObject()
-              .put("methods", new JsonArray().add("POST").add("DELETE"))
-              .put("pathPattern", "/_/tenant")
-              .put("permissionsRequired", new JsonArray()))))
-        .add(new JsonObject()
-          .put("id", "myint")
-          .put("version", "1.0")
-          .put("handlers", new JsonArray()
+                .put("id", "myint")
+                .put("version", "1.0")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/timercall/{id}")
+                        .put("permissionsRequired", new JsonArray())
+                        .put("modulePermissions", new JsonArray().add("timercall.post.id").add("timercall.delete.id")))
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("DELETE"))
+                        .put("pathPattern", "/timercall/{id}")
+                        .put("permissionsRequired", new JsonArray().add("timercall.delete.id")))))
             .add(new JsonObject()
-              .put("methods", new JsonArray().add("POST"))
-              .put("pathPattern", "/timercall/{id}")
-              .put("permissionsRequired", new JsonArray())
-              .put("modulePermissions", new JsonArray().add("timercall.post.id").add("timercall.delete.id")))
+                .put("id", "mytest")
+                .put("version", "1.0")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/regularcall")
+                        .put("permissionsRequired", new JsonArray())
+                        .put("modulePermissions", new JsonArray().add("regularcall.test.post")))))
             .add(new JsonObject()
-              .put("methods", new JsonArray().add("DELETE"))
-              .put("pathPattern", "/timercall/{id}")
-              .put("permissionsRequired", new JsonArray().add("timercall.delete.id")))))
-        .add(new JsonObject()
-          .put("id", "mytest")
-          .put("version", "1.0")
-          .put("handlers", new JsonArray()
+                .put("id", "CORS-TEST")
+                .put("version", "1.0")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/corscall")
+                        .put("permissionsRequired", new JsonArray())
+                        .put("delegateCORS", "true")))))
+        .put("requires", new JsonArray())
+        .put("permissionSets", new JsonArray()
             .add(new JsonObject()
-              .put("methods", new JsonArray().add("POST"))
-              .put("pathPattern", "/regularcall")
-              .put("permissionsRequired", new JsonArray())
-              .put("modulePermissions", new JsonArray().add("regularcall.test.post")))))
-        .add(new JsonObject()
-            .put("id", "CORS-TEST")
-            .put("version", "1.0")
-            .put("handlers", new JsonArray()
-              .add(new JsonObject()
-                .put("methods", new JsonArray().add("POST"))
-                .put("pathPattern", "/corscall")
-                .put("permissionsRequired", new JsonArray())
-                .put("delegateCORS", "true")))))
-      .put("requires", new JsonArray())
-      .put("permissionSets", new JsonArray()
-        .add(new JsonObject()
-          .put("permissionName", "timercall.post.id")
-          .put("displayName", "d")))
-      .encodePrettily();
+                .put("permissionName", "timercall.post.id")
+                .put("displayName", "d")))
+        .encodePrettily();
 
     // registration
     RestAssuredClient c = api.createRestAssured3();
     c.given()
-      .header("Content-Type", "application/json")
-      .body(mdJson).post("/_/proxy/modules")
-      .then().statusCode(201).log().ifValidationFails();
+        .header("Content-Type", "application/json")
+        .body(mdJson).post("/_/proxy/modules")
+        .then().statusCode(201).log().ifValidationFails();
 
     // discovery
     String discoveryJson = new JsonObject()
-      .put("instId", "localhost-" + Integer.toString(portTimer) + moduleId)
-      .put("srvcId", moduleId)
-      .put("url", "http://localhost:" + Integer.toString(portTimer))
-      .encode();
+        .put("instId", "localhost-" + Integer.toString(portTimer) + moduleId)
+        .put("srvcId", moduleId)
+        .put("url", "http://localhost:" + Integer.toString(portTimer))
+        .encode();
     c.given()
-      .header("Content-Type", "application/json")
-      .body(discoveryJson).post("/_/discovery/modules")
-      .then().statusCode(201).log().ifValidationFails();
+        .header("Content-Type", "application/json")
+        .body(discoveryJson).post("/_/discovery/modules")
+        .then().statusCode(201).log().ifValidationFails();
 
     // install
     String installJson = new JsonArray()
-      .add(new JsonObject().put("id", moduleId).put("action", "enable"))
-      .encode();
+        .add(new JsonObject().put("id", moduleId).put("action", "enable"))
+        .encode();
     c.given()
-      .header("Content-Type", "application/json")
-      .body(installJson)
-      .post("/_/proxy/tenants/" + tenant + "/install")
-      .then().statusCode(200).log().ifValidationFails();
+        .header("Content-Type", "application/json")
+        .body(installJson)
+        .post("/_/proxy/tenants/" + tenant + "/install")
+        .then().statusCode(200).log().ifValidationFails();
   }
 
+  @Test
+  public void testManyModules(TestContext context) throws IOException {
+    given()
+        .body("{\"id\":\"testlib\"}").post("/_/proxy/tenants")
+        .then().statusCode(201);
+
+    String modulesJson = new String(getClass().getClassLoader().getResourceAsStream("modules2.json").readAllBytes());
+    JsonArray modulesList = new JsonArray(modulesJson);
+    context.assertEquals(104, modulesList.size());
+
+    String installJson = new String(getClass().getClassLoader().getResourceAsStream("install2.json").readAllBytes());
+    JsonArray installList = new JsonArray(installJson);
+    context.assertEquals(104, installList.size());
+
+    // save all normal GET provided paths
+    List<String> paths = new LinkedList<>();
+    for (int i = 0; i < modulesList.size(); i++) {
+      ModuleDescriptor md = Json.decodeValue(modulesList.getJsonObject(i).encode(), ModuleDescriptor.class);
+      for (InterfaceDescriptor interfaceDescriptor : md.getProvidesList()) {
+        String interfaceType = interfaceDescriptor.getInterfaceType();
+        if (interfaceType == null || "proxy".equals(interfaceType)) {
+          for (RoutingEntry routingEntry : interfaceDescriptor.getHandlers()) {
+            String[] methods = routingEntry.getMethods();
+            String type = routingEntry.getType();
+            String pathPattern = routingEntry.getPathPattern();
+            if (methods.length > 0 && "GET".equals(methods[0])
+                && (type == null || "request-response".equals(type))
+                && pathPattern != null) {
+
+              pathPattern = pathPattern.replace('{', 'x');
+              pathPattern = pathPattern.replace('}', 'x');
+
+              paths.add(pathPattern);
+            }
+          }
+        }
+      }
+    }
+
+    // we don't have a multi post for modules ... so we just try .. in some order
+    int pos = 0;
+    while (pos < modulesList.size()) {
+      JsonObject md = modulesList.getJsonObject(pos);
+      Response response = given()
+          .body(md.encode()).post("/_/proxy/modules")
+          .then().extract().response();
+      if (response.getStatusCode() == 201) {
+        JsonObject deployObject = new JsonObject()
+            .put("instId", "localhost-" + md.getString("id"))
+            .put("srvcId", md.getString("id"))
+            .put("url", "http://localhost:" + Integer.toString(portTimer));
+        given().body(deployObject.encode()).post("/_/discovery/modules")
+            .then().statusCode(201);
+        modulesList.remove(pos);
+        pos = 0;
+      } else {
+        context.assertEquals(400, response.getStatusCode());
+        pos++;
+      }
+    }
+    context.assertEquals(0, pos);
+    given()
+        .body(installJson).post("/_/proxy/tenants/testlib/install?invoke=true")
+        .then().statusCode(200);
+
+    // run all paths that have GET
+    for (String path : paths) {
+      given().header("X-Okapi-Tenant", "testlib").get(path).then().statusCode(200);
+    }
+  }
 }
