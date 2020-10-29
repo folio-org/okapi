@@ -17,40 +17,52 @@ fi
 DATA_DIR="${DATA_DIR:-/var/lib/okapi}"
 LIB_DIR="${LIB_DIR:-/usr/share/folio/okapi/lib}"
 OKAPI_JAR="${LIB_DIR}/okapi-core-fat.jar"
-# Copy from deprecated postgres_user into postgres_username
-postgres_username="${postgres_username:-${postgres_user:-okapi}}"
 
 parse_okapi_conf()  {
 
-   # storage backend options
-   if [ "$role" == "dev" ] || [ $role == "cluster" ]; then
+   if [ "$role" == "dev" ] || [ "$role" == "cluster" ]; then
 
+      # storage backend options
       if [ "$storage" == "postgres" ]; then
          OKAPI_JAVA_OPTS+=" -Dstorage=postgres"
-         OKAPI_OPTIONS+=" -conf ${PID_DIR}/okapi-postgres.conf"
-         rm -f "${PID_DIR}/okapi-postgres.conf" > /dev/null 2>&1
-         touch "${PID_DIR}/okapi-postgres.conf"
-         chmod 600 "${PID_DIR}/okapi-postgres.conf"
-         # include postgres_server_pem only if defined (even if empty string)
-         jq -n --arg WARNING "AUTOMATICALLY CREATED FILE, DO NOT EDIT!"  \
-               --arg postgres_host       "${postgres_host:-localhost}"   \
-               --arg postgres_port       "${postgres_port:-5432}"        \
-               --arg postgres_username   "${postgres_username:-okapi}"   \
-               --arg postgres_password   "${postgres_password:-okapi25}" \
-               --arg postgres_database   "${postgres_database:-okapi}"   \
-               --arg postgres_server_pem "${postgres_server_pem}"        \
-               "{\$WARNING,
-                 \$postgres_host,
-                 \$postgres_port,
-                 \$postgres_username,
-                 \$postgres_password,
-                 \$postgres_database
-                 ${postgres_server_pem+,\$postgres_server_pem}
-               }" > "${PID_DIR}/okapi-postgres.conf"
-         echo "${PID_DIR}/okapi-postgres.conf = "
-         cat "${PID_DIR}/okapi-postgres.conf" | sed 's/\(\"\postgres_password":\).*[^,]/\1 .../g'
+         # Copy from deprecated postgres_user into postgres_username
+         postgres_username="${postgres_username:-${postgres_user:-okapi}}"
+         # Set other defaults
+         postgres_host="${postgres_host:-localhost}"
+         postgres_port="${postgres_port:-5432}"
+         postgres_password="${postgres_password:-okapi25}"
+         postgres_database="${postgres_database:-okapi}"
       else
          OKAPI_JAVA_OPTS+=" -Dstorage=inmemory"
+      fi
+
+      # create runtime configuration file for sensitive information
+      # Store auth here rather than exposing on command line
+      if [ "$storage" == "postgres" ] || [ "$docker_registries" ]; then
+         OKAPI_OPTIONS+=" -conf ${PID_DIR}/okapi-runtime.conf"
+         rm -f "${PID_DIR}/okapi-runtime.conf" > /dev/null 2>&1
+         touch "${PID_DIR}/okapi-runtime.conf"
+         chmod 600 "${PID_DIR}/okapi-runtime.conf"
+         # include postgres connection arguments only if defined
+         jq -n --arg WARNING "AUTOMATICALLY CREATED FILE, DO NOT EDIT!"    \
+               --argjson dockerRegistries  "${docker_registries:-[]}"      \
+               --arg postgres_host         "${postgres_host}"              \
+               --arg postgres_port         "${postgres_port}"              \
+               --arg postgres_username     "${postgres_username}"          \
+               --arg postgres_password     "${postgres_password}"          \
+               --arg postgres_database     "${postgres_database}"          \
+               --arg postgres_server_pem   "${postgres_server_pem}"        \
+               "{\$WARNING,
+                 \$dockerRegistries
+                 ${postgres_host+,\$postgres_host}
+                 ${postgres_port+,\$postgres_port}
+                 ${postgres_username+,\$postgres_username}
+                 ${postgres_password+,\$postgres_password}
+                 ${postgres_database+,\$postgres_database}
+                 ${postgres_server_pem+,\$postgres_server_pem}
+               }" > "${PID_DIR}/okapi-runtime.conf"
+         echo "${PID_DIR}/okapi-runtime.conf = "
+         cat "${PID_DIR}/okapi-runtime.conf" | sed 's/\(password":\).*[^,]/\1 .../g'
       fi
 
    fi
