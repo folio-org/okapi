@@ -21,6 +21,7 @@ import org.folio.okapi.bean.AnyDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
+import org.folio.okapi.common.OkapiLogger;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
@@ -30,6 +31,8 @@ import static org.mockito.Mockito.*;
 
 @RunWith(VertxUnitRunner.class)
 public class DockerModuleHandleTest implements WithAssertions {
+  private static final int MOCK_PORT = 9231;
+  private static final Logger logger = OkapiLogger.get();
 
   @Test
   public void testDomainSocketAddresses() {
@@ -117,9 +120,13 @@ public class DockerModuleHandleTest implements WithAssertions {
   private int dockerPullStatus = 500;
   private JsonObject dockerPullJson = null;
   private String lastFromImage = null;
+  private String dockerImageMatch;
 
   private void dockerMockHandle(RoutingContext ctx) {
-    if (ctx.request().method().equals(HttpMethod.POST) && ctx.request().path().contains("/images/create")) {
+    HttpMethod method = ctx.request().method();
+    String path = ctx.request().path();
+    logger.debug("dockerMockHandle {} {} {}", method.name(), path);
+    if (method.equals(HttpMethod.POST) && path.contains("/images/create")) {
       lastFromImage = ctx.request().getParam("fromImage");
       String auth = ctx.request().getHeader("X-Registry-Auth");
       if (auth != null) {
@@ -136,7 +143,17 @@ public class DockerModuleHandleTest implements WithAssertions {
       ctx.response().setStatusCode(dockerPullStatus);
       ctx.response().putHeader("Context-Type", "application/json");
       ctx.response().end(Json.encode(dockerPullJson));
-    } else if (ctx.request().method().equals(HttpMethod.GET) || ctx.request().path().endsWith("/create")) {
+    } else if (dockerImageMatch != null && method.equals(HttpMethod.GET) && path.contains("/images/")) {
+      if (path.contains("/images/" + dockerImageMatch + "/json")) {
+        ctx.response().putHeader("Context-Type", "application/json");
+        ctx.response().setStatusCode(200);
+        ctx.response().end("{}");
+      } else {
+        ctx.response().setStatusCode(404);
+        ctx.response().end("{\"message\": \"not found\"}");
+        // ctx.response().end("Not found");
+      }
+    } else if (method.equals(HttpMethod.GET) || path.endsWith("/create")) {
       ctx.response().setStatusCode(dockerMockStatus);
       if (dockerMockJson != null) {
         ctx.response().putHeader("Context-Type", "application/json");
@@ -152,15 +169,16 @@ public class DockerModuleHandleTest implements WithAssertions {
     }
   }
 
-  boolean pullImage(TestContext context, Vertx vertx, JsonObject conf) {
+  DockerModuleHandle createDockerModuleHandleForMock(Vertx vertx, JsonObject conf) {
     LaunchDescriptor ld = new LaunchDescriptor();
-    ld.setWaitIterations(2);
     ld.setDockerImage("folioci/mod-x");
-    ld.setDockerPull(true);
     Ports ports = new Ports(9232, 9233);
-    DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-        "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
-        9231, conf);
+    return new DockerModuleHandle(vertx, ld,
+        "mod-x-1.0.0", ports, "localhost", 9232, conf);
+  }
+
+  boolean pullImage(TestContext context, Vertx vertx, JsonObject conf) {
+    DockerModuleHandle dh = createDockerModuleHandleForMock(vertx, conf);
     Async async = context.async();
     AtomicBoolean succeeded = new AtomicBoolean();
     dh.pullImage().onComplete(done -> {
@@ -171,10 +189,21 @@ public class DockerModuleHandleTest implements WithAssertions {
     return succeeded.get();
   }
 
+  boolean getImage(TestContext context, Vertx vertx, JsonObject conf) {
+    DockerModuleHandle dh = createDockerModuleHandleForMock(vertx, conf);
+    Async async = context.async();
+    AtomicBoolean succeeded = new AtomicBoolean();
+    dh.getImage().onComplete(done -> {
+      succeeded.set(done.succeeded());
+      async.complete();
+    });
+    async.await();
+    return succeeded.get();
+  }
+
   @Test
   public void testDockerPull(TestContext context) {
     Vertx vertx = Vertx.vertx();
-    int mockDockerPort = 9231;
 
     Router router = Router.router(vertx);
     router.routeWithRegex("/.*").handler(this::dockerMockHandle);
@@ -182,11 +211,11 @@ public class DockerModuleHandleTest implements WithAssertions {
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     HttpServer listen = vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(mockDockerPort, context.asyncAssertSuccess());
+        .listen(MOCK_PORT, context.asyncAssertSuccess());
     dockerPullJson = new JsonObject().put("message", "some message");
     dockerPullStatus = 200;
 
-    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + mockDockerPort);
+    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + MOCK_PORT);
     context.assertTrue(pullImage(context, vertx, conf));
 
     conf.put("dockerRegistries", new JsonArray());
@@ -221,16 +250,47 @@ public class DockerModuleHandleTest implements WithAssertions {
   }
 
   @Test
+  public void testGetImage(TestContext context) {
+    Vertx vertx = Vertx.vertx();
+
+    Router router = Router.router(vertx);
+    router.routeWithRegex("/.*").handler(this::dockerMockHandle);
+
+    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    HttpServer listen = vertx.createHttpServer(so)
+        .requestHandler(router)
+        .listen(MOCK_PORT, context.asyncAssertSuccess());
+    dockerImageMatch = "foo";
+    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + MOCK_PORT);
+    context.assertFalse(getImage(context, vertx, conf));
+    dockerImageMatch = "folioci/mod-x";
+    context.assertTrue(getImage(context, vertx, conf));
+    conf.put("dockerRegistries", new JsonArray());
+    context.assertFalse(getImage(context, vertx, conf));
+    conf.put("dockerRegistries", new JsonArray()
+        .add(new JsonObject().put("registry", "reg1"))
+        .add(new JsonObject().put("registry", "reg2")));
+    context.assertFalse(getImage(context, vertx, conf));
+    dockerImageMatch = "reg1/folioci/mod-x";
+    context.assertTrue(getImage(context, vertx, conf));
+    dockerImageMatch = "reg2/folioci/mod-x";
+    context.assertTrue(getImage(context, vertx, conf));
+    dockerImageMatch = "reg3/folioci/mod-x";
+    context.assertFalse(getImage(context, vertx, conf));
+    dockerImageMatch = null;
+    listen.close(context.asyncAssertSuccess());
+  }
+
+  @Test
   public void testDockerMock(TestContext context) {
     Vertx vertx = Vertx.vertx();
-    int mockDockerPort = 9231;
 
     Router router = Router.router(vertx);
     router.routeWithRegex("/.*").handler(this::dockerMockHandle);
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     HttpServer listen = vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(mockDockerPort, context.asyncAssertSuccess());
+        .listen(MOCK_PORT, context.asyncAssertSuccess());
 
     LaunchDescriptor ld = new LaunchDescriptor();
     ld.setWaitIterations(2);
@@ -248,11 +308,12 @@ public class DockerModuleHandleTest implements WithAssertions {
     String []cmd = {"command"};
     ld.setDockerCmd(cmd);
     Ports ports = new Ports(9232, 9233);
-    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + mockDockerPort);
+    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + MOCK_PORT);
 
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
         "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
-        9231, conf);
+        MOCK_PORT, // using also mock for virtual module
+        conf);
 
     {
       Async async = context.async();
@@ -429,6 +490,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     }
     Assume.assumeTrue(versionRes.containsKey("result"));
     context.assertTrue(versionRes.getJsonObject("result").containsKey("Version"));
+    logger.info("Local docker version {}", versionRes.getJsonObject("result").getString("Version"));
 
     {
       Async async = context.async();
