@@ -1,3 +1,11 @@
+## 4.3.1 2020-10-30
+
+This release has fixes for Okapi handling of registries and update
+to the Debian package.
+
+ * [OKAPI-935](https://issues.folio.org/browse/OKAPI-935) Fix creating container fails when pulling from custom registry
+ * [OKAPI-934](https://issues.folio.org/browse/OKAPI-934) Update okapi.sh launch script to support dockerRegistries
+
 ## 4.3.0 2020-10-26
 
 This release has Prometheus support for Micrometer metrics; Docker registry
