@@ -48,6 +48,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.MetricsHelper;
+import org.folio.okapi.util.ModuleCache;
 import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.util.TokenCache;
@@ -81,6 +82,7 @@ public class ProxyService {
   private static final String TOKEN_CACHE_TTL_MS = "token_cache_ttl_ms";
   private static final Messages messages = Messages.getInstance();
   private final TokenCache tokenCache;
+  private final ModuleCache moduleCache = new ModuleCache();
 
   /**
    * Construct Proxy service.
@@ -226,6 +228,17 @@ public class ProxyService {
       mi.setPermissions(null);
       return false;
     }
+  }
+
+  private List<ModuleInstance> getModulesForRequest2(ProxyContext pc,
+                                                    List<ModuleDescriptor> enabledModules) {
+    HttpServerRequest req = pc.getCtx().request();
+    final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
+    List<ModuleInstance> mods = moduleCache.lookup(req.uri(), req.method(), id, enabledModules);
+    Comparator<ModuleInstance> cmp =
+        Comparator.comparing((ModuleInstance a) -> a.getRoutingEntry().getPhaseLevel());
+    mods.sort(cmp);
+    return mods;
   }
 
   /**

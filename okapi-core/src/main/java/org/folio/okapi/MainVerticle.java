@@ -44,7 +44,6 @@ import org.folio.okapi.service.impl.TenantStoreNull;
 import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.EventBusChecker;
 import org.folio.okapi.util.LogHelper;
-import org.folio.okapi.util.MetricsHelper;
 import org.folio.okapi.util.OkapiError;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
