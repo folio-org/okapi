@@ -244,7 +244,7 @@ public class DockerModuleHandle implements ModuleHandle {
     return prefix;
   }
 
-  private Future<JsonObject> getImage() {
+  Future<JsonObject> getImage() {
     if (dockerRegistries == null) {
       return getUrl("/images/" + image + "/json");
     }
