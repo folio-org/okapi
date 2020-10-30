@@ -14,6 +14,7 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
@@ -43,6 +44,7 @@ import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.common.HttpResponse;
+import org.folio.okapi.common.MetricsUtil;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.junit.After;
@@ -342,7 +344,9 @@ public class ProxyTest {
 
   @Before
   public void setUp(TestContext context) {
-    vertx = Vertx.vertx();
+    VertxOptions vopt = new VertxOptions();
+    MetricsUtil.init(vopt);
+    vertx = Vertx.vertx(vopt);
     httpClient = vertx.createHttpClient();
 
     timerTenantInitStatus = 200;
@@ -4257,9 +4261,14 @@ public class ProxyTest {
         .body(installJson).post("/_/proxy/tenants/testlib/install?invoke=true")
         .then().statusCode(200);
 
-    // run all paths that have GET
-    for (String path : paths) {
-      given().header("X-Okapi-Tenant", "testlib").get(path).then().statusCode(200);
+    long startTime = System.nanoTime();
+    for (int i = 0; i < 2; i++) {
+      // run all paths that have GET
+      for (String path : paths) {
+        given().header("X-Okapi-Tenant", "testlib").get(path).then().statusCode(200);
+      }
     }
+    long endTime = System.nanoTime();
+    logger.info("Elapsed {} ms", (endTime - startTime) / 1000000);
   }
 }
