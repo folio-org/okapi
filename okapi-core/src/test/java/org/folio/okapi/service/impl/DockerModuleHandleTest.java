@@ -471,7 +471,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     ld.setDockerImage("folioci/mod-users:5.0.0-SNAPSHOT");
     JsonObject conf = new JsonObject();
     // tell local Docker to use registry on non-listening port
-    conf.put("dockerRegistries", new JsonArray().add(new JsonObject().put("registry", "localhost:9234")));
+    conf.put("dockerRegistries", new JsonArray().add(new JsonObject().put("registry", "localhost:9231")));
     Ports ports = new Ports(9232, 9233);
 
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
@@ -490,6 +490,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     }
     Assume.assumeTrue(versionRes.containsKey("result"));
     context.assertTrue(versionRes.getJsonObject("result").containsKey("Version"));
+    logger.info("Local docker version {}", versionRes.getJsonObject("result").getString("Version"));
 
     {
       Async async = context.async();
@@ -510,7 +511,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     {
       Async async = context.async();
       dh.pullImage().onComplete(context.asyncAssertFailure(res -> {
-        context.assertTrue(res.getMessage().contains("9234: connect: connection refused"), res.getMessage());
+        context.assertTrue(res.getMessage().contains("9231: connect: connection refused"), res.getMessage());
         async.complete();
       }));
       async.await();
