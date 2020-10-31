@@ -230,17 +230,6 @@ public class ProxyService {
     }
   }
 
-  private List<ModuleInstance> getModulesForRequest2(ProxyContext pc,
-                                                    List<ModuleDescriptor> enabledModules) {
-    HttpServerRequest req = pc.getCtx().request();
-    final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
-    List<ModuleInstance> mods = moduleCache.lookup(req.uri(), req.method(), id, enabledModules);
-    Comparator<ModuleInstance> cmp =
-        Comparator.comparing((ModuleInstance a) -> a.getRoutingEntry().getPhaseLevel());
-    mods.sort(cmp);
-    return mods;
-  }
-
   /**
    * Builds the pipeline of modules to be invoked for a request. Sets the
    * default authToken for each ModuleInstance. Later, these can be overwritten
