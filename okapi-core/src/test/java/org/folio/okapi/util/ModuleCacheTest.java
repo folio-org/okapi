@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
@@ -13,13 +12,11 @@ import org.folio.okapi.bean.RoutingEntry;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.in;
 
-
-public class ModuleCacheTest {
+class ModuleCacheTest {
   @Test
   void testLookupEmpty() {
-    Map<String, List<ModuleInstance>> map = new HashMap<>();
+    Map<String, List<ModuleCache.ModuleCacheEntry>> map = new HashMap<>();
 
     assertThat(ModuleCache.lookup("", HttpMethod.GET, map, true)).isEmpty();
     assertThat(ModuleCache.lookup("/", HttpMethod.GET, map, true)).isEmpty();
@@ -29,7 +26,6 @@ public class ModuleCacheTest {
 
   @Test
   void testLookupRoutingEntries() {
-    Map<String, List<ModuleInstance>> map = new HashMap<>();
     ModuleDescriptor md = new ModuleDescriptor();
     List<RoutingEntry> routingEntries = new LinkedList<>();
     RoutingEntry routingEntry1 = new RoutingEntry();
@@ -52,6 +48,8 @@ public class ModuleCacheTest {
     routingEntry5.setPath("/old/type");
     routingEntry5.setMethods(new String[] {"GET"});
     routingEntries.add(routingEntry5);
+
+    Map<String, List<ModuleCache.ModuleCacheEntry>> map = new HashMap<>();
     ModuleCache.add(md, map, routingEntries);
 
     assertThat(ModuleCache.lookup("", HttpMethod.GET, map, true)).isEmpty();
@@ -113,5 +111,44 @@ public class ModuleCacheTest {
 
     moduleCache.clear();
     assertThat(moduleCache.lookup("/a/id", HttpMethod.GET, null)).isEmpty();
+  }
+
+  @Test
+  void testModulesAuth() {
+    ModuleCache moduleCache = new ModuleCache();
+
+    RoutingEntry[] routingEntries1 = new RoutingEntry[1];
+    RoutingEntry routingEntry1 = routingEntries1[0] = new RoutingEntry();
+    routingEntry1.setPathPattern("/token");
+    routingEntry1.setMethods(new String[] {"GET"});
+
+    InterfaceDescriptor[] interfaceDescriptors = new InterfaceDescriptor[1];
+    InterfaceDescriptor interfaceDescriptor = interfaceDescriptors[0] = new InterfaceDescriptor();
+    interfaceDescriptor.setId("auth");
+    interfaceDescriptor.setHandlers(routingEntries1);
+
+    RoutingEntry[] routingEntries2 = new RoutingEntry[1];
+    RoutingEntry routingEntry2 = routingEntries2[0] = new RoutingEntry();
+    routingEntry2.setPathPattern("/*");
+    routingEntry2.setMethods(new String[] {"*"});
+
+    ModuleDescriptor authModule = new ModuleDescriptor();
+    authModule.setProvides(interfaceDescriptors);
+    authModule.setFilters(routingEntries2);
+    authModule.setId("auth-1.0.0");
+    moduleCache.add(authModule);
+
+    List<ModuleInstance> instances = moduleCache.lookup("/a/id", HttpMethod.GET, null);
+    assertThat(instances.size()).isEqualTo(1);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry2);
+
+    instances = moduleCache.lookup("/token", HttpMethod.POST, null);
+    assertThat(instances.size()).isEqualTo(1);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry2);
+
+    instances = moduleCache.lookup("/token", HttpMethod.GET, null);
+    assertThat(instances.size()).isEqualTo(2);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry2);
+    assertThat(instances.get(1).getRoutingEntry()).isEqualTo(routingEntry1);
   }
 }

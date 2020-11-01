@@ -14,9 +14,19 @@ import org.folio.okapi.common.OkapiLogger;
 public class ModuleCache {
   private static final Logger logger = OkapiLogger.get();
 
-  Map<String, List<ModuleInstance>> proxyMap = new HashMap<>();
-  Map<String, List<ModuleInstance>> multiMap = new HashMap<>();
-  Map<String, List<ModuleInstance>> filterMap = new HashMap<>();
+  static class ModuleCacheEntry {
+    final ModuleDescriptor moduleDescriptor;
+    final RoutingEntry routingEntry;
+
+    public ModuleCacheEntry(ModuleDescriptor moduleDescriptor, RoutingEntry routingEntry) {
+      this.moduleDescriptor = moduleDescriptor;
+      this.routingEntry = routingEntry;
+    }
+  }
+
+  Map<String, List<ModuleCacheEntry>> proxyMap = new HashMap<>();
+  Map<String, List<ModuleCacheEntry>> multiMap = new HashMap<>();
+  Map<String, List<ModuleCacheEntry>> filterMap = new HashMap<>();
 
   static String getPatternPrefix(RoutingEntry re) {
     String pathPattern = re.getPathPattern();
@@ -33,19 +43,16 @@ public class ModuleCache {
     return pathPattern.substring(0, index);
   }
 
-  static void add(ModuleDescriptor moduleDescriptor, Map<String, List<ModuleInstance>> map,
+  static void add(ModuleDescriptor moduleDescriptor, Map<String, List<ModuleCacheEntry>> map,
                   List<RoutingEntry> entries) {
     for (RoutingEntry routingEntry : entries) {
       String prefix = getPatternPrefix(routingEntry);
-      List<ModuleInstance> list = map.get(prefix);
+      List<ModuleCacheEntry> list = map.get(prefix);
       if (list == null) {
         list = new LinkedList<>();
         map.put(prefix, list);
       }
-      list.add(new ModuleInstance(moduleDescriptor, routingEntry,
-          null /* not in use for the match */,
-          HttpMethod.GET /* not in use for the match */,
-          false /* not in use for the match */));
+      list.add(new ModuleCacheEntry(moduleDescriptor, routingEntry));
     }
   }
 
@@ -69,18 +76,18 @@ public class ModuleCache {
   }
 
   static List<ModuleInstance> lookup(String uri, HttpMethod method, Map<String,
-      List<ModuleInstance>> map, boolean handler) {
+      List<ModuleCacheEntry>> map, boolean handler) {
     List<ModuleInstance> returnList = new LinkedList<>();
     logger.info("lookup uri={}", uri);
     String tryUri = uri;
     while (true) {
       logger.info("tryUri = {}", tryUri);
-      List<ModuleInstance> gotInstances = map.get(tryUri);
+      List<ModuleCacheEntry> gotInstances = map.get(tryUri);
       if (gotInstances != null) {
-        for (ModuleInstance candiate : gotInstances) {
-          if (candiate.getRoutingEntry().match(uri, method.name())) {
-            returnList.add(new ModuleInstance(candiate.getModuleDescriptor(),
-                candiate.getRoutingEntry(), uri, method, handler));
+        for (ModuleCacheEntry candiate : gotInstances) {
+          if (candiate.routingEntry.match(uri, method.name())) {
+            returnList.add(new ModuleInstance(candiate.moduleDescriptor,
+                candiate.routingEntry, uri, method, handler));
           }
         }
       }
