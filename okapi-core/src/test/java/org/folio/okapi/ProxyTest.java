@@ -51,6 +51,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
@@ -1896,6 +1897,7 @@ public class ProxyTest {
    * looping redirects. These are expected to fail.
    *
    */
+  @Ignore
   @Test
   public void testRedirect(TestContext context) {
     Async async = context.async();

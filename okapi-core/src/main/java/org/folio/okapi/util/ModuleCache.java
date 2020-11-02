@@ -24,18 +24,41 @@ public class ModuleCache {
     }
   }
 
-  Map<String, List<ModuleCacheEntry>> proxyMap = new HashMap<>();
-  Map<String, List<ModuleCacheEntry>> multiMap = new HashMap<>();
-  Map<String, List<ModuleCacheEntry>> filterMap = new HashMap<>();
+  final Map<String, List<ModuleCacheEntry>> proxyMap = new HashMap<>();
+  final Map<String, List<ModuleCacheEntry>> multiMap = new HashMap<>();
+  final Map<String, List<ModuleCacheEntry>> filterMap = new HashMap<>();
+  final List<ModuleDescriptor> moduleDescriptors;
+
+  /**
+   * Construct cache with module descriptors.
+   * @param moduleDescriptors to be cached
+   */
+  public ModuleCache(List<ModuleDescriptor> moduleDescriptors) {
+    this.moduleDescriptors = moduleDescriptors;
+    for (ModuleDescriptor moduleDescriptor : moduleDescriptors) {
+      add(moduleDescriptor);
+    }
+  }
+
+  /**
+   * Return modules descriptors in cache.
+   * @return list of modules
+   */
+  public List<ModuleDescriptor> getModules() {
+    return moduleDescriptors;
+  }
 
   static String getPatternPrefix(RoutingEntry re) {
     String pathPattern = re.getPathPattern();
     if (pathPattern == null) {
-      return "/";
+      return "/"; // anything but pathPattern is legacy so we don't care about those
     }
     int index = 0;
     while (index < pathPattern.length()) {
       if (pathPattern.charAt(index) == '*' || pathPattern.charAt(index) == '{') {
+        while (index > 0 && pathPattern.charAt(index - 1) != '/') {
+          --index;
+        }
         break;
       }
       index++;
@@ -56,39 +79,33 @@ public class ModuleCache {
     }
   }
 
-  /**
-   * Add module to ModuleCache.
-   * @param moduleDescriptor module descriptor
-   */
-  public void add(ModuleDescriptor moduleDescriptor) {
+  private void add(ModuleDescriptor moduleDescriptor) {
     add(moduleDescriptor, proxyMap, moduleDescriptor.getProxyRoutingEntries());
     add(moduleDescriptor, multiMap, moduleDescriptor.getMultiRoutingEntries());
     add(moduleDescriptor, filterMap, moduleDescriptor.getFilterRoutingEntries());
   }
 
-  /**
-   * clear module cache.
-   */
-  public void clear() {
-    proxyMap.clear();
-    multiMap.clear();
-    filterMap.clear();
-  }
-
   static List<ModuleInstance> lookup(String uri, HttpMethod method, Map<String,
       List<ModuleCacheEntry>> map, boolean handler, String id) {
-    List<ModuleInstance> returnList = new LinkedList<>();
-    logger.info("lookup uri={}", uri);
+    List<ModuleInstance> instances = new LinkedList<>();
     String tryUri = uri;
+    for (int index = 0; index < uri.length(); index++) {
+      if (uri.charAt(index) == '#' || uri.charAt(index) == '?') {
+        tryUri = tryUri.substring(0, index);
+        break;
+      }
+    }
     while (true) {
-      logger.info("tryUri = {}", tryUri);
-      List<ModuleCacheEntry> gotInstances = map.get(tryUri);
-      if (gotInstances != null) {
-        for (ModuleCacheEntry candiate : gotInstances) {
+      List<ModuleCacheEntry> candidateInstances = map.get(tryUri);
+      if (candidateInstances != null) {
+        for (ModuleCacheEntry candiate : candidateInstances) {
           if (candiate.routingEntry.match(uri, method.name())
               && (id == null || id.equals(candiate.moduleDescriptor.getId()))) {
-            returnList.add(new ModuleInstance(candiate.moduleDescriptor,
+            instances.add(new ModuleInstance(candiate.moduleDescriptor,
                 candiate.routingEntry, uri, method, handler));
+            if (handler) {
+              return instances;
+            }
           }
         }
       }
@@ -101,7 +118,7 @@ public class ModuleCache {
       }
       tryUri = tryUri.substring(0, index);
     }
-    return returnList;
+    return instances;
   }
 
   /**
@@ -112,12 +129,21 @@ public class ModuleCache {
    * @return module instances that match
    */
   public List<ModuleInstance> lookup(String uri, HttpMethod method, String id) {
+    logger.debug("lookup {} {} id={}", method.name(), uri, id);
+    StringBuilder str = new StringBuilder();
+    for (ModuleDescriptor md : moduleDescriptors) {
+      if (str.length() > 0) {
+        str.append(", ");
+      }
+      str.append(md.getId());
+    }
+    logger.debug("Available modules {}", str);
     // perform lookup
     List<ModuleInstance> instances = ModuleCache.lookup(uri, method, filterMap, false, null);
     if (id == null) {
       instances.addAll(lookup(uri, method, proxyMap, true, null));
     } else {
-      instances.addAll(lookup(uri, method, multiMap, false, id));
+      instances.addAll(lookup(uri, method, multiMap, true, id));
     }
     return instances;
   }

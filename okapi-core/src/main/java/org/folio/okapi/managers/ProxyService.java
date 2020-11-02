@@ -82,7 +82,6 @@ public class ProxyService {
   private static final String TOKEN_CACHE_TTL_MS = "token_cache_ttl_ms";
   private static final Messages messages = Messages.getInstance();
   private final TokenCache tokenCache;
-  private final ModuleCache moduleCache = new ModuleCache();
 
   /**
    * Construct Proxy service.
@@ -141,55 +140,6 @@ public class ProxyService {
     return matchResult;
   }
 
-  private static boolean resolveRedirects(ProxyContext pc,
-                                   List<ModuleInstance> mods, RoutingEntry re,
-                                   List<ModuleDescriptor> enabledModules,
-                                   final String loop, final String uri) {
-
-    RoutingContext ctx = pc.getCtx();
-    if (re.getProxyType() == ProxyType.REDIRECT) { // resolve redirects
-      boolean found = false;
-      final String redirectPath = re.getRedirectPath();
-      for (ModuleDescriptor trymod : enabledModules) {
-        for (RoutingEntry tryre : trymod.getFilterRoutingEntries()) {
-          if (tryre.match(redirectPath, ctx.request().method().name())) {
-            final String newUri = re.getRedirectUri(uri);
-            found = true;
-            logger.debug("resolveRedirects: {} {} => {} {}",
-                ctx.request().method(), uri, trymod, newUri);
-            if (loop.contains(redirectPath + " ")) {
-              pc.responseError(500, messages.getMessage("10100", loop, redirectPath));
-              return false;
-            }
-            ModuleInstance mi = new ModuleInstance(trymod, tryre, newUri,
-                ctx.request().method(), false);
-            mods.add(mi);
-            if (!resolveRedirects(pc, mods, tryre, enabledModules,
-                loop + " -> " + redirectPath, newUri)) {
-              return false;
-            }
-          }
-        }
-        for (RoutingEntry tryre : trymod.getProxyRoutingEntries()) {
-          if (tryre.match(redirectPath, ctx.request().method().name())) {
-            final String newUri = re.getRedirectUri(uri);
-            found = true;
-            logger.debug("resolveRedirects: {} {} => {} {}",
-                ctx.request().method(), uri, trymod, newUri);
-            ModuleInstance mi = new ModuleInstance(trymod, tryre,
-                newUri, ctx.request().method(), true);
-            mods.add(mi);
-          }
-        }
-      }
-      if (!found) {
-        pc.responseError(500, messages.getMessage("10101", uri, redirectPath));
-      }
-      return found;
-    }
-    return true;
-  }
-
   /**
    * Checks for a cached token, userId, permissions and updates the provided ModuleInstance
    * accordingly.
@@ -230,89 +180,30 @@ public class ProxyService {
     }
   }
 
-  /**
-   * Builds the pipeline of modules to be invoked for a request. Sets the
-   * default authToken for each ModuleInstance. Later, these can be overwritten
-   * by the ModuleTokens from the auth, if needed.
-   *
-   * @param pc ProxyContext
-   * @param enabledModules modules enabled for the current tenant
-   * @return a list of ModuleInstances. In case of error, sets up ctx and returns null.
-   */
-  private List<ModuleInstance> getModulesForRequest(ProxyContext pc,
-                                                    List<ModuleDescriptor> enabledModules) {
-
-    Timer.Sample sample = MetricsHelper.getTimerSample();
-    final String name = "ProxyService.getModulesForRequest";
-
-    List<ModuleInstance> mods = new ArrayList<>();
+  private List<ModuleInstance> getModulesForRequest(ProxyContext pc, ModuleCache moduleCache) {
     HttpServerRequest req = pc.getCtx().request();
     final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
-    logger.debug("getModulesForRequest: Matching {} {}", req.method(), req.uri());
-
+    List<ModuleInstance> mods = moduleCache.lookup(req.uri(), req.method(), id);
     boolean skipAuth = false;
-    Timer.Sample sampleLoopEnabledModules = MetricsHelper.getTimerSample();
-
-    for (ModuleDescriptor md : enabledModules) {
-      logger.debug("getModulesForRequest:  looking at {}", md.getId());
-      List<RoutingEntry> rr = null;
-      if (id == null) {
-        rr = md.getProxyRoutingEntries();
-      } else if (id.equals(md.getId())) {
-        rr = md.getMultiRoutingEntries();
+    for (ModuleInstance mi : mods) {
+      if (mi.isHandler()) {
+        RoutingEntry re = mi.getRoutingEntry();
+        skipAuth = checkTokenCache(pc.getTenant(), req, re.getPathPattern(), mi);
+        logger.debug("getModulesForRequest:  Added {} {} {} {} / {}",
+            mi.getModuleDescriptor().getId(),
+            re.getPathPattern(), re.getPath(), re.getPhase(), re.getLevel());
       }
-      if (rr != null) {
-        Timer.Sample sampleLoopRoutingEntries = MetricsHelper.getTimerSample();
-        for (RoutingEntry re : rr) {
-          if (match(re, req)) {
-            ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method(), true);
-
-            skipAuth = checkTokenCache(pc.getTenant(), req, re.getPathPattern(), mi);
-            mods.add(mi);
-            logger.debug("getModulesForRequest:  Added {} {} {} {} / {}", md.getId(),
-                re.getPathPattern(), re.getPath(), re.getPhase(), re.getLevel());
-            break;
-          }
-        }
-        MetricsHelper.recordCodeExecutionTime(sampleLoopRoutingEntries,
-            name + ".loopRoutingEntries");
-      }
-      rr = md.getFilterRoutingEntries();
-      Timer.Sample sampleLoopFilterEntries = MetricsHelper.getTimerSample();
-      for (RoutingEntry re : rr) {
-        if (match(re, req)) {
-          ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method(), false);
-          mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
-          mods.add(mi);
-          if (!resolveRedirects(pc, mods, re, enabledModules, "", req.uri())) {
-            MetricsHelper.recordCodeExecutionTime(sampleLoopFilterEntries,
-                name + ".loopFilterEntries");
-            MetricsHelper.recordCodeExecutionTime(sampleLoopEnabledModules,
-                name + ".loopEnabledModules");
-            MetricsHelper.recordCodeExecutionTime(sample, name);
-            return null;
-          }
-          logger.debug("getModulesForRequest:  Added {} {} {} {} / {}", md.getId(),
-              re.getPathPattern(), re.getPath(), re.getPhase(), re.getLevel());
-        }
-      }
-      MetricsHelper.recordCodeExecutionTime(sampleLoopFilterEntries, name + ".loopFilterEntries");
     }
-    MetricsHelper.recordCodeExecutionTime(sampleLoopEnabledModules, name + ".loopEnabledModules");
-
-    Timer.Sample sampleSortModuleInstances = MetricsHelper.getTimerSample();
-    Comparator<ModuleInstance> cmp = (ModuleInstance a, ModuleInstance b)
-        -> a.getRoutingEntry().getPhaseLevel().compareTo(b.getRoutingEntry().getPhaseLevel());
+    for (ModuleInstance mi : mods) {
+      if (!mi.isHandler()) {
+        mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
+      }
+    }
+    Comparator<ModuleInstance> cmp = Comparator.comparing((ModuleInstance a)
+        -> a.getRoutingEntry().getPhaseLevel());
     mods.sort(cmp);
-    MetricsHelper.recordCodeExecutionTime(sampleSortModuleInstances,
-        name + ".sortModuleInstances");
-
-    // Check that our pipeline has a real module in it, not just filters,
-    // so that we can return a proper 404 for requests that only hit auth
-    Timer.Sample sampleCheckForHandler = MetricsHelper.getTimerSample();
-    logger.debug("Checking filters for {}", req.uri());
-    boolean found = false;
     Iterator<ModuleInstance> iter = mods.iterator();
+    boolean found = false;
     while (iter.hasNext()) {
       ModuleInstance inst = iter.next();
       RoutingEntry re = inst.getRoutingEntry();
@@ -324,18 +215,15 @@ public class ProxyService {
       if (skipAuth && phase != null && phase.equals(XOkapiHeaders.FILTER_AUTH)) {
         logger.debug("Skipping auth, have cached token.");
         iter.remove();
-      } else if (inst.isHandler()) {
+      }
+      if (inst.isHandler()) {
         found = true;
       }
     }
-    MetricsHelper.recordCodeExecutionTime(sampleCheckForHandler, name + ".checkForHandler");
     if (!found) {
       pc.responseError(404, messages.getMessage("10103", req.path(), pc.getTenant()));
-      MetricsHelper.recordCodeExecutionTime(sample, name);
       return null;
     }
-
-    MetricsHelper.recordCodeExecutionTime(sample, name);
     return mods;
   }
 
@@ -446,7 +334,7 @@ public class ProxyService {
       String[] modp = re.getModulePermissions();
       if (modp != null) {
         // replace module permissions with auto generated permission set id
-        if (moduleManager.getExpandedPermModuleTenants().contains(pc.getTenant())) {
+        if (Boolean.TRUE.equals(tenantManager.getExpandModulePermissions(pc.getTenant()))) {
           modp = new String[]{re.generateSystemId(mod.getModuleDescriptor().getId())};
         }
         if (re.getProxyType() == ProxyType.REDIRECT) {
@@ -666,16 +554,14 @@ public class ProxyService {
         pc.responseError(400, messages.getMessage("10106", tenantId));
         return;
       }
-      Tenant tenant = gres.result();
-      moduleManager.getEnabledModules(tenant).onComplete(mres -> {
-        if (mres.failed()) {
+      tenantManager.getModuleCache(gres.result()).onComplete(cacheRes -> {
+        if (cacheRes.failed()) {
           stream.resume();
-          pc.responseError(OkapiError.getType(mres.cause()), mres.cause());
+          pc.responseError(OkapiError.getType(cacheRes.cause()), cacheRes.cause());
           return;
         }
-        List<ModuleDescriptor> enabledModules = mres.result();
-
-        List<ModuleInstance> l = getModulesForRequest(pc, enabledModules);
+        ModuleCache cache = cacheRes.result();
+        List<ModuleInstance> l = getModulesForRequest(pc, cache);
         if (l == null) {
           stream.resume();
           return; // ctx already set up
@@ -1247,7 +1133,7 @@ public class ProxyService {
     // If we have auth for current (super)tenant is irrelevant here!
     logger.debug("callSystemInterface: Checking if {} has auth", tenantId);
 
-    return moduleManager.getEnabledModules(tenant).compose(enabledModules -> {
+    return tenantManager.getEnabledModules(tenant).compose(enabledModules -> {
       for (ModuleDescriptor md : enabledModules) {
         RoutingEntry[] filters = md.getFilters();
         if (filters != null) {
@@ -1282,7 +1168,7 @@ public class ProxyService {
       Map<String, String[]> mpMap = new HashMap<>();
       if (modulePermissions != null) {
         // replace module permissions with auto generated permission set id
-        if (moduleManager.getExpandedPermModuleTenants().contains(tenantId)) {
+        if (Boolean.TRUE.equals(tenantManager.getExpandModulePermissions(tenantId))) {
           modulePermissions = new String[] {re.generateSystemId(modId)};
         }
         mpMap.put(modId, modulePermissions);

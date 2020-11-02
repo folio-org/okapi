@@ -398,12 +398,8 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startRedeploy() {
-    return discoveryManager.restartModules().compose(res -> {
-      if (!enableProxy) {
-        return Future.succeededFuture();
-      }
-      return tenantManager.startTimers(discoveryManager);
-    });
+    return discoveryManager.restartModules()
+        .compose(res -> tenantManager.startTimers(discoveryManager));
   }
 
 }

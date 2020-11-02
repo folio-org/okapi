@@ -46,9 +46,13 @@ class ModuleCacheTest {
     routingEntry4.setMethods(new String[] {"GET"});
     routingEntries.add(routingEntry4);
     RoutingEntry routingEntry5 = new RoutingEntry();
-    routingEntry5.setPath("/old/type");
+    routingEntry5.setPathPattern("/perms/users*");
     routingEntry5.setMethods(new String[] {"GET"});
     routingEntries.add(routingEntry5);
+    RoutingEntry routingEntry6 = new RoutingEntry();
+    routingEntry6.setPath("/old/type");
+    routingEntry6.setMethods(new String[] {"GET"});
+    routingEntries.add(routingEntry6);
 
     Map<String, List<ModuleCache.ModuleCacheEntry>> map = new HashMap<>();
     ModuleCache.add(md, map, routingEntries);
@@ -81,24 +85,44 @@ class ModuleCacheTest {
     assertThat(instances.size()).isEqualTo(1);
     assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry4);
 
+    ModuleCache.lookup("/p/id/z", HttpMethod.GET, map, true, null).isEmpty();
+    ModuleCache.lookup("/p/id", HttpMethod.GET, map, true, null).isEmpty();
+    ModuleCache.lookup("/p/id/y/z", HttpMethod.GET, map, true, null).isEmpty();
+
+    instances = ModuleCache.lookup("/perms/users", HttpMethod.GET, map, true, null);
+    assertThat(instances.size()).isEqualTo(1);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry5);
+
+    instances = ModuleCache.lookup("/perms/users/y", HttpMethod.GET, map, true, null);
+    assertThat(instances.size()).isEqualTo(1);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry5);
+
+    instances = ModuleCache.lookup("/perms/users1", HttpMethod.GET, map, true, null);
+    assertThat(instances.size()).isEqualTo(1);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry5);
+
+    ModuleCache.lookup("/perms/user", HttpMethod.GET, map, true, null).isEmpty();
+
     assertThat(ModuleCache.lookup("/old/foo", HttpMethod.GET, map, true, null)).isEmpty();
     instances = ModuleCache.lookup("/old/type", HttpMethod.GET, map, true, null);
     assertThat(instances.size()).isEqualTo(1);
-    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry5);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry6);
   }
 
   @Test
-  void testModules() {
-    ModuleCache moduleCache = new ModuleCache();
-
-    RoutingEntry[] routingEntries = new RoutingEntry[2];
+  void testModuleRegular() {
+    RoutingEntry[] routingEntries = new RoutingEntry[3];
     RoutingEntry routingEntry1 = routingEntries[0] = new RoutingEntry();
-    routingEntry1.setPathPattern("/a/{id}");
+    routingEntry1.setPathPattern("/a/client_id");
     routingEntry1.setMethods(new String[] {"GET"});
 
     RoutingEntry routingEntry2 = routingEntries[1] = new RoutingEntry();
-    routingEntry2.setPathPattern("/a");
-    routingEntry2.setMethods(new String[] {"POST"});
+    routingEntry2.setPathPattern("/a/{id}");
+    routingEntry2.setMethods(new String[] {"GET"});
+
+    RoutingEntry routingEntry3 = routingEntries[2] = new RoutingEntry();
+    routingEntry3.setPathPattern("/a");
+    routingEntry3.setMethods(new String[] {"POST"});
 
     InterfaceDescriptor[] interfaceDescriptors = new InterfaceDescriptor[1];
     InterfaceDescriptor interfaceDescriptor = interfaceDescriptors[0] = new InterfaceDescriptor();
@@ -108,21 +132,61 @@ class ModuleCacheTest {
     ModuleDescriptor regularModule = new ModuleDescriptor();
     regularModule.setProvides(interfaceDescriptors);
     regularModule.setId("regular-1.0.0");
-    moduleCache.add(regularModule);
+
+    List<ModuleDescriptor> modules = new LinkedList<>();
+    modules.add(regularModule);
+    ModuleCache moduleCache = new ModuleCache(modules);
 
     List<ModuleInstance> instances = moduleCache.lookup("/a/id", HttpMethod.GET, null);
     assertThat(instances.size()).isEqualTo(1);
-    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry1);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry2);
+
+    instances = moduleCache.lookup("/a/id#a", HttpMethod.GET, null);
+    assertThat(instances.size()).isEqualTo(1);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry2);
+
+    instances = moduleCache.lookup("/a/id?a", HttpMethod.GET, null);
+    assertThat(instances.size()).isEqualTo(1);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry2);
 
     assertThat(moduleCache.lookup("/a/id", HttpMethod.GET, "module-id")).isEmpty();
 
-    moduleCache.clear();
+    instances = moduleCache.lookup("/a/client_id", HttpMethod.GET, null);
+    assertThat(instances.size()).isEqualTo(1);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry1);
+  }
+
+  @Test
+  void testModuleMulti() {
+    RoutingEntry[] routingEntries = new RoutingEntry[1];
+    RoutingEntry routingEntry1 = routingEntries[0] = new RoutingEntry();
+    routingEntry1.setPathPattern("/a/{id}");
+    routingEntry1.setMethods(new String[]{"GET"});
+
+    InterfaceDescriptor[] interfaceDescriptors = new InterfaceDescriptor[1];
+    InterfaceDescriptor interfaceDescriptor = interfaceDescriptors[0] = new InterfaceDescriptor();
+    interfaceDescriptor.setId("int");
+    interfaceDescriptor.setInterfaceType("multiple");
+    interfaceDescriptor.setHandlers(routingEntries);
+
+    ModuleDescriptor regularModule = new ModuleDescriptor();
+    regularModule.setProvides(interfaceDescriptors);
+    regularModule.setId("module-1.0.0");
+
+    List<ModuleDescriptor> modules = new LinkedList<>();
+    modules.add(regularModule);
+    ModuleCache moduleCache = new ModuleCache(modules);
+
+    List<ModuleInstance> instances = moduleCache.lookup("/a/id", HttpMethod.GET, "module-1.0.0");
+    assertThat(instances.size()).isEqualTo(1);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry1);
+
+    assertThat(moduleCache.lookup("/a/id", HttpMethod.GET, "other-1.0.0")).isEmpty();
     assertThat(moduleCache.lookup("/a/id", HttpMethod.GET, null)).isEmpty();
   }
 
   @Test
-  void testModulesAuth() {
-    ModuleCache moduleCache = new ModuleCache();
+  void testModulesFilter() {
 
     RoutingEntry[] routingEntries1 = new RoutingEntry[1];
     RoutingEntry routingEntry1 = routingEntries1[0] = new RoutingEntry();
@@ -143,7 +207,10 @@ class ModuleCacheTest {
     authModule.setProvides(interfaceDescriptors);
     authModule.setFilters(routingEntries2);
     authModule.setId("auth-1.0.0");
-    moduleCache.add(authModule);
+
+    List<ModuleDescriptor> modules = new LinkedList<>();
+    modules.add(authModule);
+    ModuleCache moduleCache = new ModuleCache(modules);
 
     List<ModuleInstance> instances = moduleCache.lookup("/a/id", HttpMethod.GET, null);
     assertThat(instances.size()).isEqualTo(1);

@@ -14,9 +14,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
@@ -108,40 +106,6 @@ public class ModuleManager {
         }
         return CompositeFuture.all(futures).mapEmpty();
       });
-    });
-  }
-
-  Future<Void> enableAndDisableCheck(Tenant tenant, ModuleDescriptor modFrom,
-                                     ModuleDescriptor modTo) {
-
-    return getEnabledModules(tenant).compose(modlist -> {
-      HashMap<String, ModuleDescriptor> mods = new HashMap<>(modlist.size());
-      for (ModuleDescriptor md : modlist) {
-        mods.put(md.getId(), md);
-      }
-      if (modTo == null) {
-        String deps = DepResolution.checkAllDependencies(mods);
-        if (!deps.isEmpty()) {
-          return Future.succeededFuture(); // failures even before we remove a module
-        }
-      }
-      if (modFrom != null) {
-        mods.remove(modFrom.getId());
-      }
-      if (modTo != null) {
-        ModuleDescriptor already = mods.get(modTo.getId());
-        if (already != null) {
-          return Future.failedFuture(new OkapiError(ErrorType.USER,
-              "Module " + modTo.getId() + " already provided"));
-        }
-        mods.put(modTo.getId(), modTo);
-      }
-      String conflicts = DepResolution.checkAllConflicts(mods);
-      String deps = DepResolution.checkAllDependencies(mods);
-      if (!conflicts.isEmpty() || !deps.isEmpty()) {
-        return Future.failedFuture(new OkapiError(ErrorType.USER, conflicts + " " + deps));
-      }
-      return Future.succeededFuture();
     });
   }
 
@@ -309,48 +273,4 @@ public class ModuleManager {
       return Future.succeededFuture(mdl);
     });
   }
-
-  /**
-   * Get all modules that are enabled for the given tenant.
-   *
-   * @param ten tenant to check for
-   * @return fut callback with a list of ModuleDescriptors (may be empty list)
-   */
-  public Future<List<ModuleDescriptor>> getEnabledModules(Tenant ten) {
-
-    List<ModuleDescriptor> mdl = new LinkedList<>();
-    List<Future> futures = new LinkedList<>();
-    for (String id : ten.getEnabled().keySet()) {
-      if (enabledModulesCache.containsKey(id)) {
-        ModuleDescriptor md = enabledModulesCache.get(id);
-        mdl.add(md);
-        updateExpandedPermModuleTenants(ten.getId(), md);
-      } else {
-        futures.add(modules.get(id).compose(md -> {
-          enabledModulesCache.put(id, md);
-          mdl.add(md);
-          updateExpandedPermModuleTenants(ten.getId(), md);
-          return Future.succeededFuture();
-        }));
-      }
-    }
-    return CompositeFuture.all(futures).compose(res -> Future.succeededFuture(mdl));
-  }
-
-  private void updateExpandedPermModuleTenants(String tenant, ModuleDescriptor md) {
-    InterfaceDescriptor id = md.getSystemInterface("_tenantPermissions");
-    if (id == null) {
-      return;
-    }
-    if (id.getVersion().equals("1.0")) {
-      expandedPermModuleTenants.remove(tenant);
-    } else {
-      expandedPermModuleTenants.add(tenant);
-    }
-  }
-
-  public Set<String> getExpandedPermModuleTenants() {
-    return expandedPermModuleTenants;
-  }
-
 }
