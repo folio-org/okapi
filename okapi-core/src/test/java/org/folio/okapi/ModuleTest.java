@@ -148,7 +148,7 @@ public class ModuleTest {
       if (mongoD == null) {
         MongodStarter starter = MongodStarter.getDefaultInstance();
         mongoExe = starter.prepare(new MongodConfigBuilder()
-          .version(Version.V3_6_0)
+          .version(Version.V3_6_5)
           .net(new Net("localhost", MONGO_PORT, Network.localhostIsIPv6()))
           .build());
         mongoD = mongoExe.start();
