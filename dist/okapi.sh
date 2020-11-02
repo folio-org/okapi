@@ -17,6 +17,8 @@ fi
 DATA_DIR="${DATA_DIR:-/var/lib/okapi}"
 LIB_DIR="${LIB_DIR:-/usr/share/folio/okapi/lib}"
 OKAPI_JAR="${LIB_DIR}/okapi-core-fat.jar"
+# Copy from deprecated postgres_user into postgres_username
+postgres_username="${postgres_username:-${postgres_user}}"
 
 parse_okapi_conf()  {
 
@@ -25,9 +27,8 @@ parse_okapi_conf()  {
       # storage backend options
       if [ "$storage" == "postgres" ]; then
          OKAPI_JAVA_OPTS+=" -Dstorage=postgres"
-         # Copy from deprecated postgres_user into postgres_username
-         postgres_username="${postgres_username:-${postgres_user:-okapi}}"
-         # Set other defaults
+         # Set defaults
+         postgres_username="${postgres_username:-okapi}"
          postgres_host="${postgres_host:-localhost}"
          postgres_port="${postgres_port:-5432}"
          postgres_password="${postgres_password:-okapi25}"
@@ -177,6 +178,12 @@ EOF
          echo "configured in okapi.conf is available and the okapi database"
          echo "and user has been configured. Then re-run:"
          echo "    /usr/share/folio/okapi/bin/okapi.sh --initdb"
+         echo "Postgres configuration:"
+         echo "   postgres_username: $postgres_username"
+         echo "   postgres_password: ${postgres_password+...}"
+         echo "   postgres_host:     $postgres_host"
+         echo "   postgres_port:     $postgres_port"
+         echo "   postgres_database: $postgres_database"
          exit 2
       else
          echo -n "Initializing okapi database..."
