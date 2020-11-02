@@ -76,7 +76,7 @@ public class ModuleCache {
   }
 
   static List<ModuleInstance> lookup(String uri, HttpMethod method, Map<String,
-      List<ModuleCacheEntry>> map, boolean handler) {
+      List<ModuleCacheEntry>> map, boolean handler, String id) {
     List<ModuleInstance> returnList = new LinkedList<>();
     logger.info("lookup uri={}", uri);
     String tryUri = uri;
@@ -85,7 +85,8 @@ public class ModuleCache {
       List<ModuleCacheEntry> gotInstances = map.get(tryUri);
       if (gotInstances != null) {
         for (ModuleCacheEntry candiate : gotInstances) {
-          if (candiate.routingEntry.match(uri, method.name())) {
+          if (candiate.routingEntry.match(uri, method.name())
+              && (id == null || id.equals(candiate.moduleDescriptor.getId()))) {
             returnList.add(new ModuleInstance(candiate.moduleDescriptor,
                 candiate.routingEntry, uri, method, handler));
           }
@@ -112,11 +113,11 @@ public class ModuleCache {
    */
   public List<ModuleInstance> lookup(String uri, HttpMethod method, String id) {
     // perform lookup
-    List<ModuleInstance> instances = ModuleCache.lookup(uri, method, filterMap, false);
+    List<ModuleInstance> instances = ModuleCache.lookup(uri, method, filterMap, false, null);
     if (id == null) {
-      instances.addAll(lookup(uri, method, proxyMap, true));
+      instances.addAll(lookup(uri, method, proxyMap, true, null));
     } else {
-      instances.addAll(lookup(uri, method, multiMap, false));
+      instances.addAll(lookup(uri, method, multiMap, false, id));
     }
     return instances;
   }

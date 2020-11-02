@@ -18,15 +18,16 @@ class ModuleCacheTest {
   void testLookupEmpty() {
     Map<String, List<ModuleCache.ModuleCacheEntry>> map = new HashMap<>();
 
-    assertThat(ModuleCache.lookup("", HttpMethod.GET, map, true)).isEmpty();
-    assertThat(ModuleCache.lookup("/", HttpMethod.GET, map, true)).isEmpty();
-    assertThat(ModuleCache.lookup("/a", HttpMethod.GET, map, true)).isEmpty();
-    assertThat(ModuleCache.lookup("/a/b", HttpMethod.GET, map, true)).isEmpty();
+    assertThat(ModuleCache.lookup("", HttpMethod.GET, map, true, null)).isEmpty();
+    assertThat(ModuleCache.lookup("/", HttpMethod.GET, map, true, null)).isEmpty();
+    assertThat(ModuleCache.lookup("/a", HttpMethod.GET, map, true, null)).isEmpty();
+    assertThat(ModuleCache.lookup("/a/b", HttpMethod.GET, map, true, null)).isEmpty();
   }
 
   @Test
   void testLookupRoutingEntries() {
     ModuleDescriptor md = new ModuleDescriptor();
+    md.setId("module-1.0.0");
     List<RoutingEntry> routingEntries = new LinkedList<>();
     RoutingEntry routingEntry1 = new RoutingEntry();
     routingEntry1.setPathPattern("/a/b");
@@ -52,30 +53,36 @@ class ModuleCacheTest {
     Map<String, List<ModuleCache.ModuleCacheEntry>> map = new HashMap<>();
     ModuleCache.add(md, map, routingEntries);
 
-    assertThat(ModuleCache.lookup("", HttpMethod.GET, map, true)).isEmpty();
-    assertThat(ModuleCache.lookup("/", HttpMethod.GET, map, true)).isEmpty();
-    assertThat(ModuleCache.lookup("/a", HttpMethod.GET, map, true)).isEmpty();
-    List<ModuleInstance> instances = ModuleCache.lookup("/a/b", HttpMethod.GET, map, true);
+    assertThat(ModuleCache.lookup("", HttpMethod.GET, map, true, null)).isEmpty();
+    assertThat(ModuleCache.lookup("/", HttpMethod.GET, map, true, null)).isEmpty();
+    assertThat(ModuleCache.lookup("/a", HttpMethod.GET, map, true, null)).isEmpty();
+    List<ModuleInstance> instances = ModuleCache.lookup("/a/b", HttpMethod.GET, map, true, null);
     assertThat(instances.size()).isEqualTo(1);
     assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry1);
 
-    instances = ModuleCache.lookup("/a/b", HttpMethod.POST, map, true);
+    instances = ModuleCache.lookup("/a/b", HttpMethod.GET, map, true, "module-1.0.0");
+    assertThat(instances.size()).isEqualTo(1);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry1);
+
+    assertThat(ModuleCache.lookup("/a", HttpMethod.GET, map, true, "other-1.0.0")).isEmpty();
+
+    instances = ModuleCache.lookup("/a/b", HttpMethod.POST, map, true, null);
     assertThat(instances.size()).isEqualTo(1);
     assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry2);
 
-    assertThat(ModuleCache.lookup("/a", HttpMethod.PUT, map, true)).isEmpty();
-    assertThat(ModuleCache.lookup("/a/b/", HttpMethod.GET, map, true)).isEmpty();
+    assertThat(ModuleCache.lookup("/a", HttpMethod.PUT, map, true, null)).isEmpty();
+    assertThat(ModuleCache.lookup("/a/b/", HttpMethod.GET, map, true, null)).isEmpty();
 
-    instances = ModuleCache.lookup("/a/b/id/c", HttpMethod.GET, map, true);
+    instances = ModuleCache.lookup("/a/b/id/c", HttpMethod.GET, map, true, null);
     assertThat(instances.size()).isEqualTo(1);
     assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry3);
 
-    instances = ModuleCache.lookup("/p/id/y", HttpMethod.GET, map, true);
+    instances = ModuleCache.lookup("/p/id/y", HttpMethod.GET, map, true, null);
     assertThat(instances.size()).isEqualTo(1);
     assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry4);
 
-    assertThat(ModuleCache.lookup("/old/foo", HttpMethod.GET, map, true)).isEmpty();
-    instances = ModuleCache.lookup("/old/type", HttpMethod.GET, map, true);
+    assertThat(ModuleCache.lookup("/old/foo", HttpMethod.GET, map, true, null)).isEmpty();
+    instances = ModuleCache.lookup("/old/type", HttpMethod.GET, map, true, null);
     assertThat(instances.size()).isEqualTo(1);
     assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry5);
   }
