@@ -7,12 +7,12 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ModuleUtilTest {
+class ModuleUtilTest {
 
   @Test
   void testModuleList() {
     List<ModuleDescriptor> list = new LinkedList<>();
-    assertThat(ModuleUtil.moduleList(list)).isEqualTo("");
+    assertThat(ModuleUtil.moduleList(list)).isEmpty();
 
     ModuleDescriptor md = new ModuleDescriptor();
     md.setId("foo-1.0.0");
