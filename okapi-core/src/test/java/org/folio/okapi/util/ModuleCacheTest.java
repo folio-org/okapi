@@ -11,10 +11,43 @@ import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.aggregator.ArgumentsAccessor;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ModuleCacheTest {
+  @ParameterizedTest
+  @CsvSource({
+      "/, /",
+      "/{id}, /",
+      "{id},",
+      "/a/b{id}, /a/",
+      "/a/*c, /a/",
+      "/a/b*, /a/",
+      "/a/b/, /a/b/",
+      "/a/b, /a/b",
+      "/a/{id}, /a/",
+  })
+  void testGetPatternPrefix(ArgumentsAccessor accessor) {
+    RoutingEntry routingEntry = new RoutingEntry();
+    routingEntry.setPathPattern(accessor.getString(0));
+    String expect = accessor.getString(1);
+    if (expect == null) {
+      expect = "";
+    }
+    assertThat(ModuleCache.getPatternPrefix(routingEntry)).isEqualTo(expect);
+  }
+
+  @Test
+  void testPathPrefix()
+  {
+    RoutingEntry routingEntry = new RoutingEntry();
+    routingEntry.setPath("/a/b");
+    assertThat(ModuleCache.getPatternPrefix(routingEntry)).isEqualTo("/");
+  }
+
   @Test
   void testLookupEmpty() {
     Map<String, List<ModuleCache.ModuleCacheEntry>> map = new HashMap<>();
