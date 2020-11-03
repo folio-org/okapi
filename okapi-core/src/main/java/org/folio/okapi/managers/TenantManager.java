@@ -1091,7 +1091,6 @@ public class TenantManager implements Liveness {
    * @return Module Cache
    */
   public Future<ModuleCache> getModuleCache(Tenant tenant) {
-    logger.info("getEnabledModules tenant={}", tenant.getId());
     if (!enabledModulesCache.containsKey(tenant.getId())) {
       return Future.succeededFuture(new ModuleCache(new LinkedList<>()));
     }
