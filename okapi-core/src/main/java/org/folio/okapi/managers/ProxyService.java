@@ -567,7 +567,9 @@ public class ProxyService {
           return;
         }
         ModuleCache cache = cacheRes.result();
+        final Timer.Sample sample = MetricsHelper.getTimerSample();
         List<ModuleInstance> l = getModulesForRequest(pc, cache);
+        MetricsHelper.recordCodeExecutionTime(sample, "ProxyService.getModulesForRequest");
         if (l == null) {
           stream.resume();
           return; // ctx already set up
