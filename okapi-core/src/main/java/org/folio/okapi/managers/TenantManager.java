@@ -164,26 +164,26 @@ public class TenantManager implements Liveness {
   /**
    * Get a tenant.
    *
-   * @param id tenant ID
+   * @param tenantId tenant ID
    * @return fut future
    */
-  public Future<Tenant> get(String id) {
-    return tenants.getNotFound(id);
+  public Future<Tenant> get(String tenantId) {
+    return tenants.getNotFound(tenantId);
   }
 
   /**
    * Delete a tenant.
    *
-   * @param id tenant ID
-   * @return future .. OkapiError if id not found
+   * @param tenantId tenant ID
+   * @return future .. OkapiError if tenantId not found
    */
-  public Future<Void> delete(String id) {
-    return tenantStore.delete(id).compose(x -> {
+  public Future<Void> delete(String tenantId) {
+    return tenantStore.delete(tenantId).compose(x -> {
       if (Boolean.FALSE.equals(x)) {
-        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, id));
+        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, tenantId));
       }
-      return tenants.removeNotFound(id).mapEmpty();
-    });
+      return tenants.removeNotFound(tenantId).mapEmpty();
+    }).compose(x -> reloadEnabledModules(tenantId));
   }
 
   /**
@@ -195,7 +195,7 @@ public class TenantManager implements Liveness {
    * @param moduleTo - module to be enabled, may be null if none
    * @return fut callback for errors.
    */
-  public Future<Void> updateModuleCommit(String id, String moduleFrom, String moduleTo) {
+  Future<Void> updateModuleCommit(String id, String moduleFrom, String moduleTo) {
     return tenants.getNotFound(id).compose(t -> updateModuleCommit(t, moduleFrom, moduleTo));
   }
 
@@ -219,7 +219,7 @@ public class TenantManager implements Liveness {
         return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, id));
       }
       return tenants.put(id, t);
-    });
+    }).compose(x -> reloadEnabledModules(t));
   }
 
   Future<Void> disableModules(String tenantId, TenantInstallOptions options, ProxyContext pc) {
@@ -438,7 +438,6 @@ public class TenantManager implements Liveness {
 
     Promise<Void> promise = Promise.promise();
     return updateModuleCommit(tenant, moduleFrom, moduleTo)
-        .compose(x -> reloadEnabledModules(tenant))
         .compose(x -> {
           if (moduleTo != null) {
             EventBus eb = vertx.eventBus();
@@ -1119,6 +1118,9 @@ public class TenantManager implements Liveness {
   }
 
   private Future<Void> reloadEnabledModules(Tenant tenant) {
+    if (moduleManager == null) {
+      return Future.succeededFuture(); // only happens in tests really
+    }
     List<ModuleDescriptor> mdl = new LinkedList<>();
     List<Future> futures = new LinkedList<>();
     for (String tenantId : tenant.getEnabled().keySet()) {
