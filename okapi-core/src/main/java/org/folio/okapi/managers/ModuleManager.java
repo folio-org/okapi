@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.ErrorType;
@@ -32,7 +31,6 @@ import org.folio.okapi.util.OkapiError;
 public class ModuleManager {
 
   private final Logger logger = OkapiLogger.get();
-  private TenantManager tenantManager = null;
   private String mapName = "modules";
   private static final String EVENT_NAME = "moduleUpdate";
   private final LockedTypedMap1<ModuleDescriptor> modules
@@ -41,8 +39,6 @@ public class ModuleManager {
   private final ModuleStore moduleStore;
   private Vertx vertx;
   private final Messages messages = Messages.getInstance();
-  // tenants with new permission module (_tenantPermissions version 1.1 or later)
-  private Set<String> expandedPermModuleTenants = ConcurrentHashMap.newKeySet();
 
   public ModuleManager(ModuleStore moduleStore) {
     this.moduleStore = moduleStore;
@@ -56,10 +52,6 @@ public class ModuleManager {
    */
   public void forceLocalMap() {
     mapName = null;
-  }
-
-  public void setTenantManager(TenantManager tenantManager) {
-    this.tenantManager = tenantManager;
   }
 
   /**
@@ -187,23 +179,15 @@ public class ModuleManager {
   public Future<Void> delete(String id) {
     return modules.getAll()
         .compose(ares -> deleteCheckDep(id, ares))
-        .compose(check -> tenantManager.getModuleUser(id))
-        .compose(tenants -> {
-          if (!tenants.isEmpty()) {
-            return Future.failedFuture(new OkapiError(ErrorType.USER,
-                messages.getMessage("10206", id, tenants.get(0))));
-          }
-          return Future.succeededFuture();
-        })
-        .compose(res2 -> {
+        .compose(res -> {
           if (moduleStore == null) {
             return Future.succeededFuture(Boolean.TRUE);
           } else {
             return moduleStore.delete(id);
           }
         })
-        .compose(res3 -> {
-          if (Boolean.FALSE.equals(res3)) {
+        .compose(res -> {
+          if (Boolean.FALSE.equals(res)) {
             return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, id));
           }
           return deleteInternal(id).mapEmpty();

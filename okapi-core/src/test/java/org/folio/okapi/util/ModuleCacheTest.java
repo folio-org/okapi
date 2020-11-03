@@ -9,6 +9,7 @@ import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -136,6 +137,7 @@ class ModuleCacheTest {
     List<ModuleDescriptor> modules = new LinkedList<>();
     modules.add(regularModule);
     ModuleCache moduleCache = new ModuleCache(modules);
+    assertThat(moduleCache.getModules()).isEqualTo(modules);
 
     List<ModuleInstance> instances = moduleCache.lookup("/a/id", HttpMethod.GET, null);
     assertThat(instances.size()).isEqualTo(1);
@@ -225,4 +227,91 @@ class ModuleCacheTest {
     assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry2);
     assertThat(instances.get(1).getRoutingEntry()).isEqualTo(routingEntry1);
   }
+
+  @Test
+  void testModuleRedirect() {
+    RoutingEntry[] routingEntries2 = new RoutingEntry[4];
+    RoutingEntry routingEntry2 = routingEntries2[0] = new RoutingEntry();
+    routingEntry2.setPathPattern("/second");
+    routingEntry2.setRedirectPath("/real");
+    routingEntry2.setType("redirect");
+    routingEntry2.setMethods(new String[] {"GET"});
+
+    RoutingEntry routingEntry3 = routingEntries2[1] = new RoutingEntry();
+    routingEntry3.setPathPattern("/third");
+    routingEntry3.setRedirectPath("/second");
+    routingEntry3.setType("redirect");
+    routingEntry3.setMethods(new String[] {"GET"});
+
+    RoutingEntry routingEntry4 = routingEntries2[2] = new RoutingEntry();
+    routingEntry4.setPathPattern("/loop1");
+    routingEntry4.setRedirectPath("/loop2");
+    routingEntry4.setType("redirect");
+    routingEntry4.setMethods(new String[] {"GET"});
+
+    RoutingEntry routingEntry5 = routingEntries2[3] = new RoutingEntry();
+    routingEntry5.setPathPattern("/loop2");
+    routingEntry5.setRedirectPath("/loop1");
+    routingEntry5.setType("redirect");
+    routingEntry5.setMethods(new String[] {"GET"});
+
+    ModuleDescriptor filterModule = new ModuleDescriptor();
+    filterModule.setId("filter-1.0.0");
+    filterModule.setFilters(routingEntries2);
+
+    List<ModuleDescriptor> modules = new LinkedList<>();
+    modules.add(filterModule);
+    ModuleCache moduleCache = new ModuleCache(modules);
+
+    assertThat(moduleCache.lookup("/real", HttpMethod.GET, "other-1.0.0")).isEmpty();
+
+    IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+      moduleCache.lookup("/second", HttpMethod.GET, null);
+    });
+    assertThat(ex.getMessage()).contains("Redirecting /second to /real FAILED. No suitable module found");
+
+    ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+      moduleCache.lookup("/third", HttpMethod.GET, null);
+    });
+    assertThat(ex.getMessage()).contains("Redirecting /second to /real FAILED. No suitable module found");
+
+    ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+      moduleCache.lookup("/loop1", HttpMethod.GET, null);
+    });
+    assertThat(ex.getMessage()).contains("Redirect loop:  -> /loop2 -> /loop1");
+
+    Assertions.assertThrows(IllegalArgumentException.class, () -> {
+      moduleCache.lookup("/loop2", HttpMethod.GET, null);
+    });
+
+    RoutingEntry[] routingEntries1 = new RoutingEntry[1];
+    RoutingEntry routingEntry1 = routingEntries1[0] = new RoutingEntry();
+    routingEntry1.setPathPattern("/real");
+    routingEntry1.setMethods(new String[] {"GET"});
+
+    InterfaceDescriptor[] interfaceDescriptors1 = new InterfaceDescriptor[1];
+    InterfaceDescriptor interfaceDescriptor1 = interfaceDescriptors1[0] = new InterfaceDescriptor();
+    interfaceDescriptor1.setId("int");
+    interfaceDescriptor1.setHandlers(routingEntries1);
+
+    ModuleDescriptor regularModule = new ModuleDescriptor();
+    regularModule.setProvides(interfaceDescriptors1);
+    regularModule.setId("regular-1.0.0");
+
+    modules.add(regularModule);
+    ModuleCache moduleCache2 = new ModuleCache(modules);
+
+    List<ModuleInstance> instances = moduleCache2.lookup("/second", HttpMethod.GET, null);
+    assertThat(instances.size()).isEqualTo(2);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry2);
+    assertThat(instances.get(1).getRoutingEntry()).isEqualTo(routingEntry1);
+
+    instances = moduleCache2.lookup("/third", HttpMethod.GET, null);
+    assertThat(instances.size()).isEqualTo(3);
+    assertThat(instances.get(0).getRoutingEntry()).isEqualTo(routingEntry3);
+    assertThat(instances.get(1).getRoutingEntry()).isEqualTo(routingEntry2);
+    assertThat(instances.get(2).getRoutingEntry()).isEqualTo(routingEntry1);
+  }
+
+
 }

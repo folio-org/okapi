@@ -904,7 +904,14 @@ public class InternalModule {
   }
 
   private Future<String> deleteModule(String id) {
-    return moduleManager.delete(id).compose(res -> Future.succeededFuture(""));
+    return tenantManager.getModuleUser(id)
+        .compose(tenants -> {
+          if (!tenants.isEmpty()) {
+            return Future.failedFuture(new OkapiError(ErrorType.USER,
+                messages.getMessage("10206", id, tenants.get(0))));
+          }
+          return moduleManager.delete(id).compose(res -> Future.succeededFuture(""));
+        });
   }
 
   private Future<String> getDeployment(String id) {

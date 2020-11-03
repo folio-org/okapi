@@ -163,7 +163,6 @@ public class MainVerticle extends AbstractVerticle {
       moduleManager = new ModuleManager(moduleStore);
       TenantStore tenantStore = storage.getTenantStore();
       tenantManager = new TenantManager(moduleManager, tenantStore);
-      moduleManager.setTenantManager(tenantManager);
       discoveryManager.setModuleManager(moduleManager);
       logger.info("Proxy using {} storage", storageType);
       PullManager pullManager = new PullManager(vertx, moduleManager);
@@ -179,7 +178,6 @@ public class MainVerticle extends AbstractVerticle {
       moduleManager.forceLocalMap(); // make sure it is not shared
       tenantManager = new TenantManager(moduleManager, new TenantStoreNull());
       tenantManager.forceLocalMap();
-      moduleManager.setTenantManager(tenantManager);
       discoveryManager.setModuleManager(moduleManager);
       InternalModule internalModule = new InternalModule(
           null, null, deploymentManager, null,

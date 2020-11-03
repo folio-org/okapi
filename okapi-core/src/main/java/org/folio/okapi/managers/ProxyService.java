@@ -183,7 +183,13 @@ public class ProxyService {
   private List<ModuleInstance> getModulesForRequest(ProxyContext pc, ModuleCache moduleCache) {
     HttpServerRequest req = pc.getCtx().request();
     final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
-    List<ModuleInstance> mods = moduleCache.lookup(req.uri(), req.method(), id);
+    List<ModuleInstance> mods = null;
+    try {
+      mods = moduleCache.lookup(req.uri(), req.method(), id);
+    } catch (IllegalArgumentException e) {
+      pc.responseError(500, e.getMessage());
+      return null;
+    }
     boolean skipAuth = false;
     for (ModuleInstance mi : mods) {
       if (mi.isHandler()) {

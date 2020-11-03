@@ -61,6 +61,7 @@ public class TenantManager implements Liveness {
   private Messages messages = Messages.getInstance();
   private Vertx vertx;
   private Map<String, ModuleCache> enabledModulesCache = new HashMap<>();
+  // tenants with new permission module (_tenantPermissions version 1.1 or later)
   private Map<String, Boolean> expandedModulesCache = new HashMap<>();
 
   /**
