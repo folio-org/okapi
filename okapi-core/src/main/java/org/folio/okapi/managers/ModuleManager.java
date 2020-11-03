@@ -181,22 +181,18 @@ public class ModuleManager {
         .compose(ares -> deleteCheckDep(id, ares))
         .compose(res -> {
           if (moduleStore == null) {
-            return Future.succeededFuture(Boolean.TRUE);
+            return Future.succeededFuture();
           } else {
-            return moduleStore.delete(id);
+            return moduleStore.delete(id).mapEmpty();
           }
         })
-        .compose(res -> {
-          if (Boolean.FALSE.equals(res)) {
-            return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, id));
-          }
-          return deleteInternal(id).mapEmpty();
-        });
+        .compose(res -> deleteInternal(id).mapEmpty());
   }
 
   private Future<Void> deleteCheckDep(String id, LinkedHashMap<String, ModuleDescriptor> mods) {
     if (!mods.containsKey(id)) {
-      return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, messages.getMessage("10207")));
+      return Future.failedFuture(
+          new OkapiError(ErrorType.NOT_FOUND, messages.getMessage("10207", id)));
     }
     mods.remove(id);
     String res = DepResolution.checkAllDependencies(mods);

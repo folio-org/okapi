@@ -625,10 +625,22 @@ public class ModuleTest {
 
     // Clean up (in reverse order)
     logger.debug("testFilters starting to clean up");
-    given().delete(locPostEnable).then().log().ifValidationFails().statusCode(204);
-    given().delete(locationPostDeployment).then().log().ifValidationFails().statusCode(204);
+    c = api.createRestAssured3();
+    c.given().delete(locPostEnable).then().log().ifValidationFails().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given().delete(locationPostDeployment).then().log().ifValidationFails().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
     locationPostDeployment = null;
-    given().delete(locPostModule).then().log().ifValidationFails().statusCode(204);
+
+    c = api.createRestAssured3();
+    c.given().delete(locPostModule).then().log().ifValidationFails().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
     given().delete(locPreEnable).then().log().ifValidationFails().statusCode(204);
     given().delete(locationPreDeployment).then().log().ifValidationFails().statusCode(204);
     locationPreDeployment = null;
@@ -1432,7 +1444,10 @@ public class ModuleTest {
 
     given().delete(locAuthEnable).then().log().ifValidationFails().statusCode(204);
     given().delete(locAuthDeployment).then().log().ifValidationFails().statusCode(204);
-    given().delete(locAuthModule).then().log().ifValidationFails().statusCode(204);
+    c = api.createRestAssured3();
+    c.given().delete(locAuthModule).then().log().ifValidationFails().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
 
     given().delete(locSampleEnable2).then().log().ifValidationFails().statusCode(204);
     given().delete(locationSampleDeployment2).then().log().ifValidationFails().statusCode(204);
@@ -2825,5 +2840,15 @@ public class ModuleTest {
         .statusCode(404);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
+  }
+
+  @Test
+  public void testDeleteNonExistingModule() {
+    RestAssuredClient c = api.createRestAssured3();
+    c.given().delete("/_/proxy/modules/foo-1.0.0")
+        .then().statusCode(404).body(containsString("delete: module foo-1.0.0 does not exist"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
   }
 }
