@@ -491,19 +491,12 @@ public class TenantManager implements Liveness {
 
   void handleTimer(String tenantId, String moduleId, int seq1) {
     logger.info("handleTimer tenant {} module {} seq1 {}", tenantId, moduleId, seq1);
-    tenants.getNotFound(tenantId).onComplete(tres -> {
-      if (tres.failed()) {
-        // tenant no longer exist
-        stopTimer(tenantId, moduleId, seq1);
-        return;
-      }
-      Tenant tenant = tres.result();
-      getEnabledModules(tenant).onComplete(mres -> {
-        if (mres.failed()) {
-          stopTimer(tenantId, moduleId, seq1);
-          return;
-        }
-        List<ModuleDescriptor> mdList = mres.result();
+    tenants.getNotFound(tenantId).onFailure(cause ->
+        stopTimer(tenantId, moduleId, seq1)
+    ).onSuccess(tenant -> {
+      getEnabledModules(tenant).onFailure(cause ->
+          stopTimer(tenantId, moduleId, seq1)
+      ).onSuccess(mdList -> {
         try {
           handleTimer(tenant, mdList, moduleId, seq1);
         } catch (Exception ex) {
@@ -571,15 +564,13 @@ public class TenantManager implements Liveness {
     ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     logger.info("timer call start module {} for tenant {}", md.getId(), tenantId);
-    proxyService.callSystemInterface(headers, tenant, inst, "").onComplete(cres -> {
-      if (cres.succeeded()) {
-        logger.info("timer call succeeded to module {} for tenant {}",
-            md.getId(), tenantId);
-      } else {
+    proxyService.callSystemInterface(headers, tenant, inst, "").onFailure(cause ->
         logger.info("timer call failed to module {} for tenant {} : {}",
-            md.getId(), tenantId, cres.cause().getMessage());
-      }
-    });
+            md.getId(), tenantId, cause.getMessage())
+    ).onSuccess(res ->
+        logger.info("timer call succeeded to module {} for tenant {}",
+            md.getId(), tenantId)
+    );
   }
 
   private Future<Void> invokePermissionsForModule(Tenant tenant, ModuleDescriptor mdTo,

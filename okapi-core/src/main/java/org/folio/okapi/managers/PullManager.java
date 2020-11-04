@@ -1,12 +1,10 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
@@ -73,18 +71,12 @@ public class PullManager {
     Promise<List<String>> promise = Promise.promise();
     RequestOptions requestOptions = new RequestOptions().setAbsoluteURI(url)
         .setMethod(HttpMethod.GET);
-    httpClient.request(requestOptions).onComplete(req -> {
-      if (req.failed()) {
-        promise.handle(fail(req.cause(), baseUrl));
-        return;
-      }
-      req.result().end();
-      req.result().onComplete(res -> {
-        if (res.failed()) {
-          promise.handle(fail(res.cause(), baseUrl));
-          return;
-        }
-        HttpClientResponse response = res.result();
+    httpClient.request(requestOptions).onFailure(cause ->
+        promise.handle(fail(cause, baseUrl))
+    ).onSuccess(request -> {
+      request.end();
+      request.onFailure(cause -> promise.handle(fail(cause, baseUrl)));
+      request.onSuccess(response -> {
         response.handler(body::appendBuffer);
         response.endHandler(x -> {
           if (response.statusCode() != 200) {
@@ -122,14 +114,14 @@ public class PullManager {
     httpClient.request(
         new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
         .onFailure(res -> promise.fail(res.getMessage()))
-        .onSuccess(req -> {
-          req.end(Json.encodePrettily(idList));
-          req.onFailure(res -> promise.fail(res.getMessage()));
-          req.onSuccess(res -> {
+        .onSuccess(request -> {
+          request.end(Json.encodePrettily(idList));
+          request.onFailure(cause -> promise.fail(cause.getMessage()));
+          request.onSuccess(response -> {
             final Buffer body = Buffer.buffer();
-            res.handler(body::appendBuffer);
-            res.endHandler(x -> {
-              if (res.statusCode() != 200) {
+            response.handler(body::appendBuffer);
+            response.endHandler(x -> {
+              if (response.statusCode() != 200) {
                 promise.fail(new OkapiError(ErrorType.USER, body.toString()));
                 return;
               }
@@ -137,7 +129,7 @@ public class PullManager {
                   ModuleDescriptor[].class);
               promise.complete(ml);
             });
-            res.exceptionHandler(x -> promise.fail(x.getMessage()));
+            response.exceptionHandler(x -> promise.fail(x.getMessage()));
           });
         });
     return promise.future();
