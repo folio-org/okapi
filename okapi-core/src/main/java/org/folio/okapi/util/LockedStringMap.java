@@ -50,7 +50,14 @@ public class LockedStringMap {
     return list.size();
   }
 
+  /**
+   * Clear map.
+   * @return async result.
+   */
   public Future<Void> clear() {
+    if (list == null) {
+      return Future.succeededFuture();
+    }
     return list.clear();
   }
 
