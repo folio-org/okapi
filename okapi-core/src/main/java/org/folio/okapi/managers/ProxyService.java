@@ -191,10 +191,7 @@ public class ProxyService {
         logger.debug("getModulesForRequest:  Added {} {} {} {} / {}",
             mi.getModuleDescriptor().getId(),
             re.getPathPattern(), re.getPath(), re.getPhase(), re.getLevel());
-      }
-    }
-    for (ModuleInstance mi : mods) {
-      if (!mi.isHandler()) {
+      } else {
         mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
       }
     }
