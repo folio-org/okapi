@@ -22,7 +22,7 @@ class ModuleCacheTest {
   @CsvSource({
       "/, /",
       "/{id}, /",
-      "{id},",
+      "{id}, ''",
       "/a/b{id}, /a/",
       "/a/*c, /a/",
       "/a/b*, /a/",
@@ -30,13 +30,9 @@ class ModuleCacheTest {
       "/a/b, /a/b",
       "/a/{id}, /a/",
   })
-  void testGetPatternPrefix(ArgumentsAccessor accessor) {
+  void testGetPatternPrefix(String pathPattern, String expect) {
     RoutingEntry routingEntry = new RoutingEntry();
-    routingEntry.setPathPattern(accessor.getString(0));
-    String expect = accessor.getString(1);
-    if (expect == null) {
-      expect = "";
-    }
+    routingEntry.setPathPattern(pathPattern);
     assertThat(ModuleCache.getPatternPrefix(routingEntry)).isEqualTo(expect);
   }
 
