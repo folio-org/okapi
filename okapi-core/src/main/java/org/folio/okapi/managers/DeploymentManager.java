@@ -86,23 +86,17 @@ public class DeploymentManager {
     eventBus.consumer(nd.getUrl() + "/deploy", message -> {
       String b = (String) message.body();
       DeploymentDescriptor dd = Json.decodeValue(b, DeploymentDescriptor.class);
-      deploy(dd).onComplete(res -> {
-        if (res.failed()) {
-          message.fail(OkapiError.getType(res.cause()).ordinal(), res.cause().getMessage());
-        } else {
-          message.reply(Json.encodePrettily(res.result()));
-        }
-      });
+      deploy(dd).onFailure(cause ->
+          message.fail(OkapiError.getType(cause).ordinal(), cause.getMessage())
+      ).onSuccess(res -> message.reply(Json.encodePrettily(res)));
     });
     eventBus.consumer(nd.getUrl() + "/undeploy", message -> {
       String instId = (String) message.body();
-      undeploy(instId).onComplete(res -> {
-        if (res.failed()) {
-          message.fail(400, res.cause().getMessage());
-        } else {
-          message.reply(null);
-        }
-      });
+      undeploy(instId).onFailure(cause ->
+          message.fail(400, cause.getMessage())
+      ).onSuccess(res ->
+          message.reply(null)
+      );
     });
     return dm.addNode(nd);
   }

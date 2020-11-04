@@ -554,19 +554,14 @@ public class ProxyService {
         pc.getUserId());
 
     sanitizeAuthHeaders(headers);
-    tenantManager.get(tenantId).onComplete(gres -> {
-      if (gres.failed()) {
+    tenantManager.get(tenantId).onFailure(cause -> {
+      stream.resume();
+      pc.responseError(400, messages.getMessage("10106", tenantId));
+    }).onSuccess(tenant -> {
+      tenantManager.getModuleCache(tenant).onFailure(cause -> {
         stream.resume();
-        pc.responseError(400, messages.getMessage("10106", tenantId));
-        return;
-      }
-      tenantManager.getModuleCache(gres.result()).onComplete(cacheRes -> {
-        if (cacheRes.failed()) {
-          stream.resume();
-          pc.responseError(OkapiError.getType(cacheRes.cause()), cacheRes.cause());
-          return;
-        }
-        ModuleCache cache = cacheRes.result();
+        pc.responseError(OkapiError.getType(cause), cause);
+      }).onSuccess(cache -> {
         final Timer.Sample sample = MetricsHelper.getTimerSample();
         List<ModuleInstance> l = getModulesForRequest(pc, cache);
         MetricsHelper.recordCodeExecutionTime(sample, "ProxyService.getModulesForRequest");
@@ -574,7 +569,6 @@ public class ProxyService {
           stream.resume();
           return; // ctx already set up
         }
-
         // check delegate CORS and reroute if necessary
         if (CorsHelper.checkCorsDelegate(ctx, l)) {
           // HTTP code 100 is chosen purely as metrics tag placeholder
@@ -595,17 +589,14 @@ public class ProxyService {
         headers.set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + System.currentTimeMillis());
         headers.set(XOkapiHeaders.REQUEST_METHOD, ctx.request().method().name());
 
-        resolveUrls(l).onComplete(res -> {
-          if (res.failed()) {
-            stream.resume();
-            pc.responseError(OkapiError.getType(res.cause()), res.cause());
-          } else {
-            List<HttpClientRequest> clientRequest = new LinkedList<>();
-            proxyR(l.iterator(), pc, stream, null, clientRequest);
-          }
+        resolveUrls(l).onFailure(cause -> {
+          stream.resume();
+          pc.responseError(OkapiError.getType(cause), cause);
+        }).onSuccess(res -> {
+          List<HttpClientRequest> clientRequest = new LinkedList<>();
+          proxyR(l.iterator(), pc, stream, null, clientRequest);
         });
       });
-
     });
   }
 
@@ -953,12 +944,9 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
 
     clientsEnd(bcontent, clientRequestList);
-    internalModule.internalService(req, pc).onComplete(res -> {
-      if (res.failed()) {
-        pc.responseError(OkapiError.getType(res.cause()), res.cause());
-        return;
-      }
-      String resp = res.result();
+    internalModule.internalService(req, pc).onFailure(cause ->
+        pc.responseError(OkapiError.getType(cause), cause)
+    ).onSuccess(resp -> {
       int statusCode = pc.getCtx().response().getStatusCode();
       if (statusCode == 200 && resp.isEmpty()) {
         // Say "no content", if there isn't any

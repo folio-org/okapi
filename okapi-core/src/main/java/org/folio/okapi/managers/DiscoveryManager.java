@@ -436,12 +436,9 @@ public class DiscoveryManager implements NodeListener {
         return;
       }
       req.result().end();
-      req.result().onComplete(res -> {
-        if (res.failed()) {
-          promise.handle(fail(res.cause(), hd));
-          return;
-        }
-        HttpClientResponse response = res.result();
+      req.result().onFailure(cause ->
+          promise.handle(fail(cause, hd))
+      ).onSuccess(response -> {
         response.endHandler(x -> {
           hd.setHealthMessage("OK");
           hd.setHealthStatus(true);
