@@ -81,6 +81,8 @@ public class ProxyService {
   private static final String TOKEN_CACHE_MAX_SIZE = "token_cache_max_size";
   private static final String TOKEN_CACHE_TTL_MS = "token_cache_ttl_ms";
   private static final Messages messages = Messages.getInstance();
+  private static final Comparator<ModuleInstance> compareInstanceLevel =
+      Comparator.comparing((ModuleInstance a) -> a.getRoutingEntry().getPhaseLevel());
   private final TokenCache tokenCache;
 
   /**
@@ -195,9 +197,7 @@ public class ProxyService {
         mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
       }
     }
-    Comparator<ModuleInstance> cmp = Comparator.comparing((ModuleInstance a)
-        -> a.getRoutingEntry().getPhaseLevel());
-    mods.sort(cmp);
+    mods.sort(compareInstanceLevel);
     Iterator<ModuleInstance> iter = mods.iterator();
     boolean found = false;
     while (iter.hasNext()) {
