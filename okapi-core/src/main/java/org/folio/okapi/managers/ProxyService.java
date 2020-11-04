@@ -133,13 +133,6 @@ public class ProxyService {
     pc.logResponse(mi.getModuleDescriptor().getId(), url, statusCode);
   }
 
-  private static boolean match(RoutingEntry e, HttpServerRequest req) {
-    Timer.Sample sample = MetricsHelper.getTimerSample();
-    boolean matchResult = e.match(req.uri(), req.method().name());
-    MetricsHelper.recordCodeExecutionTime(sample, "ProxyService.match");
-    return matchResult;
-  }
-
   /**
    * Checks for a cached token, userId, permissions and updates the provided ModuleInstance
    * accordingly.
