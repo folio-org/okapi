@@ -6,8 +6,8 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -632,11 +632,7 @@ public class InternalModule {
     }
     StringBuilder uriEncoded = new StringBuilder(uri);
     for (String id : ids) {
-      try {
-        uriEncoded.append("/" + URLEncoder.encode(id, "UTF-8"));
-      } catch (UnsupportedEncodingException ex) {
-        return Future.failedFuture(messages.getMessage("11600", id, ex.getMessage()));
-      }
+      uriEncoded.append("/" + URLEncoder.encode(id, StandardCharsets.UTF_8));
     }
     pc.getCtx().response().putHeader("Location", uriEncoded.toString());
     pc.getCtx().response().setStatusCode(201);
