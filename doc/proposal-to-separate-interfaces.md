@@ -23,7 +23,7 @@ From the earliest designs of the FOLIO system, a conceptual distinction has been
 
 A single implementation may implement multiple interfaces (for example **mod-inventory-storage** provides `item-storage`, `holdings-storage`, `instance-storage` and nearly forty more interfaces!); and a single interface may be provided by multiple alternative implementations (for example, **mod-codex-mux**, **mod-codex-inventory** and **mod-codex-ekb** all implement the `codex` interface).
 
-But this conceptual separation has been badly muddied by the pragmatic choice early in the system design that the interface definition does not have its own existence separate from the implementation. Instead, an interface is specifed as part of the `provides` array in a implementation's module descriptor.
+But this conceptual separation has been badly muddied by the pragmatic choice early in the system design that the interface definition does not have its own existence separate from the implementation. Instead, an interface is specified as part of the `provides` array in a implementation's module descriptor.
 
 This has several undesirable consequences. For example:
 
@@ -47,7 +47,7 @@ The challenge for us is to move to an arrangement where interfaces are separated
 
 ## Proposal
 
-At present, the interface definitions are p[rimary defined by the elements of the `provides` array in an implementation's module descriptor, like this:
+At present, the interface definitions are primarily defined by the elements of the `provides` array in an implementation's module descriptor, like this:
 ```
 "provides": [
   {
@@ -64,7 +64,7 @@ At present, the interface definitions are p[rimary defined by the elements of th
 ],
 ```
 
-The shortest way to get to where we want to be would be if the module descriptor instead said something like:
+The shortest way to get to where we want to be, would be if the module descriptor instead said something like:
 ```
 "provides": [
   {
@@ -87,7 +87,7 @@ and the separate file `../interfaces/sru.json` would contain the definition:
 }
 ```
 
-That is, if any interface definition in a module descriptor contains a `$ref` element, then the corresonding value is taken to be a [JSON pointer](https://tools.ietf.org/html/rfc6901) to the location of the interface definition. That definition could be a nearby file in the same repository (or indeed elsewhere in the module descriptor itself, though there is little reason to do that). More interestingly, it could point into a separate repository: this would provide a mechanism for the three Codex modules to share a single interface definition: `"$ref": "https://github.com/folio-org/mod-codex-mux/tree/master/interfaces/codex.json"`.
+That is, if any interface definition in a module descriptor contains a `$ref` element, then the corresponding value is taken to be a [JSON pointer](https://tools.ietf.org/html/rfc6901) to the location of the interface definition. That definition could be a nearby file in the same repository (or indeed elsewhere in the module descriptor itself, though there is little reason to do that). More interestingly, it could point into a separate repository: this would provide a mechanism for the three Codex modules to share a single interface definition: `"$ref": "https://github.com/folio-org/mod-codex-mux/tree/master/interfaces/codex.json"`.
 
 (An earlier version of this proposal suggested using `"provides$ref": ["../interfaces/sru.json"]`, but that would require that either all or none of the interfaces defined in a module descriptor were by reference. The version presented here allows some interfaces to be migrated to referenced files while others remain inline, offering a smoother upgrade path.)
 
