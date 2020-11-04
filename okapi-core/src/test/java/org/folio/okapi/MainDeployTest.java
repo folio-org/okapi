@@ -11,7 +11,6 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.util.MetricsHelper;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

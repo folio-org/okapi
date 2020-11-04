@@ -186,6 +186,7 @@ types:
       description: Remove registration for a given instance
       responses:
         204:
+          description: No Content
           headers:
             X-Okapi-Trace:
               description: Okapi trace and timing
@@ -468,7 +469,10 @@ types:
           headers:
             X-Okapi-Trace:
               description: Okapi trace and timing
-
+        404:
+          description: Not Found
+          body:
+            text/plain:
 /_/proxy/tenants:
   description: Tenants service
   post:
