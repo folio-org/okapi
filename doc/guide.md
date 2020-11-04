@@ -2670,7 +2670,7 @@ Brief list of properties:
  * `stage`: the current stage of the module
  * `message`: present upon error (error message)
 
-If `message` property is present an error has occurred and `stage`
+If `message` property is present, an error has occurred and `stage`
 indicates at which stage the error occurred. Stage is one of
  * `pending`: module is yet to be upgraded/deployed/etc..
  * `deploy`: module is being deployed
@@ -2683,17 +2683,17 @@ If no `message` property is present and `stage` is `pending`, the module
 upgrade has not begun yet.
 
 If no `message` property is present and `stage` is `done`, the module
-the module upgrade is complete.
+upgrade is complete.
 
 Note that install jobs are also created for synchronous operations (default
-and when using async=false). However in order to stay backwards compatible
+and when using async=false). However in order to stay backwards compatible,
 HTTP status 200 is returned with JSON content defined by schema
-[TenantModuleDescriptorList.json](../okapi-core/src/main/raml/TenantModuleDescriptorList.json)).
+([TenantModuleDescriptorList.json](../okapi-core/src/main/raml/TenantModuleDescriptorList.json)).
 
 All install and upgrade jobs for a tenant can be retrieved with GET to
 `/_/proxy/tenants/tenant/install`. If successful, HTTP 200 is returned
 with JSON content defined by schema
-[InstallJobList.json](../okapi-core/src/main/raml/InstallJobList.json)).
+([InstallJobList.json](../okapi-core/src/main/raml/InstallJobList.json)).
 
 This allows to get a list of all install jobs - including ongoing ones
 regardless of whether they are asynchronous or not.
@@ -2705,7 +2705,7 @@ install and upgrade operations.
 This is done by supplying parameter `ignoreErrors=true`
 for install/upgrade. In this case, Okapi will try to upgrade all
 modules in the modules list, regardless if one of them fails. However,
-for individual modules, if they fail, their upgrade will not be commited.
+for individual modules, if they fail, their upgrade will not be committed.
 
 This is an experimental parameter which was added to be able to inspect
 all problem(s) with module upgrade(s).
@@ -2752,7 +2752,7 @@ Defaults to `localhost`
 system-generated UUID (in cluster mode), or `localhost` (in dev mode)
 * `storage`: Defines the storage back end, `postgres`, `mongo` or (the default)
 `inmemory`
-* `healthPort`: port for the GET /readiness and GET /liveness health checks. Use 0 to disable, this is the default. They return 204 if Okapi is ready/responsive and 500 otherwise.
+* `healthPort`: port for the GET `/readiness` and GET `/liveness` health checks. Use 0 to disable, this is the default. They return 204 if Okapi is ready/responsive and 500 otherwise.
 * `lang`: Default language for messages returned by Okapi.
 * `loglevel`: The logging level. Defaults to `INFO`; other useful
 values are `DEBUG`, `TRACE`, `WARN` and `ERROR`.
@@ -2765,15 +2765,15 @@ with a path like in `https://folio.example.com/okapi`.
 * `dockerUrl`: Tells the Okapi deployment where the Docker Daemon
 is. Defaults to `unix:///var/run/docker.sock`.
 * `dockerRegistries`: List of registries to use for Docker image pull. The
-value is a JSON array of objects where each object may have the following properties
+value is a JSON array of objects where each object may have the following properties:
 `username`, `password`, `email`, `serveraddress`, `identitytoken`
 and `registry`. The first 5 properties
-are passed as autentication to the Docker registry if given - refer to
-[Docker Authenticaton](https://docs.docker.com/engine/api/v1.40/#section/Authentication).
+are passed as authentication to the Docker registry if given - refer to
+[Docker Authentication](https://docs.docker.com/engine/api/v1.40/#section/Authentication).
 The optional `registry` is a prefix for the image to allow pull from other
-registry than DockerHub. And empty object in the `dockerRegistries` pulls
+registry than DockerHub. An empty object in the `dockerRegistries` pulls
 from DockerHub without authentication. Omitting `dockerRegistries` does
-the same and is the behavior for earlier versions of Okapi as well.
+the same, and is the behavior for earlier versions of Okapi as well.
 * `containerHost`: Host where containers are running (as seen from Okapi).
 Defaults to `localhost`.
 * `postgres_host` : PostgreSQL host. Defaults to `localhost`.
@@ -2785,15 +2785,15 @@ Defaults to `localhost`.
 * `postgres_server_pem`: SSL/TLS certificate(s) in PEM format to
   validate the PostgreSQL server certificate, this can be the server
   certificate, the root CA certificate, or the chain of the intermediate
-  CA and the CA certificate. Defaults to none allowing unencrypted
-  connection only. If set requires a TLSv1.3 connection and a valid
+  CA and the CA certificate. Defaults to none, allowing unencrypted
+  connection only. If set, requires a TLSv1.3 connection and a valid
   server certificate.
 * `postgres_db_init`: For a value of `1`, Okapi will drop existing
 PostgreSQL database and prepare a new one. A value of `0` (null) will
 leave it unmodified (default).
 * `token_cache_max_size`: Maximum number of token cache entries.
   Defaults to 10000.
-* `token_cache_ttl_ms`: Time to live in millisecods for token cache entries.
+* `token_cache_ttl_ms`: Time to live in milliseconds for token cache entries.
   Defaults to 180000 (3 minutes).
 
 #### Command
@@ -3063,10 +3063,10 @@ Use `modulePermissions` to grant permissions for the token.
 
 ### Instrumentation
 
-Okapi uses Micrometer to managing metrics and reporting to backends. To enable it,
+Okapi uses Micrometer for managing metrics and reporting to backends. To enable it,
 add Java parameter `-Dvertx.metrics.options.enabled=true` first.
 
-More Java parameters are needed to config which backends to use
+More Java parameters are needed to configure which backends to use
 * `-DinfluxDbOptions='{"uri": "http://localhost:8086", "db":"folio"}'` - Send metrics to InfluxDB
 * `-DprometheusOptions='{"embeddedServerOptions": {"port": 9930}}'` - Expose `<server>:9930/metrics` for Prometheus
 * `-DjmxMetricsOptions='{"domain": "org.folio"}'` - JMX
