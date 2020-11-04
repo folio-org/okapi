@@ -910,7 +910,7 @@ public class InternalModule {
             return Future.failedFuture(new OkapiError(ErrorType.USER,
                 messages.getMessage("10206", id, tenants.get(0))));
           }
-          return moduleManager.delete(id).compose(res -> Future.succeededFuture(""));
+          return moduleManager.delete(id).map("");
         });
   }
 
