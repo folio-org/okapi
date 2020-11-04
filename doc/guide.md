@@ -1994,7 +1994,7 @@ cat > /tmp/okapi-proxy-foo.json <<END
         {
           "methods": [ "GET", "POST" ],
           "pathPattern": "/testb",
-          "permissionsRequired": [] 
+          "permissionsRequired": [ ]
         }
       ]
     }

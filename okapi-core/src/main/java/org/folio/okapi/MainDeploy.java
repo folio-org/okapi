@@ -26,7 +26,6 @@ import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.MetricsUtil;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.util.MetricsHelper;
 
 @java.lang.SuppressWarnings({"squid:S3776"})
 public class MainDeploy {
