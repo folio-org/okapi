@@ -58,17 +58,20 @@ public class ModuleCache {
     if (pathPattern == null) {
       return "/"; // anything but pathPattern is legacy so we don't care about those
     }
-    int index = 0;
-    while (index < pathPattern.length()) {
-      if (pathPattern.charAt(index) == '*' || pathPattern.charAt(index) == '{') {
-        while (index > 0 && pathPattern.charAt(index - 1) != '/') {
-          --index;
-        }
-        break;
+    int lastSlash = 0;
+    for (int i = 0; i < pathPattern.length(); i++) {
+      switch (pathPattern.charAt(i)) {
+        case '*':
+        case '{':
+          return pathPattern.substring(0, lastSlash);
+        case '/':
+          lastSlash = i + 1;
+          break;
+        default:
+          break;
       }
-      index++;
     }
-    return pathPattern.substring(0, index);
+    return pathPattern;
   }
 
   static void add(ModuleDescriptor moduleDescriptor, Map<String, List<ModuleCacheEntry>> map,
@@ -156,14 +159,11 @@ public class ModuleCache {
           }
         }
       }
-      int index = tryUri.length() - 1;
-      while (index > 0 && tryUri.charAt(index - 1) != '/') {
-        --index;
-      }
-      if (index <= 0) {
+      int index = tryUri.lastIndexOf('/', tryUri.length() - 2);
+      if (index < 0) {
         break;
       }
-      tryUri = tryUri.substring(0, index);
+      tryUri = tryUri.substring(0, index + 1);
     }
     return instances;
   }
