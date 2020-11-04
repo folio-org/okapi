@@ -148,4 +148,19 @@ public class ModuleUtil {
     return ml;
   }
 
+  /**
+   * Return comma separated list of Module Descriptors.
+   * @param moduleDescriptors list of modules
+   * @return comma separated list
+   */
+  public static String moduleList(List<ModuleDescriptor> moduleDescriptors) {
+    StringBuilder str = new StringBuilder();
+    for (ModuleDescriptor md : moduleDescriptors) {
+      if (str.length() > 0) {
+        str.append(", ");
+      }
+      str.append(md.getId());
+    }
+    return str.toString();
+  }
 }
