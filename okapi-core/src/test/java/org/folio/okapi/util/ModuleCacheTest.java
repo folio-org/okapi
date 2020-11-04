@@ -126,7 +126,7 @@ class ModuleCacheTest {
     instances = ModuleCache.lookup("/perms/users1", HttpMethod.GET, map, true, null);
     assertThat(instances).extracting(routingEntry).containsExactly(routingEntry5);
 
-    ModuleCache.lookup("/perms/user", HttpMethod.GET, map, true, null).isEmpty();
+    assertThat(ModuleCache.lookup("/perms/user", HttpMethod.GET, map, true, null)).isEmpty();
 
     assertThat(ModuleCache.lookup("/old/foo", HttpMethod.GET, map, true, null)).isEmpty();
     instances = ModuleCache.lookup("/old/type", HttpMethod.GET, map, true, null);
