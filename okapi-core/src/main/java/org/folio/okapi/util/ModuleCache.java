@@ -180,7 +180,7 @@ public class ModuleCache {
     logger.debug("lookup {} {} id={}", () -> method.name(), () -> uri, () -> id);
     logger.debug("Available modules {}", () -> ModuleUtil.moduleList(moduleDescriptors));
     // perform lookup of filters
-    List<ModuleInstance> instances = ModuleCache.lookup(uri, method, filterMap, false, null);
+    List<ModuleInstance> instances = lookup(uri, method, filterMap, false, null);
     // handle redirects
     Set<RoutingEntry> visitRoutingEntries = new HashSet<>();
     Iterator<ModuleInstance> iterator = instances.iterator();
