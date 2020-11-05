@@ -237,6 +237,9 @@ public class ProxyContext {
   }
 
   private void responseError(int code, Throwable cause) {
+    if (code == 500) {
+      logger.warn(cause.getMessage(), cause);
+    }
     if (cause != null && cause.getMessage() != null) {
       responseError(code, cause.getMessage());
     } else {

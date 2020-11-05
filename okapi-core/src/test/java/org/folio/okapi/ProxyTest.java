@@ -4197,6 +4197,87 @@ public class ProxyTest {
   }
 
   @Test
+  public void testImportModules(TestContext context) {
+    RestAssuredClient c;
+
+    c = api.createRestAssured3();
+    given()
+        .header("Content-Type", "application/json")
+        .body("{\"id\":").post("/_/proxy/import/modules")
+        .then().statusCode(400);
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("[]").post("/_/proxy/import/modules")
+        .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    ModuleDescriptor mdA = new ModuleDescriptor();
+    mdA.setId("moduleA-1.0.0");
+    {
+      RoutingEntry[] routingEntries = new RoutingEntry[1];
+      RoutingEntry routingEntry = routingEntries[0] = new RoutingEntry();
+      routingEntry.setPathPattern("/a");
+      routingEntry.setMethods(new String[]{"GET"});
+
+      InterfaceDescriptor[] interfaceDescriptors = new InterfaceDescriptor[1];
+      InterfaceDescriptor interfaceDescriptor = interfaceDescriptors[0] = new InterfaceDescriptor();
+      interfaceDescriptor.setId("intA");
+      interfaceDescriptor.setVersion("1.0");
+      interfaceDescriptor.setHandlers(routingEntries);
+      mdA.setProvides(interfaceDescriptors);
+    }
+
+    ModuleDescriptor mdB = new ModuleDescriptor();
+    mdB.setId("moduleB-1.0.0");
+    {
+      InterfaceDescriptor[] interfaceDescriptors = new InterfaceDescriptor[1];
+      InterfaceDescriptor interfaceDescriptor = interfaceDescriptors[0] = new InterfaceDescriptor();
+      interfaceDescriptor.setId("intA");
+      interfaceDescriptor.setVersion("1.0");
+      mdB.setRequires(interfaceDescriptors);
+    }
+    List<ModuleDescriptor> modules = new LinkedList<>();
+    modules.add(mdB);
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
+        .then().statusCode(400);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    modules.add(mdA);
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
+        .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    ModuleDescriptor mdC = new ModuleDescriptor();
+    mdC.setId("moduleC-1.0.0");
+    {
+      InterfaceDescriptor[] interfaceDescriptors = new InterfaceDescriptor[1];
+      InterfaceDescriptor interfaceDescriptor = interfaceDescriptors[0] = new InterfaceDescriptor();
+      interfaceDescriptor.setId("intA");
+      // note no version set
+      mdC.setRequires(interfaceDescriptors);
+    }
+    modules = new LinkedList<>();
+    modules.add(mdC);
+
+    // doesn't validate because no version is set for moduleC requires.. results in null pointer exception in Okapi
+    given()
+        .header("Content-Type", "application/json")
+        .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
+        .then().statusCode(500);
+  }
+
+  @Test
   public void testManyModules(TestContext context) throws IOException {
     given()
         .body("{\"id\":\"testlib\"}").post("/_/proxy/tenants")
@@ -4235,28 +4316,19 @@ public class ProxyTest {
       }
     }
 
-    // we don't have a multi post for modules ... so we just try .. in some order
-    int pos = 0;
-    while (pos < modulesList.size()) {
-      JsonObject md = modulesList.getJsonObject(pos);
-      Response response = given()
-          .body(md.encode()).post("/_/proxy/modules")
-          .then().extract().response();
-      if (response.getStatusCode() == 201) {
-        JsonObject deployObject = new JsonObject()
-            .put("instId", "localhost-" + md.getString("id"))
-            .put("srvcId", md.getString("id"))
-            .put("url", "http://localhost:" + Integer.toString(portTimer));
-        given().body(deployObject.encode()).post("/_/discovery/modules")
-            .then().statusCode(201);
-        modulesList.remove(pos);
-        pos = 0;
-      } else {
-        context.assertEquals(400, response.getStatusCode());
-        pos++;
-      }
+    given()
+        .body(modulesJson).post("/_/proxy/import/modules")
+        .then().statusCode(204);
+    for (int i = 0; i < modulesList.size(); i++) {
+      JsonObject md = modulesList.getJsonObject(i);
+      JsonObject deployObject = new JsonObject()
+          .put("instId", "localhost-" + md.getString("id"))
+          .put("srvcId", md.getString("id"))
+          .put("url", "http://localhost:" + Integer.toString(portTimer));
+      given().body(deployObject.encode()).post("/_/discovery/modules")
+          .then().statusCode(201).log().ifValidationFails();
     }
-    context.assertEquals(0, pos);
+
     given()
         .body(installJson).post("/_/proxy/tenants/testlib/install?invoke=true")
         .then().statusCode(200);

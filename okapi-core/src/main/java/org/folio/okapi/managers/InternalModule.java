@@ -325,6 +325,13 @@ public class InternalModule {
         + "    \"permissionsRequired\" : [ \"okapi.proxy.pull.modules.post\" ], "
         + "    \"type\" : \"internal\" "
         + "   },"
+        // import modules
+        + "   {"
+        + "    \"methods\" :  [ \"POST\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/import/modules\","
+        + "    \"permissionsRequired\" : [ \"okapi.import.modules.post\" ], "
+        + "    \"type\" : \"internal\" "
+        + "   },"
         // Env service
         + "   {"
         + "    \"methods\" :  [ \"POST\" ],"
@@ -489,6 +496,11 @@ public class InternalModule {
         + "   \"permissionName\" : \"okapi.proxy.tenants.interfaces.get\", "
         + "   \"displayName\" : \"Okapi - get modules that provides interface\", "
         + "   \"description\" : \"get modules that provide some interface\" "
+        + " }, "
+        + " { "
+        + "   \"permissionName\" : \"okapi.import.modules.post\", "
+        + "   \"displayName\" : \"Okapi - import modules\", "
+        + "   \"description\" : \"Import modules\" "
         + " }, "
         + " { "
         + "   \"permissionName\" : \"okapi.env.post\", "
@@ -1056,6 +1068,19 @@ public class InternalModule {
     }
   }
 
+  private Future<Void> importModules(ProxyContext pc, String body) {
+    try {
+      HttpServerRequest req = pc.getCtx().request();
+      final boolean check = ModuleUtil.getParamBoolean(req, "check", true);
+      final boolean preRelease = ModuleUtil.getParamBoolean(req, "preRelease", true);
+      final boolean npmSnapshot = ModuleUtil.getParamBoolean(req, "npmSnapshot", true);
+      final ModuleDescriptor[] modules = Json.decodeValue(body, ModuleDescriptor[].class);
+      return moduleManager.createList(Arrays.asList(modules), check, preRelease, npmSnapshot);
+    } catch (DecodeException ex) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
+    }
+  }
+
   /**
    * Pretty simplistic health check.
    */
@@ -1192,6 +1217,11 @@ public class InternalModule {
       if (n == 5 && segments[3].equals("pull") && segments[4].equals("modules")
           && m.equals(HttpMethod.POST) && pullManager != null) {
         return pullModules(req);
+      }
+      // /_/proxy/import/modules
+      if (n == 5 && segments[3].equals("import") && segments[4].equals("modules")
+          && m.equals(HttpMethod.POST) && pullManager != null) {
+        return importModules(pc, req).map("");
       }
       // /_/proxy/health
       if (n == 4 && segments[3].equals("health") && m.equals(HttpMethod.GET)) {

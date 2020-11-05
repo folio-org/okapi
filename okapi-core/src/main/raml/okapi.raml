@@ -1128,6 +1128,31 @@ types:
         body:
           text/plain:
 
+/_/proxy/import/modules:
+  description: Import modules
+  post:
+    description: Import list modules.
+    body:
+      application/json:
+        type: ModuleList
+    responses:
+      204:
+        description: OK
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      404:
+        description: Not Found
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
 /_/env:
   description: Environment service. Environment variables are system
     variables that allows us to configure modules in a uniform way.
