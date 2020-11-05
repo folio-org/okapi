@@ -1220,7 +1220,7 @@ public class InternalModule {
       }
       // /_/proxy/import/modules
       if (n == 5 && segments[3].equals("import") && segments[4].equals("modules")
-          && m.equals(HttpMethod.POST) && pullManager != null) {
+          && m.equals(HttpMethod.POST)) {
         return importModules(pc, req).map("");
       }
       // /_/proxy/health
