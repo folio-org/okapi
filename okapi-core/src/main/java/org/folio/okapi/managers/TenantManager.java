@@ -82,16 +82,6 @@ public class TenantManager implements Liveness {
   }
 
   /**
-   * Force the map to be local. Even in cluster mode, will use a local memory
-   * map. This way, the node will not share tenants with the cluster, and can
-   * not proxy requests for anyone but the superTenant, to the InternalModule.
-   * Which is just enough to act in the deployment mode.
-   */
-  public void forceLocalMap() {
-    mapName = null;
-  }
-
-  /**
    * Initialize the TenantManager.
    *
    * @param vertx Vert.x handle
