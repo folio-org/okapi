@@ -13,8 +13,6 @@ import org.folio.okapi.common.OkapiLogger;
  */
 class AsyncMapFactory {
 
-  private static final Logger logger = OkapiLogger.get();
-
   private AsyncMapFactory() {
     throw new IllegalAccessError("AsyncMapFactory");
   }
