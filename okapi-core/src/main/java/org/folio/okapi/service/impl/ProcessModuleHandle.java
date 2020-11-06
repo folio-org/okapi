@@ -149,7 +149,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     Promise<Void> promise = Promise.promise();
     // time to wait for process status.. when a port is present (always in real life)..
     // The waitReady will check if process eventually starts listening on port
-    vertx.setTimer(port == 0 ? 3000 : 1000, timerRes -> {
+    vertx.setTimer(3000, timerRes -> {
       if (process.isRunning() || exitCode == 0) {
         promise.complete();
         return;
@@ -198,7 +198,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     Promise<Void> promise = Promise.promise();
     // time to wait for process that shuts down service.. when a port is present (always in prod)
     // The waitPortClose will wait for service to shut down
-    vertx.setTimer(port == 0 ? 3000 : 1000, timerRes -> {
+    vertx.setTimer(3000, timerRes -> {
       if (pp.isRunning() || exitCode == 0) {
         promise.complete();
         return;
