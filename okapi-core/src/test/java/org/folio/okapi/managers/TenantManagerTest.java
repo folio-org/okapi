@@ -81,7 +81,7 @@ public class TenantManagerTest extends TestBase {
     }
     {
       Async async = context.async();
-      tm.updateModuleCommit(td.getId(), "mod-1.0.0", "mod-1.0.1").onComplete(res -> {
+      tm.updateModuleCommit(tenant, "mod-1.0.0", "mod-1.0.1").onComplete(res -> {
         context.assertTrue(res.succeeded());
         async.complete();
       });

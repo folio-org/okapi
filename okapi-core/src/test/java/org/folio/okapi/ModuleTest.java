@@ -2649,16 +2649,94 @@ public class ModuleTest {
   public void testInternalModule(TestContext context) {
     conf.remove("mongo_db_init");
     conf.remove("postgres_db_init");
+
+    int foundStatus = "inmemory".equals(conf.getString("storage")) ? 404 : 200;
+
+      // check that supertenant has okapi module enabled already
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/supertenant/modules/okapi-0.0.0")
+        .then().statusCode(200)
+        .log().ifValidationFails();
+
+    // testlib has okapi module enabled
+    given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("id", "testlib").encode())
+        .post("/_/proxy/tenants")
+        .then().statusCode(201)
+        .log().ifValidationFails();
+
+    given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("id", "okapi").encode())
+        .post("/_/proxy/tenants/testlib/modules")
+        .then().statusCode(201)
+        .log().ifValidationFails();
+
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/testlib/modules/okapi-0.0.0")
+        .then().statusCode(200)
+        .log().ifValidationFails();
+
+    // nookapi tenant does not have okapi enabled
+    given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("id", "nookapi").encode())
+        .post("/_/proxy/tenants")
+        .then().statusCode(201)
+        .log().ifValidationFails();
+
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/nookapi/modules/okapi-0.0.0")
+        .then().statusCode(404)
+        .log().ifValidationFails();
+
     undeployFirstAndDeploy(context, context.asyncAssertSuccess());
     async.await();
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/supertenant/modules/okapi-0.0.0")
+        .then().statusCode(200)
+        .log().ifValidationFails();
 
     conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
     undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await();
 
-    conf.put("okapiVersion", "2.0.0"); // downgrade from 3.0.0 to 2.0.0
+    async.await();
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/supertenant/modules/okapi-3.0.0")
+        .then().statusCode(200)
+        .log().ifValidationFails();
+
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/testlib/modules/okapi-3.0.0")
+        .then().statusCode(foundStatus)
+        .log().ifValidationFails();
+
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/nookapi/modules/okapi-3.0.0")
+        .then().statusCode(404)
+        .log().ifValidationFails();
+
+    conf.put("okapiVersion", "2.0.0"); // downgrade from 3.0.0 to 2.0.0 (which is not possible)
     undeployFirstAndDeploy(context, context.asyncAssertSuccess());
     async.await();
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/supertenant/modules/okapi-3.0.0")
+        .then().statusCode(foundStatus)
+        .log().ifValidationFails();
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/testlib/modules/okapi-3.0.0")
+        .then().statusCode(foundStatus)
+        .log().ifValidationFails();
     conf.remove("okapiVersion");
   }
 

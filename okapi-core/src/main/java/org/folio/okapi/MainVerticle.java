@@ -6,18 +6,19 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
 import java.lang.management.ManagementFactory;
 import java.util.Arrays;
-import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Tenant;
+import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
@@ -244,93 +245,44 @@ public class MainVerticle extends AbstractVerticle {
     return tenantManager.init(vertx);
   }
 
+  @SuppressWarnings("indentation")
   private Future<Void> checkInternalModules() {
     logger.info("checkInternalModules");
-    Promise<Void> promise = Promise.promise();
     final ModuleDescriptor md = InternalModule.moduleDescriptor(okapiVersion);
     final String okapiModule = md.getId();
     final String interfaceVersion = md.getProvides()[0].getVersion();
-    moduleManager.get(okapiModule).onSuccess(gres -> {
+    return moduleManager.get(okapiModule).compose(gres -> {
       // we already have one, go on
       logger.debug("checkInternalModules: Already have {} "
           + " with interface version {}", okapiModule, interfaceVersion);
       // See Okapi-359 about version checks across the cluster
-      checkSuperTenant(okapiModule, promise);
-    }).onFailure(cause -> {
+      return Future.succeededFuture();
+    }, cause -> {
       if (OkapiError.getType(cause) != ErrorType.NOT_FOUND) {
-        promise.fail(cause); // something went badly wrong
-        return;
+        return Future.failedFuture(cause); // something went badly wrong
       }
       logger.debug("Creating the internal Okapi module {} with interface version {}",
           okapiModule, interfaceVersion);
-      moduleManager.create(md, true, true, true).onFailure(cause1 ->
-          promise.fail(cause1) // something went badly wrong
-      ).onSuccess(ires -> {
-        checkSuperTenant(okapiModule, promise);
-      });
-    });
-    return promise.future();
+      return moduleManager.create(md, true, true, true);
+    }).compose(x -> checkSuperTenant(okapiModule));
   }
 
-  private void checkSuperTenant(String okapiModule, Promise<Void> promise) {
-    tenantManager.get(XOkapiHeaders.SUPERTENANT_ID).onSuccess(tenant -> {
-      // we already have one, go on
-      logger.info("checkSuperTenant: Already have " + XOkapiHeaders.SUPERTENANT_ID);
-      Set<String> enabledMods = tenant.getEnabled().keySet();
-      if (enabledMods.contains(okapiModule)) {
-        logger.info("checkSuperTenant: enabled version is {}", okapiModule);
-        promise.complete();
-        return;
-      }
-      // Check version compatibility
-      String enver = "";
-      for (String emod : enabledMods) {
-        if (emod.startsWith("okapi-")) {
-          enver = emod;
-        }
-      }
-      final String ev = enver;
-      logger.debug("checkSuperTenant: Enabled version is '{}', not '{}'",
-          ev, okapiModule);
-      // See Okapi-359 about version checks across the cluster
-      if (ModuleId.compare(ev, okapiModule) >= 4) {
-        logger.warn("checkSuperTenant: This Okapi is too old,"
-                + "{} we already have {} in the database. Use that!",
-            okapiVersion, ev);
-        promise.complete();
-        return;
-      }
-      logger.info("checkSuperTenant: Need to upgrade the stored version from {} to {}",
-          ev, okapiModule);
-      // Use the commit, easier interface.
-      // the internal module can not have dependencies
-      // See Okapi-359 about version checks across the cluster
-      tenantManager.updateModuleCommit(tenant, ev, okapiModule).onFailure(cause ->
-          promise.fail(cause)
-      ).onSuccess(res -> {
-        logger.info("Upgraded the InternalModule version from '{}' to '{}' for {}",
-            ev, okapiModule, XOkapiHeaders.SUPERTENANT_ID);
-        promise.complete();
-      });
-    }).onFailure(cause -> {
-      if (OkapiError.getType(cause) != ErrorType.NOT_FOUND) {
-        promise.fail(cause); // something went badly wrong
-        return;
-      }
-      logger.info("Creating the superTenant " + XOkapiHeaders.SUPERTENANT_ID);
-      final String docTenant = "{"
-          + "\"descriptor\" : {"
-          + " \"id\" : \"" + XOkapiHeaders.SUPERTENANT_ID + "\","
-          + " \"name\" : \"" + XOkapiHeaders.SUPERTENANT_ID + "\","
-          + " \"description\" : \"Okapi built-in super tenant\""
-          + " },"
-          + "\"enabled\" : {"
-          + "\"" + okapiModule + "\" : true"
-          + "}"
-          + "}";
-      final Tenant ten = Json.decodeValue(docTenant, Tenant.class);
-      tenantManager.insert(ten).onComplete(res -> promise.handle(res.mapEmpty()));
-    });
+  private Future<Void> checkSuperTenant(String okapiModule) {
+    return tenantManager.get(XOkapiHeaders.SUPERTENANT_ID)
+        .recover(cause -> {
+          if (OkapiError.getType(cause) != ErrorType.NOT_FOUND) {
+            return Future.failedFuture(cause); // something went badly wrong
+          }
+          logger.info("Creating the superTenant " + XOkapiHeaders.SUPERTENANT_ID);
+          TenantDescriptor td = new TenantDescriptor();
+          td.setId(XOkapiHeaders.SUPERTENANT_ID);
+          td.setName(XOkapiHeaders.SUPERTENANT_ID);
+          td.setDescription("Okapi built-in super tenant");
+          SortedMap<String, Boolean> map = new TreeMap<>();
+          map.put(okapiModule, true);
+          Tenant tenant = new Tenant(td, map);
+          return tenantManager.insert(tenant).mapEmpty();
+        }).mapEmpty();
   }
 
   private Future<Void> startEnv() {
@@ -390,7 +342,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private Future<Void> startRedeploy() {
     return discoveryManager.restartModules()
-        .compose(res -> tenantManager.startTimers(discoveryManager));
+        .compose(res -> tenantManager.startTimers(discoveryManager, okapiVersion));
   }
 
 }

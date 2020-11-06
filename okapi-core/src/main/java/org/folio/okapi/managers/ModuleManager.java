@@ -209,15 +209,12 @@ public class ModuleManager {
   }
 
   /**
-   * Get a module descriptor from ID.
+   * Get a module descriptor from ID and return Error if not found.
    *
-   * @param id to get. If null, returns a null.
+   * @param id module ID to get.
    * @returns fut future with resulting Module Descriptor
    */
   public Future<ModuleDescriptor> get(String id) {
-    if (id == null) {
-      return Future.succeededFuture(null);
-    }
     return modules.getNotFound(id);
   }
 

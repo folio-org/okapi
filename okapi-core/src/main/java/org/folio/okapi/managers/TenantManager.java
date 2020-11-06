@@ -187,19 +187,6 @@ public class TenantManager implements Liveness {
   }
 
   /**
-   * Actually update the enabled modules. Assumes dependencies etc have been
-   * checked.
-   *
-   * @param id - tenant to update for
-   * @param moduleFrom - module to be disabled, may be null if none
-   * @param moduleTo - module to be enabled, may be null if none
-   * @return fut callback for errors.
-   */
-  Future<Void> updateModuleCommit(String id, String moduleFrom, String moduleTo) {
-    return tenants.getNotFound(id).compose(t -> updateModuleCommit(t, moduleFrom, moduleTo));
-  }
-
-  /**
    * Update module for tenant and commit to storage.
    * @param t tenant
    * @param moduleFrom null if no original module
@@ -268,30 +255,30 @@ public class TenantManager implements Liveness {
     });
   }
 
-
   Future<String> enableAndDisableModule(
       String tenantId, TenantInstallOptions options, String moduleFrom,
       TenantModuleDescriptor td, ProxyContext pc) {
 
-    return tenants.getNotFound(tenantId)
-        .compose(tenant -> Future.succeededFuture()
-            .compose(res -> {
-              if (td == null) {
-                return Future.succeededFuture(null);
-              }
-              return moduleManager.getLatest(td.getId());
-            }).compose(mdTo ->
-                moduleManager.get(moduleFrom).compose(mdFrom -> {
-                  Future<Void> future = Future.succeededFuture();
-                  if (options.getDepCheck()) {
-                    future = future
-                        .compose(x -> enableAndDisableCheck(tenant, mdFrom, mdTo));
-                  }
-                  return future
-                      .compose(x -> enableAndDisableModule(tenant, options, mdFrom, mdTo, pc));
-                })
-            )
-        );
+    return tenants.getNotFound(tenantId).compose(tenant ->
+        enableAndDisableModule(tenant, options, moduleFrom, td != null ? td.getId() : null, pc));
+  }
+
+  private Future<String> enableAndDisableModule(
+      Tenant tenant, TenantInstallOptions options, String moduleFrom,
+      String moduleTo, ProxyContext pc) {
+
+    Future<ModuleDescriptor> future1 = moduleTo != null
+        ?  moduleManager.getLatest(moduleTo) : Future.succeededFuture(null);
+    return future1.compose(mdTo -> {
+      Future<ModuleDescriptor> future2 = moduleFrom != null
+          ? moduleManager.get(moduleFrom) : Future.succeededFuture(null);
+      return future2.compose(mdFrom -> {
+        Future<Void> future3 = options.getDepCheck()
+            ? enableAndDisableCheck(tenant, mdFrom, mdTo) : Future.succeededFuture();
+        return future3
+            .compose(x -> enableAndDisableModule(tenant, options, mdFrom, mdTo, pc));
+      });
+    });
   }
 
   private Future<String> enableAndDisableModule(Tenant tenant, TenantInstallOptions options,
@@ -452,15 +439,51 @@ public class TenantManager implements Liveness {
    * @param discoveryManager discovery manager
    * @return async result
    */
-  public Future<Void> startTimers(DiscoveryManager discoveryManager) {
+  public Future<Void> startTimers(DiscoveryManager discoveryManager, String okapiVersion) {
+    final ModuleDescriptor md = InternalModule.moduleDescriptor(okapiVersion);
     this.discoveryManager = discoveryManager;
     return tenants.getKeys().compose(res -> {
       for (String tenantId : res) {
         logger.info("starting {}", tenantId);
         reloadEnabledModules(tenantId).onComplete(x -> handleTimer(tenantId));
       }
+      Future<Void> future = Future.succeededFuture();
+      for (String tenantId : res) {
+        future = future.compose(x -> upgradeOkapiModule(tenantId, md));
+      }
       consumeTimers();
-      return Future.succeededFuture();
+      return future;
+    });
+  }
+
+  private Future<Void> upgradeOkapiModule(String tenantId, ModuleDescriptor md) {
+    return get(tenantId).compose(tenant -> {
+      String moduleTo = md.getId();
+      Set<String> enabledMods = tenant.getEnabled().keySet();
+      String enver = null;
+      for (String emod : enabledMods) {
+        if (emod.startsWith("okapi-")) {
+          enver = emod;
+        }
+      }
+      String moduleFrom = enver;
+      if (moduleFrom == null) {
+        logger.info("Tenant {} does not have okapi module enabled already", tenantId);
+        return Future.succeededFuture();
+      }
+      if (moduleFrom.equals(moduleTo)) {
+        logger.info("Tenant {} has okapi module {} enabled already", moduleTo, tenantId);
+        return Future.succeededFuture();
+      }
+      logger.info("Tenant {} has okapi module {}, not '{}'", moduleFrom, moduleTo);
+      if (ModuleId.compare(moduleFrom, moduleTo) >= 4) {
+        logger.warn("This Okapi is too old, {} we already have {} in the database. Use that!",
+            moduleTo, moduleFrom);
+        return Future.succeededFuture();
+      }
+      TenantInstallOptions options = new TenantInstallOptions();
+      return invokePermissions(tenant, options, md, null).compose(x ->
+          updateModuleCommit(tenant, moduleFrom, moduleTo));
     });
   }
 
@@ -604,6 +627,11 @@ public class TenantManager implements Liveness {
               + ". No path to POST to"));
     }
     logger.debug("tenantPerms: {} and {}", permsModule.getId(), permPath);
+    if (pc == null) {
+      MultiMap headersIn = MultiMap.caseInsensitiveMultiMap();
+      return proxyService.doCallSystemInterface(headersIn, tenant.getId(), null,
+          permInst, null, pljson).mapEmpty();
+    }
     return proxyService.callSystemInterface(tenant, permInst, pljson, pc).compose(cres -> {
       pc.passOkapiTraceHeaders(cres);
       logger.debug("tenantPerms request to {} succeeded for module {} and tenant {}",
