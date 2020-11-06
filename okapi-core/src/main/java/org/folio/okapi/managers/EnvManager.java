@@ -37,7 +37,7 @@ public class EnvManager {
    */
   public Future<Void> init(Vertx vertx) {
     logger.debug("starting EnvManager");
-    return envMap.init(vertx, "env")
+    return envMap.init(vertx, "env", false)
         .compose(x -> envStore.getAll())
         .compose(x -> {
           List<Future> futures = new LinkedList<>();

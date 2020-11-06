@@ -63,6 +63,7 @@ public class TenantManager implements Liveness {
   private Map<String, ModuleCache> enabledModulesCache = new HashMap<>();
   // tenants with new permission module (_tenantPermissions version 1.1 or later)
   private Map<String, Boolean> expandedModulesCache = new HashMap<>();
+  private final boolean local;
 
   /**
    * Create tenant manager.
@@ -70,9 +71,10 @@ public class TenantManager implements Liveness {
    * @param moduleManager module manager
    * @param tenantStore   tenant storage
    */
-  public TenantManager(ModuleManager moduleManager, TenantStore tenantStore) {
+  public TenantManager(ModuleManager moduleManager, TenantStore tenantStore, boolean local) {
     this.moduleManager = moduleManager;
     this.tenantStore = tenantStore;
+    this.local = local;
   }
 
   void setTenantsMap(LockedTypedMap1<Tenant> tenants) {
@@ -98,8 +100,8 @@ public class TenantManager implements Liveness {
   public Future<Void> init(Vertx vertx) {
     this.vertx = vertx;
 
-    return tenants.init(vertx, mapName)
-        .compose(x -> jobs.init(vertx, "installJobs"))
+    return tenants.init(vertx, mapName, local)
+        .compose(x -> jobs.init(vertx, "installJobs", local))
         .compose(x -> loadTenants());
   }
 
@@ -444,7 +446,6 @@ public class TenantManager implements Liveness {
     this.discoveryManager = discoveryManager;
     return tenants.getKeys().compose(res -> {
       for (String tenantId : res) {
-        logger.info("starting {}", tenantId);
         reloadEnabledModules(tenantId).onComplete(x -> handleTimer(tenantId));
       }
       Future<Void> future = Future.succeededFuture();
@@ -472,7 +473,7 @@ public class TenantManager implements Liveness {
         return Future.succeededFuture();
       }
       if (moduleFrom.equals(moduleTo)) {
-        logger.info("Tenant {} has okapi module {} enabled already", moduleTo, tenantId);
+        logger.info("Tenant {} has okapi module {} enabled already", tenantId, moduleTo);
         return Future.succeededFuture();
       }
       logger.info("Tenant {} has okapi module {}, not '{}'", moduleFrom, moduleTo);

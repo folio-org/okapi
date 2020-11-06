@@ -35,11 +35,12 @@ public class LockedStringMap {
    * Initialize a shared map.
    * @param vertx Vert.x handle
    * @param mapName name of shared map
+   * @parm local true to force local map even if clustered
    * @return Future
    */
-  public Future<Void> init(Vertx vertx, String mapName) {
+  public Future<Void> init(Vertx vertx, String mapName, boolean local) {
     this.vertx = vertx;
-    return AsyncMapFactory.<String, String>create(vertx, mapName).compose(res -> {
+    return AsyncMapFactory.<String, String>create(vertx, mapName, local).compose(res -> {
       this.list = res;
       logger.info("initialized map {} ok", mapName);
       return Future.succeededFuture();

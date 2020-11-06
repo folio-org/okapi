@@ -161,9 +161,9 @@ public class MainVerticle extends AbstractVerticle {
     }
     if (enableProxy) {
       ModuleStore moduleStore = storage.getModuleStore();
-      moduleManager = new ModuleManager(moduleStore);
+      moduleManager = new ModuleManager(moduleStore, false);
       TenantStore tenantStore = storage.getTenantStore();
-      tenantManager = new TenantManager(moduleManager, tenantStore);
+      tenantManager = new TenantManager(moduleManager, tenantStore, false);
       discoveryManager.setModuleManager(moduleManager);
       logger.info("Proxy using {} storage", storageType);
       PullManager pullManager = new PullManager(vertx, moduleManager);
@@ -175,10 +175,8 @@ public class MainVerticle extends AbstractVerticle {
           internalModule, okapiUrl, config);
       tenantManager.setProxyService(proxyService);
     } else { // not really proxying, except to /_/deployment
-      moduleManager = new ModuleManager(null);
-      moduleManager.forceLocalMap(); // make sure it is not shared
-      tenantManager = new TenantManager(moduleManager, new TenantStoreNull());
-      tenantManager.forceLocalMap();
+      moduleManager = new ModuleManager(null, true);
+      tenantManager = new TenantManager(moduleManager, new TenantStoreNull(), true);
       discoveryManager.setModuleManager(moduleManager);
       InternalModule internalModule = new InternalModule(
           null, null, deploymentManager, null,
@@ -274,6 +272,7 @@ public class MainVerticle extends AbstractVerticle {
             return Future.failedFuture(cause); // something went badly wrong
           }
           logger.info("Creating the superTenant " + XOkapiHeaders.SUPERTENANT_ID);
+
           TenantDescriptor td = new TenantDescriptor();
           td.setId(XOkapiHeaders.SUPERTENANT_ID);
           td.setName(XOkapiHeaders.SUPERTENANT_ID);

@@ -62,8 +62,8 @@ public class DiscoveryManager implements NodeListener {
     this.vertx = vertx;
     this.httpClient = vertx.createHttpClient();
     deliveryOptions = new DeliveryOptions().setSendTimeout(300000); // 5 minutes
-    return deployments.init(vertx, "discoveryList").compose(x ->
-        nodes.init(vertx, "discoveryNodes"));
+    return deployments.init(vertx, "discoveryList", false).compose(x ->
+        nodes.init(vertx, "discoveryNodes", false));
   }
 
   /**
