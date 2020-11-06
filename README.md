@@ -46,7 +46,7 @@ option `-B` to avoid control characters in output.
 
 At Docker Hub:
 
-* https://hub.docker.com/u/folioorg/okapi released versions
+* https://hub.docker.com/r/folioorg/okapi released versions
 * https://hub.docker.com/r/folioci/okapi snapshot versions
 
 See [Automation/Docker
