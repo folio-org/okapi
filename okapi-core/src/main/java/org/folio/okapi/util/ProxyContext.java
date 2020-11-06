@@ -240,7 +240,7 @@ public class ProxyContext {
     if (code == 500) {
       logger.warn(cause.getMessage(), cause);
     }
-    if (cause != null && cause.getMessage() != null) {
+    if (cause.getMessage() != null) {
       responseError(code, cause.getMessage());
     } else {
       responseError(code, messages.getMessage("10300"));
