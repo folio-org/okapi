@@ -59,9 +59,10 @@ runtime.
 ## Ubuntu package
 
 Import the FOLIO signing key and add the [FOLIO apt
-repository](https://repository.folio.org/packages/ubuntu/):
+repository](https://repository.folio.org/packages/ubuntu/) for
+Ubuntu 20.04 LTS (Focal Fossa):
 
-    wget --quiet -O - https://repository.folio.org/packages/debian/folio-apt-archive-key.asc | sudo apt-key add -
+    wget -q -O - https://repository.folio.org/packages/debian/folio-apt-archive-key.asc | sudo apt-key add -
     sudo add-apt-repository "deb https://repository.folio.org/packages/ubuntu/ focal/"
 
 ## Documentation
