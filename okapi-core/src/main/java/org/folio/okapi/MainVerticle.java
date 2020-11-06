@@ -263,7 +263,7 @@ public class MainVerticle extends AbstractVerticle {
       }
       logger.debug("Creating the internal Okapi module {} with interface version {}",
           okapiModule, interfaceVersion);
-      moduleManager.create(md, true, true, true).onFailure(cause1 ->
+      moduleManager.createList(Arrays.asList(md), true, true, true).onFailure(cause1 ->
           promise.fail(cause1) // something went badly wrong
       ).onSuccess(ires -> {
         checkSuperTenant(okapiModule, promise);

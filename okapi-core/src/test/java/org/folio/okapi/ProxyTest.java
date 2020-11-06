@@ -35,6 +35,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -4228,6 +4229,7 @@ public class ProxyTest {
       interfaceDescriptor.setVersion("1.0");
       interfaceDescriptor.setHandlers(routingEntries);
       mdA.setProvides(interfaceDescriptors);
+      mdA.setRequires(new InterfaceDescriptor[0]);
     }
 
     ModuleDescriptor mdB = new ModuleDescriptor();
@@ -4245,7 +4247,22 @@ public class ProxyTest {
     c.given()
         .header("Content-Type", "application/json")
         .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
-        .then().statusCode(400);
+        .then().statusCode(400).body(equalTo("Missing dependency: moduleB-1.0.0 requires intA: 1.0"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // try again, but without checking .. therefore it should succeed
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules?check=false&preRelease=false&npmSnapshot=false")
+        .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // remove again..
+    c = api.createRestAssured3();
+    c.given().delete("/_/proxy/modules/" + mdB.getId()).then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
@@ -4254,7 +4271,7 @@ public class ProxyTest {
     c.given()
         .header("Content-Type", "application/json")
         .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
-        .then().statusCode(204);
+        .then().statusCode(400);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
@@ -4270,11 +4287,10 @@ public class ProxyTest {
     modules = new LinkedList<>();
     modules.add(mdC);
 
-    // doesn't validate because no version is set for moduleC requires.. results in null pointer exception in Okapi
     given()
         .header("Content-Type", "application/json")
         .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
-        .then().statusCode(500);
+        .then().statusCode(400).body(equalTo("version is missing for module moduleC-1.0.0"));
   }
 
   @Test

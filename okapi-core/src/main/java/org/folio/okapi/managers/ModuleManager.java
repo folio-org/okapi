@@ -102,22 +102,6 @@ public class ModuleManager {
   }
 
   /**
-   * Create a module.
-   *
-   * @param md module descriptor
-   * @param check whether to check dependencies
-   * @param preRelease whether to allow pre-release
-   * @param npmSnapshot whether to allow npm snapshot
-   * @return future
-   */
-  public Future<Void> create(ModuleDescriptor md, boolean check, boolean preRelease,
-                             boolean npmSnapshot) {
-    List<ModuleDescriptor> l = new LinkedList<>();
-    l.add(md);
-    return createList(l, check, preRelease, npmSnapshot);
-  }
-
-  /**
    * Create a list of modules.
    *
    * @param list list of modules

@@ -201,6 +201,13 @@ public class InternalModule {
         + "    \"permissionsRequired\" : [ \"okapi.discovery.nodes.get\"  ], "
         + "    \"type\" : \"internal\" "
         + "   }, "
+        // import modules
+        + "   {"
+        + "    \"methods\" :  [ \"POST\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/import/modules\","
+        + "    \"permissionsRequired\" : [ \"okapi.import.modules.post\" ], "
+        + "    \"type\" : \"internal\" "
+        + "   },"
         // Proxy service
         + "   {" // proxy, modules
         + "    \"methods\" :  [ \"POST\" ],"
@@ -323,13 +330,6 @@ public class InternalModule {
         + "    \"methods\" :  [ \"POST\" ],"
         + "    \"pathPattern\" : \"/_/proxy/pull/modules\","
         + "    \"permissionsRequired\" : [ \"okapi.proxy.pull.modules.post\" ], "
-        + "    \"type\" : \"internal\" "
-        + "   },"
-        // import modules
-        + "   {"
-        + "    \"methods\" :  [ \"POST\" ],"
-        + "    \"pathPattern\" : \"/_/proxy/import/modules\","
-        + "    \"permissionsRequired\" : [ \"okapi.import.modules.post\" ], "
         + "    \"type\" : \"internal\" "
         + "   },"
         // Env service
@@ -863,20 +863,38 @@ public class InternalModule {
     });
   }
 
-  private Future<String> createModule(ProxyContext pc, String body) {
+  private Future<Void> createModules(ProxyContext pc, List<ModuleDescriptor> list) {
     try {
-      final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
       HttpServerRequest req = pc.getCtx().request();
       final boolean check = ModuleUtil.getParamBoolean(req, "check", true);
       final boolean preRelease = ModuleUtil.getParamBoolean(req, "preRelease", true);
       final boolean npmSnapshot = ModuleUtil.getParamBoolean(req, "npmSnapshot", true);
-
-      String validerr = md.validate(logger);
-      if (!validerr.isEmpty()) {
-        logger.info("createModule validate failed: {}", validerr);
-        return Future.failedFuture(new OkapiError(ErrorType.USER, validerr));
+      for (ModuleDescriptor md : list) {
+        String validerr = md.validate(logger);
+        if (!validerr.isEmpty()) {
+          logger.info("createModules validate failed: {}", validerr);
+          return Future.failedFuture(new OkapiError(ErrorType.USER, validerr));
+        }
       }
-      return moduleManager.create(md, check, preRelease, npmSnapshot)
+      return moduleManager.createList(list, check, preRelease, npmSnapshot);
+    } catch (DecodeException ex) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
+    }
+  }
+
+  private Future<String> createModules(ProxyContext pc, String body) {
+    try {
+      final ModuleDescriptor[] modules = Json.decodeValue(body, ModuleDescriptor[].class);
+      return createModules(pc, Arrays.asList(modules)).map("");
+    } catch (DecodeException ex) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
+    }
+  }
+
+  private Future<String> createModule(ProxyContext pc, String body) {
+    try {
+      final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
+      return createModules(pc, Arrays.asList(md))
           .compose(res -> location(pc, md.getId(), null, Json.encodePrettily(md)));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
@@ -1068,19 +1086,6 @@ public class InternalModule {
     }
   }
 
-  private Future<Void> importModules(ProxyContext pc, String body) {
-    try {
-      HttpServerRequest req = pc.getCtx().request();
-      final boolean check = ModuleUtil.getParamBoolean(req, "check", true);
-      final boolean preRelease = ModuleUtil.getParamBoolean(req, "preRelease", true);
-      final boolean npmSnapshot = ModuleUtil.getParamBoolean(req, "npmSnapshot", true);
-      final ModuleDescriptor[] modules = Json.decodeValue(body, ModuleDescriptor[].class);
-      return moduleManager.createList(Arrays.asList(modules), check, preRelease, npmSnapshot);
-    } catch (DecodeException ex) {
-      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
-    }
-  }
-
   /**
    * Pretty simplistic health check.
    */
@@ -1129,6 +1134,11 @@ public class InternalModule {
     // default to json replies, error code overrides to text/plain
     pc.getCtx().response().putHeader("Content-Type", "application/json");
     if (n >= 4 && p.startsWith("/_/proxy/")) { // need at least /_/proxy/something
+      // /_/proxy/import/modules
+      if (segments[3].equals("import") && n == 5 && segments[4].equals("modules")
+          && m.equals(HttpMethod.POST)) {
+        return createModules(pc, req);
+      }
       if (segments[3].equals("modules")
           && moduleManager != null) {
         // /_/proxy/modules
@@ -1217,11 +1227,6 @@ public class InternalModule {
       if (n == 5 && segments[3].equals("pull") && segments[4].equals("modules")
           && m.equals(HttpMethod.POST) && pullManager != null) {
         return pullModules(req);
-      }
-      // /_/proxy/import/modules
-      if (n == 5 && segments[3].equals("import") && segments[4].equals("modules")
-          && m.equals(HttpMethod.POST)) {
-        return importModules(pc, req).map("");
       }
       // /_/proxy/health
       if (n == 4 && segments[3].equals("health") && m.equals(HttpMethod.GET)) {
