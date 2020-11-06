@@ -4201,11 +4201,15 @@ public class ProxyTest {
   public void testImportModules(TestContext context) {
     RestAssuredClient c;
 
-    c = api.createRestAssured3();
     given()
         .header("Content-Type", "application/json")
         .body("{\"id\":").post("/_/proxy/import/modules")
-        .then().statusCode(400);
+        .then().statusCode(400).body(containsString("Cannot deserialize instance"));
+
+    given()
+        .header("Content-Type", "application/json")
+        .body("[]").post("/_/proxy/import/modules?check=foo")
+        .then().statusCode(400).body(equalTo("Bad boolean for parameter check: foo"));
 
     c = api.createRestAssured3();
     c.given()
