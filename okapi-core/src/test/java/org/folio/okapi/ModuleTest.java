@@ -1,43 +1,9 @@
 package org.folio.okapi;
 
-import de.flapdoodle.embed.mongo.distribution.Version;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonArray;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import de.flapdoodle.embed.mongo.MongodExecutable;
-import de.flapdoodle.embed.mongo.MongodProcess;
-import de.flapdoodle.embed.mongo.MongodStarter;
-
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
-import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunnerWithParametersFactory;
-
-import java.util.*;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.runners.Parameterized;
-import ru.yandex.qatools.embed.postgresql.EmbeddedPostgres;
-import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
-import de.flapdoodle.embed.mongo.config.Net;
-import de.flapdoodle.embed.process.runtime.Network;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
-
 import io.restassured.http.Headers;
 import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
@@ -45,10 +11,33 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.Async;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunnerWithParametersFactory;
+import java.util.*;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.UrlDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(Parameterized.class)
@@ -76,20 +65,17 @@ public class ModuleTest {
 
   private String locationSampleDeployment;
   private String locationHeaderDeployment;
-  private String locationAuthDeployment = null;
-  private String locationPreDeployment = null;
-  private String locationPostDeployment = null;
+  private String locationAuthDeployment;
+  private String locationPreDeployment;
+  private String locationPostDeployment;
   private String okapiToken;
   private final String okapiTenant = "roskilde";
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
   private final int port = 9230;
-  private static final int POSTGRES_PORT = 9238;
-  private static final int MONGO_PORT = 9239;
-  private static EmbeddedPostgres postgres;
-  private static MongodExecutable mongoExe;
-  private static MongodProcess mongoD;
   private static RamlDefinition api;
+  private static PostgreSQLContainer<?> postgresSQLContainer;
+  private static MongoDBContainer mongoDBContainer;
 
   private final JsonObject conf;
 
@@ -118,14 +104,11 @@ public class ModuleTest {
 
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
-    if (postgres != null) {
-      postgres.stop();
+    if (postgresSQLContainer != null) {
+      postgresSQLContainer.stop();
     }
-    if (mongoD != null) {
-      mongoD.stop();
-    }
-    if (mongoExe != null) {
-      mongoExe.stop();
+    if (mongoDBContainer != null) {
+      mongoDBContainer.stop();
     }
   }
 
@@ -133,31 +116,32 @@ public class ModuleTest {
     conf = new JsonObject();
 
     conf.put("storage", value)
-      .put("deploy.waitIterations", 30)
-      .put("port", "9230")
-      .put("port_start", "9231")
-      .put("port_end", "9237")
-      .put("nodename", "node1");
+        .put("deploy.waitIterations", 30)
+        .put("port", "9230")
+        .put("port_start", "9231")
+        .put("port_end", "9237")
+        .put("nodename", "node1");
 
-    if ("postgres".equals(value)) {
-      conf.put("postgres_host", "localhost")
-        .put("postgres_port", Integer.toString(POSTGRES_PORT));
-      if (postgres == null) {
-        // take version string from https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
-        postgres = new EmbeddedPostgres(() -> "10.12-1");
-        postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
-      }
-    } else if ("mongo".equals(value)) {
-      conf.put("mongo_host", "localhost")
-        .put("mongo_port", Integer.toString(MONGO_PORT));
-      if (mongoD == null) {
-        MongodStarter starter = MongodStarter.getDefaultInstance();
-        mongoExe = starter.prepare(new MongodConfigBuilder()
-          .version(Version.V3_6_5)
-          .net(new Net("localhost", MONGO_PORT, Network.localhostIsIPv6()))
-          .build());
-        mongoD = mongoExe.start();
-      }
+    switch (value) {
+      case "postgres":
+        if (postgresSQLContainer == null) {
+          postgresSQLContainer = new PostgreSQLContainer<>("postgres:12-alpine");
+          postgresSQLContainer.start();
+        }
+        conf.put("postgres_username", postgresSQLContainer.getUsername());
+        conf.put("postgres_password", postgresSQLContainer.getPassword());
+        conf.put("postgres_database", postgresSQLContainer.getDatabaseName());
+        conf.put("postgres_host", postgresSQLContainer.getHost());
+        conf.put("postgres_port", postgresSQLContainer.getFirstMappedPort().toString());
+        break;
+      case "mongo":
+        if (mongoDBContainer == null) {
+          mongoDBContainer = new MongoDBContainer("mongo:3.6.20");
+          mongoDBContainer.start();
+        }
+        conf.put("mongo_port", mongoDBContainer.getFirstMappedPort().toString());
+        conf.put("mongo_host", mongoDBContainer.getHost());
+        break;
     }
   }
 
@@ -169,7 +153,6 @@ public class ModuleTest {
     RestAssured.port = port;
     RestAssured.urlEncodingEnabled = false;
 
-    conf.put("postgres_password", "okapi25");
     conf.put("postgres_db_init", "1");
     conf.put("mongo_db_init", "1");
     conf.put("mode", "dev");
