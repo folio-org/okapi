@@ -2680,6 +2680,30 @@ public class ModuleTest {
         .then().statusCode(200)
         .log().ifValidationFails();
 
+    // create & enable sample-module also for testlib
+    final String docSampleModule = "{" + LS
+        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"provides\" : [ ]," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+    given()
+        .header("Content-Type", "application/json")
+        .body(docSampleModule)
+        .post("/_/proxy/modules")
+        .then().statusCode(201)
+        .log().ifValidationFails();
+    given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("id", "sample-module").encode())
+        .post("/_/proxy/tenants/testlib/modules")
+        .then().statusCode(201)
+        .log().ifValidationFails();
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/testlib/modules/sample-module-1.0.0")
+        .then().statusCode(200)
+        .log().ifValidationFails();
+
     // nookapi tenant does not have okapi enabled
     given()
         .header("Content-Type", "application/json")
@@ -2701,10 +2725,14 @@ public class ModuleTest {
         .get("/_/proxy/tenants/supertenant/modules/okapi-0.0.0")
         .then().statusCode(200)
         .log().ifValidationFails();
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/testlib/modules/okapi-0.0.0")
+        .then().statusCode(foundStatus)
+        .log().ifValidationFails();
 
     conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
     undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-
     async.await();
     given()
         .header("Content-Type", "application/json")
