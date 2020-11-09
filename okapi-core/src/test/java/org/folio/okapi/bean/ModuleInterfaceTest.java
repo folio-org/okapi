@@ -1,22 +1,16 @@
 package org.folio.okapi.bean;
 
-import static org.mockito.Mockito.*;
-
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.util.ProxyContext;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 @java.lang.SuppressWarnings({"squid:S1166", "squid:S1192", "squid:S1313"})
 public class ModuleInterfaceTest {
 
-  private final Logger logger = OkapiLogger.get();
-
   @Test
   public void simpleTests() {
-    logger.debug("simpleTests()");
     InterfaceDescriptor mi = new InterfaceDescriptor();
     // Test defaults
     String id = mi.getId();
@@ -36,13 +30,10 @@ public class ModuleInterfaceTest {
     } catch (IllegalArgumentException e) {
       // no problem
     }
-
-    logger.debug("simpleTests() ok");
   }
 
   @Test
   public void validateTests() {
-    logger.debug("validateTests()");
     assertFalse(InterfaceDescriptor.validateVersion("1"));
     assertFalse(InterfaceDescriptor.validateVersion("1."));
     assertTrue(InterfaceDescriptor.validateVersion("1.2"));
@@ -64,14 +55,11 @@ public class ModuleInterfaceTest {
       mi.setVersion("XXX");
       fail("Managed to set a bad version number");
     } catch (IllegalArgumentException e) {
-      logger.debug("Refused a bad version number 'XXX' as it should");
     }
-    logger.debug("validateTests() ok");
   }
 
   @Test
   public void compatibilityTests() {
-    logger.debug("compatibilityTests()");
     InterfaceDescriptor a = new InterfaceDescriptor("m", "3.4.5");
     assertFalse(a.isCompatible(new InterfaceDescriptor("somethingelse", "3.4.5")));
     assertTrue(a.isCompatible(new InterfaceDescriptor("m", "3.4.5")));
@@ -88,12 +76,11 @@ public class ModuleInterfaceTest {
     assertTrue(a.isCompatible(new InterfaceDescriptor("m", "2.9.2 3.4.4")));
     assertTrue(a.isCompatible(new InterfaceDescriptor("m", "3.4.4 2.9.2")));
     assertFalse(a.isCompatible(new InterfaceDescriptor("m", "2.9.2 3.4.6 4.0.0")));
-    logger.debug("compatibilityTests() ok");
   }
 
   @Test
   public void testPermissionsRequired() {
-    ProxyContext pc = mock(ProxyContext.class);
+    Logger mockLogger = mock(Logger.class);
     String section = "provides";
     String mod = "test";
     String expected = "Missing field permissionsRequired";
@@ -101,50 +88,50 @@ public class ModuleInterfaceTest {
     InterfaceDescriptor desc = new InterfaceDescriptor();
     desc.setId("a");
     desc.setVersion("1.0");
-    assertTrue(desc.validate(pc, section, mod).isEmpty());
+    assertTrue(desc.validate(mockLogger, section, mod).isEmpty());
 
     desc.setHandlers(new RoutingEntry[] {});
-    assertTrue(desc.validate(pc, section, mod).isEmpty());
+    assertTrue(desc.validate(mockLogger, section, mod).isEmpty());
 
     RoutingEntry entry = new RoutingEntry();
     desc.setHandlers(new RoutingEntry[] { entry });
-    assertFalse(desc.validate(pc, section, mod).isEmpty());
+    assertFalse(desc.validate(mockLogger, section, mod).isEmpty());
 
     desc.getHandlers()[0].setPathPattern("/pattern");
-    assertTrue(desc.validate(pc, section, mod).contains(expected));
+    assertTrue(desc.validate(mockLogger, section, mod).contains(expected));
     desc.getHandlers()[0].setPath("/path");
-    assertTrue(desc.validate(pc, section, mod).contains(expected));
+    assertTrue(desc.validate(mockLogger, section, mod).contains(expected));
     desc.getHandlers()[0].setPath(" ");
-    assertTrue(desc.validate(pc, section, mod).contains(expected));
+    assertTrue(desc.validate(mockLogger, section, mod).contains(expected));
 
     desc.getHandlers()[0].setPermissionsRequired(new String[] {});
-    assertTrue(desc.validate(pc, section, mod).isEmpty());
+    assertTrue(desc.validate(mockLogger, section, mod).isEmpty());
 
     desc.getHandlers()[0].setPermissionsRequired(new String[] { "perm.a" });
-    assertTrue(desc.validate(pc, section, mod).isEmpty());
+    assertTrue(desc.validate(mockLogger, section, mod).isEmpty());
 
     desc.getHandlers()[0].setPermissionsRequired(new String[] { "perm.b", "perm.c" });
-    assertTrue(desc.validate(pc, section, mod).isEmpty());
+    assertTrue(desc.validate(mockLogger, section, mod).isEmpty());
   }
 
   @Test
   public void testTenantPermissionsVersion() {
-    ProxyContext pc = mock(ProxyContext.class);
+    Logger logger = mock(Logger.class);
     String section = "provides";
     String mod = "test";
 
     InterfaceDescriptor desc = new InterfaceDescriptor();
     desc.setId("_tenantPermissions");
     desc.setVersion("1.0");
-    assertTrue(desc.validate(pc, section, mod).isEmpty());
-    verify(pc, never()).warn(anyString());
+    assertTrue(desc.validate(logger, section, mod).isEmpty());
+    verify(logger, never()).warn(anyString());
 
     desc.setVersion("1.1");
-    assertTrue(desc.validate(pc, section, mod).isEmpty());
-    verify(pc, never()).warn(anyString());
+    assertTrue(desc.validate(logger, section, mod).isEmpty());
+    verify(logger, never()).warn(anyString());
 
     desc.setVersion("1.2");
-    assertTrue(desc.validate(pc, section, mod).isEmpty());
-    verify(pc, times(1)).warn(anyString());
+    assertTrue(desc.validate(logger, section, mod).isEmpty());
+    verify(logger, times(1)).warn(anyString(), anyString(), anyString());
   }
 }

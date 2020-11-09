@@ -12,11 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
@@ -34,7 +31,6 @@ import org.folio.okapi.util.OkapiError;
 public class ModuleManager {
 
   private final Logger logger = OkapiLogger.get();
-  private TenantManager tenantManager = null;
   private String mapName = "modules";
   private static final String EVENT_NAME = "moduleUpdate";
   private final LockedTypedMap1<ModuleDescriptor> modules
@@ -43,8 +39,6 @@ public class ModuleManager {
   private final ModuleStore moduleStore;
   private Vertx vertx;
   private final Messages messages = Messages.getInstance();
-  // tenants with new permission module (_tenantPermissions version 1.1 or later)
-  private Set<String> expandedPermModuleTenants = ConcurrentHashMap.newKeySet();
 
   public ModuleManager(ModuleStore moduleStore) {
     this.moduleStore = moduleStore;
@@ -58,10 +52,6 @@ public class ModuleManager {
    */
   public void forceLocalMap() {
     mapName = null;
-  }
-
-  public void setTenantManager(TenantManager tenantManager) {
-    this.tenantManager = tenantManager;
   }
 
   /**
@@ -108,40 +98,6 @@ public class ModuleManager {
         }
         return CompositeFuture.all(futures).mapEmpty();
       });
-    });
-  }
-
-  Future<Void> enableAndDisableCheck(Tenant tenant, ModuleDescriptor modFrom,
-                                     ModuleDescriptor modTo) {
-
-    return getEnabledModules(tenant).compose(modlist -> {
-      HashMap<String, ModuleDescriptor> mods = new HashMap<>(modlist.size());
-      for (ModuleDescriptor md : modlist) {
-        mods.put(md.getId(), md);
-      }
-      if (modTo == null) {
-        String deps = DepResolution.checkAllDependencies(mods);
-        if (!deps.isEmpty()) {
-          return Future.succeededFuture(); // failures even before we remove a module
-        }
-      }
-      if (modFrom != null) {
-        mods.remove(modFrom.getId());
-      }
-      if (modTo != null) {
-        ModuleDescriptor already = mods.get(modTo.getId());
-        if (already != null) {
-          return Future.failedFuture(new OkapiError(ErrorType.USER,
-              "Module " + modTo.getId() + " already provided"));
-        }
-        mods.put(modTo.getId(), modTo);
-      }
-      String conflicts = DepResolution.checkAllConflicts(mods);
-      String deps = DepResolution.checkAllDependencies(mods);
-      if (!conflicts.isEmpty() || !deps.isEmpty()) {
-        return Future.failedFuture(new OkapiError(ErrorType.USER, conflicts + " " + deps));
-      }
-      return Future.succeededFuture();
     });
   }
 
@@ -223,32 +179,20 @@ public class ModuleManager {
   public Future<Void> delete(String id) {
     return modules.getAll()
         .compose(ares -> deleteCheckDep(id, ares))
-        .compose(check -> tenantManager.getModuleUser(id))
-        .compose(tenants -> {
-          if (!tenants.isEmpty()) {
-            return Future.failedFuture(new OkapiError(ErrorType.USER,
-                messages.getMessage("10206", id, tenants.get(0))));
-          }
-          return Future.succeededFuture();
-        })
-        .compose(res2 -> {
+        .compose(res -> {
           if (moduleStore == null) {
-            return Future.succeededFuture(Boolean.TRUE);
+            return Future.succeededFuture();
           } else {
-            return moduleStore.delete(id);
+            return moduleStore.delete(id).mapEmpty();
           }
         })
-        .compose(res3 -> {
-          if (Boolean.FALSE.equals(res3)) {
-            return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, id));
-          }
-          return deleteInternal(id).mapEmpty();
-        });
+        .compose(res -> deleteInternal(id).mapEmpty());
   }
 
   private Future<Void> deleteCheckDep(String id, LinkedHashMap<String, ModuleDescriptor> mods) {
     if (!mods.containsKey(id)) {
-      return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, messages.getMessage("10207")));
+      return Future.failedFuture(
+          new OkapiError(ErrorType.NOT_FOUND, messages.getMessage("10207", id)));
     }
     mods.remove(id);
     String res = DepResolution.checkAllDependencies(mods);
@@ -309,48 +253,4 @@ public class ModuleManager {
       return Future.succeededFuture(mdl);
     });
   }
-
-  /**
-   * Get all modules that are enabled for the given tenant.
-   *
-   * @param ten tenant to check for
-   * @return fut callback with a list of ModuleDescriptors (may be empty list)
-   */
-  public Future<List<ModuleDescriptor>> getEnabledModules(Tenant ten) {
-
-    List<ModuleDescriptor> mdl = new LinkedList<>();
-    List<Future> futures = new LinkedList<>();
-    for (String id : ten.getEnabled().keySet()) {
-      if (enabledModulesCache.containsKey(id)) {
-        ModuleDescriptor md = enabledModulesCache.get(id);
-        mdl.add(md);
-        updateExpandedPermModuleTenants(ten.getId(), md);
-      } else {
-        futures.add(modules.get(id).compose(md -> {
-          enabledModulesCache.put(id, md);
-          mdl.add(md);
-          updateExpandedPermModuleTenants(ten.getId(), md);
-          return Future.succeededFuture();
-        }));
-      }
-    }
-    return CompositeFuture.all(futures).compose(res -> Future.succeededFuture(mdl));
-  }
-
-  private void updateExpandedPermModuleTenants(String tenant, ModuleDescriptor md) {
-    InterfaceDescriptor id = md.getSystemInterface("_tenantPermissions");
-    if (id == null) {
-      return;
-    }
-    if (id.getVersion().equals("1.0")) {
-      expandedPermModuleTenants.remove(tenant);
-    } else {
-      expandedPermModuleTenants.add(tenant);
-    }
-  }
-
-  public Set<String> getExpandedPermModuleTenants() {
-    return expandedPermModuleTenants;
-  }
-
 }

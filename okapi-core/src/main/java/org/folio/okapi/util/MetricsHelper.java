@@ -1,23 +1,14 @@
 package org.folio.okapi.util;
 
 import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Timer.Sample;
-import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import io.vertx.core.VertxOptions;
-import io.vertx.micrometer.MicrometerMetricsOptions;
-import io.vertx.micrometer.VertxInfluxDbOptions;
-import io.vertx.micrometer.backends.BackendRegistries;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleInstance;
+import org.folio.okapi.common.MetricsUtil;
 import org.folio.okapi.common.OkapiLogger;
 
 /**
@@ -25,9 +16,10 @@ import org.folio.okapi.common.OkapiLogger;
  */
 public class MetricsHelper {
 
-  private static final Logger logger = OkapiLogger.get();
+  private static final Logger logger = OkapiLogger.get(MetricsHelper.class);
 
-  private static final String METRICS_PREFIX = "org.folio.okapi";
+  static final String METRICS_PREFIX = MetricsUtil.METRICS_PREFIX + ".okapi";
+
   private static final String METRICS_HTTP = METRICS_PREFIX + ".http";
   private static final String METRICS_HTTP_SERVER = METRICS_HTTP + ".server";
   private static final String METRICS_HTTP_CLIENT = METRICS_HTTP + ".client";
@@ -37,58 +29,28 @@ public class MetricsHelper {
       + ".responseTime";
   private static final String METRICS_HTTP_CLIENT_ERRORS = METRICS_HTTP_CLIENT
       + ".errors";
+
   private static final String METRICS_TOKEN_CACHE = METRICS_PREFIX + ".tokenCache";
   private static final String METRICS_TOKEN_CACHE_HITS = METRICS_TOKEN_CACHE + ".hits";
   private static final String METRICS_TOKEN_CACHE_MISSES = METRICS_TOKEN_CACHE + ".misses";
   private static final String METRICS_TOKEN_CACHE_CACHED = METRICS_TOKEN_CACHE + ".cached";
   private static final String METRICS_TOKEN_CACHE_EXPIRED = METRICS_TOKEN_CACHE + ".expired";
+
   private static final String METRICS_CODE = METRICS_PREFIX + ".code";
   private static final String METRICS_CODE_EXECUTION_TIME = METRICS_CODE + ".executionTime";
 
-  private static final String TAG_HOST = "host";
   private static final String TAG_TENANT = "tenant";
-  private static final String TAG_CODE = "code";
-  private static final String TAG_METHOD = "method";
+  private static final String TAG_HTTP_CODE = "code";
+  private static final String TAG_HTTP_METHOD = "method";
   private static final String TAG_MODULE = "module";
   private static final String TAG_URL = "url";
   private static final String TAG_PHASE = "phase";
   private static final String TAG_USERID = "userId";
   private static final String TAG_EMPTY = "null";
 
-  static final String HOST_UNKNOWN = "unknown";
-
-  private static boolean enabled = false;
-  private static MeterRegistry registry;
+  private static final String TAG_CODE_BLOCK_NAME = "codeBlockName";
 
   private MetricsHelper() {
-  }
-
-  /**
-   * Config metrics options - specifically use InfluxDb micrometer options.
-   *
-   * @param vertxOptions   - {@link VertxOptions}
-   * @param influxUrl      - default to http://localhost:8086
-   * @param influxDbName   - default to okapi
-   * @param influxUserName - default to null
-   * @param influxPassword - default to null
-   */
-  public static void config(VertxOptions vertxOptions, String influxUrl,
-      String influxDbName, String influxUserName, String influxPassword) {
-    VertxInfluxDbOptions influxDbOptions = new VertxInfluxDbOptions()
-        .setEnabled(true)
-        .setUri(influxUrl == null ? "http://localhost:8086" : influxUrl)
-        .setDb(influxDbName == null ? "okapi" : influxDbName);
-    if (influxUserName != null) {
-      influxDbOptions.setUserName(influxUserName);
-    }
-    logger.info("Influx config: {}", () -> influxDbOptions.toJson().encodePrettily());
-    if (influxPassword != null) {
-      influxDbOptions.setPassword(influxPassword);
-    }
-    vertxOptions.setMetricsOptions(new MicrometerMetricsOptions()
-        .setEnabled(true)
-        .setInfluxDbOptions(influxDbOptions));
-    enabled = true;
   }
 
   /**
@@ -97,7 +59,7 @@ public class MetricsHelper {
    * @return {@link Sample} or null if metrics is not enabled
    */
   public static Sample getTimerSample() {
-    return enabled ? Timer.start(getRegistry()) : null;
+    return MetricsUtil.getTimerSample();
   }
 
   /**
@@ -142,48 +104,41 @@ public class MetricsHelper {
    * @return {@link Counter} or null if metrics is not enabled
    */
   public static Counter recordHttpClientError(String tenant, String httpMethod, String urlPath) {
-    if (!enabled) {
+    if (!MetricsUtil.isEnabled()) {
       return null;
     }
-    Counter counter = Counter.builder(METRICS_HTTP_CLIENT_ERRORS)
-        .tag(TAG_TENANT, tenant)
-        .tag(TAG_METHOD, httpMethod)
-        .tag(TAG_URL, urlPath)
-        .register(getRegistry());
-    counter.increment();
-    return counter;
+    List<Tag> tags = new ArrayList<>();
+    tags.add(Tag.of(TAG_TENANT, "" + tenant));
+    tags.add(Tag.of(TAG_HTTP_METHOD, "" + httpMethod));
+    tags.add(Tag.of(TAG_URL, "" + urlPath));
+    return MetricsUtil.recordCounter(METRICS_HTTP_CLIENT_ERRORS, tags);
   }
 
   /**
    * Record code execution time.
    *
-   * @param sample - {@link Sample} that tells the starting time
-   * @param name   - name of the code block for tagging purpose
+   * @param sample        - {@link Sample} that tells the starting time
+   * @param codeBlockName - name of the code block for tagging purpose
    *
    * @return {@link Timer} or null if metrics is not enabled
    */
-  public static Timer recordCodeExecutionTime(Sample sample, String name) {
-    if (!enabled) {
+  public static Timer recordCodeExecutionTime(Sample sample, String codeBlockName) {
+    if (!MetricsUtil.isEnabled()) {
       return null;
     }
-    Timer timer = Timer.builder(METRICS_CODE_EXECUTION_TIME)
-        .tag("name", name)
-        .register(getRegistry());
-    sample.stop(timer);
-    return timer;
+    List<Tag> tags = new ArrayList<>();
+    tags.add(Tag.of(TAG_CODE_BLOCK_NAME, "" + codeBlockName));
+    return MetricsUtil.recordTimer(sample, METRICS_CODE_EXECUTION_TIME, tags);
   }
 
   private static Timer recordHttpTime(Sample sample, String tenant, int httpStatusCode,
       String httpMethod, ModuleInstance moduleInstance, boolean server) {
-    if (!enabled) {
+    if (!MetricsUtil.isEnabled()) {
       return null;
     }
     String name = server ? METRICS_HTTP_SERVER_PROCESSING_TIME : METRICS_HTTP_CLIENT_RESPONSE_TIME;
-    Timer timer = Timer.builder(name)
-        .tags(createHttpTags(tenant, httpStatusCode, httpMethod, moduleInstance, !server))
-        .register(getRegistry());
-    sample.stop(timer);
-    return timer;
+    return MetricsUtil.recordTimer(sample, name,
+        createHttpTags(tenant, httpStatusCode, httpMethod, moduleInstance, !server));
   }
 
   public static Counter recordTokenCacheMiss(String tenant, String httpMethod, String urlPath,
@@ -208,32 +163,34 @@ public class MetricsHelper {
 
   private static Counter recordTokenCacheEvent(String event, String tenant, String httpMethod,
       String urlPath, String userId) {
-    if (!enabled) {
+    if (!MetricsUtil.isEnabled()) {
       return null;
     }
-    Counter counter = Counter.builder(event).tag(TAG_TENANT, tenant).tag(TAG_METHOD, httpMethod)
-        .tag(TAG_URL, urlPath).tag(TAG_USERID, userId == null ? "null" : userId)
-        .register(getRegistry());
-    counter.increment();
-    return counter;
+    List<Tag> tags = new ArrayList<>();
+    tags.add(Tag.of(TAG_TENANT, "" + tenant));
+    tags.add(Tag.of(TAG_HTTP_METHOD, "" + httpMethod));
+    tags.add(Tag.of(TAG_URL, "" + urlPath));
+    tags.add(Tag.of(TAG_USERID, userId == null ? TAG_EMPTY : userId));
+    return MetricsUtil.recordCounter(event, tags);
   }
 
   private static List<Tag> createHttpTags(String tenant, int httpStatusCode, String httpMethod,
       ModuleInstance moduleInstance, boolean createPhaseTag) {
     List<Tag> tags = new ArrayList<>();
     tags.add(Tag.of(TAG_TENANT, tenant == null ? TAG_EMPTY : tenant));
-    tags.add(Tag.of(TAG_CODE, "" + httpStatusCode));
-    tags.add(Tag.of(TAG_METHOD, httpMethod == null ? TAG_EMPTY : httpMethod));
+    tags.add(Tag.of(TAG_HTTP_CODE, "" + httpStatusCode));
+    tags.add(Tag.of(TAG_HTTP_METHOD, httpMethod == null ? TAG_EMPTY : httpMethod));
     if (moduleInstance != null) {
-      tags.add(Tag.of(TAG_MODULE, moduleInstance.getModuleDescriptor().getId()));
+      tags.add(Tag.of(TAG_MODULE, "" + moduleInstance.getModuleDescriptor().getId()));
       // legacy case where module instance has no routing entry
       if (moduleInstance.getRoutingEntry() != null) {
         tags.add(Tag.of(TAG_URL, moduleInstance.getRoutingEntry().getStaticPath()));
         if (createPhaseTag) {
           tags.add(Tag.of(TAG_PHASE, moduleInstance.isHandler() ? "handler"
-              : moduleInstance.getRoutingEntry().getPhase()));
+              : "" + moduleInstance.getRoutingEntry().getPhase()));
         }
       } else {
+        logger.warn("legacy module instance {}", moduleInstance.getPath());
         tags.add(Tag.of(TAG_URL, moduleInstance.getPath()));
         tags.add(Tag.of(TAG_PHASE, moduleInstance.isHandler() ? "handler" : TAG_EMPTY));
       }
@@ -245,33 +202,6 @@ public class MetricsHelper {
       }
     }
     return tags;
-  }
-
-  private static MeterRegistry getRegistry() {
-    if (registry == null) {
-      registry = Optional.ofNullable(BackendRegistries.getDefaultNow())
-          .orElse(new SimpleMeterRegistry());
-      registry.config().commonTags(TAG_HOST, getHost());
-      new ProcessorMetrics().bindTo(registry);
-    }
-    return registry;
-  }
-
-  static String getHost() {
-    try {
-      return InetAddress.getLocalHost().toString();
-    } catch (UnknownHostException e) {
-      logger.warn(e);
-    }
-    return HOST_UNKNOWN;
-  }
-
-  public static boolean isEnabled() {
-    return enabled;
-  }
-
-  public static void setEnabled(boolean enabled) {
-    MetricsHelper.enabled = enabled;
   }
 
 }

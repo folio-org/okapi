@@ -793,6 +793,41 @@ public class InstallTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
+    final String docFail_1_0_0 = "{" + LS
+        + "  \"id\" : \"fail-module-1.0.0\"," + LS
+        + "  \"name\" : \"failing module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenant\"," + LS
+        + "    \"version\" : \"1.1\"," + LS
+        + "    \"interfaceType\" : \"system\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+        + "      \"pathPattern\" : \"/_/badpath\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(docFail_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+
+    final String nodeDoc3 = "{" + LS
+        + "  \"instId\" : \"localhost3-" + Integer.toString(portTimer) + "\"," + LS
+        + "  \"srvcId\" : \"fail-module-1.0.0\"," + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+        + "}";
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+        .body(nodeDoc3).post("/_/discovery/modules")
+        .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
     timerTenantInitStatus = 401;
     c = api.createRestAssured3();
     r = c.given()
@@ -866,6 +901,42 @@ public class InstallTest {
             + "  } ]" + LS
             + "}", job.encodePrettily());
 
+    timerTenantInitStatus = 200;
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}, {\"id\":\"fail-module-1.0.0\", \"action\":\"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true&ignoreErrors=false")
+        .then().statusCode(201)
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"timer-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"fail-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "} ]"))
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    locationInstallJob = r.getHeader("Location");
+    suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+
+    job = pollCompleteStrip(context, suffix);
+    context.assertEquals("{" + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"timer-module-1.0.0\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"stage\" : \"done\"" + LS
+        + "  }, {" + LS
+        + "    \"id\" : \"fail-module-1.0.0\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"message\" : \"POST request for fail-module-1.0.0 /_/badpath failed with 404: /_/badpath\"," + LS
+        + "    \"stage\" : \"invoke\"" + LS
+        + "  } ]" + LS
+        + "}", job.encodePrettily());
+
     // get all install jobs and test that they are returned with oldest first
     c = api.createRestAssured3();
     r = c.given()
@@ -877,7 +948,7 @@ public class InstallTest {
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
     JsonArray ar = new JsonArray(r.body().asString());
-    context.assertEquals(9, ar.size());
+    context.assertEquals(10, ar.size());
     String prevDate = "0";
     for (int i = 0; i < ar.size(); i++) {
       String thisDate = ar.getJsonObject(i).getString("startDate");

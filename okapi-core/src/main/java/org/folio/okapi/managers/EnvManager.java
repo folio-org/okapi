@@ -86,6 +86,6 @@ public class EnvManager {
   }
 
   Future<Void> remove(String name) {
-    return envMap.removeNotFound(name);
+    return envMap.removeNotFound(name).compose(res -> envStore.delete(name).mapEmpty());
   }
 }

@@ -9,8 +9,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ModuleId;
-import org.folio.okapi.util.ProxyContext;
 
 /**
  * Description of a module. These are used when creating modules under
@@ -374,17 +374,17 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    * Validate some features of a ModuleDescriptor.
    * In case of Deprecated things, writes warnings in the log.
    *
-   * @param pc proxy context
+   * @param logger where validate warnings are logged
    * @return "" if ok, otherwise an informative error message.
    */
-  public String validate(ProxyContext pc) {
+  public String validate(Logger logger) {
     if (id == null) {
       return "id is missing for module";
     }
     String mod = getId();
     if (provides != null) {
       for (InterfaceDescriptor pr : provides) {
-        String err = pr.validate(pc, "provides", mod);
+        String err = pr.validate(logger, "provides", mod);
         if (!err.isEmpty()) {
           return err;
         }
@@ -392,19 +392,18 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     }
     if (requires != null) {
       for (InterfaceDescriptor pr : requires) {
-        String err = pr.validate(pc, "requires", mod);
+        String err = pr.validate(logger, "requires", mod);
         if (!err.isEmpty()) {
           return err;
         }
       }
     } else {
-      pc.warn("Module '" + mod + "' "
-          + "has no Requires section. If the module really does not require "
-          + "any other interfaces, provide an empty array to be explicit about it.");
+      logger.warn("Module '{}' has no Requires section. If the module really does not require "
+          + "any other interfaces, provide an empty array to be explicit about it.", mod);
     }
     if (filters != null) {
       for (RoutingEntry fe : filters) {
-        String err = fe.validateFilters(pc, mod);
+        String err = fe.validateFilters(logger, mod);
         if (!err.isEmpty()) {
           return err;
         }

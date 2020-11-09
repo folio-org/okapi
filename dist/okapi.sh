@@ -18,39 +18,52 @@ DATA_DIR="${DATA_DIR:-/var/lib/okapi}"
 LIB_DIR="${LIB_DIR:-/usr/share/folio/okapi/lib}"
 OKAPI_JAR="${LIB_DIR}/okapi-core-fat.jar"
 # Copy from deprecated postgres_user into postgres_username
-postgres_username="${postgres_username:-${postgres_user:-okapi}}"
+postgres_username="${postgres_username:-${postgres_user}}"
 
 parse_okapi_conf()  {
 
-   # storage backend options
-   if [ "$role" == "dev" ] || [ $role == "cluster" ]; then
+   if [ "$role" == "dev" ] || [ "$role" == "cluster" ]; then
 
+      # storage backend options
       if [ "$storage" == "postgres" ]; then
          OKAPI_JAVA_OPTS+=" -Dstorage=postgres"
-         OKAPI_OPTIONS+=" -conf ${PID_DIR}/okapi-postgres.conf"
-         rm -f "${PID_DIR}/okapi-postgres.conf" > /dev/null 2>&1
-         touch "${PID_DIR}/okapi-postgres.conf"
-         chmod 600 "${PID_DIR}/okapi-postgres.conf"
-         # include postgres_server_pem only if defined (even if empty string)
-         jq -n --arg WARNING "AUTOMATICALLY CREATED FILE, DO NOT EDIT!"  \
-               --arg postgres_host       "${postgres_host:-localhost}"   \
-               --arg postgres_port       "${postgres_port:-5432}"        \
-               --arg postgres_username   "${postgres_username:-okapi}"   \
-               --arg postgres_password   "${postgres_password:-okapi25}" \
-               --arg postgres_database   "${postgres_database:-okapi}"   \
-               --arg postgres_server_pem "${postgres_server_pem}"        \
-               "{\$WARNING,
-                 \$postgres_host,
-                 \$postgres_port,
-                 \$postgres_username,
-                 \$postgres_password,
-                 \$postgres_database
-                 ${postgres_server_pem+,\$postgres_server_pem}
-               }" > "${PID_DIR}/okapi-postgres.conf"
-         echo "${PID_DIR}/okapi-postgres.conf = "
-         cat "${PID_DIR}/okapi-postgres.conf" | sed 's/\(\"\postgres_password":\).*[^,]/\1 .../g'
+         # Set defaults
+         postgres_username="${postgres_username:-okapi}"
+         postgres_host="${postgres_host:-localhost}"
+         postgres_port="${postgres_port:-5432}"
+         postgres_password="${postgres_password:-okapi25}"
+         postgres_database="${postgres_database:-okapi}"
       else
          OKAPI_JAVA_OPTS+=" -Dstorage=inmemory"
+      fi
+
+      # create runtime configuration file for sensitive information
+      # Store auth here rather than exposing on command line
+      if [ "$storage" == "postgres" ] || [ "$docker_registries" ]; then
+         OKAPI_OPTIONS+=" -conf ${PID_DIR}/okapi-runtime.conf"
+         rm -f "${PID_DIR}/okapi-runtime.conf" > /dev/null 2>&1
+         touch "${PID_DIR}/okapi-runtime.conf"
+         chmod 600 "${PID_DIR}/okapi-runtime.conf"
+         # include postgres connection arguments only if defined
+         jq -n --arg WARNING "AUTOMATICALLY CREATED FILE, DO NOT EDIT!"    \
+               --argjson dockerRegistries  "${docker_registries:-[]}"      \
+               --arg postgres_host         "${postgres_host}"              \
+               --arg postgres_port         "${postgres_port}"              \
+               --arg postgres_username     "${postgres_username}"          \
+               --arg postgres_password     "${postgres_password}"          \
+               --arg postgres_database     "${postgres_database}"          \
+               --arg postgres_server_pem   "${postgres_server_pem}"        \
+               "{\$WARNING
+                 ${$docker_registries+,\$dockerRegistries}
+                 ${postgres_host+,\$postgres_host}
+                 ${postgres_port+,\$postgres_port}
+                 ${postgres_username+,\$postgres_username}
+                 ${postgres_password+,\$postgres_password}
+                 ${postgres_database+,\$postgres_database}
+                 ${postgres_server_pem+,\$postgres_server_pem}
+               }" > "${PID_DIR}/okapi-runtime.conf"
+         echo "${PID_DIR}/okapi-runtime.conf = "
+         cat "${PID_DIR}/okapi-runtime.conf" | sed 's/\(password":\|identitytoken":\).*[^,]/\1 .../g'
       fi
 
    fi
@@ -82,6 +95,14 @@ parse_okapi_conf()  {
          OKAPI_OPTIONS+=" $CLUSTER_OPTIONS"
       fi
 
+      OKAPI_JAVA_OPTS+=" --add-modules java.se"
+      OKAPI_JAVA_OPTS+=" --add-exports java.base/jdk.internal.ref=ALL-UNNAMED"
+      OKAPI_JAVA_OPTS+=" --add-opens java.base/java.lang=ALL-UNNAMED"
+      OKAPI_JAVA_OPTS+=" --add-opens java.base/java.nio=ALL-UNNAMED"
+      OKAPI_JAVA_OPTS+=" --add-opens java.base/sun.nio.ch=ALL-UNNAMED"
+      OKAPI_JAVA_OPTS+=" --add-opens java.management/sun.management=ALL-UNNAMED"
+      OKAPI_JAVA_OPTS+=" --add-opens jdk.management/com.ibm.lang.management.internal=ALL-UNNAMED"
+      OKAPI_JAVA_OPTS+=" --add-opens jdk.management/com.sun.management.internal=ALL-UNNAMED"
    fi
 
    # Set performance metric options
@@ -157,6 +178,12 @@ EOF
          echo "configured in okapi.conf is available and the okapi database"
          echo "and user has been configured. Then re-run:"
          echo "    /usr/share/folio/okapi/bin/okapi.sh --initdb"
+         echo "Postgres configuration:"
+         echo "   postgres_username: $postgres_username"
+         echo "   postgres_password: ${postgres_password+...}"
+         echo "   postgres_host:     $postgres_host"
+         echo "   postgres_port:     $postgres_port"
+         echo "   postgres_database: $postgres_database"
          exit 2
       else
          echo -n "Initializing okapi database..."

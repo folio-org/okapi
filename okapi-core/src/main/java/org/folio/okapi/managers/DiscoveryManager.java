@@ -68,6 +68,18 @@ public class DiscoveryManager implements NodeListener {
   }
 
   /**
+   * async shutdown discovery manager.
+   * @return fut async result
+   */
+  public Future<Void> shutdown() {
+    logger.info("shutdown");
+    if (clusterManager != null) {
+      return Future.succeededFuture();
+    }
+    return deployments.clear();
+  }
+
+  /**
    * Restart modules that were persisted in storage.
    * @return async result
    */
@@ -114,16 +126,12 @@ public class DiscoveryManager implements NodeListener {
           return Future.succeededFuture();
         }));
       }
-      return future.compose(res2 -> {
-        return deployments.add(md.getSrvcId(), md.getInstId(), md);
-      }).mapEmpty();
+      return future.compose(res2 -> deployments.add(md.getSrvcId(), md.getInstId(), md)).mapEmpty();
     });
   }
 
   Future<DeploymentDescriptor> addAndDeploy(DeploymentDescriptor dd) {
-    return addAndDeploy0(dd).compose(res -> {
-      return deploymentStore.insert(res).map(res);
-    });
+    return addAndDeploy0(dd).compose(res -> deploymentStore.insert(res).map(res));
   }
 
   /**
@@ -221,7 +229,6 @@ public class DiscoveryManager implements NodeListener {
 
     List<Future> futures = new LinkedList<>();
     for (DeploymentDescriptor dd : ddList) {
-      logger.info("removeAndUndeploy {} {}", dd.getSrvcId(), dd.getInstId());
       futures.add(callUndeploy(dd)
           .compose(res -> deploymentStore.delete(dd.getInstId()))
           .mapEmpty());
@@ -235,10 +242,8 @@ public class DiscoveryManager implements NodeListener {
         md.getSrvcId(), md.getInstId(), md.getNodeId());
     final String nodeId = md.getNodeId();
     if (nodeId == null) {
-      logger.info("callUndeploy remove");
       return remove(md.getSrvcId(), md.getInstId()).mapEmpty();
     }
-    logger.info("callUndeploy calling..");
     return getNode(nodeId).compose(res ->
         vertx.eventBus().request(res.getUrl() + "/undeploy", md.getInstId(),
             deliveryOptions).mapEmpty()
@@ -431,12 +436,9 @@ public class DiscoveryManager implements NodeListener {
         return;
       }
       req.result().end();
-      req.result().onComplete(res -> {
-        if (res.failed()) {
-          promise.handle(fail(res.cause(), hd));
-          return;
-        }
-        HttpClientResponse response = res.result();
+      req.result().onFailure(cause ->
+          promise.handle(fail(cause, hd))
+      ).onSuccess(response -> {
         response.endHandler(x -> {
           hd.setHealthMessage("OK");
           hd.setHealthStatus(true);

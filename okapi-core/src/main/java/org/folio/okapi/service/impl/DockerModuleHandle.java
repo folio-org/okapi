@@ -13,9 +13,10 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.function.Supplier;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.AnyDescriptor;
 import org.folio.okapi.bean.EnvEntry;
@@ -40,7 +41,6 @@ public class DockerModuleHandle implements ModuleHandle {
 
   private final int hostPort;
   private final Ports ports;
-  private final String image;
   private final String[] cmd;
   private final String dockerUrl;
   private final String containerHost;
@@ -49,6 +49,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private final boolean dockerPull;
   private final HttpClient client;
   private final StringBuilder logBuffer;
+  private final JsonArray dockerRegistries;
   private int logSkip;
   private final String id;
   private final Messages messages = Messages.getInstance();
@@ -56,7 +57,8 @@ public class DockerModuleHandle implements ModuleHandle {
   private String containerId;
   private final SocketAddress socketAddress;
   static final String DEFAULT_DOCKER_URL = "unix:///var/run/docker.sock";
-  static final String DEFAULT_DOCKER_VERSION = "v1.25";
+  static final String DEFAULT_DOCKER_VERSION = "v1.35";
+  private String image;
 
   DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
                      String id, Ports ports, String containerHost, int port, JsonObject config,
@@ -84,6 +86,7 @@ public class DockerModuleHandle implements ModuleHandle {
     } else {
       socketAddress = null;
     }
+    dockerRegistries = config.getJsonArray("dockerRegistries");
     tcpPortWaiting = new TcpPortWaiting(vertx, containerHost, port);
     if (desc.getWaitIterations() != null) {
       tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
@@ -233,19 +236,68 @@ public class DockerModuleHandle implements ModuleHandle {
         });
   }
 
-  private Future<JsonObject> getImage() {
-    return getUrl("/images/" + image + "/json");
+  private static String getRegistryPrefix(JsonObject registry) {
+    String prefix = registry.getString("registry", "");
+    if (!prefix.isEmpty() && !prefix.endsWith("/")) {
+      return prefix + "/";
+    }
+    return prefix;
   }
 
-  private Future<Void> pullImage() {
-    logger.info("pull image {}", image);
-    return postUrlJson("/images/create?fromImage=" + image, "pullImage", "")
-        .mapEmpty();
+  Future<JsonObject> getImage() {
+    if (dockerRegistries == null) {
+      return getUrl("/images/" + image + "/json");
+    }
+    Future<JsonObject> future = Future.failedFuture("");
+    for (int i = 0; i < dockerRegistries.size(); i++) {
+      JsonObject registry = dockerRegistries.getJsonObject(i);
+      String prefix = getRegistryPrefix(registry);
+      future = future.recover(x -> getUrl("/images/" + prefix + image + "/json")
+          .onSuccess(y -> {
+            image = prefix + image;
+          }));
+    }
+    return future;
   }
 
-  Future<Buffer> postUrlJson(String url, String msg, String doc) {
+  Future<Void> pullImage() {
+    if (dockerRegistries == null) {
+      logger.info("pull image {}", image);
+      return postUrlJson("/images/create?fromImage=" + image, null, "pullImage", "")
+          .mapEmpty();
+    }
+    logger.info("pull Image using dockerRegistries");
+    Future<Void> future = Future.failedFuture("");
+    for (int i = 0; i < dockerRegistries.size(); i++) {
+      JsonObject registry = dockerRegistries.getJsonObject(i);
+      if (registry == null) {
+        continue;
+      }
+      JsonObject authObject = new JsonObject();
+      for (String member : Arrays.asList(
+          "username", "password", "email", "serveraddress", "identitytoken")) {
+        String value = registry.getString(member);
+        if (value != null) {
+          authObject.put(member, value);
+        }
+      }
+      future = future.recover(x -> {
+        String prefix = getRegistryPrefix(registry);
+        logger.info("pull image {}", prefix + image);
+        return postUrlJson("/images/create?fromImage=" + prefix + image,
+            authObject, "pullImage", "").mapEmpty();
+      });
+    }
+    return future;
+  }
+
+  Future<Buffer> postUrlJson(String url, JsonObject auth, String msg, String doc) {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     headers.add("Content-Type", "application/json");
+    if (auth != null && auth.size() > 0) {
+      headers.add("X-Registry-Auth",
+          new String(Base64.getEncoder().encode(auth.encodePrettily().getBytes())));
+    }
     return request(HttpMethod.POST, url, headers, Buffer.buffer(doc)).compose(res -> {
       Promise<Buffer> promise = Promise.promise();
       Buffer body = Buffer.buffer();
@@ -304,14 +356,19 @@ public class DockerModuleHandle implements ModuleHandle {
 
     String doc = j.encodePrettily();
 
-    logger.info("createContainer {}", (Supplier<String>) () -> {
-      if (! j.containsKey("env")) {
-        return doc;
+    if (logger.isInfoEnabled()) {
+      String logDoc = doc;
+
+      if (j.containsKey("env")) {
+        // don't show env variables that may contain sensitive credentials in the log
+        j.put("env", new JsonArray().add("..."));
+        logDoc = j.encodePrettily();
       }
-      // don't show env variables that may contain sensitive credentials in the log
-      j.put("env", new JsonArray().add("..."));
-      return j.encodePrettily();
-    });
+
+      // Cannot use a lambda because Mockito does not support
+      // matching a Supplier vararg when an Object vararg exists
+      logger.info("createContainer {}", logDoc);
+    }
 
     return doc;
   }
@@ -320,7 +377,7 @@ public class DockerModuleHandle implements ModuleHandle {
     logger.info("create container from image {}", image);
 
     String doc = getCreateContainerDoc(exposedPort);
-    return postUrlJson("/containers/create", "createContainer", doc).compose(res -> {
+    return postUrlJson("/containers/create", null,"createContainer", doc).compose(res -> {
       containerId = res.toJsonObject().getString("Id");
       return Future.succeededFuture();
     });

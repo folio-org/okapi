@@ -51,6 +51,17 @@ public class LockedStringMap {
   }
 
   /**
+   * Clear map.
+   * @return async result.
+   */
+  public Future<Void> clear() {
+    if (list == null) {
+      return Future.succeededFuture();
+    }
+    return list.clear();
+  }
+
+  /**
    * Get value from shared map - primary and secondary level keys.
    * @param k primary-level key
    * @param k2 secondary-level key

@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>4.3.0-SNAPSHOT</version>
+  <version>4.4.0-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
@@ -30,23 +30,21 @@
 
   <dependencyManagement>
     <dependencies>
-
-      <!-- Overwrite 4.1.49.FINAL (from vertx-stack-depchain 4.0.0.Beta1) by 4.1.51.Final.
-           Fixes https://www.cvedetails.com/cve/CVE-2019-16869/
-           Remove this when upgrading vertx-stack-depchain to >= 4.0.0-milestone6
+      <!--
+        Overwrite 4.1.49.FINAL (from vertx-stack-depchain 4.0.0.CR1)
+        by newer version.
       -->
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
-        <version>4.1.52.Final</version>
+        <version>4.1.53.Final</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.0.0.Beta3</version> <!-- also update depending versions below! -->
+        <version>4.0.0.CR1</version> <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -57,6 +55,16 @@
         <artifactId>micrometer-registry-influx</artifactId>
         <version>1.4.2</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml -->
         <!-- use 1.4.2 because 1.5.2 in above POM link does not work -->
+      </dependency>
+      <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-registry-prometheus</artifactId>
+        <version>1.5.2</version> <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml -->
+      </dependency>
+      <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-registry-jmx</artifactId>
+        <version>1.5.2</version> <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml -->
       </dependency>
       <dependency>
         <groupId>com.hazelcast</groupId>
@@ -125,7 +133,7 @@
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
-        <version>1.14.3</version>
+        <version>1.15.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

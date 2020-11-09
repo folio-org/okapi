@@ -2,64 +2,57 @@ package org.folio.okapi.util;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
-import org.junit.jupiter.api.Order;
+import org.folio.okapi.common.MetricsUtil;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonObject;
 
-@TestMethodOrder(OrderAnnotation.class)
 class MetricsHelperTest {
 
+  @BeforeAll
+  static void setupAll() {
+    System.getProperties().setProperty(MetricsUtil.ENABLE_METRICS, "true");
+    System.getProperties().setProperty(MetricsUtil.SIMPLE_OPTS, "{}");
+  }
+
   @AfterAll
-  static void disableMetrics() {
-    MetricsHelper.setEnabled(false);
+  static void teardownAll() {
+    System.getProperties().remove(MetricsUtil.ENABLE_METRICS);
+    System.getProperties().remove(MetricsUtil.SIMPLE_OPTS);
   }
 
   @BeforeEach
-  void enableMetrics() {
-    MetricsHelper.setEnabled(true);
+  void setup() {
+    MetricsUtil.init(new VertxOptions());
+  }
+
+  @AfterEach
+  void teardown() {
+    MetricsUtil.stop();
   }
 
   @Test
-  @Order(1)
-  void testMetricsNotEnabled() {
-    MetricsHelper.setEnabled(false);
+  void testNotEnabled() {
+    MetricsUtil.stop();
     assertNull(MetricsHelper.getTimerSample());
     assertNull(MetricsHelper.recordHttpClientResponse(null, "a", 0, "b", null));
     assertNull(MetricsHelper.recordHttpServerProcessingTime(null, "a", 0, "b", null));
     assertNull(MetricsHelper.recordHttpClientError("a", "b", "c"));
     assertNull(MetricsHelper.recordCodeExecutionTime(null, "a"));
-  }
-
-  @Test
-  void testMetricsEnabled() {
-    assertTrue(MetricsHelper.isEnabled());
-    assertNotNull(MetricsHelper.getTimerSample());
-  }
-
-  @Test
-  void testConfig() {
-    VertxOptions vopt = new VertxOptions();
-    MetricsHelper.config(vopt, null, null, null, null);
-    verifyConfig(vopt, "http://localhost:8086", "okapi", null, null);
-    MetricsHelper.config(vopt, "a", "b", "c", "d");
-    verifyConfig(vopt, "a", "b", "c", "d");
+    assertNull(MetricsHelper.recordTokenCacheCached("a", "b", "c", "d"));
+    assertNull(MetricsHelper.recordTokenCacheExpired("a", "b", "c", "d"));
+    assertNull(MetricsHelper.recordTokenCacheHit("a", "b", "c", "d"));
+    assertNull(MetricsHelper.recordTokenCacheMiss("a", "b", "c", "d"));
   }
 
   @Test
@@ -114,18 +107,16 @@ class MetricsHelperTest {
         .build();
 
     // test case where there is no userId
-    MetricsHelper.recordTokenCacheCached("tenant",  "GET",  "/foo/bar", null);
-    
-    Counter cachedCounter =
-        MetricsHelper.recordTokenCacheCached("tenant", "GET", "/foo/bar", userId);
+    MetricsHelper.recordTokenCacheCached("tenant", "GET", "/foo/bar", null);
+
+    Counter cachedCounter = MetricsHelper.recordTokenCacheCached("tenant", "GET", "/foo/bar", userId);
     assertEquals(1, cachedCounter.count());
     cache.put("tenant", "GET", "/foo/bar", userId, "perms", "keyToken", "tokenToCache");
     assertEquals(2, cachedCounter.count());
     cache.put("tenant", "GET", "/foo/bar", anotherUserId, "perms", "keyToken", "tokenToCache");
     assertEquals(2, cachedCounter.count());
 
-    Counter missedCounter =
-        MetricsHelper.recordTokenCacheMiss("tenant", "POST", "/foo/bar/123", userId);
+    Counter missedCounter = MetricsHelper.recordTokenCacheMiss("tenant", "POST", "/foo/bar/123", userId);
     assertEquals(1, missedCounter.count());
     cache.get("tenant", "POST", "/foo/bar/123", userId, "keyToken");
     assertEquals(2, missedCounter.count());
@@ -135,14 +126,13 @@ class MetricsHelperTest {
     cache.get("tenant", "GET", "/foo/bar", userId, "keyToken");
     assertEquals(2, hitCounter.count());
 
-    Counter expiresCounter =
-        MetricsHelper.recordTokenCacheExpired("tenant", "GET", "/foo/bar", userId);
+    Counter expiresCounter = MetricsHelper.recordTokenCacheExpired("tenant", "GET", "/foo/bar", userId);
     assertEquals(1, expiresCounter.count());
 
     await().with()
-      .pollInterval(10, TimeUnit.MILLISECONDS)
-      .atMost(ttl + 20, TimeUnit.MILLISECONDS)
-      .until(() -> cache.get("tenant", "GET", "/foo/bar", userId, "keyToken") == null);
+        .pollInterval(10, TimeUnit.MILLISECONDS)
+        .atMost(ttl + 20, TimeUnit.MILLISECONDS)
+        .until(() -> cache.get("tenant", "GET", "/foo/bar", userId, "keyToken") == null);
 
     assertEquals(2, expiresCounter.count());
   }
@@ -163,15 +153,6 @@ class MetricsHelperTest {
     assertEquals(1, timer.count());
   }
 
-  @Test
-  void testGetHost() {
-    assertNotEquals(MetricsHelper.HOST_UNKNOWN, MetricsHelper.getHost());
-    try (MockedStatic<InetAddress> mocked = Mockito.mockStatic(InetAddress.class)) {
-      mocked.when(InetAddress::getLocalHost).thenThrow(UnknownHostException.class);
-      assertEquals(MetricsHelper.HOST_UNKNOWN, MetricsHelper.getHost());
-    }
-  }
-
   private ModuleInstance createModuleInstance(boolean handler) {
     ModuleDescriptor md = new ModuleDescriptor();
     md.setId("abc-1.0");
@@ -185,22 +166,6 @@ class MetricsHelperTest {
     ModuleDescriptor md = new ModuleDescriptor();
     md.setId("abc-1.0");
     return new ModuleInstance(md, null, "/", HttpMethod.GET, handler);
-  }
-
-  private void verifyConfig(VertxOptions vopt, String url, String db, String user, String pass) {
-    JsonObject jo = vopt.getMetricsOptions().toJson().getJsonObject("influxDbOptions");
-    assertEquals(url, jo.getString("uri"));
-    assertEquals(db, jo.getString("db"));
-    if (user == null) {
-      assertFalse(jo.containsKey("userName"));
-    } else {
-      assertEquals(user, jo.getString("userName"));
-    }
-    if (pass == null) {
-      assertFalse(jo.containsKey("password"));
-    } else {
-      assertEquals(pass, jo.getString("password"));
-    }
   }
 
 }

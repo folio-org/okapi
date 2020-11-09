@@ -6,8 +6,8 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -632,11 +632,7 @@ public class InternalModule {
     }
     StringBuilder uriEncoded = new StringBuilder(uri);
     for (String id : ids) {
-      try {
-        uriEncoded.append("/" + URLEncoder.encode(id, "UTF-8"));
-      } catch (UnsupportedEncodingException ex) {
-        return Future.failedFuture(messages.getMessage("11600", id, ex.getMessage()));
-      }
+      uriEncoded.append("/" + URLEncoder.encode(id, StandardCharsets.UTF_8));
     }
     pc.getCtx().response().putHeader("Location", uriEncoded.toString());
     pc.getCtx().response().setStatusCode(201);
@@ -863,7 +859,7 @@ public class InternalModule {
       final boolean preRelease = ModuleUtil.getParamBoolean(req, "preRelease", true);
       final boolean npmSnapshot = ModuleUtil.getParamBoolean(req, "npmSnapshot", true);
 
-      String validerr = md.validate(pc);
+      String validerr = md.validate(logger);
       if (!validerr.isEmpty()) {
         logger.info("createModule validate failed: {}", validerr);
         return Future.failedFuture(new OkapiError(ErrorType.USER, validerr));
@@ -904,7 +900,14 @@ public class InternalModule {
   }
 
   private Future<String> deleteModule(String id) {
-    return moduleManager.delete(id).compose(res -> Future.succeededFuture(""));
+    return tenantManager.getModuleUser(id)
+        .compose(tenants -> {
+          if (!tenants.isEmpty()) {
+            return Future.failedFuture(new OkapiError(ErrorType.USER,
+                messages.getMessage("10206", id, tenants.get(0))));
+          }
+          return moduleManager.delete(id).map("");
+        });
   }
 
   private Future<String> getDeployment(String id) {

@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.folio.okapi.util.ProxyContext;
+import org.apache.logging.log4j.Logger;
 
 /**
  * InterfaceDescriptor describes an interface a module can provide, or depend
@@ -193,15 +193,16 @@ public class InterfaceDescriptor {
   /**
    * Validate a moduleInterface.
    * Writes Warnings in the log in case of deprecated features.
-   *
-   * @param section "provides" or "requires" - the rules differ
-   * @return "" if ok, or a simple error message
+   * @param logger logger to use for validation info
+   * @param section "provides" or "requires"
+   * @param mod Module ID
+   * @return error message; empty string if no error
    */
-  public String validate(ProxyContext pc, String section, String mod) {
+  public String validate(Logger logger, String section, String mod) {
     if (id == null) {
       return "id is missing for module " + mod;
     }
-    String prefix = "Module '" + mod + "' interface '" + id + "': ";
+    String prefix = "Module '" + mod + "' interface '" + id + "':";
     if (version == null) {
       return "version is missing for module " + mod;
     }
@@ -212,20 +213,19 @@ public class InterfaceDescriptor {
       return err;
     }
     if (version.matches("\\d+\\.\\d+\\.\\d+")) {
-      pc.warn(prefix + "has a 3-part version number '" + version + "'."
-          + "Interfaces should be 2-part");
+      logger.warn("{} has a 3-part version number '{}'. Interfaces should be 2-part",
+          prefix, version);
     }
 
     if ("_tenant".equals(this.id) && !"1.0 1.1 1.2".contains(version)) {
-      pc.warn(prefix + " is '" + version + "'."
-          + " should be '1.0/1.1/1.2'");
+      logger.warn("{} is '{}'. Should be '1.0/1.1/1.2'", prefix, version);
     }
     if ("_tenantPermissions".equals(this.id) && !"1.0 1.1".contains(version)) {
-      pc.warn(prefix + " is '" + version + "'. should be '1.0/1.1'");
+      logger.warn("{} is '{}'. should be '1.0/1.1'", prefix, version);
     }
 
     if (section.equals("provides")) {
-      err = validateProvides(pc, mod);
+      err = validateProvides(logger, mod);
       if (!err.isEmpty()) {
         return err;
       }
@@ -257,13 +257,13 @@ public class InterfaceDescriptor {
   /**
    * Validate those things that apply to the "provides" section.
    */
-  private String validateProvides(ProxyContext pc, String mod) {
+  private String validateProvides(Logger logger, String mod) {
     if (handlers != null && handlers.length > 0) {
       boolean checkPermissionsRequired = !isType("system");
       for (RoutingEntry re : handlers) {
-        String err = re.validateHandlers(pc, mod);
+        String err = re.validateHandlers(logger, mod);
         if (err.isEmpty() && checkPermissionsRequired) {
-          err = validatePermissionsRequired(pc, mod, re);
+          err = validatePermissionsRequired(logger, mod, re);
         }
         if (!err.isEmpty()) {
           return err;
@@ -276,7 +276,7 @@ public class InterfaceDescriptor {
   /*
    * Validate the required field "permissionsRequired"
    */
-  private String validatePermissionsRequired(ProxyContext pc, String mod, RoutingEntry re) {
+  private String validatePermissionsRequired(Logger logger, String mod, RoutingEntry re) {
     if (re.getPermissionsRequired() != null) {
       return "";
     }
@@ -284,7 +284,7 @@ public class InterfaceDescriptor {
     path += re.getPath() == null ? "" : re.getPath();
     path = path.trim().isEmpty() ? "" : " " + path.trim();
     String err = "Module '" + mod + "' " + "handler" + path + ": Missing field permissionsRequired";
-    pc.warn(err);
+    logger.warn(err);
     return err;
   }
 

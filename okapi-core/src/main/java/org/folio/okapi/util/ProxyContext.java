@@ -51,10 +51,6 @@ public class ProxyContext {
     return handlerModuleInstance;
   }
 
-  public void setHandlerModuleInstance(ModuleInstance handlerModuleInstance) {
-    this.handlerModuleInstance = handlerModuleInstance;
-  }
-
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
    * know the tenant yet.
@@ -81,11 +77,11 @@ public class ProxyContext {
     if (curid == null || curid.isEmpty()) {
       reqId = newid.toString();
       ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
-      this.debug("Assigned new reqId " + newid);
+      logger.debug("Assigning new reqId {}", newid);
     } else {
       reqId = curid + ";" + newid.toString();
       ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqId);
-      this.debug("Appended a reqId " + newid);
+      logger.debug("Appended a reqId {}", newid);
     }
     nanoTimeStart = 0;
     timerId = null;
@@ -162,10 +158,6 @@ public class ProxyContext {
 
   public RoutingContext getCtx() {
     return ctx;
-  }
-
-  private String getReqId() {
-    return reqId;
   }
 
   public int getAuthRes() {
@@ -267,33 +259,6 @@ public class ProxyContext {
 
   public void addTraceHeaderLine(String h) {
     ctx.response().headers().add(XOkapiHeaders.TRACE, h);
-  }
-
-  public void error(String msg) {
-    logger.error(msg);
-  }
-
-  public void warn(String msg) {
-    logger.warn(msg);
-  }
-
-  public void warn(String msg, Throwable e) {
-    logger.warn(msg, e);
-  }
-
-  /**
-   * Log a debug message.
-   *
-   * @param msg - debug message
-   */
-  public void debug(String msg) {
-    if (logger.isDebugEnabled()) {
-      logger.debug(msg);
-    }
-  }
-
-  public void trace(String msg) {
-    logger.trace(msg);
   }
 
   public Timer.Sample getSample() {

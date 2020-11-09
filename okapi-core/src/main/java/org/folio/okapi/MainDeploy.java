@@ -24,11 +24,13 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.MetricsUtil;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.util.MetricsHelper;
 
 @java.lang.SuppressWarnings({"squid:S3776"})
 public class MainDeploy {
+
+  private static final Logger logger = OkapiLogger.get(MainDeploy.class);
 
   private static final String CANNOT_LOAD_STR = "Cannot load ";
 
@@ -52,9 +54,7 @@ public class MainDeploy {
   void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
     vopt.setPreferNativeTransport(true);
     try {
-      final Logger logger = OkapiLogger.get();
       Messages.setLanguage(System.getProperty("lang", "en"));
-
       if (args.length < 1) {
         printUsage();
         fut.handle(Future.failedFuture(messages.getMessage("10600")));
@@ -68,12 +68,12 @@ public class MainDeploy {
         case "dev":
         case "initdatabase":
         case "purgedatabase":
-          deploy(new MainVerticle(), Vertx.vertx(vopt), fut);
+          deploy(false, fut);
           break;
         case "cluster":
         case "proxy":
         case "deployment":
-          deployClustered(logger, fut);
+          deploy(true, fut);
           break;
         default:
           fut.handle(Future.failedFuture(messages.getMessage("10601", mode)));
@@ -99,14 +99,6 @@ public class MainDeploy {
       return true;
     }
     return false;
-  }
-
-  private void enableMetrics() {
-    String influxUrl = System.getProperty("influxUrl");
-    String influxDbName = System.getProperty("influxDbName");
-    String influxUserName = System.getProperty("influxUserName");
-    String influxPassword = System.getProperty("influxPassword");
-    MetricsHelper.config(vopt, influxUrl, influxDbName, influxUserName, influxPassword);
   }
 
   private boolean parseOptions(String[] args, Handler<AsyncResult<Vertx>> fut) {
@@ -148,8 +140,6 @@ public class MainDeploy {
         clusterHost = args[++i];
       } else if ("-cluster-port".equals(args[i]) && i < args.length - 1) {
         clusterPort = Integer.parseInt(args[++i]);
-      } else if ("-enable-metrics".equals(args[i])) {
-        enableMetrics();
       } else if ("-conf".equals(args[i]) && i < args.length - 1) {
         if (readConf(args[++i], fut)) {
           return true;
@@ -182,11 +172,19 @@ public class MainDeploy {
         + "  -hazelcast-config-file file   Read Hazelcast config from local file\n"
         + "  -hazelcast-config-url url     Read Hazelcast config from URL\n"
         + "  -cluster-host ip              Vertx cluster host\n"
-        + "  -cluster-port port            Vertx cluster port\n"
-        + "  -enable-metrics\n");
+        + "  -cluster-port port            Vertx cluster port\n");
   }
 
-  private void deployClustered(final Logger logger, Handler<AsyncResult<Vertx>> fut) {
+  private void deploy(boolean clustered, Handler<AsyncResult<Vertx>> fut) {
+    MetricsUtil.init(vopt);
+    if (clustered) {
+      deployClustered(fut);
+    } else {
+      deployVerticle(new MainVerticle(), Vertx.vertx(vopt), fut);
+    }
+  }
+
+  private void deployClustered(Handler<AsyncResult<Vertx>> fut) {
     if (hazelcastConfig == null) {
       hazelcastConfig = ConfigUtil.loadConfig();
       if (clusterHost != null) {
@@ -217,14 +215,14 @@ public class MainDeploy {
       if (res.succeeded()) {
         MainVerticle v = new MainVerticle();
         v.setClusterManager(mgr);
-        deploy(v, res.result(), fut);
+        deployVerticle(v, res.result(), fut);
       } else {
         fut.handle(Future.failedFuture(res.cause()));
       }
     });
   }
 
-  private void deploy(Verticle v, Vertx vertx, Handler<AsyncResult<Vertx>> fut) {
+  private void deployVerticle(Verticle v, Vertx vertx, Handler<AsyncResult<Vertx>> fut) {
     DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
     vertx.deployVerticle(v, opt, dep -> {
       if (dep.failed()) {
