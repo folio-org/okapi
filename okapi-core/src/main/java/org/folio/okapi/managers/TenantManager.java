@@ -679,7 +679,7 @@ public class TenantManager implements Liveness {
             updatedPerms.toArray(new Permission[updatedPerms.size()]),
             removedPerms.toArray(new Permission[removedPerms.size()]));
 
-    pc.debug("tenantPerms: " + permsModule.getId() + " and " + permPath);
+    logger.debug("tenantPerms: {} and {}", permsModule.getId(), permPath);
     if (!newPerms.isEmpty() && permInst == null) {
       return Future.failedFuture(new OkapiError(ErrorType.USER,
           "Bad _tenantPermissions interface in module " + permsModule.getId()
@@ -689,19 +689,11 @@ public class TenantManager implements Liveness {
           .callSystemInterface(tenant, permInst, Json.encodePrettily(permChanges), pc)
           .compose(cres -> {
             pc.passOkapiTraceHeaders(cres);
-            pc.debug("tenantPerms request to " + permsModule.getName() + " succeeded for module "
-                + moduleTo + " and tenant " + tenant.getId());
+            logger.debug("tenantPerms request to {} succeeded for module {} and tenant {}",
+                permsModule.getId(), moduleTo, tenant.getId());
             return Future.succeededFuture();
           });
     }
-
-    logger.debug("tenantPerms: {} and {}", permsModule.getId(), permPath);
-    return proxyService.callSystemInterface(tenant, permInst, pljson, pc).compose(cres -> {
-      pc.passOkapiTraceHeaders(cres);
-      logger.debug("tenantPerms request to {} succeeded for module {} and tenant {}",
-          permsModule.getId(), moduleTo, tenant.getId());
-      return Future.succeededFuture();
-    });
   }
 
   /**
