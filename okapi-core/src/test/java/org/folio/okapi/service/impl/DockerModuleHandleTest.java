@@ -511,8 +511,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     {
       Async async = context.async();
       dh.pullImage().onComplete(context.asyncAssertFailure(res -> {
-        context.assertTrue(res.getMessage().contains("9231")
-            && res.getMessage().contains("connection refused"), res.getMessage());
+        assertThat(res.getMessage()).contains("9231").contains("connection refused");
         async.complete();
       }));
       async.await();
