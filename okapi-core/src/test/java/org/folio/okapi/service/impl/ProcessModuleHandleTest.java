@@ -51,7 +51,6 @@ public class ProcessModuleHandleTest {
   };
 
   private ModuleHandle createModuleHandle(LaunchDescriptor desc, int port) {
-    desc.setWaitIterations(15);
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, "test", ports, port);
     return pmh;
   }
@@ -72,6 +71,7 @@ public class ProcessModuleHandleTest {
     LaunchDescriptor desc = new LaunchDescriptor();
     // program starts OK, but do not listen to port..
     desc.setExec("java -version %p");
+    desc.setWaitIterations(3);
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
     mh.start().onComplete(context.asyncAssertFailure(cause ->
