@@ -130,6 +130,20 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   /**
+   * Set requires utililty
+   * @param id interface ID
+   * @param version interface version
+   */
+  @JsonIgnore
+  public void setRequires(String id, String version) {
+    InterfaceDescriptor interfaceDescriptor = new InterfaceDescriptor();
+    interfaceDescriptor.setId(id);
+    interfaceDescriptor.setVersion(version);
+    this.requires = new InterfaceDescriptor[1];
+    this.requires[0] = interfaceDescriptor;
+  }
+
+  /**
    * Get provided interfaces.
    * @return interfaces; empty list if none is defined
    */

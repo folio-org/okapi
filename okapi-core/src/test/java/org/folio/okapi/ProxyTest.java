@@ -4233,18 +4233,11 @@ public class ProxyTest {
       interfaceDescriptor.setVersion("1.0");
       interfaceDescriptor.setHandlers(routingEntries);
       mdA.setProvides(interfaceDescriptors);
-      mdA.setRequires(new InterfaceDescriptor[0]);
     }
 
     ModuleDescriptor mdB = new ModuleDescriptor();
     mdB.setId("moduleB-1.0.0");
-    {
-      InterfaceDescriptor[] interfaceDescriptors = new InterfaceDescriptor[1];
-      InterfaceDescriptor interfaceDescriptor = interfaceDescriptors[0] = new InterfaceDescriptor();
-      interfaceDescriptor.setId("intA");
-      interfaceDescriptor.setVersion("1.0");
-      mdB.setRequires(interfaceDescriptors);
-    }
+    mdB.setRequires("intA", "1.0");
     List<ModuleDescriptor> modules = new LinkedList<>();
     modules.add(mdB);
     c = api.createRestAssured3();
