@@ -4221,19 +4221,7 @@ public class ProxyTest {
 
     ModuleDescriptor mdA = new ModuleDescriptor();
     mdA.setId("moduleA-1.0.0");
-    {
-      RoutingEntry[] routingEntries = new RoutingEntry[1];
-      RoutingEntry routingEntry = routingEntries[0] = new RoutingEntry();
-      routingEntry.setPathPattern("/a");
-      routingEntry.setMethods(new String[]{"GET"});
-
-      InterfaceDescriptor[] interfaceDescriptors = new InterfaceDescriptor[1];
-      InterfaceDescriptor interfaceDescriptor = interfaceDescriptors[0] = new InterfaceDescriptor();
-      interfaceDescriptor.setId("intA");
-      interfaceDescriptor.setVersion("1.0");
-      interfaceDescriptor.setHandlers(routingEntries);
-      mdA.setProvides(interfaceDescriptors);
-    }
+    mdA.setProvidedHandler("intA", "1.0", new RoutingEntry("/a", "GET"));
 
     ModuleDescriptor mdB = new ModuleDescriptor();
     mdB.setId("moduleB-1.0.0");

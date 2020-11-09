@@ -130,7 +130,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   /**
-   * Set requires utililty
+   * Set requires utililty.
    * @param id interface ID
    * @param version interface version
    */
@@ -177,6 +177,21 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       p.add(pr.getId());
     }
     this.provides = provides;
+  }
+
+  /**
+   *  Set provided interfacer utility.
+   * @param id interface ID
+   * @param version interface version
+   * @param entries routing entries
+   */
+  @JsonIgnore
+  public void setProvidedHandler(String id, String version, RoutingEntry... entries) {
+    InterfaceDescriptor[] interfaceDescriptors = new InterfaceDescriptor[1];
+    InterfaceDescriptor interfaceDescriptor = interfaceDescriptors[0] = new InterfaceDescriptor();
+    interfaceDescriptor.setId(id);
+    interfaceDescriptor.setVersion(version);
+    interfaceDescriptor.setHandlers(entries);
   }
 
   public InterfaceDescriptor[] getOptional() {
