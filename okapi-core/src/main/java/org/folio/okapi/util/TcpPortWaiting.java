@@ -68,6 +68,9 @@ public class TcpPortWaiting {
     if (port == 0) {
       return Future.succeededFuture();
     }
+    if (process != null && !process.isRunning()) {
+      process = null;
+    }
     return tryConnect(process, 0);
   }
 }
