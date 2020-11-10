@@ -54,7 +54,7 @@ parse_okapi_conf()  {
                --arg postgres_database     "${postgres_database}"          \
                --arg postgres_server_pem   "${postgres_server_pem}"        \
                "{\$WARNING
-                 ${$docker_registries+,\$dockerRegistries}
+                 ${docker_registries+,\$dockerRegistries}
                  ${postgres_host+,\$postgres_host}
                  ${postgres_port+,\$postgres_port}
                  ${postgres_username+,\$postgres_username}
