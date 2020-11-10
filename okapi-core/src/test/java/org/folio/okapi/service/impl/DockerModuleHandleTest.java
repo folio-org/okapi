@@ -266,7 +266,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     dockerImageMatch = "folioci/mod-x";
     context.assertTrue(getImage(context, vertx, conf));
     conf.put("dockerRegistries", new JsonArray());
-    context.assertFalse(getImage(context, vertx, conf));
+    context.assertTrue(getImage(context, vertx, conf));
     conf.put("dockerRegistries", new JsonArray()
         .add(new JsonObject().put("registry", "reg1"))
         .add(new JsonObject().put("registry", "reg2")));

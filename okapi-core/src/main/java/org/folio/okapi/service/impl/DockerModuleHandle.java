@@ -245,7 +245,7 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   Future<JsonObject> getImage() {
-    if (dockerRegistries == null) {
+    if (dockerRegistries == null || dockerRegistries.isEmpty()) {
       return getUrl("/images/" + image + "/json");
     }
     Future<JsonObject> future = Future.failedFuture("");
