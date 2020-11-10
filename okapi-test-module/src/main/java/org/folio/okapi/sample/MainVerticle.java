@@ -223,7 +223,8 @@ public class MainVerticle extends AbstractVerticle {
     if (helloGreeting == null) {
       helloGreeting = "Hello";
     }
-    final int port = Integer.parseInt(System.getProperty("port", "8080"));
+    final int port = Integer.parseInt(
+        System.getProperty("http.port", System.getProperty("port", "8080")));
     String name = ManagementFactory.getRuntimeMXBean().getName();
 
     ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-test-module");

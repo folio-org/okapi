@@ -29,7 +29,8 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
     Auth auth = new Auth();
 
-    final int port = Integer.parseInt(System.getProperty("port", "9020"));
+    final int port = Integer.parseInt(
+        System.getProperty("http.port", System.getProperty("port", "9020")));
 
     logger.info("Starting auth {} on port {}",
         ManagementFactory.getRuntimeMXBean().getName(), port);
