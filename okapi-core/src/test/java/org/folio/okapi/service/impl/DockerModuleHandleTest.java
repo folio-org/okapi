@@ -268,8 +268,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     dockerImageMatch = "folioci/mod-x";
     assertThat(getImage(context, vertx, conf)).isEqualTo("succeeded");
     conf.put("dockerRegistries", new JsonArray());  // zero registries, pull is disabled
-    assertThat(getImage(context, vertx, conf))
-        .isEqualTo(DockerModuleHandle.DOCKER_REGISTRIES_EMPTY_LIST);
+    assertThat(getImage(context, vertx, conf)).isEqualTo(DOCKER_REGISTRIES_EMPTY_LIST);
     conf.put("dockerRegistries", new JsonArray()
         .add(new JsonObject().put("registry", "reg1"))
         .add(new JsonObject().put("registry", "reg2")));
