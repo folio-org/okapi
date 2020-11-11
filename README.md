@@ -42,6 +42,29 @@ For example:
 When filing bug reports with unit test output, always use Maven
 option `-B` to avoid control characters in output.
 
+## Docker image
+
+At Docker Hub:
+
+* https://hub.docker.com/r/folioorg/okapi released versions
+* https://hub.docker.com/r/folioci/okapi snapshot versions
+
+See [Automation/Docker
+Hub](https://dev.folio.org/guides/automation/#docker-hub) for details.
+
+Docker images are the primary distribution model for FOLIO modules.
+To run the images you will need the Docker Engine or Docker Desktop
+runtime.
+
+## Ubuntu package
+
+Import the FOLIO signing key and add the [FOLIO apt
+repository](https://repository.folio.org/packages/ubuntu/) for
+Ubuntu 20.04 LTS (Focal Fossa):
+
+    wget -q -O - https://repository.folio.org/packages/debian/folio-apt-archive-key.asc | sudo apt-key add -
+    sudo add-apt-repository "deb https://repository.folio.org/packages/ubuntu/ focal/"
+
 ## Documentation
 
 * [Okapi Guide and Reference](doc/guide.md)
