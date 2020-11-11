@@ -35,7 +35,7 @@ public class TenantModuleDescriptor {
 
   // if true, it specifies that the id is specified by user and can not be changed
   @JsonIgnore
-  private Boolean fixed;
+  private boolean fixed;
 
   private Stage stage;
 
@@ -79,11 +79,18 @@ public class TenantModuleDescriptor {
     this.stage = stage;
   }
 
-  public Boolean getFixed() {
+  /**
+   * Returns whether product can not be upgraded or downgraded.
+   */
+  public boolean getFixed() {
     return fixed;
   }
 
-  public void setFixed(Boolean fixed) {
+  /**
+   * Set whether product may be upgraded or downgraded.
+   * @param fixed true to disallow upgrade or downgrade, false to allow upgrade or downgrade
+   */
+  public void setFixed(boolean fixed) {
     this.fixed = fixed;
   }
 

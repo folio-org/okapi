@@ -478,7 +478,7 @@ public class DepResolution {
     logger.info("addOrReplace from {} to id {}", fm != null ? fm.getId() : "null", md.getId());
     Iterator<TenantModuleDescriptor> it = tml.iterator();
     boolean found = false;
-    Boolean fixed = null;
+    boolean fixed = false;
     while (it.hasNext()) {
       TenantModuleDescriptor tm = it.next();
       if (tm.getAction().equals(action) && tm.getId().equals(md.getId())) {
