@@ -243,26 +243,27 @@ public class MainVerticle extends AbstractVerticle {
     return tenantManager.init(vertx);
   }
 
-  @SuppressWarnings("indentation")
   private Future<Void> checkInternalModules() {
     logger.info("checkInternalModules");
     final ModuleDescriptor md = InternalModule.moduleDescriptor(okapiVersion);
     final String okapiModule = md.getId();
     final String interfaceVersion = md.getProvides()[0].getVersion();
-    return moduleManager.get(okapiModule).compose(gres -> {
-      // we already have one, go on
-      logger.debug("checkInternalModules: Already have {} "
-          + " with interface version {}", okapiModule, interfaceVersion);
-      // See Okapi-359 about version checks across the cluster
-      return Future.succeededFuture();
-    }, cause -> {
-      if (OkapiError.getType(cause) != ErrorType.NOT_FOUND) {
-        return Future.failedFuture(cause); // something went badly wrong
-      }
-      logger.debug("Creating the internal Okapi module {} with interface version {}",
-          okapiModule, interfaceVersion);
-      return moduleManager.create(md, true, true, true);
-    }).compose(x -> checkSuperTenant(okapiModule));
+    return moduleManager.get(okapiModule).compose(
+        gres -> {
+          // we already have one, go on
+          logger.debug("checkInternalModules: Already have {} "
+              + " with interface version {}", okapiModule, interfaceVersion);
+          // See Okapi-359 about version checks across the cluster
+          return Future.succeededFuture();
+        },
+        cause -> {
+          if (OkapiError.getType(cause) != ErrorType.NOT_FOUND) {
+            return Future.failedFuture(cause); // something went badly wrong
+          }
+          logger.debug("Creating the internal Okapi module {} with interface version {}",
+              okapiModule, interfaceVersion);
+          return moduleManager.createList(Arrays.asList(md), true, true, true);
+        }).compose(x -> checkSuperTenant(okapiModule));
   }
 
   private Future<Void> checkSuperTenant(String okapiModule) {
