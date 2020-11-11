@@ -1,3 +1,9 @@
+## 4.3.2 2020-11-11
+
+ * [OKAPI-946](https://issues.folio.org/browse/OKAPI-946) Fix Okapi silently downgrades modules to meet dependencies
+ * [OKAPI-944](https://issues.folio.org/browse/OKAPI-944) Fix unit tests failed on Mac and AWS EC2
+ * [OKAPI-937](https://issues.folio.org/browse/OKAPI-937) Fix okapi.sh --initdh option is broken
+
 ## 4.3.1 2020-10-30
 
 This release has fixes for Okapi handling of registries and update
