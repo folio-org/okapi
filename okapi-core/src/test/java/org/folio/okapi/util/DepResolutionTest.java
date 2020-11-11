@@ -273,7 +273,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     DepResolution.installSimulate(map(mdA100, mdD100, mdD110, mdE100), map(mdA100), tml).onComplete(res -> {
       context.assertTrue(res.failed());
-      context.assertEquals("enable moduleD-1.1.0 failed: interface int required by module moduleD-1.1.0 not found", res.cause().getMessage());
+      context.assertEquals("interface int required by module moduleD-1.1.0 not found", res.cause().getMessage());
       async.complete();
     });
   }
@@ -388,7 +388,7 @@ public class DepResolutionTest {
         map(mdA100), tml).onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals(
-        "enable moduleD-1.1.0 failed: interface int required by module moduleD-1.1.0 is provided by multiple products: moduleA, moduleC"
+        "interface int required by module moduleD-1.1.0 is provided by multiple products: moduleA, moduleC"
         , res.cause().getMessage());
       async.complete();
     });
@@ -536,7 +536,7 @@ public class DepResolutionTest {
     DepResolution.installSimulate(map(mdA100, mdB, mdE100), map(), tml).onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals(
-        "enable moduleE-1.0.0 failed: interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleB"
+        "interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleB"
         , res.cause().getMessage());
       async.complete();
     });
@@ -550,7 +550,7 @@ public class DepResolutionTest {
     DepResolution.installSimulate(map(mdA100, mdC, mdE100), map(), tml).onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals(
-        "enable moduleE-1.0.0 failed: interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleC"
+        "interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleC"
         , res.cause().getMessage());
       async.complete();
     });
@@ -783,31 +783,237 @@ public class DepResolutionTest {
     ot101.setRequires(new InterfaceDescriptor[] {int20});
 
     Map<String, ModuleDescriptor> modsAvailable = map(st100, st101, ot100, ot101);
-    // patch to higher version
+
+    // patch to higher version with impossible combination 1/4
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot100, st101);
-      DepResolution.installSimulate(modsAvailable, map(), tml).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result {}", Json.encodePrettily(tml));
-        context.assertEquals(2, tml.size());
-        assertEnable(tml.get(0), st101);
-        assertEnable(tml.get(1), ot101);
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertFailure(res -> {
+        context.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1", res.getMessage());
         async.complete();
       }));
     }
 
-    // patch to lower version
+    // patch to higher version with impossible combination 2/4
     {
       Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(ot101, st100);
-      DepResolution.installSimulate(modsAvailable, map(), tml).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result {}", Json.encodePrettily(tml));
-        context.assertEquals(2, tml.size());
-        assertEnable(tml.get(0), st100);
-        assertEnable(tml.get(1), ot100);
+      List<TenantModuleDescriptor> tml = enableList(st101, ot100);
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertFailure(res -> {
+        context.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1", res.getMessage());
         async.complete();
       }));
     }
+
+    // patch to higher version with impossible combination 3/4
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(ot101, st100);
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertFailure(res -> {
+        context.assertEquals("Cannot remove module st-1.0.0 which is explicitly given", res.getMessage());
+        async.complete();
+      }));
+    }
+
+    // patch to higher version with impossible combination 4/4
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(st100, ot101);
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertFailure(res -> {
+        context.assertEquals("Cannot remove module st-1.0.0 which is explicitly given", res.getMessage());
+        async.complete();
+      }));
+    }
+
+    // patch to higher version with ot given
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(ot101);
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
+        assertUpgrade(tml.get(0), st101, st100);
+        assertUpgrade(tml.get(1), ot101, ot100);
+        async.complete();
+      }));
+    }
+
+    // patch to higher version with st given
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(st101);
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
+        assertUpgrade(tml.get(0), st101, st100);
+        assertUpgrade(tml.get(1), ot101, ot100);
+        async.complete();
+      }));
+    }
+
+    // patch to higher version with both given 1/2
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(ot101, st101);
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
+        assertUpgrade(tml.get(0), st101, st100);
+        assertUpgrade(tml.get(1), ot101, ot100);
+        async.complete();
+      }));
+    }
+
+    // patch to higher version with both given 2/2
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(st101, ot101);
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
+        assertUpgrade(tml.get(0), st101, st100);
+        assertUpgrade(tml.get(1), ot101, ot100);
+        async.complete();
+      }));
+    }
+
+    // patch to higher version with products only
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = createList(Action.enable, true, st101, ot100);
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
+        assertUpgrade(tml.get(0), st101, st100);
+        assertUpgrade(tml.get(1), ot101, ot100);
+        async.complete();
+      }));
+    }
+
+    // patch to higher version with products for ot
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = createList(Action.enable, true, ot100);
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
+        assertUpgrade(tml.get(0), st101, st100);
+        assertUpgrade(tml.get(1), ot101, ot100);
+        async.complete();
+      }));
+    }
+
+    // patch to higher version with products for st
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = createList(Action.enable, true, st100);
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
+        assertUpgrade(tml.get(0), st101, st100);
+        assertUpgrade(tml.get(1), ot101, ot100);
+        async.complete();
+      }));
+    }
+
+    // patch to lower version with impossible combination
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(ot100, st101);
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml).onComplete(context.asyncAssertFailure(res -> {
+        context.assertEquals("Cannot remove module st-1.0.1 which is explicitly given", res.getMessage());
+        async.complete();
+      }));
+    }
+
+    // patch to lower version with impossible combination
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(ot101, st100);
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml).onComplete(context.asyncAssertFailure(res -> {
+        context.assertEquals("Incompatible version for module ot-1.0.1 interface int. Need 2.0. Have 1.0/st-1.0.0", res.getMessage());
+        async.complete();
+      }));
+    }
+
+    // patch to lower version with both given
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(ot100, st100);
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml).onComplete(context.asyncAssertSuccess(res -> {
+        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
+        assertUpgrade(tml.get(0), st100, st101);
+        assertUpgrade(tml.get(1), ot100, ot101);
+        async.complete();
+      }));
+    }
+
+    // patch to lower version with ot given
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(ot100);
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml).onComplete(context.asyncAssertSuccess(res -> {
+        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
+        assertUpgrade(tml.get(0), st100, st101);
+        assertUpgrade(tml.get(1), ot100, ot101);
+        async.complete();
+      }));
+    }
+
+    // patch to lower version with st given
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(st100);
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml).onComplete(context.asyncAssertSuccess(res -> {
+        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
+        assertUpgrade(tml.get(0), st100, st101);
+        assertUpgrade(tml.get(1), ot100, ot101);
+        async.complete();
+      }));
+    }
+
+    // install conflicting versions 1/2
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(st100, st101);
+      DepResolution.installSimulate(modsAvailable, map(), tml).onComplete(context.asyncAssertFailure(res -> {
+        context.assertEquals("Cannot remove module st-1.0.0 which is explicitly given", res.getMessage());
+        async.complete();
+      }));
+    }
+
+    // install conflicting versions for st 1/2
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(st101, st100);
+      DepResolution.installSimulate(modsAvailable, map(), tml).onComplete(context.asyncAssertFailure(res -> {
+        context.assertEquals("Cannot remove module st-1.0.1 which is explicitly given", res.getMessage());
+        async.complete();
+      }));
+    }
+
+    // install conflicting versions for st 2/2
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(ot100, ot101);
+      DepResolution.installSimulate(modsAvailable, map(), tml).onComplete(context.asyncAssertFailure(res -> {
+        context.assertEquals("Cannot remove module ot-1.0.0 which is explicitly given", res.getMessage());
+        async.complete();
+      }));
+    }
+
+    // install conflicting versions for ot 1/2
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(ot101, ot100);
+      DepResolution.installSimulate(modsAvailable, map(), tml).onComplete(context.asyncAssertFailure(res -> {
+        context.assertEquals("Cannot remove module ot-1.0.1 which is explicitly given", res.getMessage());
+        async.complete();
+      }));
+    }
+
+    // install conflicting versions for ot 2/2
+    {
+      Async async = context.async();
+      List<TenantModuleDescriptor> tml = enableList(ot100, ot101);
+      DepResolution.installSimulate(modsAvailable, map(), tml).onComplete(context.asyncAssertFailure(res -> {
+        context.assertEquals("Cannot remove module ot-1.0.0 which is explicitly given", res.getMessage());
+        async.complete();
+      }));
+    }
+
   }
 
   @Test

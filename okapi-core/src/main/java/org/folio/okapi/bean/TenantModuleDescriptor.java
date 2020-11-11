@@ -33,6 +33,10 @@ public class TenantModuleDescriptor {
     pending, deploy, invoke, undeploy, done
   }
 
+  // if true, it specifies that the id is specified by user and can not be changed
+  @JsonIgnore
+  private Boolean fixed;
+
   private Stage stage;
 
   public String getId() {
@@ -73,6 +77,14 @@ public class TenantModuleDescriptor {
 
   public void setStage(Stage stage) {
     this.stage = stage;
+  }
+
+  public Boolean getFixed() {
+    return fixed;
+  }
+
+  public void setFixed(Boolean fixed) {
+    this.fixed = fixed;
   }
 
   /**
