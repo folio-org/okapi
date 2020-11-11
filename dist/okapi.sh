@@ -46,15 +46,15 @@ parse_okapi_conf()  {
          chmod 600 "${PID_DIR}/okapi-runtime.conf"
          # include postgres connection arguments only if defined
          jq -n --arg WARNING "AUTOMATICALLY CREATED FILE, DO NOT EDIT!"    \
-               --argjson dockerRegistries  "${docker_registries:-[]}"      \
+               --argjson dockerRegistries  ${docker_registries:-[\{\}]}    \
                --arg postgres_host         "${postgres_host}"              \
                --arg postgres_port         "${postgres_port}"              \
                --arg postgres_username     "${postgres_username}"          \
                --arg postgres_password     "${postgres_password}"          \
                --arg postgres_database     "${postgres_database}"          \
                --arg postgres_server_pem   "${postgres_server_pem}"        \
-               "{\$WARNING
-                 ${docker_registries+,\$dockerRegistries}
+               "{\$WARNING,
+                 \$dockerRegistries
                  ${postgres_host+,\$postgres_host}
                  ${postgres_port+,\$postgres_port}
                  ${postgres_username+,\$postgres_username}
