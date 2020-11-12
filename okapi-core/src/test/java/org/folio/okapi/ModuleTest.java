@@ -7,9 +7,7 @@ import io.restassured.RestAssured;
 import io.restassured.http.Headers;
 import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -39,7 +37,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
-@java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(Parameterized.class)
 @Parameterized.UseParametersRunnerFactory(VertxUnitRunnerWithParametersFactory.class)
 public class ModuleTest {
@@ -61,7 +58,6 @@ public class ModuleTest {
   private final Logger logger = OkapiLogger.get();
 
   private Vertx vertx;
-  private Async async;
 
   private String locationSampleDeployment;
   private String locationHeaderDeployment;
@@ -673,8 +669,6 @@ public class ModuleTest {
    */
   @Test
   public void testOneModule(TestContext context) {
-    async = context.async();
-
     RestAssuredClient c;
     Response r;
     checkDbIsEmpty("testOneModule starting", context);
@@ -1108,7 +1102,6 @@ public class ModuleTest {
     locationSampleDeployment = null;
 
     checkDbIsEmpty("testOneModule done", context);
-    async.complete();
   }
 
   /**
@@ -1120,7 +1113,6 @@ public class ModuleTest {
    */
   @Test
   public void testSystemInterfaces(TestContext context) {
-    async = context.async();
     checkDbIsEmpty("testSystemInterfaces starting", context);
 
     RestAssuredClient c;
@@ -1434,7 +1426,6 @@ public class ModuleTest {
     given().delete(locInternal).then().log().ifValidationFails().statusCode(204);
     given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
     checkDbIsEmpty("testSystemInterfaces done", context);
-    async.complete();
   }
 
   /**
@@ -1444,7 +1435,6 @@ public class ModuleTest {
    */
   @Test
   public void testDiscoveryNodes(TestContext context) {
-    async = context.async();
     RestAssuredClient c;
     Response r;
     checkDbIsEmpty("testDiscoveryNodes starting", context);
@@ -1539,12 +1529,10 @@ public class ModuleTest {
     assertEmptyReport(c);
 
     checkDbIsEmpty("testDiscoveryNodes done", context);
-    async.complete();
   }
 
   @Test
   public void testDeployment(TestContext context) {
-    async = context.async();
     Response r;
 
     RestAssuredClient c;
@@ -1577,7 +1565,7 @@ public class ModuleTest {
       .statusCode(201)
       .extract().response();
     assertEmptyReport(c);
-    final String locationSampleModule = r.getHeader("Location");
+    String locationSampleModule = r.getHeader("Location");
 
     c = api.createRestAssured3();
     c.given().get("/_/deployment/modules")
@@ -1720,9 +1708,7 @@ public class ModuleTest {
       .log().ifValidationFails();
     assertEmptyReport(c);
 
-    if ("inmemory".equals(conf.getString("storage"))) {
-      testDeployment2(async, context, locationSampleModule);
-    } else {
+    if (!"inmemory".equals(conf.getString("storage"))) {
       // just undeploy but keep it registered in discovery
       logger.info("doc2 " + doc2);
       JsonObject o2 = new JsonObject(doc2);
@@ -1732,44 +1718,20 @@ public class ModuleTest {
       c.given().delete(loc).then().statusCode(204);
       assertEmptyReport(c);
 
-      undeployFirst(x -> {
+      Async async = context.async();
+      undeployFirst().onComplete(x -> {
         conf.remove("mongo_db_init");
         conf.remove("postgres_db_init");
 
         DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
         vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-          waitDeployment2();
+          async.complete();
         });
       });
-      waitDeployment2(async, context, locationSampleModule);
+      async.await();
     }
-  }
-
-  synchronized private void waitDeployment2() {
-    this.notify();
-  }
-
-  synchronized private void waitDeployment2(Async async, TestContext context,
-    String locationSampleModule) {
-    try {
-      this.wait();
-    } catch (Exception e) {
-      context.asyncAssertFailure();
-      async.complete();
-      return;
-    }
-    testDeployment2(async, context, locationSampleModule);
-  }
-
-  private void testDeployment2(Async async, TestContext context,
-    String locationSampleModule1) {
-    logger.info("testDeployment2");
-    Response r;
-
-    RestAssuredClient c;
-
     c = api.createRestAssured3();
-    c.given().delete(locationSampleModule1).then().statusCode(204);
+    c.given().delete(locationSampleModule).then().statusCode(204);
     assertEmptyReport(c);
 
     c = api.createRestAssured3();
@@ -1809,7 +1771,7 @@ public class ModuleTest {
     assertEmptyReport(c);
 
     // Deploy a module via its own LaunchDescriptor
-    final String docSampleModule = "{" + LS
+    final String docSampleModuleDep1 = "{" + LS
       + "  \"id\" : \"sample-module-depl-1\"," + LS
       + "  \"name\" : \"sample module for deployment test\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -1834,13 +1796,13 @@ public class ModuleTest {
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docSampleModule).post("/_/proxy/modules")
+      .body(docSampleModuleDep1).post("/_/proxy/modules")
       .then()
       //.log().all()
       .statusCode(201)
       .extract().response();
     assertEmptyReport(c);
-    final String locationSampleModule = r.getHeader("Location");
+    locationSampleModule = r.getHeader("Location");
 
     // Specify the node via url, to test that too
     final String docDeploy = "{" + LS
@@ -1886,13 +1848,10 @@ public class ModuleTest {
     assertEmptyReport(c);
 
     checkDbIsEmpty("testDeployment done", context);
-
-    async.complete();
   }
 
   @Test
   public void testNotFound(TestContext context) {
-    async = context.async();
     Response r;
     ValidatableResponse then;
 
@@ -1962,14 +1921,10 @@ public class ModuleTest {
     }
     given().delete(locationTenantRoskilde)
       .then().statusCode(204);
-
-    async.complete();
   }
 
   @Test
   public void testHeader(TestContext context) {
-    async = context.async();
-
     RestAssuredClient c;
     Response r;
     ValidatableResponse then;
@@ -2109,13 +2064,10 @@ public class ModuleTest {
       .then().statusCode(204);
 
     checkDbIsEmpty("testHeader done", context);
-
-    async.complete();
   }
 
   @Test
   public void testUiModule(TestContext context) {
-    async = context.async();
     Response r;
 
     final String docUiModuleInput = "{" + LS
@@ -2154,14 +2106,10 @@ public class ModuleTest {
     given().delete(location)
       .then().statusCode(204);
     checkDbIsEmpty("testUiModule done", context);
-
-    async.complete();
   }
 
   @Test
   public void testMultipleInterface(TestContext context) {
-    logger.info("Redirect test starting");
-    async = context.async();
     RestAssuredClient c;
     Response r;
 
@@ -2481,25 +2429,20 @@ public class ModuleTest {
       .then().statusCode(204).extract().response();
     locationHeaderDeployment = null;
     assertEmptyReport(c);
-    async.complete();
   }
 
   @Test
   public void testVersion(TestContext context) {
     logger.info("testVersion starting");
-    async = context.async();
     RestAssuredClient c;
 
     c = api.createRestAssured3();
     c.given().get("/_/version").then().statusCode(200).log().ifValidationFails().extract().response();
     assertEmptyReport(c);
-    async.complete();
   }
 
   @Test
   public void testSemVer(TestContext context) {
-    async = context.async();
-
     RestAssuredClient c;
     Response r;
     c = api.createRestAssured3();
@@ -2551,64 +2494,24 @@ public class ModuleTest {
         .log().ifValidationFails()
         .extract().response();
     assertEmptyReport(c);
-
-    async.complete();
   }
 
-  @Test
-  public void testManyModules(TestContext context) {
-    async = context.async();
-
-    RestAssuredClient c;
-    Response r;
-
-    int i;
-    for (i = 0; i < 10; i++) {
-      String docSampleModule = "{" + LS
-        + "  \"id\" : \"sample-1.2." + Integer.toString(i) + "\"," + LS
-        + "  \"name\" : \"sample module " + Integer.toString(i) + "\"," + LS
-        + "  \"requires\" : [ ]" + LS
-        + "}";
-      c = api.createRestAssured3();
-      c.given()
-        .header("Content-Type", "application/json")
-        .body(docSampleModule)
-        .post("/_/proxy/modules")
-        .then()
-        .statusCode(201)
-        .log().ifValidationFails();
-      assertEmptyReport(c);
-    }
-    c = api.createRestAssured3();
-    r = c.given()
-      .get("/_/proxy/modules")
-      .then()
-      .statusCode(200).log().ifValidationFails().extract().response();
-    assertEmptyReport(c);
-
-    async.complete();
-  }
-
-  private void undeployFirst(Handler<AsyncResult<Void>> fut) {
+  private Future<Void> undeployFirst() {
     Set<String> ids = vertx.deploymentIDs();
     Iterator<String> it = ids.iterator();
-    if (it.hasNext()) {
-      vertx.undeploy(it.next(), fut);
-    } else {
-      fut.handle(Future.succeededFuture());
+    Future<Void> future = Future.succeededFuture();
+    while (it.hasNext()) {
+      future = future.compose(x -> vertx.undeploy(it.next()));
     }
+    return future;
   }
 
-  private void undeployFirstAndDeploy(TestContext context, Handler<AsyncResult<String>> fut) {
-    async = context.async();
+  private Future<String> undeployFirstAndDeploy() {
     httpClient = null;
-    undeployFirst(context.asyncAssertSuccess(handler -> {
+    return undeployFirst().compose(x -> {
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        fut.handle(res);
-        async.complete();
-      });
-    }));
+      return vertx.deployVerticle(MainVerticle.class.getName(), opt);
+    });
   }
 
   @Test
@@ -2616,8 +2519,7 @@ public class ModuleTest {
     conf.remove("mongo_db_init");
     conf.remove("postgres_db_init");
     conf.put("mode", "initdatabase");
-    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await(1000);
+    undeployFirstAndDeploy().onComplete(context.asyncAssertSuccess());
   }
 
   @Test
@@ -2629,11 +2531,10 @@ public class ModuleTest {
     conf.remove("postgres_db_init");
     conf.put("mode", "initdatabase");
     conf.put("postgres_password", "badpass");
-    undeployFirstAndDeploy(context, context.asyncAssertFailure(cause ->
+    undeployFirstAndDeploy().onComplete(context.asyncAssertFailure(cause ->
         context.assertTrue(cause.getMessage().contains(
           "password authentication failed for user "),
           cause.getMessage())));
-    async.await();
   }
 
   @Test
@@ -2641,8 +2542,7 @@ public class ModuleTest {
     conf.remove("mongo_db_init");
     conf.remove("postgres_db_init");
     conf.put("mode", "purgedatabase");
-    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await();
+    undeployFirstAndDeploy().onComplete(context.asyncAssertSuccess());
   }
 
   @Test
@@ -2718,8 +2618,11 @@ public class ModuleTest {
         .then().statusCode(404)
         .log().ifValidationFails();
 
-    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await();
+    {
+      Async async = context.async();
+      undeployFirstAndDeploy().onComplete(context.asyncAssertSuccess(res -> async.complete()));
+      async.await();
+    }
     given()
         .header("Content-Type", "application/json")
         .get("/_/proxy/tenants/supertenant/modules/okapi-0.0.0")
@@ -2732,8 +2635,11 @@ public class ModuleTest {
         .log().ifValidationFails();
 
     conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
-    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await();
+    {
+      Async async = context.async();
+      undeployFirstAndDeploy().onComplete(context.asyncAssertSuccess(res -> async.complete()));
+      async.await();
+    }
     given()
         .header("Content-Type", "application/json")
         .get("/_/proxy/tenants/supertenant/modules/okapi-3.0.0")
@@ -2753,8 +2659,11 @@ public class ModuleTest {
         .log().ifValidationFails();
 
     conf.put("okapiVersion", "2.0.0"); // downgrade from 3.0.0 to 2.0.0 (which is not possible)
-    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await();
+    {
+      Async async = context.async();
+      undeployFirstAndDeploy().onComplete(context.asyncAssertSuccess(res -> async.complete()));
+      async.await();
+    }
     given()
         .header("Content-Type", "application/json")
         .get("/_/proxy/tenants/supertenant/modules/okapi-3.0.0")
@@ -2797,9 +2706,11 @@ public class ModuleTest {
         .log().ifValidationFails();
     assertEmptyReport(c);
 
-    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await();
-
+    {
+      Async async = context.async();
+      undeployFirstAndDeploy().onComplete(context.asyncAssertSuccess(res -> async.complete()));
+      async.await();
+    }
     // check that it is still gone after Okapi is restarted with any storage OKAPI-931
     c = api.createRestAssured3();
     c.given()
