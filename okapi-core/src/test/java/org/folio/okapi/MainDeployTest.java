@@ -5,6 +5,7 @@ import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
@@ -84,6 +85,7 @@ public class MainDeployTest {
   public void testDevMode(TestContext context) {
     String[] args = {"dev"};
 
+    Async async = context.async();
     MainDeploy d = new MainDeploy();
     d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
@@ -95,14 +97,16 @@ public class MainDeployTest {
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-      vertx.close(context.asyncAssertSuccess());
+      vertx.close(context.asyncAssertSuccess(x -> async.complete()));
     }));
+    async.await();
   }
 
   @Test
   public void testDeploymentMode(TestContext context) {
     String[] args = {"deployment"};
 
+    Async async = context.async();
     MainDeploy d = new MainDeploy();
     d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
@@ -114,14 +118,16 @@ public class MainDeployTest {
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-      vertx.close(context.asyncAssertSuccess());
+      vertx.close(context.asyncAssertSuccess(x -> async.complete()));
     }));
+    async.await();
   }
 
   @Test
   public void testProxyMode(TestContext context) {
     String[] args = {"proxy"};
 
+    Async async = context.async();
     MainDeploy d = new MainDeploy();
     d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
@@ -133,14 +139,16 @@ public class MainDeployTest {
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-      vertx.close(context.asyncAssertSuccess());
+      vertx.close(context.asyncAssertSuccess(x -> async.complete()));
     }));
+    async.await();
   }
 
   @Test
   public void testConfFileOk(TestContext context) {
     String[] args = {"-conf", "src/test/resources/okapi1.json"};
 
+    Async async = context.async();
     MainDeploy d = new MainDeploy();
     d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
@@ -152,8 +160,9 @@ public class MainDeployTest {
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-      vertx.close(context.asyncAssertSuccess());
+      vertx.close(context.asyncAssertSuccess(x -> async.complete()));
     }));
+    async.await();
   }
 
   @Test
@@ -168,6 +177,7 @@ public class MainDeployTest {
   public void testClusterMode(TestContext context) {
     String[] args = {"cluster"};
 
+    Async async = context.async();
     MainDeploy d = new MainDeploy();
     d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
@@ -179,8 +189,9 @@ public class MainDeployTest {
         .then().statusCode(200).log().ifValidationFails().extract().response();
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-      vertx.close(context.asyncAssertSuccess());
+      vertx.close(context.asyncAssertSuccess(x -> async.complete()));
     }));
+    async.await();
   }
 
   @Test
@@ -217,11 +228,14 @@ public class MainDeployTest {
   public void testOkapiSamePort(TestContext context) {
     String[] args = {"dev"};
 
+    Async async = context.async();
     MainDeploy d1 = new MainDeploy();
     d1.init(args, context.asyncAssertSuccess(vertx -> {
       MainDeploy d2 = new MainDeploy();
-      d2.init(args, context.asyncAssertFailure(x -> vertx.close()));
+      d2.init(args, context.asyncAssertFailure(
+          x -> vertx.close(context.asyncAssertSuccess(y -> async.countDown()))));
     }));
+    async.await();
   }
 
 }
