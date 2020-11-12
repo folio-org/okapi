@@ -2680,6 +2680,22 @@ public class ModuleTest {
 
     if (foundStatus == 200) {
       given()
+          .get("/_/discovery/modules")
+          .then().statusCode(200)
+          .body("$", hasSize(1))
+          .body("[0].srvcId", is("header-1"))
+          .log().ifValidationFails();
+    }
+
+    // this would normally a check for foundStatus, but there's a problem: header-1 not saved for mongo
+    if ("postgres".equals(conf.getString("storage"))) {
+      given()
+          .get("/_/proxy/tenants/testlib/modules")
+          .then().statusCode(200)
+          .body("$", hasSize(3))
+          .log().ifValidationFails();
+
+      given()
           .header("X-Okapi-Tenant", "testlib")
           .get("/permResult")
           .then()
