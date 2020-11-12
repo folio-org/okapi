@@ -12,11 +12,9 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
-
 
 /**
  * Test module that works with headers-only. Also implements a few other test
