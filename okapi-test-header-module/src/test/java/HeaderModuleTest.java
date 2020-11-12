@@ -49,52 +49,69 @@ public class HeaderModuleTest {
 
   @Test
   public void test1(TestContext context) {
-    Async async = context.async();
-
     HashMap<String, String> headers = new HashMap<>();
-
-    OkapiClient cli = new OkapiClient(URL, vertx, headers);
-    cli.get("/testb", res -> {
-      cli.close();
-      context.assertTrue(res.succeeded());
-      context.assertEquals("foo", cli.getRespHeaders().get("X-my-header"));
-      test2(context, async);
-    });
-  }
-
-  private void test2(TestContext context, Async async) {
-
-    HashMap<String, String> headers = new HashMap<>();
+    {
+      OkapiClient cli = new OkapiClient(URL, vertx, headers);
+      Async async = context.async();
+      cli.get("/testb", res -> {
+        cli.close();
+        context.assertTrue(res.succeeded());
+        context.assertEquals("foo", cli.getRespHeaders().get("X-my-header"));
+        async.complete();
+      });
+      async.await();
+    }
+    headers = new HashMap<>();
     headers.put("X-my-header", "hello");
-    OkapiClient cli = new OkapiClient(URL, vertx, headers);
-    cli.get("/testb", res -> {
-      cli.close();
-      context.assertTrue(res.succeeded());
-      context.assertEquals("hello,foo", cli.getRespHeaders().get("X-my-header"));
-      test3(context, async);
-    });
+    {
+      Async async = context.async();
+      OkapiClient cli = new OkapiClient(URL, vertx, headers);
 
-  }
-
-  public void test3(TestContext context, Async async) {
-
-    HashMap<String, String> headers = new HashMap<>();
-
-    OkapiClient cli = new OkapiClient(URL, vertx, headers);
-    cli.post("/_/tenantPermissions", "{", res1 -> {
-      context.assertTrue(res1.failed());
-      JsonObject perm = new JsonObject("{\"k\": \"v\"}");
-      cli.post("/_/tenantPermissions", perm.encode(), res2 -> {
-        context.assertTrue(res2.succeeded());
-        context.assertEquals("GET test-header-module /_/tenantPermissions 200 -",
-            cli.getRespHeaders().get(XOkapiHeaders.TRACE));
-        cli.get("/permResult", res3 -> {
-          cli.close();
-          context.assertEquals(perm, new JsonArray(res3.result()).getJsonObject(0));
+      cli.get("/testb", res -> {
+        cli.close();
+        context.assertTrue(res.succeeded());
+        context.assertEquals("hello,foo", cli.getRespHeaders().get("X-my-header"));
+        async.complete();
+      });
+      async.await();
+    }
+    headers = new HashMap<>();
+    headers.put(XOkapiHeaders.TENANT, "testlib");
+    JsonObject perm = new JsonObject("{\"k\": \"v\"}");
+    {
+      Async async = context.async();
+      OkapiClient cli = new OkapiClient(URL, vertx, headers);
+      cli.post("/_/tenantPermissions", "{", res1 -> {
+        context.assertTrue(res1.failed());
+        cli.post("/_/tenantPermissions", perm.encode(), res2 -> {
+          context.assertTrue(res2.succeeded());
+          context.assertEquals("GET test-header-module /_/tenantPermissions 200 -",
+              cli.getRespHeaders().get(XOkapiHeaders.TRACE));
           async.complete();
         });
       });
-    });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      OkapiClient cli = new OkapiClient(URL, vertx, headers);
+      cli.get("/permResult", res -> {
+        context.assertEquals(perm, new JsonArray(res.result()).getJsonObject(0));
+        cli.close();
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      headers.replace(XOkapiHeaders.TENANT, "other");
+      OkapiClient cli = new OkapiClient(URL, vertx, headers);
+      cli.get("/permResult", res -> {
+        context.assertNull(res.result());
+        cli.close();
+        async.complete();
+      });
+      async.await();
+    }
   }
-
 }
