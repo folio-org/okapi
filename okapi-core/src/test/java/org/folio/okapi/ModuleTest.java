@@ -150,10 +150,13 @@ public class ModuleTest {
     RestAssured.port = port;
     RestAssured.urlEncodingEnabled = false;
 
-    conf.put("postgres_db_init", "1");
-    conf.put("mongo_db_init", "1");
     conf.put("mode", "dev");
-    DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+
+    JsonObject config = new JsonObject(conf.encode());
+    config.put("postgres_db_init", "1");
+    config.put("mongo_db_init", "1");
+
+    DeploymentOptions opt = new DeploymentOptions().setConfig(config);
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 
@@ -1721,9 +1724,6 @@ public class ModuleTest {
 
       Async async = context.async();
       undeployAll().onComplete(x -> {
-        conf.remove("mongo_db_init");
-        conf.remove("postgres_db_init");
-
         DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
         vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
           async.complete();
@@ -2528,8 +2528,6 @@ public class ModuleTest {
 
   @Test
   public void testInitdatabase(TestContext context) {
-    conf.remove("mongo_db_init");
-    conf.remove("postgres_db_init");
     conf.put("mode", "initdatabase");
     redeploy().onComplete(context.asyncAssertSuccess());
   }
@@ -2539,8 +2537,6 @@ public class ModuleTest {
     if (!"postgres".equals(conf.getString("storage"))) {
       return;
     }
-    conf.remove("mongo_db_init");
-    conf.remove("postgres_db_init");
     conf.put("mode", "initdatabase");
     conf.put("postgres_password", "badpass");
     redeploy().onComplete(context.asyncAssertFailure(cause ->
@@ -2551,17 +2547,12 @@ public class ModuleTest {
 
   @Test
   public void testPurgedatabase(TestContext context) {
-    conf.remove("mongo_db_init");
-    conf.remove("postgres_db_init");
     conf.put("mode", "purgedatabase");
     redeploy().onComplete(context.asyncAssertSuccess());
   }
 
   @Test
   public void testInternalModule(TestContext context) {
-    conf.remove("mongo_db_init");
-    conf.remove("postgres_db_init");
-
     int foundStatus = "inmemory".equals(conf.getString("storage")) ? 404 : 200;
 
       // check that supertenant has okapi module enabled already
@@ -2684,9 +2675,6 @@ public class ModuleTest {
 
   @Test
   public void testEnvStored(TestContext context) {
-    conf.remove("mongo_db_init");
-    conf.remove("postgres_db_init");
-
     RestAssuredClient c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
