@@ -466,7 +466,7 @@ public class TenantManager implements Liveness {
         logger.info("Tenant {} has okapi module {} enabled already", tenantId, moduleTo);
         return Future.succeededFuture();
       }
-      logger.info("Tenant {} has okapi module {}, not '{}'", moduleFrom, moduleTo);
+      logger.info("Tenant {} has okapi module {}, not {}", tenantId, moduleFrom, moduleTo);
       if (ModuleId.compare(moduleFrom, moduleTo) >= 4) {
         logger.warn("This Okapi is too old, {} we already have {} in the database. Use that!",
             moduleTo, moduleFrom);

@@ -95,12 +95,12 @@ public class ModuleTest {
   }
 
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
+  public static void setUpBeforeClass() {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
   }
 
   @AfterClass
-  public static void tearDownAfterClass() throws Exception {
+  public static void tearDownAfterClass() {
     if (postgresSQLContainer != null) {
       postgresSQLContainer.stop();
     }
@@ -1108,33 +1108,7 @@ public class ModuleTest {
     checkDbIsEmpty("testOneModule done", context);
   }
 
-  /**
-   * Test system interfaces. Mostly about the system interfaces _tenant (on the
-   * module itself, to initialize stuff), and _tenantPermissions to pass its
-   * permissions to the permissions module.
-   *
-   * @param context
-   */
-  @Test
-  public void testSystemInterfaces(TestContext context) {
-    checkDbIsEmpty("testSystemInterfaces starting", context);
-
-    RestAssuredClient c;
-    Response r;
-
-    // Set up a tenant to test with
-    final String locTenant = createTenant();
-
-    // Enable the Okapi internal module for our tenant.
-    // This is not unlike what happens to the superTenant, who has the internal
-    // module enabled from the boot up, before anyone can provide the
-    // _tenantPermissions interface. Its permissions should be (re)loaded
-    // when our Hdr module gets enabled.
-    final String locInternal = enableModule("okapi-0.0.0");
-
-    // Set up a module that does the _tenantPermissions interface that will
-    // get called when sample gets enabled. We (ab)use the header module for
-    // this.
+  private String createHeaderModule() {
     final String testHdrJar = "../okapi-test-header-module/target/okapi-test-header-module-fat.jar";
     final String docHdrModule = "{" + LS
         + "  \"id\" : \"header-1\"," + LS
@@ -1164,7 +1138,39 @@ public class ModuleTest {
         + "}";
 
     // Create, deploy, and enable the header module
-    final String locHdrModule = createModule(docHdrModule);
+    return createModule(docHdrModule);
+  }
+
+  /**
+   * Test system interfaces. Mostly about the system interfaces _tenant (on the
+   * module itself, to initialize stuff), and _tenantPermissions to pass its
+   * permissions to the permissions module.
+   *
+   * @param context
+   */
+  @Test
+  public void testSystemInterfaces(TestContext context) {
+    checkDbIsEmpty("testSystemInterfaces starting", context);
+
+    RestAssuredClient c;
+    Response r;
+
+    // Set up a tenant to test with
+    final String locTenant = createTenant();
+
+    // Enable the Okapi internal module for our tenant.
+    // This is not unlike what happens to the superTenant, who has the internal
+    // module enabled from the boot up, before anyone can provide the
+    // _tenantPermissions interface. Its permissions should be (re)loaded
+    // when our Hdr module gets enabled.
+    final String locInternal = enableModule("okapi-0.0.0");
+
+    // Set up a module that does the _tenantPermissions interface that will
+    // get called when sample gets enabled. We (ab)use the header module for
+    // this.
+
+    // Create, deploy, and enable the header module
+    final String locHdrModule = createHeaderModule();
     locationHeaderDeployment = deployModule("header-1");
     final String docEnableHdr = "{" + LS
       + "  \"id\" : \"header-1\"" + LS
@@ -2634,6 +2640,26 @@ public class ModuleTest {
         .then().statusCode(foundStatus)
         .log().ifValidationFails();
 
+    final String locHdrModule = createHeaderModule();
+
+    given()
+        .header("Content-Type", "application/json")
+        .body("[{\"id\":\"header-1\", \"action\":\"enable\"}]")
+        .post("/_/proxy/tenants/testlib/install?deploy=true")
+        .then().statusCode(200)
+        .log().ifValidationFails();
+
+    given()
+        .header("X-Okapi-Tenant", "testlib")
+        .get("/permResult")
+        .then()
+        .statusCode(200)
+        .log().ifValidationFails()
+        .body("$", hasSize(3))
+        .body("[0].moduleId", is("okapi-0.0.0"))
+        .body("[1].moduleId", is("sample-module-1.0.0"))
+        .body("[2].moduleId", is("header-1"));
+
     conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
 
     redeploy(context).onComplete(context.asyncAssertSuccess());
@@ -2649,6 +2675,17 @@ public class ModuleTest {
         .get("/_/proxy/tenants/testlib/modules/okapi-3.0.0")
         .then().statusCode(foundStatus)
         .log().ifValidationFails();
+
+    if (foundStatus == 200) {
+      given()
+          .header("X-Okapi-Tenant", "testlib")
+          .get("/permResult")
+          .then()
+          .statusCode(200)
+          .log().ifValidationFails()
+          .body("$", hasSize(1))
+          .body("[0].moduleId", is("okapi-3.0.0"));
+    }
 
     given()
         .header("Content-Type", "application/json")
