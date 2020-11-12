@@ -2687,8 +2687,7 @@ public class ModuleTest {
           .log().ifValidationFails();
     }
 
-    // this would normally a check for foundStatus, but there's a problem: header-1 not saved for mongo
-    if ("postgres".equals(conf.getString("storage"))) {
+    if (foundStatus == 200) {
       given()
           .get("/_/proxy/tenants/testlib/modules")
           .then().statusCode(200)
