@@ -2646,19 +2646,21 @@ public class ModuleTest {
         .header("Content-Type", "application/json")
         .body("[{\"id\":\"header-1\", \"action\":\"enable\"}]")
         .post("/_/proxy/tenants/testlib/install?deploy=true")
-        .then().statusCode(200)
+        .then().statusCode(foundStatus)
         .log().ifValidationFails();
 
-    given()
-        .header("X-Okapi-Tenant", "testlib")
-        .get("/permResult")
-        .then()
-        .statusCode(200)
-        .log().ifValidationFails()
-        .body("$", hasSize(3))
-        .body("[0].moduleId", is("okapi-0.0.0"))
-        .body("[1].moduleId", is("sample-module-1.0.0"))
-        .body("[2].moduleId", is("header-1"));
+    if (foundStatus == 200) {
+      given()
+          .header("X-Okapi-Tenant", "testlib")
+          .get("/permResult")
+          .then()
+          .statusCode(200)
+          .log().ifValidationFails()
+          .body("$", hasSize(3))
+          .body("[0].moduleId", is("okapi-0.0.0"))
+          .body("[1].moduleId", is("sample-module-1.0.0"))
+          .body("[2].moduleId", is("header-1"));
+    }
 
     conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
 
