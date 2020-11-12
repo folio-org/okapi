@@ -8,6 +8,7 @@ import io.restassured.http.Headers;
 import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -1719,7 +1720,7 @@ public class ModuleTest {
       assertEmptyReport(c);
 
       Async async = context.async();
-      undeployFirst().onComplete(x -> {
+      undeployAll().onComplete(x -> {
         conf.remove("mongo_db_init");
         conf.remove("postgres_db_init");
 
@@ -2496,7 +2497,7 @@ public class ModuleTest {
     assertEmptyReport(c);
   }
 
-  private Future<Void> undeployFirst() {
+  private Future<Void> undeployAll() {
     Set<String> ids = vertx.deploymentIDs();
     Iterator<String> it = ids.iterator();
     Future<Void> future = Future.succeededFuture();
@@ -2506,12 +2507,23 @@ public class ModuleTest {
     return future;
   }
 
-  private Future<String> undeployFirstAndDeploy() {
+  private Future<String> redeploy() {
     httpClient = null;
-    return undeployFirst().compose(x -> {
+    return undeployAll().compose(x -> {
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
       return vertx.deployVerticle(MainVerticle.class.getName(), opt);
     });
+  }
+
+  private Future<String> redeploy(TestContext context) {
+    Async async = context.async();
+    Promise<String> promise = Promise.promise();
+    redeploy().onComplete(res -> {
+      promise.handle(res);
+      async.complete();
+    });
+    async.await();
+    return promise.future();
   }
 
   @Test
@@ -2519,7 +2531,7 @@ public class ModuleTest {
     conf.remove("mongo_db_init");
     conf.remove("postgres_db_init");
     conf.put("mode", "initdatabase");
-    undeployFirstAndDeploy().onComplete(context.asyncAssertSuccess());
+    redeploy().onComplete(context.asyncAssertSuccess());
   }
 
   @Test
@@ -2531,7 +2543,7 @@ public class ModuleTest {
     conf.remove("postgres_db_init");
     conf.put("mode", "initdatabase");
     conf.put("postgres_password", "badpass");
-    undeployFirstAndDeploy().onComplete(context.asyncAssertFailure(cause ->
+    redeploy().onComplete(context.asyncAssertFailure(cause ->
         context.assertTrue(cause.getMessage().contains(
           "password authentication failed for user "),
           cause.getMessage())));
@@ -2542,7 +2554,7 @@ public class ModuleTest {
     conf.remove("mongo_db_init");
     conf.remove("postgres_db_init");
     conf.put("mode", "purgedatabase");
-    undeployFirstAndDeploy().onComplete(context.asyncAssertSuccess());
+    redeploy().onComplete(context.asyncAssertSuccess());
   }
 
   @Test
@@ -2618,11 +2630,8 @@ public class ModuleTest {
         .then().statusCode(404)
         .log().ifValidationFails();
 
-    {
-      Async async = context.async();
-      undeployFirstAndDeploy().onComplete(context.asyncAssertSuccess(res -> async.complete()));
-      async.await();
-    }
+    redeploy(context).onComplete(context.asyncAssertSuccess());
+
     given()
         .header("Content-Type", "application/json")
         .get("/_/proxy/tenants/supertenant/modules/okapi-0.0.0")
@@ -2635,11 +2644,9 @@ public class ModuleTest {
         .log().ifValidationFails();
 
     conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
-    {
-      Async async = context.async();
-      undeployFirstAndDeploy().onComplete(context.asyncAssertSuccess(res -> async.complete()));
-      async.await();
-    }
+
+    redeploy(context).onComplete(context.asyncAssertSuccess());
+
     given()
         .header("Content-Type", "application/json")
         .get("/_/proxy/tenants/supertenant/modules/okapi-3.0.0")
@@ -2659,11 +2666,9 @@ public class ModuleTest {
         .log().ifValidationFails();
 
     conf.put("okapiVersion", "2.0.0"); // downgrade from 3.0.0 to 2.0.0 (which is not possible)
-    {
-      Async async = context.async();
-      undeployFirstAndDeploy().onComplete(context.asyncAssertSuccess(res -> async.complete()));
-      async.await();
-    }
+
+    redeploy(context).onComplete(context.asyncAssertSuccess());
+
     given()
         .header("Content-Type", "application/json")
         .get("/_/proxy/tenants/supertenant/modules/okapi-3.0.0")
@@ -2706,11 +2711,8 @@ public class ModuleTest {
         .log().ifValidationFails();
     assertEmptyReport(c);
 
-    {
-      Async async = context.async();
-      undeployFirstAndDeploy().onComplete(context.asyncAssertSuccess(res -> async.complete()));
-      async.await();
-    }
+    redeploy(context).onComplete(context.asyncAssertSuccess());
+
     // check that it is still gone after Okapi is restarted with any storage OKAPI-931
     c = api.createRestAssured3();
     c.given()
