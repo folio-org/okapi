@@ -271,9 +271,19 @@ public class InternalModule {
         + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.install.post\" ], "
         + "    \"type\" : \"internal\" "
         + "   }, {"
+        + "    \"methods\" :  [ \"DELETE\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/install\","
+        + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.install.delete\" ], "
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
         + "    \"methods\" :  [ \"GET\" ],"
         + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/install/{installId}\","
         + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.install.get\" ], "
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"DELETE\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/install/{installId}\","
+        + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.install.delete\" ], "
         + "    \"type\" : \"internal\" "
         + "   }, {"
         + "    \"methods\" :  [ \"POST\" ],"
@@ -464,6 +474,10 @@ public class InternalModule {
         + "   \"displayName\" : \"Okapi - get install job\", "
         + "   \"description\" : \"Retrieve install job by id\" "
         + " }, { "
+        + "   \"permissionName\" : \"okapi.proxy.tenants.install.delete\", "
+        + "   \"displayName\" : \"Okapi - delete install job\", "
+        + "   \"description\" : \"Delete install job by id\" "
+        + " }, { "
         + "   \"permissionName\" : \"okapi.proxy.tenants.install.post\", "
         + "   \"displayName\" : \"Okapi - Enable modules and dependencies\", "
         + "   \"description\" : \"Check dependencies and enable/disable modules as needed\" "
@@ -566,6 +580,7 @@ public class InternalModule {
         + "     \"okapi.proxy.tenants.upgrade.post\", "
         + "     \"okapi.proxy.tenants.install.list\", "
         + "     \"okapi.proxy.tenants.install.get\", "
+        + "     \"okapi.proxy.tenants.install.delete\", "
         + "     \"okapi.proxy.tenants.install.post\" "
         + "   ]"
         + " }, "
@@ -756,9 +771,17 @@ public class InternalModule {
         .compose(installJobList -> Future.succeededFuture(Json.encodePrettily(installJobList)));
   }
 
+  private Future<String> installTenantModulesDeleteList(String tenantId) {
+    return tenantManager.installUpgradeDeleteList(tenantId).map("");
+  }
+
   private Future<String> installTenantModulesGet(String tenantId, String installId) {
     return tenantManager.installUpgradeGet(tenantId, installId)
         .compose(installJob -> Future.succeededFuture(Json.encodePrettily(installJob)));
+  }
+
+  private Future<String> installTenantModulesDelete(String tenantId, String installId) {
+    return tenantManager.installUpgradeDelete(tenantId, installId).map("");
   }
 
   private Future<String> upgradeModulesForTenant(ProxyContext pc, String tenantId) {
@@ -1196,12 +1219,20 @@ public class InternalModule {
           return installTenantModulesGetList(decodedSegs[4]);
         }
         // /_/proxy/tenants/:id/install
+        if (n == 6 && m.equals(HttpMethod.DELETE) && segments[5].equals("install")) {
+          return installTenantModulesDeleteList(decodedSegs[4]);
+        }
+        // /_/proxy/tenants/:id/install
         if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("install")) {
           return installTenantModulesPost(pc, decodedSegs[4], req);
         }
         // /_/proxy/tenants/:tid/install/:rid
         if (n == 7 && m.equals(HttpMethod.GET) && segments[5].equals("install")) {
           return installTenantModulesGet(decodedSegs[4], decodedSegs[6]);
+        }
+        // /_/proxy/tenants/:tid/install/:rid
+        if (n == 7 && m.equals(HttpMethod.DELETE) && segments[5].equals("install")) {
+          return installTenantModulesDelete(decodedSegs[4], decodedSegs[6]);
         }
         // /_/proxy/tenants/:id/upgrade
         if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("upgrade")) {
