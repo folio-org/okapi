@@ -463,15 +463,14 @@ public class TenantManager implements Liveness {
         return Future.succeededFuture();
       }
       if (moduleFrom.equals(moduleTo)) {
-        logger.info("Tenant {} has okapi module {} enabled already", tenantId, moduleTo);
+        logger.info("Tenant {} has module {} enabled already", tenantId, moduleTo);
         return Future.succeededFuture();
       }
-      logger.info("Tenant {} has okapi module {}, not {}", tenantId, moduleFrom, moduleTo);
       if (ModuleId.compare(moduleFrom, moduleTo) >= 4) {
-        logger.warn("This Okapi is too old, {} we already have {} in the database. Use that!",
-            moduleTo, moduleFrom);
+        logger.warn("Will not downgrade tenant {} from {} to {}", tenantId, moduleTo, moduleFrom);
         return Future.succeededFuture();
       }
+      logger.info("Tenant {} moving from {} to {}", tenantId, moduleFrom, moduleTo);
       TenantInstallOptions options = new TenantInstallOptions();
       return invokePermissions(tenant, options, md, null).compose(x ->
           updateModuleCommit(tenant, moduleFrom, moduleTo));
