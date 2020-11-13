@@ -259,7 +259,6 @@ public class DockerTest {
       "raml: " + c.getLastReport().toString());
   }
 
-  @Test
   public void deployBadListeningPort(TestContext context) {
     org.junit.Assume.assumeTrue(haveDocker);
     if (!haveDocker) {
