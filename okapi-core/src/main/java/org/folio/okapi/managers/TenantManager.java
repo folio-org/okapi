@@ -811,6 +811,16 @@ public class TenantManager implements Liveness {
     return tenants.getNotFound(tenantId).compose(x -> jobs.getNotFound(tenantId, installId));
   }
 
+  Future<Void> installUpgradeDelete(String tenantId, String installId) {
+    return installUpgradeGet(tenantId, installId).compose(job -> {
+      if (!Boolean.TRUE.equals(job.getComplete())) {
+        return Future.failedFuture(new OkapiError(ErrorType.USER,
+            messages.getMessage("10406", installId)));
+      }
+      return jobs.removeNotFound(tenantId, installId);
+    });
+  }
+
   Future<List<InstallJob>> installUpgradeGetList(String tenantId) {
     return tenants.getNotFound(tenantId).compose(x -> jobs.get(tenantId).compose(list -> {
       if (list == null) {
@@ -818,6 +828,18 @@ public class TenantManager implements Liveness {
       }
       return Future.succeededFuture(list);
     }));
+  }
+
+  Future<Void> installUpgradeDeleteList(String tenantId) {
+    return installUpgradeGetList(tenantId).compose(res -> {
+      Future<Void> future = Future.succeededFuture();
+      for (InstallJob job : res) {
+        if (Boolean.TRUE.equals(job.getComplete())) {
+          future = future.compose(x -> jobs.removeNotFound(tenantId, job.getId()));
+        }
+      }
+      return future;
+    });
   }
 
   Future<List<TenantModuleDescriptor>> installUpgradeCreate(

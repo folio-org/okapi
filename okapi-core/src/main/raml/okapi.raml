@@ -849,11 +849,31 @@ types:
             body:
               text/plain:
           404:
-            description: Not Found
+            description: Tenant not Found
             body:
               text/plain:
           500:
             description: User error
+            body:
+              text/plain:
+      delete:
+        description: Delete all completed install jobs
+        responses:
+          204:
+            description: OK
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+          400:
+            description: Bad Request
+            body:
+              text/plain:
+          404:
+            description: Tenant not Found
+            body:
+              text/plain:
+          500:
+            description: Server Error
             body:
               text/plain:
       post:
@@ -976,7 +996,27 @@ types:
               body:
                 text/plain:
             500:
+              description: Internal error
+              body:
+                text/plain:
+        delete:
+          description: Delete install job
+          responses:
+            204:
+              description: OK
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
+            400:
               description: User error
+              body:
+                text/plain:
+            404:
+              description: Not Found
+              body:
+                text/plain:
+            500:
+              description: Internal error
               body:
                 text/plain:
     /upgrade:
