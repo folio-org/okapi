@@ -23,6 +23,8 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -35,7 +37,6 @@ import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -103,6 +104,8 @@ public class ProxyTest {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
     } else {
       ctx.response().setStatusCode(200);
+      ctx.response().putHeader("Content-Type", ctx.request().getHeader("Content-Type"));
+      ctx.response().putHeader("Content-Encoding", "gzip");
       ctx.request().handler(preBuffer::appendBuffer);
       ctx.request().endHandler(res -> {
         logger.info("myPreHandle end=" + preBuffer.toString());
@@ -215,67 +218,74 @@ public class ProxyTest {
   }
 
   private void myTimerHandle(RoutingContext ctx) {
-    final String p = ctx.request().path();
-    if (HttpMethod.DELETE.equals(ctx.request().method())) {
-      ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
-    } else if (HttpMethod.POST.equals(ctx.request().method())) {
+    HttpServerRequest request = ctx.request();
+    HttpServerResponse response = ctx.response();
+    final String p = request.path();
+    if (HttpMethod.DELETE.equals(request.method())) {
+      request.endHandler(x -> HttpResponse.responseText(ctx, 204).end());
+    } else if (HttpMethod.POST.equals(request.method())) {
       if (p.startsWith("/echo")) {
-        ctx.response().setStatusCode(200);
-        ctx.response().setChunked(true);
-        Pump pump = Pump.pump(ctx.request(), ctx.response());
+        response.setStatusCode(200);
+        response.putHeader("Content-Type", request.getHeader("Content-Type"));
+        String contentEncoding = request.getHeader("Content-Encoding");
+        if (contentEncoding != null) {
+          response.putHeader("Content-Encoding", contentEncoding);
+        }
+        response.setChunked(true);
+        Pump pump = Pump.pump(request, response);
         pump.start();
-        ctx.request().endHandler(e -> ctx.response().end());
-        ctx.request().pause();
-        vertx.setTimer(100, x -> ctx.request().resume()); // pause to provoke writeQueueFull()
+        request.endHandler(e -> response.end());
+        request.pause();
+        vertx.setTimer(100, x -> request.resume()); // pause to provoke writeQueueFull()
         return;
       }
       Buffer buf = Buffer.buffer();
-      ctx.request().handler(buf::appendBuffer);
-      ctx.request().endHandler(res -> {
+      request.handler(buf::appendBuffer);
+      request.endHandler(res -> {
         try {
           if (p.startsWith("/_/tenantpermissions")) {
             logger.info("returning 200 in myTimerHandle");
-            ctx.response().setStatusCode(200);
-            ctx.response().end();
+            response.setStatusCode(200);
+            response.end();
           } else if (p.startsWith("/_/tenant")) {
-            ctx.response().setStatusCode(timerTenantInitStatus);
-            ctx.response().end("timer response");
+            response.setStatusCode(timerTenantInitStatus);
+            response.end("timer response");
           } else if (p.startsWith("/permissionscall")) {
             JsonObject permObject = new JsonObject(buf);
             if (timerTenantPermissionsStatus == 200) {
               timerPermissions.put(permObject.getString("moduleId"), permObject.getJsonArray("perms"));
             }
-            ctx.response().setStatusCode(timerTenantPermissionsStatus);
-            ctx.response().end("timer permissions response");
+            response.setStatusCode(timerTenantPermissionsStatus);
+            response.end("timer permissions response");
           } else if (p.startsWith("/timercall/")) {
             long delay = Long.parseLong(p.substring(11)); // assume /timercall/[0-9]+
             timerDelaySum += delay;
             vertx.setTimer(delay, x -> {
-              ctx.response().setStatusCode(200);
-              ctx.response().end();
+              response.setStatusCode(200);
+              response.end();
             });
           } else if (p.startsWith("/regularcall")) {
-            ctx.response().end(extractSubFromToken(ctx));
+            response.end(extractSubFromToken(ctx));
           } else if (p.startsWith("/corscall")) {
-            ctx.response().putHeader(CORS_TEST_HEADER, ctx.request().query());
-            ctx.response().end("Response from CORS test");
+            response.putHeader(CORS_TEST_HEADER, request.query());
+            response.end("Response from CORS test");
           } else {
-            ctx.response().setStatusCode(200);
-            ctx.response().end(p);
+            response.setStatusCode(200);
+            response.end(p);
           }
         } catch (Exception ex) {
           logger.info("400 in timerHandle... method={} p={} Buffer={}",
-              ctx.request().method().name(), p, buf.toString(Charsets.UTF_8));
-          ctx.response().setStatusCode(400);
-          ctx.response().end(ex.getMessage());
+              request.method().name(), p, buf.toString(Charsets.UTF_8));
+          response.setStatusCode(400);
+          response.end(ex.getMessage());
         }
       });
-    } else if (HttpMethod.GET.equals(ctx.request().method())) {
-      ctx.response().setStatusCode(200);
-      ctx.response().end("");
+    } else if (HttpMethod.GET.equals(request.method())) {
+      response.setStatusCode(200);
+      response.end("");
     } else {
-      ctx.response().setStatusCode(404);
-      ctx.response().end("Unsupported method");
+      response.setStatusCode(404);
+      response.end("Unsupported method");
     }
   }
 
@@ -4344,4 +4354,170 @@ public class ProxyTest {
     long endTime = System.nanoTime();
     logger.info("Elapsed {} ms", (endTime - startTime) / 1000000);
   }
+
+
+  @Test
+  public void testRequestResponse(TestContext context) {
+    final String okapiTenant = "roskilde";
+    RestAssuredClient c;
+    Response r;
+
+    // add tenant
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("id", okapiTenant).encode()).post("/_/proxy/tenants")
+        .then().statusCode(201)
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    final String locationTenantRoskilde = r.getHeader("Location");
+
+    final String docRequestPre = "{" + LS
+        + "  \"id\" : \"module-pre-1.0.0\"," + LS
+        + "  \"filters\" : [ {" + LS
+        + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "    \"path\" : \"/\"," + LS
+        + "    \"phase\" : \"pre\"," + LS
+        + "    \"type\" : \"request-response\"," + LS
+        + "    \"permissionsRequired\" : [ ]" + LS
+        + "  } ]" + LS
+        + "}";
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(docRequestPre).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    String nodeDoc1 = "{" + LS
+        + "  \"instId\" : \"localhost-1\"," + LS
+        + "  \"srvcId\" : \"module-pre-1.0.0\"," + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(portPre) + "\"" + LS
+        + "}";
+    given().header("Content-Type", "application/json")
+        .body(nodeDoc1).post("/_/discovery/modules")
+        .then().statusCode(201);
+
+    final String docRequestPost = "{" + LS
+        + "  \"id\" : \"module-post-1.0.0\"," + LS
+        + "  \"filters\" : [ {" + LS
+        + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "    \"path\" : \"/\"," + LS
+        + "    \"phase\" : \"post\"," + LS
+        + "    \"type\" : \"request-response\"," + LS
+        + "    \"permissionsRequired\" : [ ]" + LS
+        + "  } ]" + LS
+        + "}";
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(docRequestPost).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    nodeDoc1 = "{" + LS
+        + "  \"instId\" : \"localhost-2\"," + LS
+        + "  \"srvcId\" : \"module-post-1.0.0\"," + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(portPost) + "\"" + LS
+        + "}";
+    given().header("Content-Type", "application/json")
+        .body(nodeDoc1).post("/_/discovery/modules")
+        .then().statusCode(201);
+
+    final String docTimer_1_0_0 = "{" + LS
+        + "  \"id\" : \"timer-module-1.0.0\"," + LS
+        + "  \"name\" : \"timer module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"echo\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/echo\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+    given()
+        .header("Content-Type", "application/json")
+        .body(docTimer_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+
+    nodeDoc1 = "{" + LS
+        + "  \"instId\" : \"localhost-3\"," + LS
+        + "  \"srvcId\" : \"timer-module-1.0.0\"," + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+        + "}";
+    given().header("Content-Type", "application/json")
+        .body(nodeDoc1).post("/_/discovery/modules")
+        .then().statusCode(201);
+
+    JsonArray installReq = new JsonArray().add(new JsonObject().put("id",  "timer-module-1.0.0").put("action", "enable"));
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(installReq.encode())
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+        .then().statusCode(200).log().ifValidationFails()
+        .body(equalTo(installReq.encodePrettily()));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+        .header("Content-Type", "text/plain")
+        .body("Okapi").post("/echo")
+        .then().statusCode(200)
+        .header("Content-Type", "text/plain; charset=ISO-8859-1")
+        .body(equalTo("Okapi"));
+
+    installReq = new JsonArray().add(new JsonObject().put("id",  "module-pre-1.0.0").put("action", "enable"));
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(installReq.encode())
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+        .then().statusCode(200).log().ifValidationFails()
+        .body(equalTo(installReq.encodePrettily()));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+        .header("Content-Type", "text/plain; charset=UTF-8")
+        .body("Okapi").post("/echo")
+        .then().statusCode(200)
+        .header("Content-Type", "text/plain; charset=UTF-8")
+        .header("Content-Encoding", "gzip");
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+        .body("Okapi").post("/echo")
+        .then().statusCode(200)
+        .header("Content-Type", "text/plain; charset=ISO-8859-1")
+        .header("Content-Encoding", "gzip");
+
+    installReq = new JsonArray().add(new JsonObject().put("id",  "module-post-1.0.0").put("action", "enable"));
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(installReq.encode())
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+        .then().statusCode(200).log().ifValidationFails()
+        .body(equalTo(installReq.encodePrettily()));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+        .header("Content-Type", "text/plain; charset=UTF-8")
+        .body("Okapi").post("/echo")
+        .then().statusCode(200)
+        .header("Content-Type", "text/plain; charset=UTF-8")
+        .header("Content-Encoding", "gzip");
+  }
+
 }
