@@ -2771,9 +2771,13 @@ and `registry`. The first 5 properties
 are passed as authentication to the Docker registry if given - refer to
 [Docker Authentication](https://docs.docker.com/engine/api/v1.40/#section/Authentication).
 The optional `registry` is a prefix for the image to allow pull from other
-registry than DockerHub. An empty object in the `dockerRegistries` pulls
-from DockerHub without authentication. Omitting `dockerRegistries` does
-the same, and is the behavior for earlier versions of Okapi as well.
+registry than DockerHub. The list objects are tried in the given order until
+the pull succeeds. An empty object in the `dockerRegistries` list pulls
+from DockerHub without authentication and can be at any list position.
+Omitting `dockerRegistries` does the same as a list with an empty object `[ {} ]`,
+and is the behavior for earlier versions of Okapi with only unauthenticated
+DockerHub. The empty list `[ ]` tries zero registries and immediately fails,
+it disables pulling images.
 * `containerHost`: Host where containers are running (as seen from Okapi).
 Defaults to `localhost`.
 * `postgres_host` : PostgreSQL host. Defaults to `localhost`.
