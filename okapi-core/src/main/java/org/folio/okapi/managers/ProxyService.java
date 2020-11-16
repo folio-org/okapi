@@ -86,7 +86,8 @@ public class ProxyService {
   private final TokenCache tokenCache;
 
   // request + response HTTP headers that are forwarded in the pipeline
-  private static final String [] FORWARD_HEADERS = new String [] { "Content-Type", "Content-Encoding"};
+  private static final String [] FORWARD_HEADERS =
+      new String [] { "Content-Type", "Content-Encoding"};
 
   /**
    * Construct Proxy service.
