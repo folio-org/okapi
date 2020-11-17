@@ -185,7 +185,8 @@ public class ModuleManager {
   }
 
   /**
-   * Get a module descriptor from ID and return Error if not found.
+   * Get a module descriptor from ID, if not found the Future will fail with
+   * an {@link OkapiError} with {@link ErrorType#NOT_FOUND}.
    *
    * @param id module ID to get.
    * @returns fut future with resulting Module Descriptor
