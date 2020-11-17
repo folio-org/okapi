@@ -85,7 +85,7 @@ public class HeaderModuleTest {
         context.assertTrue(res1.failed());
         cli.post("/_/tenantPermissions", perm.encode(), res2 -> {
           context.assertTrue(res2.succeeded());
-          context.assertEquals("GET test-header-module /_/tenantPermissions 200 -",
+          context.assertEquals("POST test-header-module /_/tenantPermissions 200 -",
               cli.getRespHeaders().get(XOkapiHeaders.TRACE));
           async.complete();
         });

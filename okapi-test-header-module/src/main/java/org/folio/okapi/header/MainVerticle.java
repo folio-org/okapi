@@ -59,8 +59,8 @@ public class MainVerticle extends AbstractVerticle {
         ctx.response().end(e.getMessage());
         return;
       }
-      ctx.response().putHeader(XOkapiHeaders.TRACE, "GET test-header-module "
-          + ctx.request().path() + " 200 -");
+      ctx.response().putHeader(XOkapiHeaders.TRACE, ctx.request().method().name()
+          + " test-header-module " + ctx.request().path() + " 200 -");
       ctx.response().end();
     });
   }
