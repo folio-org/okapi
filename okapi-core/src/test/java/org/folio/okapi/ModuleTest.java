@@ -2523,13 +2523,9 @@ public class ModuleTest {
 
   private Future<String> redeploy(TestContext context) {
     Async async = context.async();
-    Promise<String> promise = Promise.promise();
-    redeploy().onComplete(res -> {
-      promise.handle(res);
-      async.complete();
-    });
+    Future<String> future = redeploy().onComplete(res -> async.complete());
     async.await();
-    return promise.future();
+    return future;
   }
 
   @Test
