@@ -37,6 +37,13 @@ parse_okapi_conf()  {
          OKAPI_JAVA_OPTS+=" -Dstorage=inmemory"
       fi
 
+      # Validate JSON of $docker_registries, undefined is valid
+      echo "$docker_registries" | jq empty
+      if [ $? -ne 0 ]; then
+         echo "Exiting because \$docker_registries is invalid"
+         exit 3
+      fi
+
       # create runtime configuration file for sensitive information
       # Store auth here rather than exposing on command line
       if [ "$storage" == "postgres" ] || [ "$docker_registries" ]; then
@@ -46,15 +53,15 @@ parse_okapi_conf()  {
          chmod 600 "${PID_DIR}/okapi-runtime.conf"
          # include postgres connection arguments only if defined
          jq -n --arg WARNING "AUTOMATICALLY CREATED FILE, DO NOT EDIT!"    \
-               --argjson dockerRegistries  "${docker_registries:-[]}"      \
+               --argjson dockerRegistries  "${docker_registries:-[{\}]}"   \
                --arg postgres_host         "${postgres_host}"              \
                --arg postgres_port         "${postgres_port}"              \
                --arg postgres_username     "${postgres_username}"          \
                --arg postgres_password     "${postgres_password}"          \
                --arg postgres_database     "${postgres_database}"          \
                --arg postgres_server_pem   "${postgres_server_pem}"        \
-               "{\$WARNING
-                 ${docker_registries+,\$dockerRegistries}
+               "{\$WARNING,
+                 \$dockerRegistries
                  ${postgres_host+,\$postgres_host}
                  ${postgres_port+,\$postgres_port}
                  ${postgres_username+,\$postgres_username}
@@ -62,6 +69,10 @@ parse_okapi_conf()  {
                  ${postgres_database+,\$postgres_database}
                  ${postgres_server_pem+,\$postgres_server_pem}
                }" > "${PID_DIR}/okapi-runtime.conf"
+         if [ $? -ne 0 ]; then
+            echo "Exiting because jq could not generate okapi-runtime.conf"
+            exit 3
+         fi
          echo "${PID_DIR}/okapi-runtime.conf = "
          cat "${PID_DIR}/okapi-runtime.conf" | sed 's/\(password":\|identitytoken":\).*[^,]/\1 .../g'
       fi
