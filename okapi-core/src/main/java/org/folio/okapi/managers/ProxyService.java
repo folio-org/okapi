@@ -85,6 +85,10 @@ public class ProxyService {
       Comparator.comparing((ModuleInstance a) -> a.getRoutingEntry().getPhaseLevel());
   private final TokenCache tokenCache;
 
+  // request + response HTTP headers that are forwarded in the pipeline
+  private static final String [] FORWARD_HEADERS =
+      new String [] { "Content-Type", "Content-Encoding"};
+
   /**
    * Construct Proxy service.
    * @param vertx Vert.x handle
@@ -823,8 +827,10 @@ public class ProxyService {
                                     List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
+    HttpServerRequest request = ctx.request();
+    HttpServerResponse response = ctx.response();
     Future<HttpClientRequest> fut = httpClient.request(
-        new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx)));
+        new RequestOptions().setMethod(request.method()).setAbsoluteURI(makeUrl(mi, ctx)));
     fut.onFailure(res -> proxyClientFailure(pc, mi, res));
     fut.onSuccess(clientRequest -> {
       final Timer.Sample sample = MetricsHelper.getTimerSample();
@@ -844,21 +850,21 @@ public class ProxyService {
       clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
       clientRequest.onSuccess(res -> {
         MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
-            ctx.request().method().name(), mi);
-        fixupXOkapiToken(mi.getModuleDescriptor(), ctx.request().headers(), res.headers());
+            request.method().name(), mi);
+        fixupXOkapiToken(mi.getModuleDescriptor(), request.headers(), res.headers());
         Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
         if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
           makeTraceHeader(mi, res.statusCode(), pc);
           relayToRequest(res, pc, mi);
-          final String ct = res.getHeader("Content-Type");
-          if (ct != null) {
-            ctx.request().headers().set("Content-Type", ct);
+          for (String header : FORWARD_HEADERS) {
+            MultiMap headers = request.headers();
+            request.headers().set(header, res.getHeader(header));
           }
           storeResponseInfo(pc, mi, res);
           res.pause();
           proxyR(newIt, pc, res, null, new LinkedList<>());
         } else {
-          relayToResponse(ctx.response(), res, pc);
+          relayToResponse(response, res, pc);
           makeTraceHeader(mi, res.statusCode(), pc);
           proxyResponseImmediate(pc, res, null, new LinkedList<>());
         }
