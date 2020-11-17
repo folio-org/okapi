@@ -185,7 +185,7 @@ public class ModuleManager {
   }
 
   /**
-   * Get a module descriptor from ID and return Error if not found.
+   * Get a module descriptor from ID, if not found the Future and return Error if not found.
    *
    * @param id module ID to get.
    * @returns fut future with resulting Module Descriptor
