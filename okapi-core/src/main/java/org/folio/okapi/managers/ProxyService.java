@@ -857,11 +857,8 @@ public class ProxyService {
           makeTraceHeader(mi, res.statusCode(), pc);
           relayToRequest(res, pc, mi);
           for (String header : FORWARD_HEADERS) {
-            String value = res.getHeader(header);
-            request.headers().remove(header);
-            if (value != null) {
-              request.headers().set(header, value);
-            }
+            MultiMap headers = request.headers();
+            request.headers().set(header, res.getHeader(header));
           }
           storeResponseInfo(pc, mi, res);
           res.pause();
