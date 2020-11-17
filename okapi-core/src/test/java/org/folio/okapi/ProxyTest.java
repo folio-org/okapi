@@ -4473,6 +4473,7 @@ public class ProxyTest {
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=ISO-8859-1")
+        .header("Content-Encoding", nullValue())
         .body(equalTo("Okapi"));
 
     installReq = new JsonArray().add(new JsonObject().put("id",  "module-pre-1.0.0").put("action", "enable"));
