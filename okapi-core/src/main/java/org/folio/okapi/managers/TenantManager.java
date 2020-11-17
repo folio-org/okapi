@@ -259,18 +259,16 @@ public class TenantManager implements Liveness {
       Tenant tenant, TenantInstallOptions options, String moduleFrom,
       String moduleTo, ProxyContext pc) {
 
-    Future<ModuleDescriptor> future1 = moduleTo != null
-        ?  moduleManager.getLatest(moduleTo) : Future.succeededFuture(null);
-    return future1.compose(mdTo -> {
-      Future<ModuleDescriptor> future2 = moduleFrom != null
-          ? moduleManager.get(moduleFrom) : Future.succeededFuture(null);
-      return future2.compose(mdFrom -> {
-        Future<Void> future3 = options.getDepCheck()
-            ? enableAndDisableCheck(tenant, mdFrom, mdTo) : Future.succeededFuture();
-        return future3
-            .compose(x -> enableAndDisableModule(tenant, options, mdFrom, mdTo, pc));
-      });
-    });
+    Future<ModuleDescriptor> mdFrom = moduleFrom != null
+        ? moduleManager.get(moduleFrom) : Future.succeededFuture(null);
+    Future<ModuleDescriptor> mdTo = moduleTo != null
+        ? moduleManager.getLatest(moduleTo) : Future.succeededFuture(null);
+    return mdFrom
+        .compose(x -> mdTo)
+        .compose(x -> options.getDepCheck()
+              ? enableAndDisableCheck(tenant, mdFrom.result(), mdTo.result())
+              : Future.succeededFuture())
+        .compose(x -> enableAndDisableModule(tenant, options, mdFrom.result(), mdTo.result(), pc));
   }
 
   private Future<String> enableAndDisableModule(Tenant tenant, TenantInstallOptions options,
