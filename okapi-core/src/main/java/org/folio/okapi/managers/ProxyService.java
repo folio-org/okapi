@@ -1194,7 +1194,7 @@ public class ProxyService {
    * Actually make a request to a system interface, like _tenant. Assumes we are
    * operating as the correct tenant.
    */
-  private Future<OkapiClient> doCallSystemInterface(
+  Future<OkapiClient> doCallSystemInterface(
       MultiMap headersIn, String tenantId, String authToken,
       ModuleInstance inst, String modPerms, String request) {
 

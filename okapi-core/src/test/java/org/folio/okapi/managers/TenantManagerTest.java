@@ -39,7 +39,7 @@ public class TenantManagerTest extends TestBase {
 
   @Test
   public void test1(TestContext context) {
-    TenantManager tm = new TenantManager(null, new TenantStoreNull());
+    TenantManager tm = new TenantManager(null, new TenantStoreNull(), true);
     {
       Async async = context.async();
       tm.init(vertx).onComplete(context.asyncAssertSuccess(x -> async.complete()));
@@ -81,7 +81,7 @@ public class TenantManagerTest extends TestBase {
     }
     {
       Async async = context.async();
-      tm.updateModuleCommit(td.getId(), "mod-1.0.0", "mod-1.0.1").onComplete(res -> {
+      tm.updateModuleCommit(tenant, "mod-1.0.0", "mod-1.0.1").onComplete(res -> {
         context.assertTrue(res.succeeded());
         async.complete();
       });
@@ -109,7 +109,7 @@ public class TenantManagerTest extends TestBase {
   @Test
   public void testTenantStoreFaulty(TestContext context) {
     final String fakeMsg = "fmsg";
-    TenantManager tm = new TenantManager(null, new TenantStoreFaulty(ErrorType.INTERNAL, fakeMsg));
+    TenantManager tm = new TenantManager(null, new TenantStoreFaulty(ErrorType.INTERNAL, fakeMsg), true);
     {
       Async async = context.async();
       tm.init(vertx).onComplete(x -> async.complete()); // init fails
@@ -161,7 +161,7 @@ public class TenantManagerTest extends TestBase {
 
   @Test
   public void testTenantsMapFaulty(TestContext context) {
-    TenantManager tm = new TenantManager(null, new TenantStoreNull());
+    TenantManager tm = new TenantManager(null, new TenantStoreNull(), true);
 
     LockedTypedMap1Faulty<Tenant> tenantsMap = new LockedTypedMap1Faulty<>(Tenant.class);
     tm.setTenantsMap(tenantsMap);
@@ -255,7 +255,7 @@ public class TenantManagerTest extends TestBase {
 
   @Test
   public void handleTimerForNonexistingTenant(TestContext context) {
-    TenantManager tenantManager = new TenantManager(null, new TenantStoreNull());
+    TenantManager tenantManager = new TenantManager( null, new TenantStoreNull(), true);
     tenantManager.getTimers().add("tenantId_moduleId_0");
     tenantManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(done -> {
       tenantManager.handleTimer("tenantId", "moduleId", 0);

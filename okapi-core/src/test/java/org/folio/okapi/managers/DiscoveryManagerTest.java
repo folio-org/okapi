@@ -81,7 +81,7 @@ public class DiscoveryManagerTest extends TestBase {
   class ModuleManagerFake extends ModuleManager {
 
     public ModuleManagerFake(ModuleStore moduleStore) {
-      super(moduleStore);
+      super(moduleStore, true);
     }
     @Override
     public Future<ModuleDescriptor> get(String id) {
