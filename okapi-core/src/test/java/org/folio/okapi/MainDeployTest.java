@@ -11,6 +11,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -23,7 +24,6 @@ public class MainDeployTest {
 
   private final Logger logger = OkapiLogger.get();
   private static final int port = 9230;
-  // private Async async;
   private static RamlDefinition api;
 
   @BeforeClass
@@ -36,14 +36,9 @@ public class MainDeployTest {
     RestAssured.port = port;
   }
 
-  @Before
-  public void setup(TestContext context) {
-    System.setProperty("port", Integer.toString(port));
-  }
-
-  @After
-  public void tearDown(TestContext context) {
-    System.setProperty("port", ""); // disable port by emptying it
+  @AfterClass
+  public static void after(TestContext context) {
+    System.clearProperty("port");
   }
 
   @Test
