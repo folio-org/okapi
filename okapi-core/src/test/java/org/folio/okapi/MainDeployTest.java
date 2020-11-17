@@ -226,7 +226,7 @@ public class MainDeployTest {
     d1.init(args, context.asyncAssertSuccess(vertx -> {
       MainDeploy d2 = new MainDeploy();
       d2.init(args, context.asyncAssertFailure(
-          x -> vertx.close(context.asyncAssertSuccess(y -> async.countDown()))));
+          x -> vertx.close(context.asyncAssertSuccess(y -> async.complete()))));
     }));
     async.await();
   }
