@@ -1,3 +1,7 @@
+## 4.3.3 2020-11-19
+
+ * [OKAPI-945](https://issues.folio.org/browse/OKAPI-945) Document dockerRegistries [] and [ {} ] and fix okapi.sh
+
 ## 4.3.2 2020-11-11
 
  * [OKAPI-946](https://issues.folio.org/browse/OKAPI-946) Fix Okapi silently downgrades modules to meet dependencies
