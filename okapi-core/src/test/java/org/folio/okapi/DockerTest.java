@@ -81,7 +81,7 @@ public class DockerTest {
     httpClient.request(HttpMethod.DELETE, port,
         "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
           request.end();
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> {
               httpClient.close();
@@ -103,7 +103,7 @@ public class DockerTest {
         return;
       }
       res1.result().end();
-      res1.result().onComplete(res2 -> {
+      res1.result().response(res2 -> {
         if (res2.failed()) {
           future.handle(Future.failedFuture(res2.cause()));
           return;

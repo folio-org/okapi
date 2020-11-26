@@ -649,23 +649,24 @@ public class ProxyService {
       clientsEnd(bcontent, clientRequestList);
       clientRequest.end(bcontent);
       log(pc, clientRequest);
-      clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
-      clientRequest.onSuccess(res -> {
-        MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
-            meth.name(), mi);
-        Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
-        if (newIt.hasNext()) {
-          makeTraceHeader(mi, res.statusCode(), pc);
-          pc.closeTimer();
-          relayToRequest(res, pc, mi);
-          proxyR(newIt, pc, null, bcontent, new LinkedList<>());
-        } else {
-          relayToResponse(ctx.response(), res, pc);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          res.endHandler(x -> proxyResponseImmediate(pc, null, bcontent, clientRequestList));
-          res.exceptionHandler(e -> logger.warn("proxyRequestHttpClient: res exception (b)", e));
-        }
-      });
+      clientRequest.response()
+          .onFailure(res -> proxyClientFailure(pc, mi, res))
+          .onSuccess(res -> {
+            MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
+                meth.name(), mi);
+            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+            if (newIt.hasNext()) {
+              makeTraceHeader(mi, res.statusCode(), pc);
+              pc.closeTimer();
+              relayToRequest(res, pc, mi);
+              proxyR(newIt, pc, null, bcontent, new LinkedList<>());
+            } else {
+              relayToResponse(ctx.response(), res, pc);
+              makeTraceHeader(mi, res.statusCode(), pc);
+              res.endHandler(x -> proxyResponseImmediate(pc, null, bcontent, clientRequestList));
+              res.exceptionHandler(e -> logger.warn("proxyRequestHttpClient: exception", e));
+            }
+          });
     });
   }
 
@@ -682,10 +683,10 @@ public class ProxyService {
       String method = ctx.request().method().name();
       String path = mi.getRoutingEntry().getStaticPath();
       final Timer.Sample sample = MetricsHelper.getTimerSample();
-      clientRequest.onFailure(e -> MetricsHelper.recordHttpClientError(pc.getTenant(),
-          method, path));
-      clientRequest.onSuccess(res -> MetricsHelper.recordHttpClientResponse(sample,
-          pc.getTenant(), res.statusCode(), method, mi));
+      clientRequest.response()
+          .onFailure(e -> MetricsHelper.recordHttpClientError(pc.getTenant(), method, path))
+          .onSuccess(res -> MetricsHelper.recordHttpClientResponse(sample,
+              pc.getTenant(), res.statusCode(), method, mi));
       if (!it.hasNext()) {
         relayToResponse(ctx.response(), null, pc);
         copyHeaders(clientRequest, ctx, mi);
@@ -847,28 +848,29 @@ public class ProxyService {
         streamHandle(pc, stream, clientRequest, clientRequestList);
       }
       log(pc, clientRequest);
-      clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
-      clientRequest.onSuccess(res -> {
-        MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
-            request.method().name(), mi);
-        fixupXOkapiToken(mi.getModuleDescriptor(), request.headers(), res.headers());
-        Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
-        if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
-          makeTraceHeader(mi, res.statusCode(), pc);
-          relayToRequest(res, pc, mi);
-          for (String header : FORWARD_HEADERS) {
-            MultiMap headers = request.headers();
-            request.headers().set(header, res.getHeader(header));
-          }
-          storeResponseInfo(pc, mi, res);
-          res.pause();
-          proxyR(newIt, pc, res, null, new LinkedList<>());
-        } else {
-          relayToResponse(response, res, pc);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          proxyResponseImmediate(pc, res, null, new LinkedList<>());
-        }
-      });
+      clientRequest.response()
+          .onFailure(res -> proxyClientFailure(pc, mi, res))
+          .onSuccess(res -> {
+            MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
+                request.method().name(), mi);
+            fixupXOkapiToken(mi.getModuleDescriptor(), request.headers(), res.headers());
+            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+            if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
+              makeTraceHeader(mi, res.statusCode(), pc);
+              relayToRequest(res, pc, mi);
+              for (String header : FORWARD_HEADERS) {
+                MultiMap headers = request.headers();
+                request.headers().set(header, res.getHeader(header));
+              }
+              storeResponseInfo(pc, mi, res);
+              res.pause();
+              proxyR(newIt, pc, res, null, new LinkedList<>());
+            } else {
+              relayToResponse(response, res, pc);
+              makeTraceHeader(mi, res.statusCode(), pc);
+              proxyResponseImmediate(pc, res, null, new LinkedList<>());
+            }
+          });
     });
   }
 
@@ -885,30 +887,31 @@ public class ProxyService {
       copyHeaders(clientRequest, ctx, mi);
       clientRequest.end();
       log(pc, clientRequest);
-      clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
-      clientRequest.onSuccess(res -> {
-        MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
-            ctx.request().method().name(), mi);
-        Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
-        if (newIt.hasNext()) {
-          relayToRequest(res, pc, mi);
-          storeResponseInfo(pc, mi, res);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          res.endHandler(x
-              -> proxyR(newIt, pc, stream, bcontent, clientRequestList));
-        } else {
-          relayToResponse(ctx.response(), res, pc);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          if (res.statusCode() >= 200 && res.statusCode() <= 299) {
-            proxyResponseImmediate(pc, stream, bcontent, clientRequestList);
-          } else {
-            proxyResponseImmediate(pc, res, null, clientRequestList);
-            if (bcontent == null) {
-              stream.resume();
+      clientRequest.response()
+          .onFailure(res -> proxyClientFailure(pc, mi, res))
+          .onSuccess(res -> {
+            MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
+                ctx.request().method().name(), mi);
+            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+            if (newIt.hasNext()) {
+              relayToRequest(res, pc, mi);
+              storeResponseInfo(pc, mi, res);
+              makeTraceHeader(mi, res.statusCode(), pc);
+              res.endHandler(x
+                  -> proxyR(newIt, pc, stream, bcontent, clientRequestList));
+            } else {
+              relayToResponse(ctx.response(), res, pc);
+              makeTraceHeader(mi, res.statusCode(), pc);
+              if (res.statusCode() >= 200 && res.statusCode() <= 299) {
+                proxyResponseImmediate(pc, stream, bcontent, clientRequestList);
+              } else {
+                proxyResponseImmediate(pc, res, null, clientRequestList);
+                if (bcontent == null) {
+                  stream.resume();
+                }
+              }
             }
-          }
-        }
-      });
+          });
     });
   }
 

@@ -140,7 +140,7 @@ public class ProxyTest {
       HttpClientRequest req = req1.result();
       req.putHeader("X-Okapi-Token", token);
       req.end();
-      req.onComplete(res1 -> {
+      req.response(res1 -> {
         if (res1.failed()) {
           ctx.response().setStatusCode(500);
           ctx.response().end();
@@ -191,7 +191,7 @@ public class ProxyTest {
               .putHeader("Accept", "application/json")
               .putHeader("X-Okapi-Tenant", tenant);
           request.end(docLogin);
-          request.onComplete(res1 -> {
+          request.response(res1 -> {
             if (res1.failed()) {
               ctx.response().setStatusCode(500);
               ctx.response().end();
@@ -378,7 +378,7 @@ public class ProxyTest {
     httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules",
         context.asyncAssertSuccess(request -> {
           request.end();
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> {
               httpClient.close();
@@ -509,7 +509,7 @@ public class ProxyTest {
     HttpClient client = vertx.createHttpClient();
 
     httpClient.request(HttpMethod.POST, port, "localhost", uri, context.asyncAssertSuccess(request -> {
-      request.onComplete(context.asyncAssertSuccess(res -> {
+      request.response(context.asyncAssertSuccess(res -> {
         context.assertEquals(200, res.statusCode());
         AtomicLong cnt = new AtomicLong();
         res.handler(h -> cnt.addAndGet(h.length()));

@@ -302,7 +302,7 @@ public class SampleModuleTest {
           buffer.appendString("X");
         }
         endRequest(request, buffer, 0, bufCnt);
-        request.onSuccess(res -> {
+        request.response(context.asyncAssertSuccess(res -> {
           context.assertEquals(200, res.statusCode());
           AtomicLong cnt = new AtomicLong();
           res.handler(h -> cnt.addAndGet(h.length()));
@@ -314,7 +314,7 @@ public class SampleModuleTest {
             context.assertEquals(total + 6, cnt.get());
             async.complete();
           });
-        });
+        }));
       });
       async.await(50000);
     }
