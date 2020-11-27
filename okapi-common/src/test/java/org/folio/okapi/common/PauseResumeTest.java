@@ -37,7 +37,7 @@ public class PauseResumeTest {
         return;
       }
       req.result().end();
-      req.result().onComplete(res -> {
+      req.result().response(res -> {
         if (res.failed()) {
           ctx.response().setStatusCode(500);
           ctx.response().end(res.cause().getMessage());
@@ -80,7 +80,7 @@ public class PauseResumeTest {
     HttpClient cli = vertx.createHttpClient();
     cli.request(HttpMethod.POST, PORT,"localhost", "/test1").onComplete(context.asyncAssertSuccess(req -> {
       req.end();
-      req.onComplete(context.asyncAssertSuccess(res -> {
+      req.response(context.asyncAssertSuccess(res -> {
         Buffer b = Buffer.buffer();
         res.handler(b::appendBuffer);
         res.endHandler(res2 -> {
@@ -100,7 +100,7 @@ public class PauseResumeTest {
     HttpClient cli = vertx.createHttpClient();
     cli.request(HttpMethod.POST, PORT,"localhost", "/test2").onComplete(context.asyncAssertSuccess(req -> {
       req.end();
-      req.onComplete(context.asyncAssertSuccess(res -> {
+      req.response(context.asyncAssertSuccess(res -> {
         Buffer b = Buffer.buffer();
         res.handler(b::appendBuffer);
         res.endHandler(res2 -> {

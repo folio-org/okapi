@@ -435,7 +435,7 @@ public class DiscoveryManager implements NodeListener {
         return;
       }
       req.result().end();
-      req.result().onFailure(cause ->
+      req.result().response().onFailure(cause ->
           promise.handle(fail(cause, hd))
       ).onSuccess(response -> {
         response.endHandler(x -> {
