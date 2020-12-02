@@ -1,3 +1,7 @@
+## (NEXT RELEASE)
+
+ * Provide utility script [`okapi-curl`](util/okapi-curl).
+
 ## 4.4.0 2020-11-19
 
 New features:
