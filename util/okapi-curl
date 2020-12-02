@@ -8,7 +8,7 @@
 #
 # Now you can issue much simpler curl commands by using `okapi-curl`, for example:
 #
-#	curl-okapi http://localhost:3190/copycat/target-profiles
+#	okapi-curl http://localhost:9130/copycat/target-profiles
 
 if [ $# = 0 ]; then
    echo "Usage: $0 <path> [<curl-options>]" >&2
