@@ -14,8 +14,6 @@ managing and running microservices.
     * [Versioning and Dependencies](#versioning-and-dependencies)
     * [Security](#security)
     * [Open Issues](#open-issues)
-* [Implementation](#implementation)
-    * [Missing features](#missing-features)
 * [Compiling and Running](#compiling-and-running)
 * [Using Okapi](#using-okapi)
     * [Storage](#storage)
@@ -638,15 +636,6 @@ HTTP, e.g. using a polling approach or HTTP extensions like
 websockets. We anticipate that for future releases of Okapi we will
 investigate the asynchronous approach in depth and provide support for
 some open messaging protocols (e.g. STOMP).
-
-## Implementation
-
-We have a rudimentary implementation of Okapi in place. The examples below
-are supposed to work with the current implementation.
-
-### Missing features
-
-Nothing major, at this point.
 
 ## Compiling and Running
 
