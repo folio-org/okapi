@@ -1136,8 +1136,7 @@ public class InstallTest {
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"async-init-1.0.0\"," + LS
         + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"Unsupported interface _tenant: 2.0\"," + LS
-        + "    \"stage\" : \"invoke\"" + LS
+        + "    \"stage\" : \"done\"" + LS
         + "  } ]" + LS
         + "}", job.encodePrettily());
 

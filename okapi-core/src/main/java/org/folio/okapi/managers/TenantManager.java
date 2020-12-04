@@ -11,6 +11,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -311,15 +312,17 @@ public class TenantManager implements Liveness {
     boolean purge = mdTo == null && options.getPurge();
     return getTenantInstanceForModule(mdFrom, mdTo, jo, tenantParameters, purge)
         .compose(instance -> {
-          if (instance == null) {
+          if (instance.isEmpty()) {
             logger.debug("{}: has no support for tenant init",
                 (mdTo != null ? mdTo.getId() : mdFrom.getId()));
             return Future.succeededFuture();
           }
-          String req = HttpMethod.DELETE.equals(instance.getMethod()) ? "" : jo.encodePrettily();
-          return proxyService.callSystemInterface(tenant, instance, req, pc).compose(cres -> {
+          String req = HttpMethod.DELETE.equals(instance.get(0).getMethod()) ?
+              "" : jo.encodePrettily();
+          return proxyService.callSystemInterface(tenant, instance.get(0), req, pc).compose(cres -> {
             pc.passOkapiTraceHeaders(cres);
-            // We can ignore the result, the call went well.
+            // TODO:
+            String location = cres.getRespHeaders().get("Location");
             return Future.succeededFuture();
           });
         });
@@ -640,55 +643,60 @@ public class TenantManager implements Liveness {
    * @param jo Json Object to be POSTed
    * @param tenantParameters tenant parameters (eg sample data)
    * @param purge true if purging (DELETE)
-   * @return future (result==null if no tenant interface!)
+   * @return future empty ModuleInstance list if no tenant interface
    */
-  static Future<ModuleInstance> getTenantInstanceForModule(
+  static Future<List<ModuleInstance>> getTenantInstanceForModule(
       ModuleDescriptor mdFrom,
       ModuleDescriptor mdTo, JsonObject jo, String tenantParameters, boolean purge) {
 
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     InterfaceDescriptor[] prov = md.getProvidesList();
+    List<ModuleInstance> instances = new LinkedList<>();
     for (InterfaceDescriptor pi : prov) {
       logger.debug("findTenantInterface: Looking at {}", pi.getId());
       if ("_tenant".equals(pi.getId())) {
         final String v = pi.getVersion();
         final String method = purge ? "DELETE" : "POST";
-        ModuleInstance instance;
+        ModuleInstance instance = null;
         switch (v) {
           case "1.0":
             if (mdTo != null || purge) {
               instance = getTenantInstanceForInterface(pi, mdFrom, mdTo, method);
-              if (instance != null) {
-                return Future.succeededFuture(instance);
-              } else if (!purge) {
+              if (instance == null && !purge) {
                 logger.warn("Module '{}' uses old-fashioned tenant "
                     + "interface. Define InterfaceType=system, and add a RoutingEntry."
                     + " Falling back to calling /_/tenant.", md.getId());
-                return Future.succeededFuture(new ModuleInstance(md, null,
-                    "/_/tenant", HttpMethod.POST, true).withRetry());
+                return Future.succeededFuture(Arrays.asList(new ModuleInstance(md, null,
+                    "/_/tenant", HttpMethod.POST, true).withRetry()));
               }
             }
             break;
           case "1.1":
             instance = getTenantInstanceForInterface(pi, mdFrom, mdTo, method);
-            if (instance != null) {
-              return Future.succeededFuture(instance);
-            }
             break;
           case "1.2":
             putTenantParameters(jo, tenantParameters);
             instance = getTenantInstanceForInterface(pi, mdFrom, mdTo, method);
+            break;
+          case "2.0":
+            jo.put("purge", purge);
+            putTenantParameters(jo, tenantParameters);
+            instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "POST");
             if (instance != null) {
-              return Future.succeededFuture(instance);
+              instances.add(instance);
             }
+            instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "GET");
             break;
           default:
             return Future.failedFuture(new OkapiError(ErrorType.USER,
                 messages.getMessage("10401", v)));
         }
+        if (instance != null) {
+          instances.add(instance);
+        }
       }
     }
-    return Future.succeededFuture(null);
+    return Future.succeededFuture(instances);
   }
 
   private static void putTenantParameters(JsonObject jo, String tenantParameters) {
@@ -728,6 +736,22 @@ public class TenantManager implements Liveness {
           } else if (mdTo != null) {
             return new ModuleInstance(md, re, pattern, HttpMethod.POST, true).withRetry();
           }
+        }
+      }
+    }
+    return null;
+  }
+
+  private static ModuleInstance getTenantInstanceForInterfacev2(
+      InterfaceDescriptor pi, ModuleDescriptor mdFrom,
+      ModuleDescriptor mdTo, String method) {
+
+    ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
+    if ("system".equals(pi.getInterfaceType())) {
+      List<RoutingEntry> res = pi.getAllRoutingEntries();
+      for (RoutingEntry re : res) {
+        if (re.match(null, method)) {
+          return new ModuleInstance(md, re, re.getStaticPath(), HttpMethod.valueOf(method), true).withRetry();
         }
       }
     }
