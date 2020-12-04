@@ -317,14 +317,15 @@ public class TenantManager implements Liveness {
                 (mdTo != null ? mdTo.getId() : mdFrom.getId()));
             return Future.succeededFuture();
           }
-          String req = HttpMethod.DELETE.equals(instance.get(0).getMethod()) ?
-              "" : jo.encodePrettily();
-          return proxyService.callSystemInterface(tenant, instance.get(0), req, pc).compose(cres -> {
-            pc.passOkapiTraceHeaders(cres);
-            // TODO:
-            String location = cres.getRespHeaders().get("Location");
-            return Future.succeededFuture();
-          });
+          String req = HttpMethod.DELETE.equals(instance.get(0).getMethod())
+              ? "" : jo.encodePrettily();
+          return proxyService.callSystemInterface(tenant, instance.get(0), req, pc)
+              .compose(cres -> {
+                pc.passOkapiTraceHeaders(cres);
+                // TODO:
+                String location = cres.getRespHeaders().get("Location");
+                return Future.succeededFuture();
+              });
         });
   }
 
@@ -751,7 +752,8 @@ public class TenantManager implements Liveness {
       List<RoutingEntry> res = pi.getAllRoutingEntries();
       for (RoutingEntry re : res) {
         if (re.match(null, method)) {
-          return new ModuleInstance(md, re, re.getStaticPath(), HttpMethod.valueOf(method), true).withRetry();
+          return new ModuleInstance(md, re, re.getStaticPath(), HttpMethod.valueOf(method), true)
+              .withRetry();
         }
       }
     }
