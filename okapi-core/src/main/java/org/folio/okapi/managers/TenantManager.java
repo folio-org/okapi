@@ -48,7 +48,7 @@ import org.folio.okapi.util.TenantInstallOptions;
 @java.lang.SuppressWarnings({"squid:S1192"}) // String literals should not be duplicated
 public class TenantManager implements Liveness {
 
-  private final Logger logger = OkapiLogger.get();
+  private static final Logger logger = OkapiLogger.get();
   private ModuleManager moduleManager;
   private ProxyService proxyService = null;
   private DiscoveryManager discoveryManager;
@@ -58,7 +58,7 @@ public class TenantManager implements Liveness {
   private LockedTypedMap2<InstallJob> jobs = new LockedTypedMap2<>(InstallJob.class);
   private static final String EVENT_NAME = "timer";
   private Set<String> timers = new HashSet<>();
-  private Messages messages = Messages.getInstance();
+  private static Messages messages = Messages.getInstance();
   private Vertx vertx;
   private Map<String, ModuleCache> enabledModulesCache = new HashMap<>();
   // tenants with new permission module (_tenantPermissions version 1.1 or later)
@@ -316,7 +316,7 @@ public class TenantManager implements Liveness {
                 (mdTo != null ? mdTo.getId() : mdFrom.getId()));
             return Future.succeededFuture();
           }
-          final String req = purge ? "" : jo.encodePrettily();
+          String req = HttpMethod.DELETE.equals(instance.getMethod()) ? "" : jo.encodePrettily();
           return proxyService.callSystemInterface(tenant, instance, req, pc).compose(cres -> {
             pc.passOkapiTraceHeaders(cres);
             // We can ignore the result, the call went well.
@@ -642,7 +642,7 @@ public class TenantManager implements Liveness {
    * @param purge true if purging (DELETE)
    * @return future (result==null if no tenant interface!)
    */
-  private Future<ModuleInstance> getTenantInstanceForModule(
+  static Future<ModuleInstance> getTenantInstanceForModule(
       ModuleDescriptor mdFrom,
       ModuleDescriptor mdTo, JsonObject jo, String tenantParameters, boolean purge) {
 
@@ -691,7 +691,7 @@ public class TenantManager implements Liveness {
     return Future.succeededFuture(null);
   }
 
-  private void putTenantParameters(JsonObject jo, String tenantParameters) {
+  private static void putTenantParameters(JsonObject jo, String tenantParameters) {
     if (tenantParameters != null) {
       JsonArray ja = new JsonArray();
       for (String p : tenantParameters.split(",")) {
@@ -709,7 +709,7 @@ public class TenantManager implements Liveness {
     }
   }
 
-  private ModuleInstance getTenantInstanceForInterface(
+  private static ModuleInstance getTenantInstanceForInterface(
       InterfaceDescriptor pi, ModuleDescriptor mdFrom,
       ModuleDescriptor mdTo, String method) {
 
