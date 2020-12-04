@@ -25,7 +25,7 @@ public class ModuleTenantInitAsync implements ModuleHandle {
   private HttpServer server;
   private Map<String,JsonObject> jobs = new HashMap<>();
 
-  ModuleTenantInitAsync(Vertx vertx, String id, int port) {
+  public ModuleTenantInitAsync(Vertx vertx, String id, int port) {
     this.vertx = vertx;
     this.id = id;
     this.port = port;

@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.testutil.ModuleTenantInitAsync;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -116,15 +117,7 @@ public class InstallTest {
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
-    // add tenant
-    c = api.createRestAssured3();
-    c.given()
-        .header("Content-Type", "application/json")
-        .body(new JsonObject().put("id", okapiTenant).encode()).post("/_/proxy/tenants")
-        .then().statusCode(201);
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
+    createTenant(context, okapiTenant);
 
     c = api.createRestAssured3();
     c.given()
@@ -157,15 +150,7 @@ public class InstallTest {
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
-    // add tenant
-    c = api.createRestAssured3();
-    c.given()
-        .header("Content-Type", "application/json")
-        .body(new JsonObject().put("id", okapiTenant).encode()).post("/_/proxy/tenants")
-        .then().statusCode(201);
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
+    createTenant(context, okapiTenant);
 
     c = api.createRestAssured3();
     c.given()
@@ -176,6 +161,20 @@ public class InstallTest {
         c.getLastReport().isEmpty());
   }
 
+  String createTenant(TestContext context, String tenant) {
+    RestAssuredClient c = api.createRestAssured3();
+
+    c = api.createRestAssured3();
+    Response r = c.given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("id", tenant).encode()).post("/_/proxy/tenants")
+        .then().statusCode(201).extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    return r.getHeader("Location");
+  }
+
   @Test
   public void installDeleteNotCompleter(TestContext context) {
     RestAssuredClient c = api.createRestAssured3();
@@ -184,16 +183,7 @@ public class InstallTest {
 
     startTimerServer().onComplete(context.asyncAssertSuccess(x -> timerServer = x));
 
-    // add tenant
-    c = api.createRestAssured3();
-    c.given()
-        .header("Content-Type", "application/json")
-        .body(new JsonObject().put("id", okapiTenant).encode()).post("/_/proxy/tenants")
-        .then().statusCode(201);
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
-
+    createTenant(context, okapiTenant);
     createTimerModule(context);
 
     final String nodeDoc1 = "{" + LS
@@ -286,16 +276,7 @@ public class InstallTest {
 
     final String okapiTenant = "roskilde";
 
-    // add tenant
-    c = api.createRestAssured3();
-    r = c.given()
-        .header("Content-Type", "application/json")
-        .body(new JsonObject().put("id", okapiTenant).encode()).post("/_/proxy/tenants")
-        .then().statusCode(201).extract().response();
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
-    final String locationTenantRoskilde = r.getHeader("Location");
+    createTenant(context, okapiTenant);
 
     final String docBasic_1_0_0 = "{" + LS
         + "  \"id\" : \"basic-module-1.0.0\"," + LS
@@ -368,23 +349,7 @@ public class InstallTest {
 
     final String okapiTenant = "roskilde";
 
-    // add tenant
-    final String docTenantRoskilde = "{" + LS
-        + "  \"id\" : \"" + okapiTenant + "\"," + LS
-        + "  \"name\" : \"" + okapiTenant + "\"," + LS
-        + "  \"description\" : \"Roskilde bibliotek\"" + LS
-        + "}";
-    c = api.createRestAssured3();
-    r = c.given()
-        .header("Content-Type", "application/json")
-        .body(docTenantRoskilde).post("/_/proxy/tenants")
-        .then().statusCode(201)
-        .body(equalTo(docTenantRoskilde))
-        .extract().response();
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
-    final String locationTenantRoskilde = r.getHeader("Location");
+    createTenant(context, okapiTenant);
 
     final String docBasic_1_0_0 = "{" + LS
         + "  \"id\" : \"basic-module-1.0.0\"," + LS
@@ -602,7 +567,7 @@ public class InstallTest {
   }
 
   @Test
-  public void installTenantInit(TestContext context) {
+  public void installTenantInitVersion1(TestContext context) {
     RestAssuredClient c;
     Response r;
 
@@ -620,23 +585,7 @@ public class InstallTest {
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
-    // add tenant
-    final String docTenantRoskilde = "{" + LS
-        + "  \"id\" : \"" + okapiTenant + "\"," + LS
-        + "  \"name\" : \"" + okapiTenant + "\"," + LS
-        + "  \"description\" : \"Roskilde bibliotek\"" + LS
-        + "}";
-    c = api.createRestAssured3();
-    r = c.given()
-        .header("Content-Type", "application/json")
-        .body(docTenantRoskilde).post("/_/proxy/tenants")
-        .then().statusCode(201)
-        .body(equalTo(docTenantRoskilde))
-        .extract().response();
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
-    final String locationTenantRoskilde = r.getHeader("Location");
+    createTenant(context, okapiTenant);
 
     c = api.createRestAssured3();
     c.given()
@@ -1122,4 +1071,76 @@ public class InstallTest {
     timerServer.close();
   }
 
+  @Test
+  public void installTenantInitVersion2(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+    final String okapiTenant = "roskilde";
+
+    createTenant(context, okapiTenant);
+    final String docModule = "{" + LS
+        + "  \"id\" : \"async-init-1.0.0\"," + LS
+        + "  \"name\" : \"async tenant init module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenant\"," + LS
+        + "    \"version\" : \"2.0\"," + LS
+        + "    \"interfaceType\" : \"system\"" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(docModule).post("/_/proxy/modules").then().statusCode(201);
+
+
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+
+    tModule.start().onComplete(context.asyncAssertSuccess());
+
+    final String nodeDoc1 = "{" + LS
+        + "  \"instId\" : \"localhost-" + Integer.toString(portTimer) + "\"," + LS
+        + "  \"srvcId\" : \"async-init-1.0.0\"," + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+        + "}";
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+        .body(nodeDoc1).post("/_/discovery/modules")
+        .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"async-init-1.0.0\", \"action\" : \"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true")
+        .then().statusCode(201)
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"async-init-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "} ]"))
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    String locationInstallJob = r.getHeader("Location");
+
+    String path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+
+    JsonObject job = pollCompleteStrip(context, path);
+    context.assertEquals("{" + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"async-init-1.0.0\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"message\" : \"Unsupported interface _tenant: 2.0\"," + LS
+        + "    \"stage\" : \"invoke\"" + LS
+        + "  } ]" + LS
+        + "}", job.encodePrettily());
+
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
 }
