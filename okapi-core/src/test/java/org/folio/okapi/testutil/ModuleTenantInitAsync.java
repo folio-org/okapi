@@ -23,12 +23,27 @@ public class ModuleTenantInitAsync implements ModuleHandle {
   private String id;
   private int port;
   private HttpServer server;
+  private boolean omitIdInResponse = false;
+  private boolean omitLocationInResponse = false;
+  private boolean badJsonResponse = false;
   private Map<String,JsonObject> jobs = new HashMap<>();
 
   public ModuleTenantInitAsync(Vertx vertx, String id, int port) {
     this.vertx = vertx;
     this.id = id;
     this.port = port;
+  }
+
+  public void setOmitIdInResponse(boolean omitIdInResponse) {
+    this.omitIdInResponse = omitIdInResponse;
+  }
+
+  public void setOmitLocationInResponse(boolean omitLocationInResponse) {
+    this.omitLocationInResponse = omitLocationInResponse;
+  }
+
+  public void setBadJsonResponse(boolean badJsonResponse) {
+    this.badJsonResponse = badJsonResponse;
   }
 
   public void tenantGet(RoutingContext ctx) {
@@ -42,7 +57,9 @@ public class ModuleTenantInitAsync implements ModuleHandle {
       ctx.response().end("Not found " + id);
       return;
     }
-    obj.put("complete", Boolean.TRUE);
+    int count = obj.getInteger("count");
+    obj.put("count", --count);
+    obj.put("complete", count <= 0);
     ctx.response().setStatusCode(200);
     ctx.response().putHeader("Content-Type", "application/json");
     ctx.response().putHeader("Location", "/_/tenant/" + id);
@@ -53,15 +70,20 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     HttpMethod method = ctx.request().method();
     String path = ctx.request().path();
     if (HttpMethod.POST.equals(method) && path.equals("/_/tenant")) {
+      ctx.response().setStatusCode(201);
       JsonObject obj = ctx.getBodyAsJson();
+      obj.put("count", 3);
       obj.put("complete", Boolean.FALSE);
       String id = UUID.randomUUID().toString();
-      obj.put("id", id);
+      if (!omitIdInResponse) {
+        obj.put("id", id);
+      }
       jobs.put(id, obj);
-      ctx.response().setStatusCode(201);
       ctx.response().putHeader("Content-Type", "application/json");
-      ctx.response().putHeader("Location", "/_/tenant/" + id);
-      ctx.end(obj.encodePrettily());
+      if (!omitLocationInResponse) {
+        ctx.response().putHeader("Location", "/_/tenant/" + id);
+      }
+      ctx.end(badJsonResponse ? "}" : obj.encodePrettily());
     } else {
       ctx.response().setStatusCode(404);
       ctx.response().putHeader("Content-Type", "text/plain");

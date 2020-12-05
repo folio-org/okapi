@@ -1071,13 +1071,7 @@ public class InstallTest {
     timerServer.close();
   }
 
-  @Test
-  public void installTenantInitVersion2(TestContext context) {
-    RestAssuredClient c;
-    Response r;
-    final String okapiTenant = "roskilde";
-
-    createTenant(context, okapiTenant);
+  void createAsyncInitModule(TestContext context) {
     final String docModule = "{" + LS
         + "  \"id\" : \"async-init-1.0.0\"," + LS
         + "  \"name\" : \"async tenant init module\"," + LS
@@ -1085,8 +1079,6 @@ public class InstallTest {
         + "    \"id\" : \"_tenant\"," + LS
         + "    \"version\" : \"2.0\"," + LS
         + "    \"interfaceType\" : \"system\"," + LS
-
-
         + "    \"handlers\" : [ {" + LS
         + "      \"methods\" : [ \"POST\" ]," + LS
         + "      \"pathPattern\" : \"/_/tenant\"," + LS
@@ -1096,41 +1088,37 @@ public class InstallTest {
         + "      \"pathPattern\" : \"/_/tenant/{id}\"," + LS
         + "      \"permissionsRequired\" : [ ]" + LS
         + "    } ]" + LS
-
-
-
         + "  } ]," + LS
         + "  \"requires\" : [ ]" + LS
         + "}";
 
-    c = api.createRestAssured3();
+    RestAssuredClient c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
         .body(docModule).post("/_/proxy/modules").then().statusCode(201);
+  }
 
-
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
-
-    tModule.start().onComplete(context.asyncAssertSuccess());
-
+  void deployAsyncInitModule(TestContext context, int port) {
     final String nodeDoc1 = "{" + LS
-        + "  \"instId\" : \"localhost-" + Integer.toString(portTimer) + "\"," + LS
+        + "  \"instId\" : \"localhost-" + Integer.toString(port) + "\"," + LS
         + "  \"srvcId\" : \"async-init-1.0.0\"," + LS
-        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(port) + "\"" + LS
         + "}";
 
-    c = api.createRestAssured3();
+    RestAssuredClient c = api.createRestAssured3();
     c.given().header("Content-Type", "application/json")
         .body(nodeDoc1).post("/_/discovery/modules")
         .then().statusCode(201);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
+  }
 
-    c = api.createRestAssured3();
-    r = c.given()
+  JsonObject enableAndWait(TestContext context, String tenant, String module) {
+    RestAssuredClient c = api.createRestAssured3();
+    Response r = c.given()
         .header("Content-Type", "application/json")
-        .body("[ {\"id\" : \"async-init-1.0.0\", \"action\" : \"enable\"} ]")
-        .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true")
+        .body("[ {\"id\" : \"" + module + "\", \"action\" : \"enable\"} ]")
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true")
         .then().statusCode(201)
         .body(equalTo("[ {" + LS
             + "  \"id\" : \"async-init-1.0.0\"," + LS
@@ -1144,7 +1132,22 @@ public class InstallTest {
 
     String path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
-    JsonObject job = pollCompleteStrip(context, path);
+    return pollCompleteStrip(context, path);
+  }
+
+  @Test
+  public void installTenantInitVersion2OK(TestContext context) {
+    final String okapiTenant = "roskilde";
+
+    createTenant(context, okapiTenant);
+    createAsyncInitModule(context);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+
+    tModule.start().onComplete(context.asyncAssertSuccess());
+
+    deployAsyncInitModule(context, portTimer);
+
+    JsonObject job = enableAndWait(context, okapiTenant, "async-init-1.0.0");
     context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
@@ -1156,4 +1159,79 @@ public class InstallTest {
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
+
+  @Test
+  public void installTenantInitVersion2NoLocation(TestContext context) {
+    final String okapiTenant = "roskilde";
+
+    createTenant(context, okapiTenant);
+    createAsyncInitModule(context);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+
+    tModule.setOmitLocationInResponse(true);
+    tModule.start().onComplete(context.asyncAssertSuccess());
+
+    deployAsyncInitModule(context, portTimer);
+
+    JsonObject job = enableAndWait(context, okapiTenant, "async-init-1.0.0");
+    context.assertEquals("{" + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"async-init-1.0.0\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"message\" : \"No Location returned for POST /_/tenant\"," + LS
+        + "    \"stage\" : \"invoke\"" + LS
+        + "  } ]" + LS
+        + "}", job.encodePrettily());
+
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
+  @Test
+  public void installTenantInitVersion2NoId(TestContext context) {
+    final String okapiTenant = "roskilde";
+
+    createTenant(context, okapiTenant);
+    createAsyncInitModule(context);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+
+    tModule.setOmitIdInResponse(true);
+    tModule.start().onComplete(context.asyncAssertSuccess());
+
+    deployAsyncInitModule(context, portTimer);
+
+    JsonObject job = enableAndWait(context, okapiTenant, "async-init-1.0.0");
+    context.assertEquals("{" + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"async-init-1.0.0\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"message\" : \"Missing id property in JSON response for POST /_/tenant\"," + LS
+        + "    \"stage\" : \"invoke\"" + LS
+        + "  } ]" + LS
+        + "}", job.encodePrettily());
+
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
+  @Test
+  public void installTenantInitVersion2BadJson(TestContext context) {
+    final String okapiTenant = "roskilde";
+
+    createTenant(context, okapiTenant);
+    createAsyncInitModule(context);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+
+    tModule.setBadJsonResponse(true);
+    tModule.start().onComplete(context.asyncAssertSuccess());
+
+    deployAsyncInitModule(context, portTimer);
+
+    JsonObject job = enableAndWait(context, okapiTenant, "async-init-1.0.0");
+    context.assertTrue(job.getJsonArray("modules").getJsonObject(0).
+        getString("message").startsWith("Failed to decode:Unexpected close marker"));
+
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
 }

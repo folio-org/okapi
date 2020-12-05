@@ -339,24 +339,31 @@ public class TenantManager implements Liveness {
                 (mdTo != null ? mdTo.getId() : mdFrom.getId()));
             return Future.succeededFuture();
           }
-          String req = HttpMethod.DELETE.equals(instances.get(0).getMethod())
+          ModuleInstance postInstance = instances.get(0);
+          String req = HttpMethod.DELETE.equals(postInstance.getMethod())
               ? "" : jo.encodePrettily();
-          return proxyService.callSystemInterface(tenant, instances.get(0), req, pc)
+          return proxyService.callSystemInterface(tenant, postInstance, req, pc)
               .compose(cres -> {
                 pc.passOkapiTraceHeaders(cres);
                 String location = cres.getRespHeaders().get("Location");
-                if (instances.size() == 1 || location == null) {
-                  return Future.succeededFuture();
+                if (instances.size() == 1) {
+                  return Future.succeededFuture(); // version 1 series (sync)
                 }
-                instances.get(1).setUrl(instances.get(0).getUrl()); // same URL for POST & GET
+                if (location == null) {
+                  return Future.failedFuture(messages.getMessage("10407",
+                      postInstance.getMethod().name(), postInstance.getPath()));
+                }
+                ModuleInstance getInstance = instances.get(1);
                 JsonObject obj = new JsonObject(cres.getResponsebody());
                 String id = obj.getString("id");
                 if (id == null) {
-                  return Future.failedFuture("Missing id in " + obj.encodePrettily());
+                  return Future.failedFuture(messages.getMessage("10408",
+                      postInstance.getMethod().name(), postInstance.getPath()));
                 }
-                instances.get(1).substPath("{id}", id);
+                getInstance.setUrl(postInstance.getUrl()); // same URL for POST & GET
+                getInstance.substPath("{id}", id);
                 Promise<Void> promise = Promise.promise();
-                waitTenantInit(tenant, instances.get(1), pc, promise, 1000);
+                waitTenantInit(tenant, getInstance, pc, promise, 1000);
                 return promise.future();
               });
         });
@@ -716,10 +723,12 @@ public class TenantManager implements Liveness {
             jo.put("purge", purge);
             putTenantParameters(jo, tenantParameters);
             instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "POST");
-            if (instance != null) {
-              instances.add(instance);
+            if (instance == null) {
+              return Future.succeededFuture(null);
             }
+            instances.add(instance);
             instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "GET");
+            // first in list is POST instance, second is GET instance
             break;
           default:
             return Future.failedFuture(new OkapiError(ErrorType.USER,
