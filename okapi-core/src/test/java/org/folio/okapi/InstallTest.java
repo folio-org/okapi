@@ -1084,7 +1084,21 @@ public class InstallTest {
         + "  \"provides\" : [ {" + LS
         + "    \"id\" : \"_tenant\"," + LS
         + "    \"version\" : \"2.0\"," + LS
-        + "    \"interfaceType\" : \"system\"" + LS
+        + "    \"interfaceType\" : \"system\"," + LS
+
+
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/_/tenant\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    }, {" + LS
+        + "      \"methods\" : [ \"GET\" ]," + LS
+        + "      \"pathPattern\" : \"/_/tenant/{id}\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+
+
+
         + "  } ]," + LS
         + "  \"requires\" : [ ]" + LS
         + "}";

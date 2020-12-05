@@ -31,7 +31,25 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     this.port = port;
   }
 
-  public void tenantHandler(RoutingContext ctx) {
+  public void tenantGet(RoutingContext ctx) {
+    HttpMethod method = ctx.request().method();
+    String path = ctx.request().path();
+    String id = path.substring(path.lastIndexOf('/') + 1);
+    JsonObject obj = jobs.get(id);
+    if (obj == null) {
+      ctx.response().setStatusCode(404);
+      ctx.response().putHeader("Content-Type", "text/plain");
+      ctx.response().end("Not found " + id);
+      return;
+    }
+    obj.put("complete", Boolean.TRUE);
+    ctx.response().setStatusCode(200);
+    ctx.response().putHeader("Content-Type", "application/json");
+    ctx.response().putHeader("Location", "/_/tenant/" + id);
+    ctx.end(obj.encodePrettily());
+  }
+
+  public void tenantPost(RoutingContext ctx) {
     HttpMethod method = ctx.request().method();
     String path = ctx.request().path();
     if (HttpMethod.POST.equals(method) && path.equals("/_/tenant")) {
@@ -44,32 +62,20 @@ public class ModuleTenantInitAsync implements ModuleHandle {
       ctx.response().putHeader("Content-Type", "application/json");
       ctx.response().putHeader("Location", "/_/tenant/" + id);
       ctx.end(obj.encodePrettily());
-    } else if (HttpMethod.GET.equals(method) && path.startsWith("/_/tenant/")) {
-      String id = path.substring(path.lastIndexOf('/') + 1);
-      JsonObject obj = jobs.get(id);
-      if (obj == null) {
-        ctx.response().setStatusCode(404);
-        ctx.response().putHeader("Content-Type", "text/plain");
-        ctx.response().end("Not found " + id);
-        return;
-      }
-      obj.put("complete", Boolean.TRUE);
-      ctx.response().setStatusCode(200);
-      ctx.response().putHeader("Content-Type", "application/json");
-      ctx.response().putHeader("Location", "/_/tenant/" + id);
-      ctx.end(obj.encodePrettily());
     } else {
       ctx.response().setStatusCode(404);
       ctx.response().putHeader("Content-Type", "text/plain");
       ctx.response().end("Not found");
     }
   }
+
   @Override
   public Future<Void> start() {
     Router router = Router.router(vertx);
 
     router.post("/_/tenant").handler(BodyHandler.create());
-    router.post("/_/tenant").handler(this::tenantHandler);
+    router.post("/_/tenant").handler(this::tenantPost);
+    router.getWithRegex("/_/tenant/.*").handler(this::tenantGet);
 
     return vertx.createHttpServer()
         .requestHandler(router)

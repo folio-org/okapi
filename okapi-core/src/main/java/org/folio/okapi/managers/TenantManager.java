@@ -32,6 +32,7 @@ import org.folio.okapi.bean.TenantModuleDescriptor.Action;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
+import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.Liveness;
 import org.folio.okapi.service.TenantStore;
@@ -286,6 +287,27 @@ public class TenantManager implements Liveness {
     );
   }
 
+  private void waitTenantInit(Tenant tenant, ModuleInstance instance, ProxyContext pc,
+                              Promise<Void> promise, int waitMs) {
+    proxyService.callSystemInterface(tenant, instance, "", pc)
+        .onFailure(x -> promise.fail(x))
+        .onSuccess(cli -> {
+          JsonObject obj = new JsonObject(cli.getResponsebody());
+          String error = obj.getString("error");
+          if (error != null) {
+            promise.fail(error);
+            return;
+          }
+          Boolean complete = obj.getBoolean("complete");
+          if (Boolean.TRUE.equals(complete)) {
+            promise.complete();
+            return;
+          }
+          vertx.setTimer(waitMs, x ->
+              waitTenantInit(tenant, instance, pc, promise, waitMs * 5 / 4));
+        });
+  }
+
   /**
    * invoke the tenant interface for a module.
    *
@@ -311,20 +333,31 @@ public class TenantManager implements Liveness {
     String tenantParameters = options.getTenantParameters();
     boolean purge = mdTo == null && options.getPurge();
     return getTenantInstanceForModule(mdFrom, mdTo, jo, tenantParameters, purge)
-        .compose(instance -> {
-          if (instance.isEmpty()) {
-            logger.debug("{}: has no support for tenant init",
+        .compose(instances -> {
+          if (instances.isEmpty()) {
+            logger.info("{}: has no support for tenant init",
                 (mdTo != null ? mdTo.getId() : mdFrom.getId()));
             return Future.succeededFuture();
           }
-          String req = HttpMethod.DELETE.equals(instance.get(0).getMethod())
+          String req = HttpMethod.DELETE.equals(instances.get(0).getMethod())
               ? "" : jo.encodePrettily();
-          return proxyService.callSystemInterface(tenant, instance.get(0), req, pc)
+          return proxyService.callSystemInterface(tenant, instances.get(0), req, pc)
               .compose(cres -> {
                 pc.passOkapiTraceHeaders(cres);
-                // TODO:
                 String location = cres.getRespHeaders().get("Location");
-                return Future.succeededFuture();
+                if (instances.size() == 1 || location == null) {
+                  return Future.succeededFuture();
+                }
+                instances.get(1).setUrl(instances.get(0).getUrl()); // same URL for POST & GET
+                JsonObject obj = new JsonObject(cres.getResponsebody());
+                String id = obj.getString("id");
+                if (id == null) {
+                  return Future.failedFuture("Missing id in " + obj.encodePrettily());
+                }
+                instances.get(1).substPath("{id}", id);
+                Promise<Void> promise = Promise.promise();
+                waitTenantInit(tenant, instances.get(1), pc, promise, 1000);
+                return promise.future();
               });
         });
   }
