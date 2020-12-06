@@ -1084,7 +1084,7 @@ public class InstallTest {
         + "      \"pathPattern\" : \"/_/tenant\"," + LS
         + "      \"permissionsRequired\" : [ ]" + LS
         + "    }, {" + LS
-        + "      \"methods\" : [ \"GET\" ]," + LS
+        + "      \"methods\" : [ \"GET\", \"DELETE\" ]," + LS
         + "      \"pathPattern\" : \"/_/tenant/{id}\"," + LS
         + "      \"permissionsRequired\" : [ ]" + LS
         + "    } ]" + LS

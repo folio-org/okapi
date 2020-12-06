@@ -287,9 +287,10 @@ public class TenantManager implements Liveness {
     );
   }
 
-  private void waitTenantInit(Tenant tenant, ModuleInstance instance, ProxyContext pc,
+  private void waitTenantInit(Tenant tenant, ModuleInstance getInstance, ModuleInstance deleteInstance,
+                              ProxyContext pc,
                               Promise<Void> promise, int waitMs) {
-    proxyService.callSystemInterface(tenant, instance, "", pc)
+    proxyService.callSystemInterface(tenant, getInstance, "", pc)
         .onFailure(x -> promise.fail(x))
         .onSuccess(cli -> {
           JsonObject obj = new JsonObject(cli.getResponsebody());
@@ -300,11 +301,13 @@ public class TenantManager implements Liveness {
           }
           Boolean complete = obj.getBoolean("complete");
           if (Boolean.TRUE.equals(complete)) {
-            promise.complete();
+            proxyService.callSystemInterface(tenant, deleteInstance, "", pc)
+                .onFailure(x -> promise.fail(x))
+                .onSuccess(x -> promise.complete());
             return;
           }
           vertx.setTimer(waitMs, x ->
-              waitTenantInit(tenant, instance, pc, promise, waitMs * 5 / 4));
+              waitTenantInit(tenant, getInstance, deleteInstance, pc, promise, waitMs * 5 / 4));
         });
   }
 
@@ -346,7 +349,7 @@ public class TenantManager implements Liveness {
               .compose(cres -> {
                 pc.passOkapiTraceHeaders(cres);
                 String location = cres.getRespHeaders().get("Location");
-                if (instances.size() == 1) {
+                if (instances.size() != 3) {
                   return Future.succeededFuture(); // version 1 series (sync)
                 }
                 if (location == null) {
@@ -354,6 +357,7 @@ public class TenantManager implements Liveness {
                       postInstance.getMethod().name(), postInstance.getPath()));
                 }
                 ModuleInstance getInstance = instances.get(1);
+                ModuleInstance deleteInstance = instances.get(2);
                 JsonObject obj = new JsonObject(cres.getResponsebody());
                 String id = obj.getString("id");
                 if (id == null) {
@@ -362,8 +366,10 @@ public class TenantManager implements Liveness {
                 }
                 getInstance.setUrl(postInstance.getUrl()); // same URL for POST & GET
                 getInstance.substPath("{id}", id);
+                deleteInstance.setUrl(postInstance.getUrl()); // same URL for POST & DELETE
+                deleteInstance.substPath("{id}", id);
                 Promise<Void> promise = Promise.promise();
-                waitTenantInit(tenant, getInstance, pc, promise, 1000);
+                waitTenantInit(tenant, getInstance, deleteInstance, pc, promise, 1000);
                 return promise.future();
               });
         });
@@ -722,13 +728,18 @@ public class TenantManager implements Liveness {
           case "2.0":
             jo.put("purge", purge);
             putTenantParameters(jo, tenantParameters);
-            instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "POST");
+            instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "POST", "/");
             if (instance == null) {
               return Future.succeededFuture(instances);
             }
             instances.add(instance);
-            instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "GET");
-            // first in list is POST instance, second is GET instance
+            instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "GET", "{id}");
+            if (instance == null) {
+              return Future.succeededFuture(instances);
+            }
+            instances.add(instance);
+            instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "DELETE", "{id}");
+            // 1: POST, 2: GET, 3:DELETE
             break;
           default:
             return Future.failedFuture(new OkapiError(ErrorType.USER,
@@ -787,13 +798,13 @@ public class TenantManager implements Liveness {
 
   private static ModuleInstance getTenantInstanceForInterfacev2(
       InterfaceDescriptor pi, ModuleDescriptor mdFrom,
-      ModuleDescriptor mdTo, String method) {
+      ModuleDescriptor mdTo, String method, String mustContain) {
 
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     if ("system".equals(pi.getInterfaceType())) {
       List<RoutingEntry> res = pi.getAllRoutingEntries();
       for (RoutingEntry re : res) {
-        if (re.match(null, method)) {
+        if (re.match(null, method) && re.getStaticPath().contains(mustContain)) {
           return new ModuleInstance(md, re, re.getStaticPath(), HttpMethod.valueOf(method), true)
               .withRetry();
         }

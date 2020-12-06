@@ -46,26 +46,6 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     this.badJsonResponse = badJsonResponse;
   }
 
-  public void tenantGet(RoutingContext ctx) {
-    HttpMethod method = ctx.request().method();
-    String path = ctx.request().path();
-    String id = path.substring(path.lastIndexOf('/') + 1);
-    JsonObject obj = jobs.get(id);
-    if (obj == null) {
-      ctx.response().setStatusCode(404);
-      ctx.response().putHeader("Content-Type", "text/plain");
-      ctx.response().end("Not found " + id);
-      return;
-    }
-    int count = obj.getInteger("count");
-    obj.put("count", --count);
-    obj.put("complete", count <= 0);
-    ctx.response().setStatusCode(200);
-    ctx.response().putHeader("Content-Type", "application/json");
-    ctx.response().putHeader("Location", "/_/tenant/" + id);
-    ctx.end(obj.encodePrettily());
-  }
-
   public void tenantPost(RoutingContext ctx) {
     HttpMethod method = ctx.request().method();
     String path = ctx.request().path();
@@ -91,6 +71,40 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     }
   }
 
+  public void tenantGet(RoutingContext ctx) {
+    HttpMethod method = ctx.request().method();
+    String path = ctx.request().path();
+    String id = path.substring(path.lastIndexOf('/') + 1);
+    JsonObject obj = jobs.get(id);
+    if (obj == null) {
+      ctx.response().setStatusCode(404);
+      ctx.response().putHeader("Content-Type", "text/plain");
+      ctx.response().end("Not found " + id);
+      return;
+    }
+    int count = obj.getInteger("count");
+    obj.put("count", --count);
+    obj.put("complete", count <= 0);
+    ctx.response().setStatusCode(200);
+    ctx.response().putHeader("Content-Type", "application/json");
+    ctx.response().putHeader("Location", "/_/tenant/" + id);
+    ctx.end(obj.encodePrettily());
+  }
+
+  public void tenantDelete(RoutingContext ctx) {
+    HttpMethod method = ctx.request().method();
+    String path = ctx.request().path();
+    String id = path.substring(path.lastIndexOf('/') + 1);
+    if (jobs.remove(id) == null) {
+      ctx.response().setStatusCode(404);
+      ctx.response().putHeader("Content-Type", "text/plain");
+      ctx.response().end("Not found " + id);
+      return;
+    }
+    ctx.response().setStatusCode(204);
+    ctx.response().end();
+  }
+
   @Override
   public Future<Void> start() {
     Router router = Router.router(vertx);
@@ -98,6 +112,7 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     router.post("/_/tenant").handler(BodyHandler.create());
     router.post("/_/tenant").handler(this::tenantPost);
     router.getWithRegex("/_/tenant/.*").handler(this::tenantGet);
+    router.deleteWithRegex("/_/tenant/.*").handler(this::tenantDelete);
 
     return vertx.createHttpServer()
         .requestHandler(router)
