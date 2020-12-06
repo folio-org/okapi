@@ -724,7 +724,7 @@ public class TenantManager implements Liveness {
             putTenantParameters(jo, tenantParameters);
             instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "POST");
             if (instance == null) {
-              return Future.succeededFuture(null);
+              return Future.succeededFuture(instances);
             }
             instances.add(instance);
             instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "GET");
