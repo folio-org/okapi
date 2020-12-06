@@ -1239,10 +1239,7 @@ public class ProxyService {
     if (inst.getUrl() == null) {
       future = discoveryManager.get(inst.getModuleDescriptor().getId())
           .compose(gres -> {
-            DeploymentDescriptor instance = null;
-            if (gres != null) {
-              instance = pickInstance(gres);
-            }
+            DeploymentDescriptor instance = pickInstance(gres);
             if (instance == null) {
               return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("11100",
                   inst.getModuleDescriptor().getId(), inst.getPath())));
