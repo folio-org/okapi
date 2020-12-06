@@ -287,8 +287,8 @@ public class TenantManager implements Liveness {
     );
   }
 
-  private void waitTenantInit(Tenant tenant, ModuleInstance getInstance, ModuleInstance deleteInstance,
-                              ProxyContext pc,
+  private void waitTenantInit(Tenant tenant, ModuleInstance getInstance,
+                              ModuleInstance deleteInstance, ProxyContext pc,
                               Promise<Void> promise, int waitMs) {
     proxyService.callSystemInterface(tenant, getInstance, "", pc)
         .onFailure(x -> promise.fail(x))
@@ -356,16 +356,16 @@ public class TenantManager implements Liveness {
                   return Future.failedFuture(messages.getMessage("10407",
                       postInstance.getMethod().name(), postInstance.getPath()));
                 }
-                ModuleInstance getInstance = instances.get(1);
-                ModuleInstance deleteInstance = instances.get(2);
                 JsonObject obj = new JsonObject(cres.getResponsebody());
                 String id = obj.getString("id");
                 if (id == null) {
                   return Future.failedFuture(messages.getMessage("10408",
                       postInstance.getMethod().name(), postInstance.getPath()));
                 }
+                ModuleInstance getInstance = instances.get(1);
                 getInstance.setUrl(postInstance.getUrl()); // same URL for POST & GET
                 getInstance.substPath("{id}", id);
+                ModuleInstance deleteInstance = instances.get(2);
                 deleteInstance.setUrl(postInstance.getUrl()); // same URL for POST & DELETE
                 deleteInstance.substPath("{id}", id);
                 Promise<Void> promise = Promise.promise();
