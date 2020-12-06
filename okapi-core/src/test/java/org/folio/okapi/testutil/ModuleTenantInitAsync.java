@@ -26,6 +26,8 @@ public class ModuleTenantInitAsync implements ModuleHandle {
   private boolean omitIdInResponse = false;
   private boolean omitLocationInResponse = false;
   private boolean badJsonResponse = false;
+  private int getStatusCode = 200;
+  private String errorMessage;
   private Map<String,JsonObject> jobs = new HashMap<>();
 
   public ModuleTenantInitAsync(Vertx vertx, String id, int port) {
@@ -44,6 +46,14 @@ public class ModuleTenantInitAsync implements ModuleHandle {
 
   public void setBadJsonResponse(boolean badJsonResponse) {
     this.badJsonResponse = badJsonResponse;
+  }
+
+  public void setGetStatusResponse(int statusCode) {
+    this.getStatusCode = statusCode;
+  }
+
+  public void setErrorMessage(String errorMessage) {
+    this.errorMessage = errorMessage;
   }
 
   public void tenantPost(RoutingContext ctx) {
@@ -85,7 +95,10 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     int count = obj.getInteger("count");
     obj.put("count", --count);
     obj.put("complete", count <= 0);
-    ctx.response().setStatusCode(200);
+    if (errorMessage != null) {
+      obj.put("error", errorMessage);
+    }
+    ctx.response().setStatusCode(getStatusCode);
     ctx.response().putHeader("Content-Type", "application/json");
     ctx.response().putHeader("Location", "/_/tenant/" + id);
     ctx.end(obj.encodePrettily());

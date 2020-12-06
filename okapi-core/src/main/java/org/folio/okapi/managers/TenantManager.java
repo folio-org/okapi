@@ -294,16 +294,18 @@ public class TenantManager implements Liveness {
         .onFailure(x -> promise.fail(x))
         .onSuccess(cli -> {
           JsonObject obj = new JsonObject(cli.getResponsebody());
-          String error = obj.getString("error");
-          if (error != null) {
-            promise.fail(error);
-            return;
-          }
           Boolean complete = obj.getBoolean("complete");
           if (Boolean.TRUE.equals(complete)) {
             proxyService.callSystemInterface(tenant, deleteInstance, "", pc)
                 .onFailure(x -> promise.fail(x))
-                .onSuccess(x -> promise.complete());
+                .onSuccess(x -> {
+                  String error = obj.getString("error");
+                  if (error != null) {
+                    promise.fail(error);
+                    return;
+                  }
+                  promise.complete();
+                });
             return;
           }
           vertx.setTimer(waitMs, x ->

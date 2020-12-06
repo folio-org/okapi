@@ -1234,4 +1234,44 @@ public class InstallTest {
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
 
+  @Test
+  public void installTenantInitVersion2Status400(TestContext context) {
+    final String okapiTenant = "roskilde";
+
+    createTenant(context, okapiTenant);
+    createAsyncInitModule(context);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+
+    tModule.setGetStatusResponse(400);
+    tModule.start().onComplete(context.asyncAssertSuccess());
+
+    deployAsyncInitModule(context, portTimer);
+
+    JsonObject job = enableAndWait(context, okapiTenant, "async-init-1.0.0");
+    context.assertTrue(job.getJsonArray("modules").getJsonObject(0).
+        getString("message").contains("failed with 400:"), job.encodePrettily());
+
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
+  @Test
+  public void installTenantInitVersion2JobError(TestContext context) {
+    final String okapiTenant = "roskilde";
+
+    createTenant(context, okapiTenant);
+    createAsyncInitModule(context);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+
+    tModule.setErrorMessage("foo bar error");
+    tModule.start().onComplete(context.asyncAssertSuccess());
+
+    deployAsyncInitModule(context, portTimer);
+
+    JsonObject job = enableAndWait(context, okapiTenant, "async-init-1.0.0");
+    context.assertTrue(job.getJsonArray("modules").getJsonObject(0).
+        getString("message").contains("foo bar error"), job.encodePrettily());
+
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
 }
