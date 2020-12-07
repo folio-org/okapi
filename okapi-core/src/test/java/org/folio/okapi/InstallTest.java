@@ -1141,6 +1141,109 @@ public class InstallTest {
   }
 
   @Test
+  public void installTenantInitVersion2WrongVersion(TestContext context) {
+    final String okapiTenant = "roskilde";
+    final String module = "init-v2-module-1.0.0";
+
+    createTenant(context, okapiTenant);
+
+    final String docModule = "{" + LS
+        + "  \"id\" : \"" + module + "\"," + LS
+        + "  \"name\" : \"async tenant init module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenant\"," + LS
+        + "    \"version\" : \"1.2\"," + LS
+        + "    \"interfaceType\" : \"system\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/_/tenant\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    }, {" + LS
+        + "      \"methods\" : [ \"DELETE\" ]," + LS
+        + "      \"pathPattern\" : \"/_/tenant\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+
+    RestAssuredClient c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(docModule).post("/_/proxy/modules").then().statusCode(201);
+
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
+
+    tModule.start().onComplete(context.asyncAssertSuccess());
+
+    deployAsyncInitModule(context, module, portModule);
+
+    JsonObject job = enableAndWait(context, okapiTenant, module);
+    context.assertEquals("{" + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"" + module + "\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"stage\" : \"done\"" + LS
+        + "  } ]" + LS
+        + "}", job.encodePrettily());
+
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
+  @Test
+  public void installTenantInitVersion2MissingDeleteMethod(TestContext context) {
+    final String okapiTenant = "roskilde";
+    final String module = "init-v2-module-1.0.0";
+
+    createTenant(context, okapiTenant);
+
+    final String docModule = "{" + LS
+        + "  \"id\" : \"" + module + "\"," + LS
+        + "  \"name\" : \"async tenant init module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenant\"," + LS
+        + "    \"version\" : \"2.0\"," + LS
+        + "    \"interfaceType\" : \"system\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/_/tenant\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    }, {" + LS
+        + "      \"methods\" : [ \"GET\" ]," + LS
+        + "      \"pathPattern\" : \"/_/tenant/{id}\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+
+    RestAssuredClient c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(docModule).post("/_/proxy/modules").then().statusCode(201);
+
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
+
+    tModule.start().onComplete(context.asyncAssertSuccess());
+
+    deployAsyncInitModule(context, module, portModule);
+
+    JsonObject job = enableAndWait(context, okapiTenant, module);
+    context.assertEquals("{" + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"" + module + "\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"message\" : \"Missing DELETE method for tenant interface version 2\"," + LS
+        + "    \"stage\" : \"invoke\"" + LS
+        + "  } ]" + LS
+        + "}", job.encodePrettily());
+
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
+  @Test
   public void installTenantInitVersion2NoLocation(TestContext context) {
     final String okapiTenant = "roskilde";
     String module = "init-v2-module-1.0.0";
@@ -1160,8 +1263,7 @@ public class InstallTest {
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"" + module + "\"," + LS
         + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"No Location returned for POST /_/tenant\"," + LS
-        + "    \"stage\" : \"invoke\"" + LS
+        + "    \"stage\" : \"done\"" + LS
         + "  } ]" + LS
         + "}", job.encodePrettily());
 

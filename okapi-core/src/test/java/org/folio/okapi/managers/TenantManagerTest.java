@@ -278,7 +278,7 @@ public class TenantManagerTest extends TestBase {
     ModuleDescriptor md = new ModuleDescriptor();
     JsonObject obj = new JsonObject();
     md.setId("module-1.0.0");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> context.assertTrue(instances.isEmpty())));
 
     InterfaceDescriptor interfaceDescriptor = new InterfaceDescriptor();
@@ -288,22 +288,22 @@ public class TenantManagerTest extends TestBase {
     provides[0] = interfaceDescriptor;
     md.setProvides(provides);
 
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> context.assertEquals(1, instances.size())));
 
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, true)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, true)
         .onComplete(context.asyncAssertSuccess(instances -> context.assertTrue(instances.isEmpty())));
 
     interfaceDescriptor.setVersion("1.1");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> context.assertTrue(instances.isEmpty())));
 
     interfaceDescriptor.setVersion("1.2");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md, null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> context.assertTrue(instances.isEmpty())));
 
     interfaceDescriptor.setVersion("2.0");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> context.assertTrue(instances.isEmpty())));
   }
 
@@ -312,7 +312,7 @@ public class TenantManagerTest extends TestBase {
     ModuleDescriptor md = new ModuleDescriptor();
     JsonObject obj = new JsonObject();
     md.setId("module-1.0.0");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> context.assertTrue(instances.isEmpty())));
 
     InterfaceDescriptor interfaceDescriptor = new InterfaceDescriptor();
@@ -323,7 +323,7 @@ public class TenantManagerTest extends TestBase {
     provides[0] = interfaceDescriptor;
     md.setProvides(provides);
 
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> {
           context.assertFalse(instances.isEmpty());
           ModuleInstance instance = instances.get(0);
@@ -332,20 +332,20 @@ public class TenantManagerTest extends TestBase {
         }));
 
     interfaceDescriptor.setVersion("1.1");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> context.assertTrue(instances.isEmpty())));
 
     interfaceDescriptor.setVersion("1.2");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> context.assertTrue(instances.isEmpty())));
 
     interfaceDescriptor.setVersion("1.3");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertFailure(cause -> context.assertEquals("Unsupported interface _tenant: 1.3",
             cause.getMessage())));
 
     interfaceDescriptor.setVersion("2.0");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> context.assertTrue(instances.isEmpty())));
 
     List<RoutingEntry> handlers = new LinkedList<>();
@@ -367,21 +367,21 @@ public class TenantManagerTest extends TestBase {
     interfaceDescriptor.setHandlers(handlers.toArray(new RoutingEntry[0]));
 
     interfaceDescriptor.setVersion("1.1");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> {
           context.assertFalse(instances.isEmpty());
           ModuleInstance instance = instances.get(0);
           context.assertEquals(HttpMethod.POST, instance.getMethod());
           context.assertEquals("/_/tenantpath", instance.getPath());
         }));
-    TenantManager.getTenantInstanceForModule(md, null, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md, md, null, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> {
           context.assertFalse(instances.isEmpty());
           ModuleInstance instance = instances.get(0);
           context.assertEquals(HttpMethod.POST, instance.getMethod());
           context.assertEquals("/_/tenant/disable", instance.getPath());
         }));
-    TenantManager.getTenantInstanceForModule(md, null, obj, null, true)
+    TenantManager.getTenantInstanceForModule(md, md, null, obj, null, true)
         .onComplete(context.asyncAssertSuccess(instances -> {
           context.assertEquals(1, instances.size());
           ModuleInstance instance = instances.get(0);
@@ -390,7 +390,7 @@ public class TenantManagerTest extends TestBase {
         }));
 
     interfaceDescriptor.setVersion("1.2");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> {
           context.assertEquals(1, instances.size());
           ModuleInstance instance = instances.get(0);
@@ -399,7 +399,7 @@ public class TenantManagerTest extends TestBase {
         }));
 
     interfaceDescriptor.setVersion("2.0");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> {
           context.assertEquals(1, instances.size());
           ModuleInstance instance = instances.get(0);
@@ -414,7 +414,7 @@ public class TenantManagerTest extends TestBase {
     ModuleDescriptor md = new ModuleDescriptor();
     JsonObject obj = new JsonObject();
     md.setId("module-1.0.0");
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> context.assertTrue(instances.isEmpty())));
 
     InterfaceDescriptor interfaceDescriptor = new InterfaceDescriptor();
@@ -438,7 +438,7 @@ public class TenantManagerTest extends TestBase {
 
     interfaceDescriptor.setHandlers(handlers.toArray(new RoutingEntry[0]));
 
-    TenantManager.getTenantInstanceForModule(null, md, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md,null, md, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> {
           context.assertEquals(3, instances.size());
           ModuleInstance instance = instances.get(0);
@@ -452,7 +452,7 @@ public class TenantManagerTest extends TestBase {
           context.assertEquals("/_/tenantpath/{id}", instance.getPath());
           context.assertFalse(obj.getBoolean("purge"));
         }));
-    TenantManager.getTenantInstanceForModule(md, null, obj, null, false)
+    TenantManager.getTenantInstanceForModule(md, md, null, obj, null, false)
         .onComplete(context.asyncAssertSuccess(instances -> {
           context.assertEquals(3, instances.size());
           ModuleInstance instance = instances.get(0);
@@ -466,7 +466,7 @@ public class TenantManagerTest extends TestBase {
           context.assertEquals("/_/tenantpath/{id}", instance.getPath());
           context.assertFalse(obj.getBoolean("purge"));
         }));
-    TenantManager.getTenantInstanceForModule(md, null, obj, null, true)
+    TenantManager.getTenantInstanceForModule(md, md, null, obj, null, true)
         .onComplete(context.asyncAssertSuccess(instances -> {
           context.assertEquals(3, instances.size());
           ModuleInstance instance = instances.get(0);

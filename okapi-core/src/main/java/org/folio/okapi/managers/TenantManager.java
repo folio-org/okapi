@@ -350,7 +350,8 @@ public class TenantManager implements Liveness {
     }
     String tenantParameters = options.getTenantParameters();
     boolean purge = mdTo == null && options.getPurge();
-    return getTenantInstanceForModule(mdFrom, mdTo, jo, tenantParameters, purge)
+    ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
+    return getTenantInstanceForModule(md, mdFrom, mdTo, jo, tenantParameters, purge)
         .compose(instances -> {
           if (instances.isEmpty()) {
             logger.info("{}: has no support for tenant init",
@@ -364,12 +365,16 @@ public class TenantManager implements Liveness {
               .compose(cres -> {
                 pc.passOkapiTraceHeaders(cres);
                 String location = cres.getRespHeaders().get("Location");
-                if (instances.size() != 3) {
-                  return Future.succeededFuture(); // version 1 series (sync)
-                }
                 if (location == null) {
-                  return Future.failedFuture(messages.getMessage("10407",
-                      postInstance.getMethod().name(), postInstance.getPath()));
+                  return Future.succeededFuture(); // sync v1 / v2
+                }
+                if (instances.size() != 3) {
+                  logger.warn("Module does not provide _tenant interface 2.0, "
+                      + "but yet seems to be.");
+                  instances.add(new ModuleInstance(md, null,
+                      "/_/tenant/{id}", HttpMethod.GET, true));
+                  instances.add(new ModuleInstance(md, null,
+                      "/_/tenant/{id}", HttpMethod.DELETE, true));
                 }
                 JsonObject obj = new JsonObject(cres.getResponsebody());
                 String id = obj.getString("id");
@@ -700,6 +705,7 @@ public class TenantManager implements Liveness {
    * if the module provides a '_tenant' interface that is marked as a system
    * interface, and has a RoutingEntry that supports POST.
    *
+   * @param md module ("to" if available otherwise "from")
    * @param mdFrom module from
    * @param mdTo module to
    * @param jo Json Object to be POSTed
@@ -708,10 +714,9 @@ public class TenantManager implements Liveness {
    * @return future empty ModuleInstance list if no tenant interface
    */
   static Future<List<ModuleInstance>> getTenantInstanceForModule(
-      ModuleDescriptor mdFrom,
+      ModuleDescriptor md, ModuleDescriptor mdFrom,
       ModuleDescriptor mdTo, JsonObject jo, String tenantParameters, boolean purge) {
 
-    ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     InterfaceDescriptor[] prov = md.getProvidesList();
     List<ModuleInstance> instances = new LinkedList<>();
     for (InterfaceDescriptor pi : prov) {
@@ -743,18 +748,22 @@ public class TenantManager implements Liveness {
           case "2.0":
             jo.put("purge", purge);
             putTenantParameters(jo, tenantParameters);
-            instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "POST", "/");
+            instance = getTenantInstanceForInterfacev2(pi, md, "POST", "/");
             if (instance == null) {
               return Future.succeededFuture(instances);
             }
             instances.add(instance);
-            instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "GET", "{id}");
+            instance = getTenantInstanceForInterfacev2(pi, md, "GET", "{id}");
             if (instance == null) {
-              return Future.succeededFuture(instances);
+              return Future.succeededFuture(instances); // OK only POST method for v2
             }
             instances.add(instance);
-            instance = getTenantInstanceForInterfacev2(pi, mdFrom, mdTo, "DELETE", "{id}");
-            // 1: POST, 2: GET, 3:DELETE
+            // both DELETE and GET must be present
+            instance = getTenantInstanceForInterfacev2(pi, md, "DELETE", "{id}");
+            if (instance == null) {
+              return Future.failedFuture(messages.getMessage("10407"));
+            }
+            // 0: POST, 1: GET, 2:DELETE
             break;
           default:
             return Future.failedFuture(new OkapiError(ErrorType.USER,
@@ -812,10 +821,8 @@ public class TenantManager implements Liveness {
   }
 
   private static ModuleInstance getTenantInstanceForInterfacev2(
-      InterfaceDescriptor pi, ModuleDescriptor mdFrom,
-      ModuleDescriptor mdTo, String method, String mustContain) {
+      InterfaceDescriptor pi, ModuleDescriptor md, String method, String mustContain) {
 
-    ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     if ("system".equals(pi.getInterfaceType())) {
       List<RoutingEntry> res = pi.getAllRoutingEntries();
       for (RoutingEntry re : res) {
