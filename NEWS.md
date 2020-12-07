@@ -1,3 +1,7 @@
+## 4.4.1 2020-12-07
+
+ * [OKAPI-956](https://issues.folio.org/browse/OKAPI-956) Update to default hazelcast version 4.0
+
 ## 4.4.0 2020-11-19
 
 New features:
