@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -28,6 +29,7 @@ public class ModuleTenantInitAsync implements ModuleHandle {
   private boolean badJsonResponse = false;
   private int getStatusCode = 200;
   private String errorMessage;
+  private JsonArray additionalMessages;
   private Map<String,JsonObject> jobs = new HashMap<>();
 
   public ModuleTenantInitAsync(Vertx vertx, String id, int port) {
@@ -52,8 +54,9 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     this.getStatusCode = statusCode;
   }
 
-  public void setErrorMessage(String errorMessage) {
+  public void setErrorMessage(String errorMessage, JsonArray additionalMessages) {
     this.errorMessage = errorMessage;
+    this.additionalMessages = additionalMessages;
   }
 
   public void tenantPost(RoutingContext ctx) {
@@ -97,6 +100,9 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     obj.put("complete", count <= 0);
     if (errorMessage != null) {
       obj.put("error", errorMessage);
+    }
+    if (additionalMessages != null) {
+      obj.put("messages", additionalMessages);
     }
     ctx.response().setStatusCode(getStatusCode);
     ctx.response().putHeader("Content-Type", "application/json");

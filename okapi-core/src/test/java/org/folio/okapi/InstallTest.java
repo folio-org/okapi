@@ -1247,14 +1247,20 @@ public class InstallTest {
     createAsyncInitModule(context, module);
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
 
-    tModule.setErrorMessage("foo bar error");
+    tModule.setErrorMessage("foo bar error", null);
     tModule.start().onComplete(context.asyncAssertSuccess());
 
     deployAsyncInitModule(context, module, portModule);
 
     JsonObject job = enableAndWait(context, okapiTenant, module);
-    context.assertTrue(job.getJsonArray("modules").getJsonObject(0).
-        getString("message").contains("foo bar error"), job.encodePrettily());
+    context.assertEquals("foo bar error", job.getJsonArray("modules")
+        .getJsonObject(0).getString("message"));
+
+    tModule.setErrorMessage("foo bar error", new JsonArray().add("msg1").add("msg2"));
+
+    job = enableAndWait(context, okapiTenant, module);
+    context.assertEquals("foo bar error\nmsg1\nmsg2", job.getJsonArray("modules")
+        .getJsonObject(0).getString("message"));
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }

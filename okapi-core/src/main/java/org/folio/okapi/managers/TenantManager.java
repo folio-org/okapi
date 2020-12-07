@@ -32,7 +32,6 @@ import org.folio.okapi.bean.TenantModuleDescriptor.Action;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
-import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.Liveness;
 import org.folio.okapi.service.TenantStore;
@@ -66,12 +65,15 @@ public class TenantManager implements Liveness {
   // tenants with new permission module (_tenantPermissions version 1.1 or later)
   private Map<String, Boolean> expandedModulesCache = new HashMap<>();
   private final boolean local;
+  private static final int TENANT_INIT_DELAY = 300; // initial wait in ms
+  private static final int TENANT_INIT_INCREASE = 1250;  // increase factor (/ 1000)
 
   /**
-   * Create tenant manager.
+   * Construct Tenant Manager.
    *
    * @param moduleManager module manager
-   * @param tenantStore   tenant storage
+   * @param tenantStore tenant storage
+   * @param local if true, use local, in-process maps, only
    */
   public TenantManager(ModuleManager moduleManager, TenantStore tenantStore, boolean local) {
     this.moduleManager = moduleManager;
@@ -289,7 +291,7 @@ public class TenantManager implements Liveness {
 
   private void waitTenantInit(Tenant tenant, ModuleInstance getInstance,
                               ModuleInstance deleteInstance, ProxyContext pc,
-                              Promise<Void> promise, int waitMs) {
+                              Promise<Void> promise, long waitMs) {
     proxyService.callSystemInterface(tenant, getInstance, "", pc)
         .onFailure(x -> promise.fail(x))
         .onSuccess(cli -> {
@@ -300,16 +302,27 @@ public class TenantManager implements Liveness {
                 .onFailure(x -> promise.fail(x))
                 .onSuccess(x -> {
                   String error = obj.getString("error");
-                  if (error != null) {
-                    promise.fail(error);
+                  if (error == null) {
+                    promise.complete();
                     return;
                   }
-                  promise.complete();
+                  // a shame that we must make a structured JSON response into a text response.
+                  // We have to stuff it into one element: TenantModuleDescriptor.message
+                  StringBuilder message = new StringBuilder(error);
+                  JsonArray ar = obj.getJsonArray("messages");
+                  if (ar != null) {
+                    for (int i = 0; i < ar.size(); i++) {
+                      message.append("\n");
+                      message.append(ar.getString(i));
+                    }
+                  }
+                  promise.fail(message.toString());
                 });
             return;
           }
           vertx.setTimer(waitMs, x ->
-              waitTenantInit(tenant, getInstance, deleteInstance, pc, promise, waitMs * 5 / 4));
+              waitTenantInit(tenant, getInstance, deleteInstance, pc, promise,
+                  (waitMs * TENANT_INIT_INCREASE) / 1000));
         });
   }
 
@@ -371,7 +384,7 @@ public class TenantManager implements Liveness {
                 deleteInstance.setUrl(postInstance.getUrl()); // same URL for POST & DELETE
                 deleteInstance.substPath("{id}", id);
                 Promise<Void> promise = Promise.promise();
-                waitTenantInit(tenant, getInstance, deleteInstance, pc, promise, 1000);
+                waitTenantInit(tenant, getInstance, deleteInstance, pc, promise, TENANT_INIT_DELAY);
                 return promise.future();
               });
         });
