@@ -369,12 +369,8 @@ public class TenantManager implements Liveness {
                   return Future.succeededFuture(); // sync v1 / v2
                 }
                 if (instances.size() != 3) {
-                  logger.warn("Module does not provide _tenant interface 2.0, "
-                      + "but yet seems to be.");
-                  instances.add(new ModuleInstance(md, null,
-                      "/_/tenant/{id}", HttpMethod.GET, true));
-                  instances.add(new ModuleInstance(md, null,
-                      "/_/tenant/{id}", HttpMethod.DELETE, true));
+                  return Future.failedFuture(messages.getMessage(
+                      "10409", postInstance.getMethod(), postInstance.getPath()));
                 }
                 JsonObject obj = new JsonObject(cres.getResponsebody());
                 String id = obj.getString("id");

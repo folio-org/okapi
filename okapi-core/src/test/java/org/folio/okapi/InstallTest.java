@@ -1184,7 +1184,8 @@ public class InstallTest {
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"" + module + "\"," + LS
         + "    \"action\" : \"enable\"," + LS
-        + "    \"stage\" : \"done\"" + LS
+        + "    \"message\" : \"Unexpected Location header in response for POST /_/tenant\"," + LS
+        + "    \"stage\" : \"invoke\"" + LS
         + "  } ]" + LS
         + "}", job.encodePrettily());
 
