@@ -1071,9 +1071,9 @@ public class InstallTest {
     timerServer.close();
   }
 
-  void createAsyncInitModule(TestContext context) {
+  void createAsyncInitModule(TestContext context, String module) {
     final String docModule = "{" + LS
-        + "  \"id\" : \"async-init-1.0.0\"," + LS
+        + "  \"id\" : \"" + module + "\"," + LS
         + "  \"name\" : \"async tenant init module\"," + LS
         + "  \"provides\" : [ {" + LS
         + "    \"id\" : \"_tenant\"," + LS
@@ -1098,10 +1098,10 @@ public class InstallTest {
         .body(docModule).post("/_/proxy/modules").then().statusCode(201);
   }
 
-  void deployAsyncInitModule(TestContext context, int port) {
+  void deployAsyncInitModule(TestContext context, String module, int port) {
     final String nodeDoc1 = "{" + LS
         + "  \"instId\" : \"localhost-" + Integer.toString(port) + "\"," + LS
-        + "  \"srvcId\" : \"async-init-1.0.0\"," + LS
+        + "  \"srvcId\" : \"" + module + "\"," + LS
         + "  \"url\" : \"http://localhost:" + Integer.toString(port) + "\"" + LS
         + "}";
 
@@ -1121,7 +1121,7 @@ public class InstallTest {
         .post("/_/proxy/tenants/" + tenant + "/install?async=true")
         .then().statusCode(201)
         .body(equalTo("[ {" + LS
-            + "  \"id\" : \"async-init-1.0.0\"," + LS
+            + "  \"id\" : \""+ module + "\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"))
         .extract().response();
@@ -1138,20 +1138,21 @@ public class InstallTest {
   @Test
   public void installTenantInitVersion2OK(TestContext context) {
     final String okapiTenant = "roskilde";
+    final String module = "async-init-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+    createAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portTimer);
 
     tModule.start().onComplete(context.asyncAssertSuccess());
 
-    deployAsyncInitModule(context, portTimer);
+    deployAsyncInitModule(context, module, portTimer);
 
-    JsonObject job = enableAndWait(context, okapiTenant, "async-init-1.0.0");
+    JsonObject job = enableAndWait(context, okapiTenant, module);
     context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
-        + "    \"id\" : \"async-init-1.0.0\"," + LS
+        + "    \"id\" : \"" + module + "\"," + LS
         + "    \"action\" : \"enable\"," + LS
         + "    \"stage\" : \"done\"" + LS
         + "  } ]" + LS
@@ -1163,21 +1164,22 @@ public class InstallTest {
   @Test
   public void installTenantInitVersion2NoLocation(TestContext context) {
     final String okapiTenant = "roskilde";
+    String module = "async-init-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+    createAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portTimer);
 
     tModule.setOmitLocationInResponse(true);
     tModule.start().onComplete(context.asyncAssertSuccess());
 
-    deployAsyncInitModule(context, portTimer);
+    deployAsyncInitModule(context, module, portTimer);
 
-    JsonObject job = enableAndWait(context, okapiTenant, "async-init-1.0.0");
+    JsonObject job = enableAndWait(context, okapiTenant, module);
     context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
-        + "    \"id\" : \"async-init-1.0.0\"," + LS
+        + "    \"id\" : \"" + module + "\"," + LS
         + "    \"action\" : \"enable\"," + LS
         + "    \"message\" : \"No Location returned for POST /_/tenant\"," + LS
         + "    \"stage\" : \"invoke\"" + LS
@@ -1190,21 +1192,22 @@ public class InstallTest {
   @Test
   public void installTenantInitVersion2NoId(TestContext context) {
     final String okapiTenant = "roskilde";
+    final String module ="async-init-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+    createAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portTimer);
 
     tModule.setOmitIdInResponse(true);
     tModule.start().onComplete(context.asyncAssertSuccess());
 
-    deployAsyncInitModule(context, portTimer);
+    deployAsyncInitModule(context, module, portTimer);
 
-    JsonObject job = enableAndWait(context, okapiTenant, "async-init-1.0.0");
+    JsonObject job = enableAndWait(context, okapiTenant, module);
     context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
-        + "    \"id\" : \"async-init-1.0.0\"," + LS
+        + "    \"id\" : \"" + module + "\"," + LS
         + "    \"action\" : \"enable\"," + LS
         + "    \"message\" : \"Missing id property in JSON response for POST /_/tenant\"," + LS
         + "    \"stage\" : \"invoke\"" + LS
@@ -1217,17 +1220,18 @@ public class InstallTest {
   @Test
   public void installTenantInitVersion2BadJson(TestContext context) {
     final String okapiTenant = "roskilde";
+    final String module = "async-init-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+    createAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portTimer);
 
     tModule.setBadJsonResponse(true);
     tModule.start().onComplete(context.asyncAssertSuccess());
 
-    deployAsyncInitModule(context, portTimer);
+    deployAsyncInitModule(context, module, portTimer);
 
-    JsonObject job = enableAndWait(context, okapiTenant, "async-init-1.0.0");
+    JsonObject job = enableAndWait(context, okapiTenant, module);
     context.assertTrue(job.getJsonArray("modules").getJsonObject(0).
         getString("message").startsWith("Failed to decode:Unexpected close marker"));
 
@@ -1237,17 +1241,18 @@ public class InstallTest {
   @Test
   public void installTenantInitVersion2Status400(TestContext context) {
     final String okapiTenant = "roskilde";
+    final String module = "async-init-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+    createAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portTimer);
 
     tModule.setGetStatusResponse(400);
     tModule.start().onComplete(context.asyncAssertSuccess());
 
-    deployAsyncInitModule(context, portTimer);
+    deployAsyncInitModule(context, module, portTimer);
 
-    JsonObject job = enableAndWait(context, okapiTenant, "async-init-1.0.0");
+    JsonObject job = enableAndWait(context, okapiTenant, module);
     context.assertTrue(job.getJsonArray("modules").getJsonObject(0).
         getString("message").contains("failed with 400:"), job.encodePrettily());
 
@@ -1257,17 +1262,18 @@ public class InstallTest {
   @Test
   public void installTenantInitVersion2JobError(TestContext context) {
     final String okapiTenant = "roskilde";
+    final String module = "async-init-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, "async-init-1.0.0", portTimer);
+    createAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portTimer);
 
     tModule.setErrorMessage("foo bar error");
     tModule.start().onComplete(context.asyncAssertSuccess());
 
-    deployAsyncInitModule(context, portTimer);
+    deployAsyncInitModule(context, module, portTimer);
 
-    JsonObject job = enableAndWait(context, okapiTenant, "async-init-1.0.0");
+    JsonObject job = enableAndWait(context, okapiTenant, module);
     context.assertTrue(job.getJsonArray("modules").getJsonObject(0).
         getString("message").contains("foo bar error"), job.encodePrettily());
 
