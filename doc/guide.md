@@ -3139,7 +3139,11 @@ during the operation.
 Add 'loadSample=true` to parameters, to load sample data as well.
 
 If the module supports version 2 of the `_tenant` interface it should return status 201 with
-a `Location` header. This signals that the tenant job has started. Use a GET request on the
+a
+
+    Location: /_/tenant/6da99bac-457b-499f-89a4-34f4da8e9be8
+    
+header. This signals that the tenant job has started. Use a GET request on the
 Location path returned to poll for the completion of the tenant job with the
 
     curl -HX-Okapi-url:http://localhost:8081 -HX-Okapi-Tenant:testlib \
