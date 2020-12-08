@@ -3206,20 +3206,21 @@ In FOLIO two such parameters are widely recognized:
 
 ### Tenant Interface
 
-A module supporting 1.1/1.2 of the `_tenant` interface should use this snippet
-in the module descriptor:
+A module supporting 1.1/1.2 of the `_tenant` interface should use this
+snippet in the module descriptor:
 
 ```
    "id" : "_tenant",
    "version" : "1.2",
    "interfaceType" : "system",
    "handlers" : [ {
-     "methods" : [ "POST", "DELETE" ],
-     "pathPattern" : "/_/tenant"
-    }, {
-     "methods" : [ "POST" ],
-     "pathPattern" : "/_/tenant/disable"
-    } ]
+       "methods" : [ "POST", "DELETE" ],
+       "pathPattern" : "/_/tenant"
+      }, {
+       "methods" : [ "POST" ],
+       "pathPattern" : "/_/tenant/disable"
+      }
+   ]
 ```
 The corresponding RAML definition:
 [tenant.raml](https://github.com/folio-org/raml/blob/tenant_interface_1_2/ramls/tenant.raml)
@@ -3231,12 +3232,13 @@ Snippet of version 2.0 of the `_tenant` interface:
    "version" : "2.0",
    "interfaceType" : "system",
    "handlers" : [ {
-     "methods" : [ "POST" ],
-     "pathPattern" : "/_/tenant"
-    }, {
-     "methods" : [ "GET", "DELETE" ],
-     "pathPattern" : "/_/tenant/{id}"
-    } ]
+       "methods" : [ "POST" ],
+       "pathPattern" : "/_/tenant"
+      }, {
+       "methods" : [ "GET", "DELETE" ],
+       "pathPattern" : "/_/tenant/{id}"
+      }
+   ]
 ```
 The corresponding RAML definition:
 [tenant.raml](https://github.com/folio-org/raml/blob/raml1.0/ramls/tenant.raml)
