@@ -3148,7 +3148,7 @@ Location path returned to poll for the completion of the tenant job with the
 
     curl -HX-Okapi-url:http://localhost:8081 -HX-Okapi-Tenant:testlib \
       -HContent-Type:application/json "-HAccept:*/*" \
-      http://localhost:8081/path
+      http://localhost:8081/_/tenant/6da99bac-457b-499f-89a4-34f4da8e9be8
 
 (substitute above path with the Location returned)
 
