@@ -3177,8 +3177,8 @@ makes a POST request with path `/_/tenant/disable`. The request body is a
 JSON object where property `module_from` is the module ID that is being disabled.
 
 For tenant interface 2.0, when a module is disabled, Okapi
-makes a POST request with path /_/tenant/` with `module_from` being
-the module that is disabled and `module_to` omitted.
+makes a POST request with path `/_/tenant/` with `module_from` property
+being the module that is disabled and `module_to` omitted.
 
 #### Purge
 
