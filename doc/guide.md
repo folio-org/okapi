@@ -48,7 +48,6 @@ managing and running microservices.
     * [Instrumentation](#instrumentation)
 * [Module Reference](#module-reference)
     * [Life cycle of a module](#life-cycle-of-a-module)
-    * [Tenant Interface](#tenant-interface)
     * [HTTP](#http)
 
 ## Introduction
@@ -3204,7 +3203,7 @@ In FOLIO two such parameters are widely recognized:
  * `loadReference` with value `true` loads reference data.
  * `loadSample` with value `true` loads sample data.
 
-### Tenant Interface
+#### Tenant Interface definitions
 
 A module supporting 1.1/1.2 of the `_tenant` interface should use this
 snippet in the module descriptor:
