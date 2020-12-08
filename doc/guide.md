@@ -2972,7 +2972,7 @@ kind of housekeeping it needs.
 
 For the [specifics](#web-service), see under
 `.../okapi/okapi-core/src/main/raml/raml-util` the files
-`ramls/tenant.raml` and `schemas/moduleInfo.schema`.  The
+`ramls/tenant.raml` and `schemas/tenantAttributes.schema`.  The
 okapi-test-module has a very trivial implementation of this, and the
 moduleTest shows a module Descriptor that defines this interface.
 
@@ -2999,10 +2999,7 @@ then insert those it received in the request. That way it will clean
 up permissions that may have been introduced in some older version of
 the module, and are no longer used.
 
-For the [specifics](#web-service), see under
-`.../okapi/okapi-core/src/main/raml/raml-util` the files
-`ramls/tenant.raml` and `schemas/tenantAttributes.schema`.  The
-okapi-test-header-module has a very trivial implementation of this,
+The okapi-test-header-module has a very trivial implementation of this,
 and the moduleTest shows a module Descriptor that defines this
 interface.
 
