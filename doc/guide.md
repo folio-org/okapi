@@ -3146,8 +3146,8 @@ a
 header. This signals that the tenant job has started. Use a GET request on the
 Location path returned to poll for the completion of the tenant job with the
 
-    curl -HX-Okapi-url:http://localhost:8081 -HX-Okapi-Tenant:testlib \
-      -HContent-Type:application/json "-HAccept:*/*" \
+    curl -H "X-Okapi-url: http://localhost:8081" -H "X-Okapi-Tenant: testlib" \
+      -H "Content-Type: application/json" -H "Accept: */*" \
       http://localhost:8081/_/tenant/6da99bac-457b-499f-89a4-34f4da8e9be8
 
 (substitute above path with the Location returned)
