@@ -380,10 +380,10 @@ public class TenantManager implements Liveness {
                 }
                 ModuleInstance getInstance = instances.get(1);
                 getInstance.setUrl(postInstance.getUrl()); // same URL for POST & GET
-                getInstance.substPath("{id}", id);
+                getInstance.substPathId(id);
                 ModuleInstance deleteInstance = instances.get(2);
                 deleteInstance.setUrl(postInstance.getUrl()); // same URL for POST & DELETE
-                deleteInstance.substPath("{id}", id);
+                deleteInstance.substPathId(id);
                 Promise<Void> promise = Promise.promise();
                 waitTenantInit(tenant, getInstance, deleteInstance, pc, promise, TENANT_INIT_DELAY);
                 return promise.future();

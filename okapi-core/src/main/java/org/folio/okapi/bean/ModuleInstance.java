@@ -44,8 +44,12 @@ public class ModuleInstance {
     this.withRetry = false;
   }
 
-  public void substPath(String pattern, String value) {
-    path = path.replace(pattern, value);
+  /**
+   * Substitute {id} in path.
+   * @param id identifier
+   */
+  public void substPathId(String id) {
+    path = path.replace("{id}", id);
   }
 
   public ModuleDescriptor getModuleDescriptor() {
