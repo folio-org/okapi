@@ -1107,9 +1107,7 @@ public class InstallTest {
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    String locationInstallJob = r.getHeader("Location");
-
-    String path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    String path = r.getHeader("Location");
 
     return pollCompleteStrip(context, path);
   }
