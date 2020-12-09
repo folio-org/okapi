@@ -1193,6 +1193,40 @@ public class ProxyService {
         });
   }
 
+  private Future<OkapiClient> doCallSystemInterface2(
+      MultiMap headersIn, String tenantId, String authToken,
+      ModuleInstance inst, String modPerms, String request) {
+
+    Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
+    headers.put(XOkapiHeaders.URL_TO, inst.getUrl());
+    logger.debug("syscall begin {} {}{}", inst.getMethod(), inst.getUrl(), inst.getPath());
+    OkapiClient cli = new OkapiClient(this.httpClient, inst.getUrl(), vertx, headers);
+    String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
+    cli.newReqId(reqId); // "tenant" or "tenantpermissions"
+    cli.enableInfoLog();
+    if (inst.isWithRetry()) {
+      cli.setClosedRetry(40000);
+    }
+    final Timer.Sample sample = MetricsHelper.getTimerSample();
+    Promise<OkapiClient> promise = Promise.promise();
+    cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
+      logger.debug("syscall return {} {}{}", inst.getMethod(), inst.getUrl(), inst.getPath());
+      if (cres.failed()) {
+        String msg = messages.getMessage("11101", inst.getMethod(),
+            inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
+        logger.warn(msg, cres.cause());
+        MetricsHelper.recordHttpClientError(tenantId, inst.getMethod().name(), inst.getPath());
+        promise.fail(new OkapiError(ErrorType.USER, msg));
+        return;
+      }
+      MetricsHelper.recordHttpClientResponse(sample, tenantId, cli.getStatusCode(),
+          inst.getMethod().name(), inst);
+      // Pass response headers - needed for unit test, if nothing else
+      promise.complete(cli);
+    });
+    return promise.future();
+  }
+
   /**
    * Actually make a request to a system interface, like _tenant. Assumes we are
    * operating as the correct tenant.
@@ -1201,45 +1235,21 @@ public class ProxyService {
       MultiMap headersIn, String tenantId, String authToken,
       ModuleInstance inst, String modPerms, String request) {
 
-    return discoveryManager.get(inst.getModuleDescriptor().getId()).compose(gres -> {
-      DeploymentDescriptor instance = null;
-      if (gres != null) {
-        instance = pickInstance(gres);
-      }
-      if (instance == null) {
-        return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("11100",
-            inst.getModuleDescriptor().getId(), inst.getPath())));
-      }
-      String baseurl = instance.getUrl();
-      Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
-      headers.put(XOkapiHeaders.URL_TO, baseurl);
-      logger.debug("syscall begin {} {}{}", inst.getMethod(), baseurl, inst.getPath());
-      OkapiClient cli = new OkapiClient(this.httpClient, baseurl, vertx, headers);
-      String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
-      cli.newReqId(reqId); // "tenant" or "tenantpermissions"
-      cli.enableInfoLog();
-      if (inst.isWithRetry()) {
-        cli.setClosedRetry(40000);
-      }
-      final Timer.Sample sample = MetricsHelper.getTimerSample();
-      Promise<OkapiClient> promise = Promise.promise();
-      cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
-        logger.debug("syscall return {} {}{}", inst.getMethod(), baseurl, inst.getPath());
-        if (cres.failed()) {
-          String msg = messages.getMessage("11101", inst.getMethod(),
-              inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
-          logger.warn(msg, cres.cause());
-          MetricsHelper.recordHttpClientError(tenantId, inst.getMethod().name(), inst.getPath());
-          promise.fail(new OkapiError(ErrorType.USER, msg));
-          return;
-        }
-        MetricsHelper.recordHttpClientResponse(sample, tenantId, cli.getStatusCode(),
-            inst.getMethod().name(), inst);
-        // Pass response headers - needed for unit test, if nothing else
-        promise.complete(cli);
-      });
-      return promise.future();
-    });
+    Future<Void> future = Future.succeededFuture();
+    if (inst.getUrl() == null) {
+      future = discoveryManager.get(inst.getModuleDescriptor().getId())
+          .compose(gres -> {
+            DeploymentDescriptor instance = pickInstance(gres);
+            if (instance == null) {
+              return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("11100",
+                  inst.getModuleDescriptor().getId(), inst.getPath())));
+            }
+            inst.setUrl(instance.getUrl());
+            return Future.succeededFuture();
+          });
+    }
+    return future.compose(x -> doCallSystemInterface2(
+        headersIn, tenantId, authToken, inst, modPerms, request));
   }
 
   /**

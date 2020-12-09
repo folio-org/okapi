@@ -217,8 +217,8 @@ public class InterfaceDescriptor {
           prefix, version);
     }
 
-    if ("_tenant".equals(this.id) && !"1.0 1.1 1.2".contains(version)) {
-      logger.warn("{} is '{}'. Should be '1.0/1.1/1.2'", prefix, version);
+    if ("_tenant".equals(this.id) && !"1.0 1.1 1.2 2.0".contains(version)) {
+      logger.warn("{} is '{}'. Should be '1.0/1.1/1.2/2.0'", prefix, version);
     }
     if ("_tenantPermissions".equals(this.id) && !"1.0 1.1".contains(version)) {
       logger.warn("{} is '{}'. should be '1.0/1.1'", prefix, version);

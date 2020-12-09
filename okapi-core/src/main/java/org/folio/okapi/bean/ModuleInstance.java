@@ -14,7 +14,7 @@ public class ModuleInstance {
   private String authToken;
   private String userId;
   private String permissions;
-  private final String path; // The relative URI from the proxy request
+  private String path; // The relative URI from the proxy request
   private final HttpMethod method;
   private final boolean handler;  // is true if handler; false otherwise (filter)
   private boolean withRetry;
@@ -42,6 +42,14 @@ public class ModuleInstance {
     this.method = method;
     this.handler = handler;
     this.withRetry = false;
+  }
+
+  /**
+   * Substitute {id} in path.
+   * @param id identifier
+   */
+  public void substPathId(String id) {
+    path = path.replace("{id}", id);
   }
 
   public ModuleDescriptor getModuleDescriptor() {
