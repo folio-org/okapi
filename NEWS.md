@@ -1,3 +1,7 @@
+## 4.5.1 2020-12-11
+
+ * [OKAPI-966](https://issues.folio.org/browse/OKAPI-966) Fix Okapi systemd service fails to start after upgrade to docker-ce v20
+
 ## 4.5.0 2020-12-09
 
 New features:
