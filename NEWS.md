@@ -1,6 +1,15 @@
-## (NEXT RELEASE)
+## 4.5.0 2020-12-09
 
+New features:
+
+ * [OKAPI-958](https://issues.folio.org/browse/OKAPI-958) Upgrade to Vert.x 4.0.0
+ * [OKAPI-875](https://issues.folio.org/browse/OKAPI-875) Asynchronous tenant interface. Okapi recognizes `_tenant`
+   interface 2.0.
  * Provide utility script [`okapi-curl`](util/okapi-curl).
+
+Fixes:
+
+ * [OKAPI-956](https://issues.folio.org/browse/OKAPI-956) Update to default hazelcast version 4.0
 
 ## 4.4.0 2020-11-19
 

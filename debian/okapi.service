@@ -1,7 +1,7 @@
 [Unit]
 Description=FOLIO Okapi service
 Wants=postgresql.service docker.service
-After=network-online.target postgresql.service docker.service
+After=network-online.target postgresql.service docker.service multi-user.target
 
 
 [Service]
@@ -37,4 +37,3 @@ LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
-
