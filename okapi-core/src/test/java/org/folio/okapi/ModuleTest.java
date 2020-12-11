@@ -1197,8 +1197,8 @@ public class ModuleTest {
         .statusCode(200)
         .log().ifValidationFails()
         .body("$", hasSize(2))
-        .body("[0].moduleId", is("okapi-0.0.0"))
-        .body("[1].moduleId", is("header-1"));
+        .body("[0].moduleToId", is("okapi-0.0.0"))
+        .body("[1].moduleToId", is("header-1"));
 
     // Set up the test module
     // It provides a _tenant interface, but no _tenantPermissions
@@ -1254,8 +1254,8 @@ public class ModuleTest {
       + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
     final String expPerms = "{ "
-      + "\"moduleId\" : \"sample-module-1\", "
-      + "\"perms\" : [ { "
+      + "\"moduleToId\" : \"sample-module-1\", "
+      + "\"permsTo\" : [ { "
       + "\"permissionName\" : \"everything\", "
       + "\"displayName\" : \"every possible permission\", "
       + "\"description\" : \"All permissions combined\", "
@@ -1314,8 +1314,8 @@ public class ModuleTest {
       + "  \"id\" : \"sample-module2-1\"" + LS
       + "}";
     final String expPerms2 = "{ "
-      + "\"moduleId\" : \"sample-module2-1\", "
-      + "\"perms\" : null }";
+      + "\"moduleToId\" : \"sample-module2-1\", "
+      + "\"permsTo\" : null }";
 
     String locSampleEnable2 = given()
       .header("Content-Type", "application/json")
@@ -1411,6 +1411,125 @@ public class ModuleTest {
     // Check that the tenant interface and the tenantpermission interfaces
     // were called with proper auth tokens and with ModulePermissions
 
+    // Set up the test module
+    // It provides a _tenant interface, but no _tenantPermissions
+    // Enabling it will end up invoking the _tenantPermissions in header-module
+    final String docSampleModuleUpdated = "{" + LS
+      + "  \"id\" : \"sample-module-2\"," + LS
+      + "  \"name\" : \"sample module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"version\" : \"2.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"level\" : \"30\"," + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
+      + "      \"permissionsDesired\" : [ \"sample.extra\" ]," + LS
+      + "      \"modulePermissions\" : [ \"sample.modperm\" ]" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"path\" : \"/_/tenant\"," + LS
+      + "      \"level\" : \"10\"," + LS
+      + "      \"type\" : \"system\"," + LS
+      + "      \"permissionsRequired\" : [ ]," + LS
+      + "      \"modulePermissions\" : [ \"sample.tenantperm\" ]" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"permissionSets\" : [ {" + LS
+      + "    \"permissionName\" : \"all\"," + LS
+      + "    \"renamedFrom\" : [ \"everything\" ]," + LS
+      + "    \"displayName\" : \"all possible permissions\"," + LS
+      + "    \"description\" : \"All permissions combined\"," + LS
+      + "    \"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ]," + LS
+      + "    \"visible\" : true" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+
+    // Create and deploy the sample module
+    final String locSampleModuleUpdated = createModule(docSampleModuleUpdated);
+    final String locationSampleDeploymentUpdated = deployModule("sample-module-2");
+
+    // Enable the small module. Verify that the _tenantPermissions gets
+    // invoked.
+    final String docEnableUpdated = "[ {" + LS
+      + "  \"id\" : \"sample-module-2\"," + LS
+      + "  \"action\" : \"enable\"" + LS
+      + "} ]";
+    final String expPermsUpdated = "{ "
+        + "\"moduleToId\" : \"sample-module-2\", "
+        + "\"moduleFromId\" : \"sample-module-1\", "
+        + "\"permsTo\" : [ { "
+        + "\"permissionName\" : \"all\", "
+        + "\"renamedFrom\" : [ \"everything\" ], "
+        + "\"displayName\" : \"all possible permissions\", "
+        + "\"description\" : \"All permissions combined\", "
+        + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
+        + "\"visible\" : true "
+        + "}, { "
+        + "\"permissionName\" : \"SYS#sample-module-2#/testb#[GET, POST]\", "
+        + "\"displayName\" : \"System generated: SYS#sample-module-2#/testb#[GET, POST]\", "
+        + "\"description\" : \"System generated permission set\", "
+        + "\"subPermissions\" : [ \"sample.modperm\" ], "
+        + "\"visible\" : false "
+        + "}, { "
+        + "\"permissionName\" : \"SYS#sample-module-2#/_/tenant#[POST, DELETE]\", "
+        + "\"displayName\" : \"System generated: SYS#sample-module-2#/_/tenant#[POST, DELETE]\", "
+        + "\"description\" : \"System generated permission set\", "
+        + "\"subPermissions\" : [ \"sample.tenantperm\" ], "
+        + "\"visible\" : false "
+        + "} ], "
+        + "\"permsFrom\" : [ { "
+        + "\"permissionName\" : \"everything\", "
+        + "\"displayName\" : \"every possible permission\", "
+        + "\"description\" : \"All permissions combined\", "
+        + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
+        + "\"visible\" : true "
+        + "}, { "
+        + "\"permissionName\" : \"SYS#sample-module-1#/testb#[GET, POST]\", "
+        + "\"displayName\" : \"System generated: SYS#sample-module-1#/testb#[GET, POST]\", "
+        + "\"description\" : \"System generated permission set\", "
+        + "\"subPermissions\" : [ \"sample.modperm\" ], "
+        + "\"visible\" : false "
+        + "}, { "
+        + "\"permissionName\" : \"SYS#sample-module-1#/_/tenant#[POST, DELETE]\", "
+        + "\"displayName\" : \"System generated: SYS#sample-module-1#/_/tenant#[POST, DELETE]\", "
+        + "\"description\" : \"System generated permission set\", "
+        + "\"subPermissions\" : [ \"sample.tenantperm\" ], "
+        + "\"visible\" : false "
+        + "} ] }";
+
+    given()
+      .header("Content-Type", "application/json")
+      .body(docEnableUpdated)
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then()
+      .statusCode(200)
+      .log().ifValidationFails();
+
+    String locSampleEnableUpdated = "/_/proxy/tenants/" + okapiTenant + "/modules/sample-module-2";
+
+    body = given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .get("/permResult")
+        .then()
+        .statusCode(200)
+        .log().ifValidationFails()
+        .extract().body().asString();
+
+    ar = new JsonArray(body);
+    context.assertEquals(1, ar.size());
+    context.assertEquals(new JsonObject(expPermsUpdated), ar.getJsonObject(0));
+
     // Clean up, so the next test starts with a clean slate (in reverse order)
     logger.debug("testSystemInterfaces cleaning up");
 
@@ -1421,6 +1540,10 @@ public class ModuleTest {
     c = api.createRestAssured3();
     c.given().delete(locAuthModule).then().log().ifValidationFails().statusCode(204);
     assertEmptyReport(c);
+
+    given().delete(locSampleEnableUpdated).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationSampleDeploymentUpdated).then().log().ifValidationFails().statusCode(204);
+    given().delete(locSampleModuleUpdated).then().log().ifValidationFails().statusCode(204);
 
     given().delete(locSampleEnable2).then().log().ifValidationFails().statusCode(204);
     given().delete(locationSampleDeployment2).then().log().ifValidationFails().statusCode(204);
@@ -2653,9 +2776,9 @@ public class ModuleTest {
           .statusCode(200)
           .log().ifValidationFails()
           .body("$", hasSize(3))
-          .body("[0].moduleId", is("okapi-0.0.0"))
-          .body("[1].moduleId", is("sample-module-1.0.0"))
-          .body("[2].moduleId", is("header-1"));
+          .body("[0].moduleToId", is("okapi-0.0.0"))
+          .body("[1].moduleToId", is("sample-module-1.0.0"))
+          .body("[2].moduleToId", is("header-1"));
     }
 
     conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
@@ -2697,7 +2820,7 @@ public class ModuleTest {
           .statusCode(200)
           .log().ifValidationFails()
           .body("$", hasSize(1))
-          .body("[0].moduleId", is("okapi-3.0.0"));
+          .body("[0].moduleToId", is("okapi-3.0.0"));
     }
 
     given()

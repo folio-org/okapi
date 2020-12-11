@@ -10,6 +10,13 @@
       "description": "Permission ID (usually module.service.method or similar)",
       "type": "string"
     },
+    "renamedFrom": {
+      "description": "previously used names for this permission",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "displayName": {
       "description": "Human readable name for permission",
       "type": "string"
