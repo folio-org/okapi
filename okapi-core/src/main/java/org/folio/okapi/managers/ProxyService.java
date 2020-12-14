@@ -192,6 +192,7 @@ public class ProxyService {
     boolean skipAuth = false;
     for (ModuleInstance mi : mods) {
       if (mi.isHandler()) {
+        pc.setHandlerModuleInstance(mi);
         RoutingEntry re = mi.getRoutingEntry();
         skipAuth = checkTokenCache(pc.getTenant(), req, re.getPathPattern(), mi);
         logger.debug("getModulesForRequest:  Added {} {} {} {} / {}",
