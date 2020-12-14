@@ -51,6 +51,10 @@ public class ProxyContext {
     return handlerModuleInstance;
   }
 
+  public void setHandlerModuleInstance(ModuleInstance handlerModuleInstance) {
+    this.handlerModuleInstance = handlerModuleInstance;
+  }
+
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
    * know the tenant yet.
