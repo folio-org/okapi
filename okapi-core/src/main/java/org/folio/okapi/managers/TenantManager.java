@@ -24,6 +24,8 @@ import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.PermissionList;
+import org.folio.okapi.bean.PermissionListV1;
+import org.folio.okapi.bean.PermissionListV2;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
@@ -652,13 +654,18 @@ public class TenantManager implements Liveness {
     String moduleTo = mdTo.getId();
     PermissionList pl = null;
     InterfaceDescriptor permInt = permsModule.getSystemInterface("_tenantPermissions");
-    if (permInt.getVersion().equals("1.0")) {
-      pl = new PermissionList(moduleTo, mdTo.getPermissionSets());
-    } else if (mdFrom != null) {
-      pl = new PermissionList(moduleTo, mdFrom.getId(), mdTo.getExpandedPermissionSets(),
-          mdFrom.getExpandedPermissionSets());
+    String permIntVer = permInt.getVersion();
+    if (permIntVer.equals("1.0")) {
+      pl = new PermissionListV1(moduleTo, mdTo.getPermissionSets());
+    } else if (permIntVer.equals("1.1")) {
+      pl = new PermissionListV1(moduleTo, mdTo.getExpandedPermissionSets());
     } else {
-      pl = new PermissionList(moduleTo, mdTo.getExpandedPermissionSets());
+      if (mdFrom != null) {
+        pl = new PermissionListV2(moduleTo, mdFrom.getId(), mdTo.getExpandedPermissionSets(),
+            mdFrom.getExpandedPermissionSets());
+      } else {
+        pl = new PermissionListV2(moduleTo, mdTo.getExpandedPermissionSets());
+      }
     }
     String pljson = Json.encodePrettily(pl);
     logger.debug("tenantPerms Req: {}", pljson);

@@ -253,7 +253,12 @@ public class ProxyTest {
           } else if (p.startsWith("/permissionscall")) {
             JsonObject permObject = new JsonObject(buf);
             if (timerTenantPermissionsStatus == 200) {
-              timerPermissions.put(permObject.getString("moduleToId"), permObject.getJsonArray("permsTo"));
+              String moduleToId = permObject.getString("moduleToId");
+              if (moduleToId != null) {
+                timerPermissions.put(moduleToId, permObject.getJsonArray("permsTo"));
+              } else {
+                timerPermissions.put(permObject.getString("moduleId"), permObject.getJsonArray("perms"));
+              }
             }
             response.setStatusCode(timerTenantPermissionsStatus);
             response.end("timer permissions response");
@@ -3842,8 +3847,8 @@ public class ProxyTest {
 
     setupBasicTenant(tenant);
 
-    // test _tenantpermissions 1.0 vs 1.1
-    for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1")) {
+    // test _tenantpermissions 1.0 vs 1.1 vs 2.0
+    for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1", "2.0")) {
       timerPermissions.clear();
       setupBasicModule(tenant, moduleId, tenantPermissionsVersion, true, true);
       setupBasicAuth(tenant, authModuleId);
