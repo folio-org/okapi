@@ -1,7 +1,8 @@
 package org.folio.okapi.common;
+
 import io.vertx.core.json.JsonObject;
-import org.junit.Test;
 import org.junit.Assert;
+import org.junit.Test;
 
 public class ConfigTest {
   @Test
@@ -20,6 +21,42 @@ public class ConfigTest {
 
     System.setProperty(varName, "");
     Assert.assertEquals("124", Config.getSysConf(varName, "123", conf));
+  }
+
+  private void assert2(String prop1, String prop2, String json1, String json2, String expected) {
+    final String key1 = "foo-bar92304231";
+    final String key2 = "foo-bar92304232";
+    JsonObject conf = new JsonObject();
+    if (json1 != null) {
+      conf.put(key1, json1);
+    }
+    if (json2 != null) {
+      conf.put(key2, json2);
+    }
+    if (prop1 == null) {
+      System.clearProperty(key1);
+    } else {
+      System.setProperty(key1, prop1);
+    }
+    if (prop2 == null) {
+      System.clearProperty(key2);
+    } else {
+      System.setProperty(key2, prop2);
+    }
+    Assert.assertEquals(expected, Config.getSysConf(key1, key2, "de", conf));
+  }
+
+  @Test
+  public void testConfig2Keys() {
+    assert2(null, null, null, null, "de");
+    assert2("",   "",   null, null, "de");
+    assert2(null, null, null, "j2", "j2");
+    assert2(null, null, "j1", "j2", "j1");
+    assert2(null, "p2", "j1", "j2", "p2");
+    assert2("",   "p2", "j1", "j2", "p2");
+    assert2("p1", "p2", "j1", "j2", "p1");
+    assert2("p1", null, null, null, "p1");
+    assert2("p1", "",   "",   "",   "p1");
   }
 
   @Test
@@ -60,5 +97,5 @@ public class ConfigTest {
     Assert.assertEquals(null, Config.getSysConfBoolean(varName, null, conf));
 
   }
-  
+
 }

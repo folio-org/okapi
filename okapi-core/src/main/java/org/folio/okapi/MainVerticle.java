@@ -84,7 +84,7 @@ public class MainVerticle extends AbstractVerticle {
     super.init(vertx, context);
 
     JsonObject config = context.config();
-    port = Integer.parseInt(Config.getSysConf("port", "9130", config));
+    port = Integer.parseInt(Config.getSysConf("http.port", "port", "9130", config));
     String okapiVersion2 = Config.getSysConf("okapiVersion", null, config);
     if (okapiVersion2 != null) {
       okapiVersion = okapiVersion2;
