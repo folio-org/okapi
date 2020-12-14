@@ -3358,7 +3358,7 @@ public class ModuleTest {
       .body(docEnableHdr)
       .post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then()
-      .statusCode(500)
+      .statusCode(400)
       .log().ifValidationFails()
       .extract().asString();
     context.assertEquals("Unknown version of _tenantPermissions interface in use 9.0.", body);

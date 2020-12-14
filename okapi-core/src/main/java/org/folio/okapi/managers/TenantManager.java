@@ -667,7 +667,7 @@ public class TenantManager implements Liveness {
         pl = new PermissionListV2(moduleTo, mdTo.getExpandedPermissionSets());
       }
     } else {
-      return Future.failedFuture(new OkapiError(ErrorType.ANY,
+      return Future.failedFuture(new OkapiError(ErrorType.USER,
           "Unknown version of _tenantPermissions interface in use " + permIntVer + "."));
     }
     String pljson = Json.encodePrettily(pl);
