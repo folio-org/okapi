@@ -1,5 +1,29 @@
 package org.folio.okapi;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.UrlDecoder;
+import org.folio.okapi.common.XOkapiHeaders;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
@@ -7,36 +31,17 @@ import io.restassured.RestAssured;
 import io.restassured.http.Headers;
 import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
-import io.vertx.core.json.Json;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunnerWithParametersFactory;
-import java.util.*;
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.UrlDecoder;
-import org.folio.okapi.common.XOkapiHeaders;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
 
 @RunWith(Parameterized.class)
 @Parameterized.UseParametersRunnerFactory(VertxUnitRunnerWithParametersFactory.class)
@@ -3286,7 +3291,7 @@ public class ModuleTest {
     context.assertEquals(new JsonObject(expPermsUpdated), ar.getJsonObject(0));
 
     // Clean up, so the next test starts with a clean slate (in reverse order)
-    logger.debug("testSystemInterfaces cleaning up");
+    logger.debug("testTenantPermissionsCompatibility cleaning up");
 
     given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
 
@@ -3308,6 +3313,59 @@ public class ModuleTest {
     given().delete(locSampleModule).then().log().ifValidationFails().statusCode(204);
     locationSampleDeployment = null;
     given().delete(locHdrEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationHeaderDeployment).then().log().ifValidationFails().statusCode(204);
+    locationHeaderDeployment = null;
+    given().delete(locHdrModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locInternal).then().log().ifValidationFails().statusCode(204);
+    given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
+    checkDbIsEmpty("testSystemInterfaces done", context);
+  }
+
+  /**
+   * Test that unknown versions of _tenantPermissions are rejected.
+   *
+   * @param context
+   */
+  @Test
+  public void testTenantPermissionsUnknownVersion(TestContext context) {
+    checkDbIsEmpty("testTenantPermissionsUnknownVersion starting", context);
+
+    // Set up a tenant to test with
+    final String locTenant = createTenant();
+
+    // Enable the Okapi internal module for our tenant.
+    // This is not unlike what happens to the superTenant, who has the internal
+    // module enabled from the boot up, before anyone can provide the
+    // _tenantPermissions interface. Its permissions should normally be (re)loaded
+    // when our Hdr module gets enabled, but we're expecting the call to enable
+    // mod-permissions to fail due to an unknown version of _tenantPermissions
+    final String locInternal = enableModule("okapi-0.0.0");
+
+    // Set up a module that does the _tenantPermissions interface that will
+    // get called when sample gets enabled. We (ab)use the header module for
+    // this.
+
+    // Create, deploy, and enable the header module w/ unknown _tenantPermissions version
+    final String locHdrModule = createHeaderModule("9.0");
+    locationHeaderDeployment = deployModule("header-1");
+    final String docEnableHdr = "{" + LS
+      + "  \"id\" : \"header-1\"" + LS
+      + "}";
+
+    // Enable the header module. Check that we get an appropriate error response.
+    String body = given()
+      .header("Content-Type", "application/json")
+      .body(docEnableHdr)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then()
+      .statusCode(500)
+      .log().ifValidationFails()
+      .extract().asString();
+    context.assertEquals("Unknown version of _tenantPermissions interface in use 9.0.", body);
+
+    // Clean up, so the next test starts with a clean slate (in reverse order)
+    logger.debug("testTenantPermissionsUnknownVersion cleaning up");
+
     given().delete(locationHeaderDeployment).then().log().ifValidationFails().statusCode(204);
     locationHeaderDeployment = null;
     given().delete(locHdrModule).then().log().ifValidationFails().statusCode(204);
