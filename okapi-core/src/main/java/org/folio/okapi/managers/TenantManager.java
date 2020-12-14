@@ -11,6 +11,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -48,7 +49,7 @@ import org.folio.okapi.util.TenantInstallOptions;
 @java.lang.SuppressWarnings({"squid:S1192"}) // String literals should not be duplicated
 public class TenantManager implements Liveness {
 
-  private final Logger logger = OkapiLogger.get();
+  private static final Logger logger = OkapiLogger.get();
   private ModuleManager moduleManager;
   private ProxyService proxyService = null;
   private DiscoveryManager discoveryManager;
@@ -58,35 +59,30 @@ public class TenantManager implements Liveness {
   private LockedTypedMap2<InstallJob> jobs = new LockedTypedMap2<>(InstallJob.class);
   private static final String EVENT_NAME = "timer";
   private Set<String> timers = new HashSet<>();
-  private Messages messages = Messages.getInstance();
+  private static Messages messages = Messages.getInstance();
   private Vertx vertx;
   private Map<String, ModuleCache> enabledModulesCache = new HashMap<>();
   // tenants with new permission module (_tenantPermissions version 1.1 or later)
   private Map<String, Boolean> expandedModulesCache = new HashMap<>();
+  private final boolean local;
+  private static final int TENANT_INIT_DELAY = 300; // initial wait in ms
+  private static final int TENANT_INIT_INCREASE = 1250;  // increase factor (/ 1000)
 
   /**
-   * Create tenant manager.
+   * Construct Tenant Manager.
    *
    * @param moduleManager module manager
-   * @param tenantStore   tenant storage
+   * @param tenantStore tenant storage
+   * @param local if true, use local, in-process maps, only
    */
-  public TenantManager(ModuleManager moduleManager, TenantStore tenantStore) {
+  public TenantManager(ModuleManager moduleManager, TenantStore tenantStore, boolean local) {
     this.moduleManager = moduleManager;
     this.tenantStore = tenantStore;
+    this.local = local;
   }
 
   void setTenantsMap(LockedTypedMap1<Tenant> tenants) {
     this.tenants = tenants;
-  }
-
-  /**
-   * Force the map to be local. Even in cluster mode, will use a local memory
-   * map. This way, the node will not share tenants with the cluster, and can
-   * not proxy requests for anyone but the superTenant, to the InternalModule.
-   * Which is just enough to act in the deployment mode.
-   */
-  public void forceLocalMap() {
-    mapName = null;
   }
 
   /**
@@ -98,8 +94,8 @@ public class TenantManager implements Liveness {
   public Future<Void> init(Vertx vertx) {
     this.vertx = vertx;
 
-    return tenants.init(vertx, mapName)
-        .compose(x -> jobs.init(vertx, "installJobs"))
+    return tenants.init(vertx, mapName, local)
+        .compose(x -> jobs.init(vertx, "installJobs", local))
         .compose(x -> loadTenants());
   }
 
@@ -187,19 +183,6 @@ public class TenantManager implements Liveness {
   }
 
   /**
-   * Actually update the enabled modules. Assumes dependencies etc have been
-   * checked.
-   *
-   * @param id - tenant to update for
-   * @param moduleFrom - module to be disabled, may be null if none
-   * @param moduleTo - module to be enabled, may be null if none
-   * @return fut callback for errors.
-   */
-  Future<Void> updateModuleCommit(String id, String moduleFrom, String moduleTo) {
-    return tenants.getNotFound(id).compose(t -> updateModuleCommit(t, moduleFrom, moduleTo));
-  }
-
-  /**
    * Update module for tenant and commit to storage.
    * @param t tenant
    * @param moduleFrom null if no original module
@@ -268,30 +251,28 @@ public class TenantManager implements Liveness {
     });
   }
 
-
   Future<String> enableAndDisableModule(
       String tenantId, TenantInstallOptions options, String moduleFrom,
       TenantModuleDescriptor td, ProxyContext pc) {
 
-    return tenants.getNotFound(tenantId)
-        .compose(tenant -> Future.succeededFuture()
-            .compose(res -> {
-              if (td == null) {
-                return Future.succeededFuture(null);
-              }
-              return moduleManager.getLatest(td.getId());
-            }).compose(mdTo ->
-                moduleManager.get(moduleFrom).compose(mdFrom -> {
-                  Future<Void> future = Future.succeededFuture();
-                  if (options.getDepCheck()) {
-                    future = future
-                        .compose(x -> enableAndDisableCheck(tenant, mdFrom, mdTo));
-                  }
-                  return future
-                      .compose(x -> enableAndDisableModule(tenant, options, mdFrom, mdTo, pc));
-                })
-            )
-        );
+    return tenants.getNotFound(tenantId).compose(tenant ->
+        enableAndDisableModule(tenant, options, moduleFrom, td != null ? td.getId() : null, pc));
+  }
+
+  private Future<String> enableAndDisableModule(
+      Tenant tenant, TenantInstallOptions options, String moduleFrom,
+      String moduleTo, ProxyContext pc) {
+
+    Future<ModuleDescriptor> mdFrom = moduleFrom != null
+        ? moduleManager.get(moduleFrom) : Future.succeededFuture(null);
+    Future<ModuleDescriptor> mdTo = moduleTo != null
+        ? moduleManager.getLatest(moduleTo) : Future.succeededFuture(null);
+    return mdFrom
+        .compose(x -> mdTo)
+        .compose(x -> options.getDepCheck()
+              ? enableAndDisableCheck(tenant, mdFrom.result(), mdTo.result())
+              : Future.succeededFuture())
+        .compose(x -> enableAndDisableModule(tenant, options, mdFrom.result(), mdTo.result(), pc));
   }
 
   private Future<String> enableAndDisableModule(Tenant tenant, TenantInstallOptions options,
@@ -306,6 +287,43 @@ public class TenantManager implements Liveness {
         .compose(x -> commitModuleChange(tenant, mdFrom, mdTo, pc))
         .compose(x -> Future.succeededFuture((mdTo != null ? mdTo.getId() : ""))
     );
+  }
+
+  private void waitTenantInit(Tenant tenant, ModuleInstance getInstance,
+                              ModuleInstance deleteInstance, ProxyContext pc,
+                              Promise<Void> promise, long waitMs) {
+    proxyService.callSystemInterface(tenant, getInstance, "", pc)
+        .onFailure(x -> promise.fail(x))
+        .onSuccess(cli -> {
+          JsonObject obj = new JsonObject(cli.getResponsebody());
+          Boolean complete = obj.getBoolean("complete");
+          if (Boolean.TRUE.equals(complete)) {
+            proxyService.callSystemInterface(tenant, deleteInstance, "", pc)
+                .onFailure(x -> promise.fail(x))
+                .onSuccess(x -> {
+                  String error = obj.getString("error");
+                  if (error == null) {
+                    promise.complete();
+                    return;
+                  }
+                  // a shame that we must make a structured JSON response into a text response.
+                  // We have to stuff it into one element: TenantModuleDescriptor.message
+                  StringBuilder message = new StringBuilder(error);
+                  JsonArray ar = obj.getJsonArray("messages");
+                  if (ar != null) {
+                    for (int i = 0; i < ar.size(); i++) {
+                      message.append("\n");
+                      message.append(ar.getString(i));
+                    }
+                  }
+                  promise.fail(message.toString());
+                });
+            return;
+          }
+          vertx.setTimer(waitMs, x ->
+              waitTenantInit(tenant, getInstance, deleteInstance, pc, promise,
+                  (waitMs * TENANT_INIT_INCREASE) / 1000));
+        });
   }
 
   /**
@@ -332,19 +350,44 @@ public class TenantManager implements Liveness {
     }
     String tenantParameters = options.getTenantParameters();
     boolean purge = mdTo == null && options.getPurge();
-    return getTenantInstanceForModule(mdFrom, mdTo, jo, tenantParameters, purge)
-        .compose(instance -> {
-          if (instance == null) {
-            logger.debug("{}: has no support for tenant init",
+    ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
+    return getTenantInstanceForModule(md, mdFrom, mdTo, jo, tenantParameters, purge)
+        .compose(instances -> {
+          if (instances.isEmpty()) {
+            logger.info("{}: has no support for tenant init",
                 (mdTo != null ? mdTo.getId() : mdFrom.getId()));
             return Future.succeededFuture();
           }
-          final String req = purge ? "" : jo.encodePrettily();
-          return proxyService.callSystemInterface(tenant, instance, req, pc).compose(cres -> {
-            pc.passOkapiTraceHeaders(cres);
-            // We can ignore the result, the call went well.
-            return Future.succeededFuture();
-          });
+          ModuleInstance postInstance = instances.get(0);
+          String req = HttpMethod.DELETE.equals(postInstance.getMethod())
+              ? "" : jo.encodePrettily();
+          return proxyService.callSystemInterface(tenant, postInstance, req, pc)
+              .compose(cres -> {
+                pc.passOkapiTraceHeaders(cres);
+                String location = cres.getRespHeaders().get("Location");
+                if (location == null) {
+                  return Future.succeededFuture(); // sync v1 / v2
+                }
+                if (instances.size() != 3) {
+                  return Future.failedFuture(messages.getMessage(
+                      "10409", postInstance.getMethod(), postInstance.getPath()));
+                }
+                JsonObject obj = new JsonObject(cres.getResponsebody());
+                String id = obj.getString("id");
+                if (id == null) {
+                  return Future.failedFuture(messages.getMessage("10408",
+                      postInstance.getMethod().name(), postInstance.getPath()));
+                }
+                ModuleInstance getInstance = instances.get(1);
+                getInstance.setUrl(postInstance.getUrl()); // same URL for POST & GET
+                getInstance.substPathId(id);
+                ModuleInstance deleteInstance = instances.get(2);
+                deleteInstance.setUrl(postInstance.getUrl()); // same URL for POST & DELETE
+                deleteInstance.substPathId(id);
+                Promise<Void> promise = Promise.promise();
+                waitTenantInit(tenant, getInstance, deleteInstance, pc, promise, TENANT_INIT_DELAY);
+                return promise.future();
+              });
         });
   }
 
@@ -452,15 +495,49 @@ public class TenantManager implements Liveness {
    * @param discoveryManager discovery manager
    * @return async result
    */
-  public Future<Void> startTimers(DiscoveryManager discoveryManager) {
+  public Future<Void> startTimers(DiscoveryManager discoveryManager, String okapiVersion) {
+    final ModuleDescriptor md = InternalModule.moduleDescriptor(okapiVersion);
     this.discoveryManager = discoveryManager;
     return tenants.getKeys().compose(res -> {
       for (String tenantId : res) {
-        logger.info("starting {}", tenantId);
         reloadEnabledModules(tenantId).onComplete(x -> handleTimer(tenantId));
       }
+      Future<Void> future = Future.succeededFuture();
+      for (String tenantId : res) {
+        future = future.compose(x -> upgradeOkapiModule(tenantId, md));
+      }
       consumeTimers();
-      return Future.succeededFuture();
+      return future;
+    });
+  }
+
+  private Future<Void> upgradeOkapiModule(String tenantId, ModuleDescriptor md) {
+    return get(tenantId).compose(tenant -> {
+      String moduleTo = md.getId();
+      Set<String> enabledMods = tenant.getEnabled().keySet();
+      String enver = null;
+      for (String emod : enabledMods) {
+        if (emod.startsWith("okapi-")) {
+          enver = emod;
+        }
+      }
+      String moduleFrom = enver;
+      if (moduleFrom == null) {
+        logger.info("Tenant {} does not have okapi module enabled already", tenantId);
+        return Future.succeededFuture();
+      }
+      if (moduleFrom.equals(moduleTo)) {
+        logger.info("Tenant {} has module {} enabled already", tenantId, moduleTo);
+        return Future.succeededFuture();
+      }
+      if (ModuleId.compare(moduleFrom, moduleTo) >= 4) {
+        logger.warn("Will not downgrade tenant {} from {} to {}", tenantId, moduleTo, moduleFrom);
+        return Future.succeededFuture();
+      }
+      logger.info("Tenant {} moving from {} to {}", tenantId, moduleFrom, moduleTo);
+      TenantInstallOptions options = new TenantInstallOptions();
+      return invokePermissions(tenant, options, md, null).compose(x ->
+          updateModuleCommit(tenant, moduleFrom, moduleTo));
     });
   }
 
@@ -604,6 +681,11 @@ public class TenantManager implements Liveness {
               + ". No path to POST to"));
     }
     logger.debug("tenantPerms: {} and {}", permsModule.getId(), permPath);
+    if (pc == null) {
+      MultiMap headersIn = MultiMap.caseInsensitiveMultiMap();
+      return proxyService.doCallSystemInterface(headersIn, tenant.getId(), null,
+          permInst, null, pljson).mapEmpty();
+    }
     return proxyService.callSystemInterface(tenant, permInst, pljson, pc).compose(cres -> {
       pc.passOkapiTraceHeaders(cres);
       logger.debug("tenantPerms request to {} succeeded for module {} and tenant {}",
@@ -619,63 +701,79 @@ public class TenantManager implements Liveness {
    * if the module provides a '_tenant' interface that is marked as a system
    * interface, and has a RoutingEntry that supports POST.
    *
+   * @param md module ("to" if available otherwise "from")
    * @param mdFrom module from
    * @param mdTo module to
    * @param jo Json Object to be POSTed
    * @param tenantParameters tenant parameters (eg sample data)
    * @param purge true if purging (DELETE)
-   * @return future (result==null if no tenant interface!)
+   * @return future empty ModuleInstance list if no tenant interface
    */
-  private Future<ModuleInstance> getTenantInstanceForModule(
-      ModuleDescriptor mdFrom,
+  static Future<List<ModuleInstance>> getTenantInstanceForModule(
+      ModuleDescriptor md, ModuleDescriptor mdFrom,
       ModuleDescriptor mdTo, JsonObject jo, String tenantParameters, boolean purge) {
 
-    ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     InterfaceDescriptor[] prov = md.getProvidesList();
+    List<ModuleInstance> instances = new LinkedList<>();
     for (InterfaceDescriptor pi : prov) {
       logger.debug("findTenantInterface: Looking at {}", pi.getId());
       if ("_tenant".equals(pi.getId())) {
         final String v = pi.getVersion();
         final String method = purge ? "DELETE" : "POST";
-        ModuleInstance instance;
+        ModuleInstance instance = null;
         switch (v) {
           case "1.0":
             if (mdTo != null || purge) {
               instance = getTenantInstanceForInterface(pi, mdFrom, mdTo, method);
-              if (instance != null) {
-                return Future.succeededFuture(instance);
-              } else if (!purge) {
+              if (instance == null && !purge) {
                 logger.warn("Module '{}' uses old-fashioned tenant "
                     + "interface. Define InterfaceType=system, and add a RoutingEntry."
                     + " Falling back to calling /_/tenant.", md.getId());
-                return Future.succeededFuture(new ModuleInstance(md, null,
-                    "/_/tenant", HttpMethod.POST, true).withRetry());
+                return Future.succeededFuture(Arrays.asList(new ModuleInstance(md, null,
+                    "/_/tenant", HttpMethod.POST, true).withRetry()));
               }
             }
             break;
           case "1.1":
             instance = getTenantInstanceForInterface(pi, mdFrom, mdTo, method);
-            if (instance != null) {
-              return Future.succeededFuture(instance);
-            }
             break;
           case "1.2":
             putTenantParameters(jo, tenantParameters);
             instance = getTenantInstanceForInterface(pi, mdFrom, mdTo, method);
-            if (instance != null) {
-              return Future.succeededFuture(instance);
+            break;
+          case "2.0":
+            jo.put("purge", purge);
+            putTenantParameters(jo, tenantParameters);
+            instance = getTenantInstanceForInterfacev2(pi, md, "POST", "/");
+            if (instance == null) {
+              return Future.succeededFuture(instances);
             }
+            instances.add(instance);
+            instance = getTenantInstanceForInterfacev2(pi, md, "GET", "{id}");
+            if (instance == null) {
+              return Future.succeededFuture(instances); // OK only POST method for v2
+            }
+            instances.add(instance);
+            // both DELETE and GET must be present
+            instance = getTenantInstanceForInterfacev2(pi, md, "DELETE", "{id}");
+            if (instance == null) {
+              return Future.failedFuture(messages.getMessage("10407"));
+            }
+            // 0: POST, 1: GET, 2:DELETE
             break;
           default:
             return Future.failedFuture(new OkapiError(ErrorType.USER,
                 messages.getMessage("10401", v)));
         }
+        if (instance != null) {
+          instances.add(instance);
+        }
       }
     }
-    return Future.succeededFuture(null);
+    return Future.succeededFuture(instances);
   }
 
-  private void putTenantParameters(JsonObject jo, String tenantParameters) {
+  private static void putTenantParameters(JsonObject jo, String tenantParameters) {
     if (tenantParameters != null) {
       JsonArray ja = new JsonArray();
       for (String p : tenantParameters.split(",")) {
@@ -693,7 +791,7 @@ public class TenantManager implements Liveness {
     }
   }
 
-  private ModuleInstance getTenantInstanceForInterface(
+  private static ModuleInstance getTenantInstanceForInterface(
       InterfaceDescriptor pi, ModuleDescriptor mdFrom,
       ModuleDescriptor mdTo, String method) {
 
@@ -712,6 +810,21 @@ public class TenantManager implements Liveness {
           } else if (mdTo != null) {
             return new ModuleInstance(md, re, pattern, HttpMethod.POST, true).withRetry();
           }
+        }
+      }
+    }
+    return null;
+  }
+
+  private static ModuleInstance getTenantInstanceForInterfacev2(
+      InterfaceDescriptor pi, ModuleDescriptor md, String method, String mustContain) {
+
+    if ("system".equals(pi.getInterfaceType())) {
+      List<RoutingEntry> res = pi.getAllRoutingEntries();
+      for (RoutingEntry re : res) {
+        if (re.match(null, method) && re.getStaticPath().contains(mustContain)) {
+          return new ModuleInstance(md, re, re.getStaticPath(), HttpMethod.valueOf(method), true)
+              .withRetry();
         }
       }
     }
@@ -793,6 +906,16 @@ public class TenantManager implements Liveness {
     return tenants.getNotFound(tenantId).compose(x -> jobs.getNotFound(tenantId, installId));
   }
 
+  Future<Void> installUpgradeDelete(String tenantId, String installId) {
+    return installUpgradeGet(tenantId, installId).compose(job -> {
+      if (!Boolean.TRUE.equals(job.getComplete())) {
+        return Future.failedFuture(new OkapiError(ErrorType.USER,
+            messages.getMessage("10406", installId)));
+      }
+      return jobs.removeNotFound(tenantId, installId);
+    });
+  }
+
   Future<List<InstallJob>> installUpgradeGetList(String tenantId) {
     return tenants.getNotFound(tenantId).compose(x -> jobs.get(tenantId).compose(list -> {
       if (list == null) {
@@ -800,6 +923,18 @@ public class TenantManager implements Liveness {
       }
       return Future.succeededFuture(list);
     }));
+  }
+
+  Future<Void> installUpgradeDeleteList(String tenantId) {
+    return installUpgradeGetList(tenantId).compose(res -> {
+      Future<Void> future = Future.succeededFuture();
+      for (InstallJob job : res) {
+        if (Boolean.TRUE.equals(job.getComplete())) {
+          future = future.compose(x -> jobs.removeNotFound(tenantId, job.getId()));
+        }
+      }
+      return future;
+    });
   }
 
   Future<List<TenantModuleDescriptor>> installUpgradeCreate(

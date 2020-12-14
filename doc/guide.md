@@ -14,8 +14,6 @@ managing and running microservices.
     * [Versioning and Dependencies](#versioning-and-dependencies)
     * [Security](#security)
     * [Open Issues](#open-issues)
-* [Implementation](#implementation)
-    * [Missing features](#missing-features)
 * [Compiling and Running](#compiling-and-running)
 * [Using Okapi](#using-okapi)
     * [Storage](#storage)
@@ -50,7 +48,6 @@ managing and running microservices.
     * [Instrumentation](#instrumentation)
 * [Module Reference](#module-reference)
     * [Life cycle of a module](#life-cycle-of-a-module)
-    * [Tenant Interface](#tenant-interface)
     * [HTTP](#http)
 
 ## Introduction
@@ -638,15 +635,6 @@ HTTP, e.g. using a polling approach or HTTP extensions like
 websockets. We anticipate that for future releases of Okapi we will
 investigate the asynchronous approach in depth and provide support for
 some open messaging protocols (e.g. STOMP).
-
-## Implementation
-
-We have a rudimentary implementation of Okapi in place. The examples below
-are supposed to work with the current implementation.
-
-### Missing features
-
-Nothing major, at this point.
 
 ## Compiling and Running
 
@@ -2771,9 +2759,13 @@ and `registry`. The first 5 properties
 are passed as authentication to the Docker registry if given - refer to
 [Docker Authentication](https://docs.docker.com/engine/api/v1.40/#section/Authentication).
 The optional `registry` is a prefix for the image to allow pull from other
-registry than DockerHub. An empty object in the `dockerRegistries` pulls
-from DockerHub without authentication. Omitting `dockerRegistries` does
-the same, and is the behavior for earlier versions of Okapi as well.
+registry than DockerHub. The list objects are tried in the given order until
+the pull succeeds. An empty object in the `dockerRegistries` list pulls
+from DockerHub without authentication and can be at any list position.
+Omitting `dockerRegistries` does the same as a list with an empty object `[ {} ]`,
+and is the behavior for earlier versions of Okapi with only unauthenticated
+DockerHub. The empty list `[ ]` tries zero registries and immediately fails,
+it disables pulling images.
 * `containerHost`: Host where containers are running (as seen from Okapi).
 Defaults to `localhost`.
 * `postgres_host` : PostgreSQL host. Defaults to `localhost`.
@@ -2979,7 +2971,7 @@ kind of housekeeping it needs.
 
 For the [specifics](#web-service), see under
 `.../okapi/okapi-core/src/main/raml/raml-util` the files
-`ramls/tenant.raml` and `schemas/moduleInfo.schema`.  The
+`ramls/tenant.raml` and `schemas/tenantAttributes.schema`.  The
 okapi-test-module has a very trivial implementation of this, and the
 moduleTest shows a module Descriptor that defines this interface.
 
@@ -3006,10 +2998,7 @@ then insert those it received in the request. That way it will clean
 up permissions that may have been introduced in some older version of
 the module, and are no longer used.
 
-For the [specifics](#web-service), see under
-`.../okapi/okapi-core/src/main/raml/raml-util` the files
-`ramls/tenant.raml` and `schemas/moduleInfo.schema`.  The
-okapi-test-header-module has a very trivial implementation of this,
+The okapi-test-header-module has a very trivial implementation of this,
 and the moduleTest shows a module Descriptor that defines this
 interface.
 
@@ -3149,9 +3138,23 @@ during the operation.
 
 Add 'loadSample=true` to parameters, to load sample data as well.
 
+If the module supports version 2 of the `_tenant` interface it should return status 201 with
+a
+
+    Location: /_/tenant/6da99bac-457b-499f-89a4-34f4da8e9be8
+    
+header. This signals that the tenant job has started. Use a GET request on the
+Location path returned to poll for the completion of the tenant job with the
+
+    curl -H "X-Okapi-url: http://localhost:8081" -H "X-Okapi-Tenant: testlib" \
+      -H "Content-Type: application/json" -H "Accept: */*" \
+      http://localhost:8081/_/tenant/6da99bac-457b-499f-89a4-34f4da8e9be8
+
+(substitute above path with the Location returned)
+
 #### Upgrading
 
-When a module gets upgraded to a new version, it happens separately
+When a module is upgraded to a new version, it happens separately
 for each tenant.  Some tenants may not wish to upgrade in the middle
 of a busy season, others may want to have everything in the latest
 version. The process starts by Okapi deploying the new version of the
@@ -3164,29 +3167,31 @@ request with path `/_/tenant` if version 1.0 or later of interface
 `_tenant` is provided. With the POST request, a JSON object is passed:
 member `module_from` being the module ID that we are upgrading 'from'
 and member `module_to` being the module ID that we are upgrading
-'to'. Note that thqe Module Descriptor of the target module
+'to'. Note that the Module Descriptor of the target module
 (module_to) is being used for the call.
-
-Upgrading large amounts of data to a newer schema can be slow. We are
-thinking about a way to make it happen asynchronously, but that is not
-even designed yet.  (TODO).
 
 We are using semantic versioning, see [Versioning and
 Dependencies](#versioning-and-dependencies)
 
 #### Disabling
 
-When a module is disabled for a tenant, Okapi makes a POST request
-with path `/_/tenant/disable` if version 1.1 and later of interface
-`_tenant` is provided. With the POST request a JSON object is passed:
-member `module_from` being the module ID that is being disabled.
+For tenant interface 1.1/1.2, when a module is disabled for a tenant, Okapi
+makes a POST request with path `/_/tenant/disable`. The request body is a
+JSON object where property `module_from` is the module ID that is being disabled.
+
+For tenant interface 2.0, when a module is disabled, Okapi
+makes a POST request with path `/_/tenant/` with `module_from` property
+being the module that is disabled and `module_to` omitted.
 
 #### Purge
 
-When a module is purged for a tenant, it disables the tenant for the
-module but also removes persistent content. A module may implement
-this by providing `_tenant` interface 1.0 and later with a DELETE
-method.
+Purge is like disable, but purges persistent content too for a module.
+
+For tenant interfaces 1.1 and 1.2, this is performed by a DELETE request
+to the module.
+
+For tenant interface 2.0, this is performed exactly like disable, but with
+`purge` property being `true` of the JSON content posted.
 
 #### Tenant Parameters
 
@@ -3195,29 +3200,51 @@ etc.  also load sets of reference data. This can be controlled by
 supplying tenant parameters. These are properties (key-value pairs)
 that are passed to the module when enabled or upgraded. Passing those
 are only performed when tenantParameters is specified for install and
-when the tenant interface is version 1.2.
+when the tenant interface is version 1.2 and later.
 
 In FOLIO two such parameters are widely recognized:
 
  * `loadReference` with value `true` loads reference data.
  * `loadSample` with value `true` loads sample data.
 
-### Tenant Interface
+#### Tenant Interface definitions
 
-The full `_tenant` interface version 1.1/1.2 portion:
+A module supporting 1.1/1.2 of the `_tenant` interface should use this
+snippet in the module descriptor:
 
 ```
    "id" : "_tenant",
    "version" : "1.2",
    "interfaceType" : "system",
    "handlers" : [ {
-     "methods" : [ "POST", "DELETE" ],
-     "pathPattern" : "/_/tenant"
-    }, {
-     "methods" : [ "POST" ],
-     "pathPattern" : "/_/tenant/disable"
-    } ]
+       "methods" : [ "POST", "DELETE" ],
+       "pathPattern" : "/_/tenant"
+      }, {
+       "methods" : [ "POST" ],
+       "pathPattern" : "/_/tenant/disable"
+      }
+   ]
 ```
+The corresponding RAML definition:
+[tenant.raml](https://github.com/folio-org/raml/blob/tenant_interface_1_2/ramls/tenant.raml)
+
+Snippet of version 2.0 of the `_tenant` interface:
+
+```
+   "id" : "_tenant",
+   "version" : "2.0",
+   "interfaceType" : "system",
+   "handlers" : [ {
+       "methods" : [ "POST" ],
+       "pathPattern" : "/_/tenant"
+      }, {
+       "methods" : [ "GET", "DELETE" ],
+       "pathPattern" : "/_/tenant/{id}"
+      }
+   ]
+```
+The corresponding RAML definition:
+[tenant.raml](https://github.com/folio-org/raml/blob/raml1.0/ramls/tenant.raml)
 
 #### Closing down
 

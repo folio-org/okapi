@@ -10,6 +10,7 @@ nbproject/
 .settings/
 .classpath
 .idea
+*.iml
 okapi.log
 */bin/
 x

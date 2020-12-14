@@ -243,6 +243,8 @@ public class DepResolution {
         if (!moduleId.hasSemVer()) {
           id = moduleId.getLatest(modsAvailable.keySet());
           tm.setId(id);
+        } else {
+          tm.setFixed(Boolean.TRUE);
         }
         if (!modsAvailable.containsKey(id)) {
           errors.add(messages.getMessage("10801", id));
@@ -318,8 +320,7 @@ public class DepResolution {
     if (ret.isEmpty()) {
       return Future.succeededFuture();
     }
-    return Future.failedFuture(new OkapiError(ErrorType.USER, "enable " + id
-        + " failed: " + String.join(". ", ret)));
+    return Future.failedFuture(new OkapiError(ErrorType.USER, String.join(". ", ret)));
   }
 
   private static Future<Void> tmDisable(
@@ -342,18 +343,15 @@ public class DepResolution {
     }
     Map<String, ModuleDescriptor> productMd = checkInterfaceDepAvailable(modsAvailable, req);
     if (productMd.isEmpty()) {
-      String s = "interface " + req.getId() + " required by module " + md.getId() + " not found";
-      ret.add(s);
+      ret.add(messages.getMessage("10211", req.getId(), md.getId()));
       return ret;
     } else if (productMd.size() == 1) {
       Set<String> s = productMd.keySet();
       String k = s.iterator().next();
       foundMd = productMd.get(k);
     } else {
-      String s = "interface " + req.getId() + " required by module "
-          + md.getId() + " is provided by multiple products: "
-          + String.join(", ", productMd.keySet());
-      ret.add(s);
+      ret.add(messages.getMessage("10210", req.getId(), md.getId(),
+          String.join(", ", productMd.keySet())));
       return ret;
     }
     return addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
@@ -433,19 +431,24 @@ public class DepResolution {
     return exist;
   }
 
-  private static int resolveModuleConflicts(
+  private static List<String> resolveModuleConflicts(
       ModuleDescriptor md, Map<String, ModuleDescriptor> modsEnabled,
       List<TenantModuleDescriptor> tml, List<ModuleDescriptor> fromModule) {
-    int v = 0;
     Iterator<String> it = modsEnabled.keySet().iterator();
+    List<String> errors = new LinkedList<>();
     while (it.hasNext()) {
       String runningModule = it.next();
       ModuleDescriptor rm = modsEnabled.get(runningModule);
       if (md.getProduct().equals(rm.getProduct())) {
         logger.info("resolveModuleConflicts from {}", runningModule);
+        for (TenantModuleDescriptor tm : tml) {
+          if (tm.getId().equals(rm.getId()) && Boolean.TRUE.equals(tm.getFixed())) {
+            errors.add(messages.getMessage("10209", rm.getId()));
+            return errors;
+          }
+        }
         it.remove();
         fromModule.add(rm);
-        v++;
       } else {
         for (InterfaceDescriptor mi : md.getProvidesList()) {
           for (InterfaceDescriptor pi : rm.getProvidesList()) {
@@ -460,28 +463,30 @@ public class DepResolution {
                 tm.setId(runningModule);
                 tml.add(tm);
                 it.remove();
-                v++;
               }
             }
           }
         }
       }
     }
-    return v;
+    return errors;
   }
 
   private static void addOrReplace(List<TenantModuleDescriptor> tml, ModuleDescriptor md,
-                                   TenantModuleDescriptor.Action action, ModuleDescriptor fm) {
+                                   TenantModuleDescriptor.Action action,
+                                   ModuleDescriptor fm) {
     logger.info("addOrReplace from {} to id {}", fm != null ? fm.getId() : "null", md.getId());
     Iterator<TenantModuleDescriptor> it = tml.iterator();
     boolean found = false;
+    boolean fixed = false;
     while (it.hasNext()) {
       TenantModuleDescriptor tm = it.next();
       if (tm.getAction().equals(action) && tm.getId().equals(md.getId())) {
+        fixed = tm.getFixed();
         it.remove();
       } else if (fm != null && tm.getAction() == TenantModuleDescriptor.Action.enable
           && tm.getId().equals(fm.getId())) {
-        logger.info("resolveConflict .. patch id {}", md.getId());
+        logger.info("addOrReplace .. patch id {}", md.getId());
         tm.setId(md.getId());
         found = true;
       }
@@ -491,6 +496,7 @@ public class DepResolution {
     }
     TenantModuleDescriptor t = new TenantModuleDescriptor();
     t.setAction(action);
+    t.setFixed(fixed);
     t.setId(md.getId());
     if (fm != null) {
       t.setFrom(fm.getId());
@@ -547,30 +553,32 @@ public class DepResolution {
   private static List<String> addModuleDependencies(
       ModuleDescriptor md, Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
-    List<String> ret = new LinkedList<>();
+    List<String> errors = new LinkedList<>();
     logger.info("addModuleDependencies {}", md.getId());
     for (InterfaceDescriptor req : md.getRequiresList()) {
       Boolean exist = checkInterfaceDepAlreadyEnabled(modsEnabled, req);
       if (!Boolean.TRUE.equals(exist)) {
-        ret.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
+        errors.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
       }
     }
     for (InterfaceDescriptor req : md.getOptionalList()) {
       Boolean exist = checkInterfaceDepAlreadyEnabled(modsEnabled, req);
       if (Boolean.FALSE.equals(exist)) {
-        ret.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
+        errors.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
       }
     }
-    if (!ret.isEmpty()) {
-      return ret;
+    if (!errors.isEmpty()) {
+      return errors;
     }
     List<ModuleDescriptor> fromModule = new LinkedList<>();
-    resolveModuleConflicts(md, modsEnabled, tml, fromModule);
-
+    errors = resolveModuleConflicts(md, modsEnabled, tml, fromModule);
+    if (!errors.isEmpty()) {
+      return errors;
+    }
     modsEnabled.put(md.getId(), md);
     addOrReplace(tml, md, TenantModuleDescriptor.Action.enable,
         fromModule.isEmpty() ? null : fromModule.get(0));
-    return ret;
+    return errors;
   }
 
   private static void removeModuleDependencies(

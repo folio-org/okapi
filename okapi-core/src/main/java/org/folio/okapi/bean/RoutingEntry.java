@@ -50,6 +50,22 @@ public class RoutingEntry {
     REQUEST_LOG
   }
 
+  /**
+   * Constructor.
+   */
+  public RoutingEntry() {
+  }
+
+  /**
+   * Constructor (utiliity).
+   * @param pathPattern pattern
+   * @param methods HTTP method
+   */
+  public RoutingEntry(String pathPattern, String... methods) {
+    this.pathPattern = pathPattern;
+    this.methods = methods;
+  }
+
   @JsonIgnore
   private ProxyType proxyType = ProxyType.REQUEST_RESPONSE;
 

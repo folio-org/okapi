@@ -1,5 +1,8 @@
 package org.folio.okapi.service.impl;
 
+import static org.folio.okapi.service.impl.DockerModuleHandle.DOCKER_REGISTRIES_EMPTY_LIST;
+
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpMethod;
@@ -14,7 +17,6 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Base64;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.WithAssertions;
 import org.folio.okapi.bean.AnyDescriptor;
@@ -177,28 +179,28 @@ public class DockerModuleHandleTest implements WithAssertions {
         "mod-x-1.0.0", ports, "localhost", 9232, conf);
   }
 
-  boolean pullImage(TestContext context, Vertx vertx, JsonObject conf) {
+  /** Returns "succeeded" on success, the error message otherwise. */
+  String pullImage(TestContext context, Vertx vertx, JsonObject conf) {
     DockerModuleHandle dh = createDockerModuleHandleForMock(vertx, conf);
     Async async = context.async();
-    AtomicBoolean succeeded = new AtomicBoolean();
-    dh.pullImage().onComplete(done -> {
-      succeeded.set(done.succeeded());
-      async.complete();
-    });
+    Future<String> future = dh.pullImage()
+        .map("succeeded")
+        .otherwise(Throwable::getMessage)
+        .onComplete(done -> async.complete());
     async.await();
-    return succeeded.get();
+    return future.result();
   }
 
-  boolean getImage(TestContext context, Vertx vertx, JsonObject conf) {
+  /** Returns "succeeded" on success, the error message otherwise. */
+  String getImage(TestContext context, Vertx vertx, JsonObject conf) {
     DockerModuleHandle dh = createDockerModuleHandleForMock(vertx, conf);
     Async async = context.async();
-    AtomicBoolean succeeded = new AtomicBoolean();
-    dh.getImage().onComplete(done -> {
-      succeeded.set(done.succeeded());
-      async.complete();
-    });
+    Future<String> future = dh.getImage()
+        .map("succeeded")
+        .otherwise(Throwable::getMessage)
+        .onComplete(done -> async.complete());
     async.await();
-    return succeeded.get();
+    return future.result();
   }
 
   @Test
@@ -216,34 +218,34 @@ public class DockerModuleHandleTest implements WithAssertions {
     dockerPullStatus = 200;
 
     JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + MOCK_PORT);
-    context.assertTrue(pullImage(context, vertx, conf));
+    assertThat(pullImage(context, vertx, conf)).isEqualTo("succeeded");
 
-    conf.put("dockerRegistries", new JsonArray());
-    context.assertFalse(pullImage(context, vertx, conf));
+    conf.put("dockerRegistries", new JsonArray());  // zero registries, pull is disabled
+    assertThat(pullImage(context, vertx, conf)).isEqualTo(DOCKER_REGISTRIES_EMPTY_LIST);
 
     conf.put("dockerRegistries", new JsonArray().add(new JsonObject()));
-    context.assertTrue(pullImage(context, vertx, conf));
+    assertThat(pullImage(context, vertx, conf)).isEqualTo("succeeded");
 
     conf.put("dockerRegistries", new JsonArray()
         .addNull()
         .add(new JsonObject().put("username", "x").put("password", "y")));
-    context.assertFalse(pullImage(context, vertx, conf));
+    assertThat(pullImage(context, vertx, conf)).contains("unauthorized");
 
     conf.put("dockerRegistries", new JsonArray()
         .add(new JsonObject().put("username", "x").put("password", "y"))
         .add(new JsonObject().put("username", "x").put("password", "x"))
         .add(new JsonObject().put("username", "x").put("password", "z")));
-    context.assertTrue(pullImage(context, vertx, conf));
+    assertThat(pullImage(context, vertx, conf)).isEqualTo("succeeded");
     context.assertEquals("folioci/mod-x", lastFromImage);
 
     conf.put("dockerRegistries", new JsonArray()
         .add(new JsonObject().put("registry", "localhost:5000")));
-    context.assertTrue(pullImage(context, vertx, conf));
+    assertThat(pullImage(context, vertx, conf)).isEqualTo("succeeded");
     context.assertEquals("localhost:5000/folioci/mod-x", lastFromImage);
 
     conf.put("dockerRegistries", new JsonArray()
         .add(new JsonObject().put("registry", "localhost:5000/")));
-    context.assertTrue(pullImage(context, vertx, conf));
+    assertThat(pullImage(context, vertx, conf)).isEqualTo("succeeded");
     context.assertEquals("localhost:5000/folioci/mod-x", lastFromImage);
 
     listen.close(context.asyncAssertSuccess());
@@ -262,21 +264,21 @@ public class DockerModuleHandleTest implements WithAssertions {
         .listen(MOCK_PORT, context.asyncAssertSuccess());
     dockerImageMatch = "foo";
     JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + MOCK_PORT);
-    context.assertFalse(getImage(context, vertx, conf));
+    assertThat(getImage(context, vertx, conf)).contains("not found");
     dockerImageMatch = "folioci/mod-x";
-    context.assertTrue(getImage(context, vertx, conf));
-    conf.put("dockerRegistries", new JsonArray());
-    context.assertFalse(getImage(context, vertx, conf));
+    assertThat(getImage(context, vertx, conf)).isEqualTo("succeeded");
+    conf.put("dockerRegistries", new JsonArray());  // zero registries, pull is disabled
+    assertThat(getImage(context, vertx, conf)).isEqualTo(DOCKER_REGISTRIES_EMPTY_LIST);
     conf.put("dockerRegistries", new JsonArray()
         .add(new JsonObject().put("registry", "reg1"))
         .add(new JsonObject().put("registry", "reg2")));
-    context.assertFalse(getImage(context, vertx, conf));
+    assertThat(getImage(context, vertx, conf)).contains("not found");
     dockerImageMatch = "reg1/folioci/mod-x";
-    context.assertTrue(getImage(context, vertx, conf));
+    assertThat(getImage(context, vertx, conf)).isEqualTo("succeeded");
     dockerImageMatch = "reg2/folioci/mod-x";
-    context.assertTrue(getImage(context, vertx, conf));
+    assertThat(getImage(context, vertx, conf)).isEqualTo("succeeded");
     dockerImageMatch = "reg3/folioci/mod-x";
-    context.assertFalse(getImage(context, vertx, conf));
+    assertThat(getImage(context, vertx, conf)).contains("not found");
     dockerImageMatch = null;
     listen.close(context.asyncAssertSuccess());
   }

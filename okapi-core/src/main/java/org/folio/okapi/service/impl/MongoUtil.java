@@ -92,10 +92,8 @@ class MongoUtil<T> {
     if (o != null) {
       JsonObject repl = new JsonObject();
       for (String m : o.fieldNames()) {
-        if (m.contains("_")) {
-          String n = m.replace("__", ".");
-          repl.put(n, o.getBoolean(m));
-        }
+        String n = m.replace("__", ".");
+        repl.put(n, o.getBoolean(m));
       }
       j.put("enabled", repl);
     }

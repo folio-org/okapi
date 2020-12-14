@@ -360,7 +360,7 @@ public class OkapiClientTest {
     client.request(HttpMethod.POST, PORT, LOCALHOST, URL + "/test1")
         .onComplete(context.asyncAssertSuccess(request -> {
           request.end();
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(200, response.statusCode());
           }));
         }));

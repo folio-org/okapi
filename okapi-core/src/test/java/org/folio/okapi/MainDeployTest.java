@@ -5,15 +5,14 @@ import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
-import io.vertx.core.Vertx;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -22,30 +21,22 @@ import org.junit.runner.RunWith;
 public class MainDeployTest {
 
   private final Logger logger = OkapiLogger.get();
-  private final int port = 9230;
-  private Async async;
-  private Vertx vertx;
-  private RamlDefinition api;
+  private static final int port = 9230;
+  private static RamlDefinition api;
 
-  @Before
-  public void setUp(TestContext context) {
+  @BeforeClass
+  public static void setupBeforeClass(TestContext context) {
     System.setProperty("vertx.logger-delegate-factory-class-name",
         "io.vertx.core.logging.Log4jLogDelegateFactory");
     // can't set Verticle options so we set a property instead
     System.setProperty("port", Integer.toString(port));
-    async = context.async();
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
     RestAssured.port = port;
-    async.complete();
   }
 
-  @After
-  public void tearDown(TestContext context) {
-    System.setProperty("port", ""); // disable port by emptying it
-    if (vertx != null) {
-      vertx.close(context.asyncAssertSuccess());
-      vertx = null;
-    }
+  @AfterClass
+  public static void after(TestContext context) {
+    System.clearProperty("port");
   }
 
   @Test
@@ -57,67 +48,39 @@ public class MainDeployTest {
 
   @Test
   public void testHelp(TestContext context) {
-    async = context.async();
-
     String[] args = {"help"};
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      vertx = res.succeeded() ? res.result() : null;
-      Assert.assertTrue(res.succeeded());
-      async.complete();
-    });
+    d.init(args, context.asyncAssertSuccess(vertx -> context.assertNull(vertx)));
   }
 
   @Test
   public void testBadOption(TestContext context) {
-    async = context.async();
-
     String[] args = {"-bad-option"};
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      vertx = res.succeeded() ? res.result() : null;
-      Assert.assertFalse(res.succeeded());
-      async.complete();
-    });
+    d.init(args, context.asyncAssertFailure());
   }
 
   @Test
   public void testBadMode(TestContext context) {
-    async = context.async();
-
     String[] args = {"bad"};
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      vertx = res.succeeded() ? res.result() : null;
-      Assert.assertFalse(res.succeeded());
-      async.complete();
-    });
+    d.init(args, context.asyncAssertFailure());
   }
 
   @Test
   public void testNoArgs(TestContext context) {
-    async = context.async();
-
     String[] args = {};
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      Assert.assertFalse(res.succeeded());
-      vertx = res.succeeded() ? res.result() : null;
-      async.complete();
-    });
+    d.init(args, context.asyncAssertFailure());
   }
 
   @Test
   public void testDevMode(TestContext context) {
-    async = context.async();
-
     String[] args = {"dev"};
 
+    Async async = context.async();
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      vertx = res.succeeded() ? res.result() : null;
-      Assert.assertTrue("main1 " + res.cause(), res.succeeded());
-
+    d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
       Response r;
 
@@ -127,21 +90,18 @@ public class MainDeployTest {
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-      async.complete();
-    });
+      vertx.close(context.asyncAssertSuccess(x -> async.complete()));
+    }));
+    async.await();
   }
 
   @Test
   public void testDeploymentMode(TestContext context) {
-    async = context.async();
-
     String[] args = {"deployment"};
 
+    Async async = context.async();
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      vertx = res.succeeded() ? res.result() : null;
-      Assert.assertTrue("main1" + res.cause(), res.succeeded());
-
+    d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
       Response r;
 
@@ -151,21 +111,18 @@ public class MainDeployTest {
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-      async.complete();
-    });
+      vertx.close(context.asyncAssertSuccess(x -> async.complete()));
+    }));
+    async.await();
   }
 
   @Test
   public void testProxyMode(TestContext context) {
-    async = context.async();
-
     String[] args = {"proxy"};
 
+    Async async = context.async();
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      vertx = res.succeeded() ? res.result() : null;
-      Assert.assertTrue("main1 " + res.cause(), res.succeeded());
-
+    d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
       Response r;
 
@@ -175,21 +132,18 @@ public class MainDeployTest {
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-      async.complete();
-    });
+      vertx.close(context.asyncAssertSuccess(x -> async.complete()));
+    }));
+    async.await();
   }
 
   @Test
   public void testConfFileOk(TestContext context) {
-    async = context.async();
-
     String[] args = {"-conf", "src/test/resources/okapi1.json"};
 
+    Async async = context.async();
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      vertx = res.succeeded() ? res.result() : null;
-      Assert.assertTrue("main1 " + res.cause(), res.succeeded());
-
+    d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
       Response r;
 
@@ -199,34 +153,26 @@ public class MainDeployTest {
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-      async.complete();
-    });
+      vertx.close(context.asyncAssertSuccess(x -> async.complete()));
+    }));
+    async.await();
   }
 
   @Test
   public void testConfFileNotFound(TestContext context) {
-    async = context.async();
-
     String[] args = {"-conf", "src/test/resources/okapiNotFound.json"};
 
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      Assert.assertTrue(res.failed());
-      async.complete();
-    });
+    d.init(args, context.asyncAssertFailure());
   }
 
   @Test
   public void testClusterMode(TestContext context) {
-    async = context.async();
-
     String[] args = {"cluster"};
 
+    Async async = context.async();
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      vertx = res.succeeded() ? res.result() : null;
-      Assert.assertTrue("main1 " + res.cause(), res.succeeded());
-
+    d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
       Response r;
 
@@ -236,87 +182,53 @@ public class MainDeployTest {
         .then().statusCode(200).log().ifValidationFails().extract().response();
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-      async.complete();
-    });
+      vertx.close(context.asyncAssertSuccess(x -> async.complete()));
+    }));
+    async.await();
   }
 
   @Test
   public void testClusterModeFail1(TestContext context) {
-    async = context.async();
-
     String[] args = {"cluster", "-cluster-host", "foobar", "-cluster-port", "5701"};
 
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      vertx = res.succeeded() ? res.result() : null;
-      Assert.assertTrue("main1 " + res.cause(), res.failed());
-      async.complete();
-    });
-    async.await(1000);
+    d.init(args, context.asyncAssertFailure());
   }
 
   @Test
   public void testClusterModeFail2(TestContext context) {
-    async = context.async();
-
     String[] args = {"cluster", "-hazelcast-config-file", "foobar"};
-
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      vertx = res.succeeded() ? res.result() : null;
-      Assert.assertTrue("main1 " + res.cause(), res.failed());
-      async.complete();
-    });
-    async.await(1000);
+    d.init(args, context.asyncAssertFailure());
   }
 
   @Test
   public void testClusterModeFail3(TestContext context) {
-    async = context.async();
-
     String[] args = {"cluster", "-hazelcast-config-cp", "foobar"};
-
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      vertx = res.succeeded() ? res.result() : null;
-      Assert.assertTrue("main1 " + res.cause(), res.failed());
-      async.complete();
-    });
-    async.await(1000);
+    d.init(args, context.asyncAssertFailure());
   }
 
   @Test
   public void testClusterModeFail4(TestContext context) {
-    async = context.async();
-
     String[] args = {"cluster", "-hazelcast-config-url", "foobar"};
 
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      vertx = res.succeeded() ? res.result() : null;
-      Assert.assertTrue("main1 " + res.cause(), res.failed());
-      async.complete();
-    });
-    async.await(1000);
+    d.init(args, context.asyncAssertFailure());
   }
 
   @Test
   public void testOkapiSamePort(TestContext context) {
-    async = context.async();
-
     String[] args = {"dev"};
 
+    Async async = context.async();
     MainDeploy d1 = new MainDeploy();
-    d1.init(args, res1 -> {
-      vertx = res1.succeeded() ? res1.result() : null;
-      Assert.assertTrue("d1 " + res1.cause(), res1.succeeded());
-
+    d1.init(args, context.asyncAssertSuccess(vertx -> {
       MainDeploy d2 = new MainDeploy();
-      d2.init(args, res2 -> {
-        Assert.assertTrue("d2 " + res2.cause(), res2.failed());
-        async.complete();
-      });
-    });
+      d2.init(args, context.asyncAssertFailure(
+          x -> vertx.close(context.asyncAssertSuccess(y -> async.complete()))));
+    }));
+    async.await();
   }
 
 }

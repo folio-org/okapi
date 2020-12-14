@@ -31,7 +31,7 @@ import org.folio.okapi.util.OkapiError;
 public class ModuleManager {
 
   private final Logger logger = OkapiLogger.get();
-  private String mapName = "modules";
+  private final String mapName = "modules";
   private static final String EVENT_NAME = "moduleUpdate";
   private final LockedTypedMap1<ModuleDescriptor> modules
       = new LockedTypedMap1<>(ModuleDescriptor.class);
@@ -39,19 +39,11 @@ public class ModuleManager {
   private final ModuleStore moduleStore;
   private Vertx vertx;
   private final Messages messages = Messages.getInstance();
+  private final boolean local;
 
-  public ModuleManager(ModuleStore moduleStore) {
+  public ModuleManager(ModuleStore moduleStore, boolean local) {
     this.moduleStore = moduleStore;
-  }
-
-  /**
-   * Force the map to be local. Even in cluster mode, will use a local memory
-   * map. This way, the node will not share tenants with the cluster, and can
-   * not proxy requests for anyone but the superTenant, to the InternalModule.
-   * Which is just enough to act in the deployment mode.
-   */
-  public void forceLocalMap() {
-    mapName = null;
+    this.local = local;
   }
 
   /**
@@ -62,7 +54,7 @@ public class ModuleManager {
   public Future<Void> init(Vertx vertx) {
     this.vertx = vertx;
     consumeModulesUpdated();
-    return modules.init(vertx, mapName)
+    return modules.init(vertx, mapName, local)
         .compose(x -> loadModules());
   }
 
@@ -99,22 +91,6 @@ public class ModuleManager {
         return CompositeFuture.all(futures).mapEmpty();
       });
     });
-  }
-
-  /**
-   * Create a module.
-   *
-   * @param md module descriptor
-   * @param check whether to check dependencies
-   * @param preRelease whether to allow pre-release
-   * @param npmSnapshot whether to allow npm snapshot
-   * @return future
-   */
-  public Future<Void> create(ModuleDescriptor md, boolean check, boolean preRelease,
-                             boolean npmSnapshot) {
-    List<ModuleDescriptor> l = new LinkedList<>();
-    l.add(md);
-    return createList(l, check, preRelease, npmSnapshot);
   }
 
   /**
@@ -209,15 +185,13 @@ public class ModuleManager {
   }
 
   /**
-   * Get a module descriptor from ID.
+   * Get a module descriptor from ID, if not found the Future will fail with
+   * an {@link OkapiError} with {@link ErrorType#NOT_FOUND}.
    *
-   * @param id to get. If null, returns a null.
+   * @param id module ID to get.
    * @returns fut future with resulting Module Descriptor
    */
   public Future<ModuleDescriptor> get(String id) {
-    if (id == null) {
-      return Future.succeededFuture(null);
-    }
     return modules.getNotFound(id);
   }
 

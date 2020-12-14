@@ -7,9 +7,8 @@ import io.restassured.RestAssured;
 import io.restassured.http.Headers;
 import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -39,7 +38,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
-@java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(Parameterized.class)
 @Parameterized.UseParametersRunnerFactory(VertxUnitRunnerWithParametersFactory.class)
 public class ModuleTest {
@@ -61,7 +59,6 @@ public class ModuleTest {
   private final Logger logger = OkapiLogger.get();
 
   private Vertx vertx;
-  private Async async;
 
   private String locationSampleDeployment;
   private String locationHeaderDeployment;
@@ -98,12 +95,12 @@ public class ModuleTest {
   }
 
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
+  public static void setUpBeforeClass() {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
   }
 
   @AfterClass
-  public static void tearDownAfterClass() throws Exception {
+  public static void tearDownAfterClass() {
     if (postgresSQLContainer != null) {
       postgresSQLContainer.stop();
     }
@@ -153,10 +150,13 @@ public class ModuleTest {
     RestAssured.port = port;
     RestAssured.urlEncodingEnabled = false;
 
-    conf.put("postgres_db_init", "1");
-    conf.put("mongo_db_init", "1");
     conf.put("mode", "dev");
-    DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+
+    JsonObject config = new JsonObject(conf.encode());
+    config.put("postgres_db_init", "1");
+    config.put("mongo_db_init", "1");
+
+    DeploymentOptions opt = new DeploymentOptions().setConfig(config);
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 
@@ -168,7 +168,7 @@ public class ModuleTest {
       httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules",
           context.asyncAssertSuccess(request -> {
             request.end();
-            request.onComplete(context.asyncAssertSuccess(response -> {
+            request.response(context.asyncAssertSuccess(response -> {
               context.assertEquals(204, response.statusCode());
               response.endHandler(x -> async.complete());
             }));
@@ -673,8 +673,6 @@ public class ModuleTest {
    */
   @Test
   public void testOneModule(TestContext context) {
-    async = context.async();
-
     RestAssuredClient c;
     Response r;
     checkDbIsEmpty("testOneModule starting", context);
@@ -1108,37 +1106,9 @@ public class ModuleTest {
     locationSampleDeployment = null;
 
     checkDbIsEmpty("testOneModule done", context);
-    async.complete();
   }
 
-  /**
-   * Test system interfaces. Mostly about the system interfaces _tenant (on the
-   * module itself, to initialize stuff), and _tenantPermissions to pass its
-   * permissions to the permissions module.
-   *
-   * @param context
-   */
-  @Test
-  public void testSystemInterfaces(TestContext context) {
-    async = context.async();
-    checkDbIsEmpty("testSystemInterfaces starting", context);
-
-    RestAssuredClient c;
-    Response r;
-
-    // Set up a tenant to test with
-    final String locTenant = createTenant();
-
-    // Enable the Okapi internal module for our tenant.
-    // This is not unlike what happens to the superTenant, who has the internal
-    // module enabled from the boot up, before anyone can provide the
-    // _tenantPermissions interface. Its permissions should be (re)loaded
-    // when our Hdr module gets enabled.
-    final String locInternal = enableModule("okapi-0.0.0");
-
-    // Set up a module that does the _tenantPermissions interface that will
-    // get called when sample gets enabled. We (ab)use the header module for
-    // this.
+  private String createHeaderModule() {
     final String testHdrJar = "../okapi-test-header-module/target/okapi-test-header-module-fat.jar";
     final String docHdrModule = "{" + LS
         + "  \"id\" : \"header-1\"," + LS
@@ -1168,7 +1138,39 @@ public class ModuleTest {
         + "}";
 
     // Create, deploy, and enable the header module
-    final String locHdrModule = createModule(docHdrModule);
+    return createModule(docHdrModule);
+  }
+
+  /**
+   * Test system interfaces. Mostly about the system interfaces _tenant (on the
+   * module itself, to initialize stuff), and _tenantPermissions to pass its
+   * permissions to the permissions module.
+   *
+   * @param context
+   */
+  @Test
+  public void testSystemInterfaces(TestContext context) {
+    checkDbIsEmpty("testSystemInterfaces starting", context);
+
+    RestAssuredClient c;
+    Response r;
+
+    // Set up a tenant to test with
+    final String locTenant = createTenant();
+
+    // Enable the Okapi internal module for our tenant.
+    // This is not unlike what happens to the superTenant, who has the internal
+    // module enabled from the boot up, before anyone can provide the
+    // _tenantPermissions interface. Its permissions should be (re)loaded
+    // when our Hdr module gets enabled.
+    final String locInternal = enableModule("okapi-0.0.0");
+
+    // Set up a module that does the _tenantPermissions interface that will
+    // get called when sample gets enabled. We (ab)use the header module for
+    // this.
+
+    // Create, deploy, and enable the header module
+    final String locHdrModule = createHeaderModule();
     locationHeaderDeployment = deployModule("header-1");
     final String docEnableHdr = "{" + LS
       + "  \"id\" : \"header-1\"" + LS
@@ -1434,7 +1436,6 @@ public class ModuleTest {
     given().delete(locInternal).then().log().ifValidationFails().statusCode(204);
     given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
     checkDbIsEmpty("testSystemInterfaces done", context);
-    async.complete();
   }
 
   /**
@@ -1444,7 +1445,6 @@ public class ModuleTest {
    */
   @Test
   public void testDiscoveryNodes(TestContext context) {
-    async = context.async();
     RestAssuredClient c;
     Response r;
     checkDbIsEmpty("testDiscoveryNodes starting", context);
@@ -1539,12 +1539,10 @@ public class ModuleTest {
     assertEmptyReport(c);
 
     checkDbIsEmpty("testDiscoveryNodes done", context);
-    async.complete();
   }
 
   @Test
   public void testDeployment(TestContext context) {
-    async = context.async();
     Response r;
 
     RestAssuredClient c;
@@ -1577,7 +1575,7 @@ public class ModuleTest {
       .statusCode(201)
       .extract().response();
     assertEmptyReport(c);
-    final String locationSampleModule = r.getHeader("Location");
+    String locationSampleModule = r.getHeader("Location");
 
     c = api.createRestAssured3();
     c.given().get("/_/deployment/modules")
@@ -1720,9 +1718,7 @@ public class ModuleTest {
       .log().ifValidationFails();
     assertEmptyReport(c);
 
-    if ("inmemory".equals(conf.getString("storage"))) {
-      testDeployment2(async, context, locationSampleModule);
-    } else {
+    if (!"inmemory".equals(conf.getString("storage"))) {
       // just undeploy but keep it registered in discovery
       logger.info("doc2 " + doc2);
       JsonObject o2 = new JsonObject(doc2);
@@ -1732,44 +1728,17 @@ public class ModuleTest {
       c.given().delete(loc).then().statusCode(204);
       assertEmptyReport(c);
 
-      undeployFirst(x -> {
-        conf.remove("mongo_db_init");
-        conf.remove("postgres_db_init");
-
+      Async async = context.async();
+      undeployAll().onComplete(x -> {
         DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
         vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-          waitDeployment2();
+          async.complete();
         });
       });
-      waitDeployment2(async, context, locationSampleModule);
+      async.await();
     }
-  }
-
-  synchronized private void waitDeployment2() {
-    this.notify();
-  }
-
-  synchronized private void waitDeployment2(Async async, TestContext context,
-    String locationSampleModule) {
-    try {
-      this.wait();
-    } catch (Exception e) {
-      context.asyncAssertFailure();
-      async.complete();
-      return;
-    }
-    testDeployment2(async, context, locationSampleModule);
-  }
-
-  private void testDeployment2(Async async, TestContext context,
-    String locationSampleModule1) {
-    logger.info("testDeployment2");
-    Response r;
-
-    RestAssuredClient c;
-
     c = api.createRestAssured3();
-    c.given().delete(locationSampleModule1).then().statusCode(204);
+    c.given().delete(locationSampleModule).then().statusCode(204);
     assertEmptyReport(c);
 
     c = api.createRestAssured3();
@@ -1809,7 +1778,7 @@ public class ModuleTest {
     assertEmptyReport(c);
 
     // Deploy a module via its own LaunchDescriptor
-    final String docSampleModule = "{" + LS
+    final String docSampleModuleDep1 = "{" + LS
       + "  \"id\" : \"sample-module-depl-1\"," + LS
       + "  \"name\" : \"sample module for deployment test\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -1834,13 +1803,13 @@ public class ModuleTest {
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docSampleModule).post("/_/proxy/modules")
+      .body(docSampleModuleDep1).post("/_/proxy/modules")
       .then()
       //.log().all()
       .statusCode(201)
       .extract().response();
     assertEmptyReport(c);
-    final String locationSampleModule = r.getHeader("Location");
+    locationSampleModule = r.getHeader("Location");
 
     // Specify the node via url, to test that too
     final String docDeploy = "{" + LS
@@ -1886,13 +1855,10 @@ public class ModuleTest {
     assertEmptyReport(c);
 
     checkDbIsEmpty("testDeployment done", context);
-
-    async.complete();
   }
 
   @Test
   public void testNotFound(TestContext context) {
-    async = context.async();
     Response r;
     ValidatableResponse then;
 
@@ -1962,14 +1928,10 @@ public class ModuleTest {
     }
     given().delete(locationTenantRoskilde)
       .then().statusCode(204);
-
-    async.complete();
   }
 
   @Test
   public void testHeader(TestContext context) {
-    async = context.async();
-
     RestAssuredClient c;
     Response r;
     ValidatableResponse then;
@@ -2109,13 +2071,10 @@ public class ModuleTest {
       .then().statusCode(204);
 
     checkDbIsEmpty("testHeader done", context);
-
-    async.complete();
   }
 
   @Test
   public void testUiModule(TestContext context) {
-    async = context.async();
     Response r;
 
     final String docUiModuleInput = "{" + LS
@@ -2154,14 +2113,10 @@ public class ModuleTest {
     given().delete(location)
       .then().statusCode(204);
     checkDbIsEmpty("testUiModule done", context);
-
-    async.complete();
   }
 
   @Test
   public void testMultipleInterface(TestContext context) {
-    logger.info("Redirect test starting");
-    async = context.async();
     RestAssuredClient c;
     Response r;
 
@@ -2481,25 +2436,20 @@ public class ModuleTest {
       .then().statusCode(204).extract().response();
     locationHeaderDeployment = null;
     assertEmptyReport(c);
-    async.complete();
   }
 
   @Test
   public void testVersion(TestContext context) {
     logger.info("testVersion starting");
-    async = context.async();
     RestAssuredClient c;
 
     c = api.createRestAssured3();
     c.given().get("/_/version").then().statusCode(200).log().ifValidationFails().extract().response();
     assertEmptyReport(c);
-    async.complete();
   }
 
   @Test
   public void testSemVer(TestContext context) {
-    async = context.async();
-
     RestAssuredClient c;
     Response r;
     c = api.createRestAssured3();
@@ -2551,73 +2501,37 @@ public class ModuleTest {
         .log().ifValidationFails()
         .extract().response();
     assertEmptyReport(c);
-
-    async.complete();
   }
 
-  @Test
-  public void testManyModules(TestContext context) {
-    async = context.async();
-
-    RestAssuredClient c;
-    Response r;
-
-    int i;
-    for (i = 0; i < 10; i++) {
-      String docSampleModule = "{" + LS
-        + "  \"id\" : \"sample-1.2." + Integer.toString(i) + "\"," + LS
-        + "  \"name\" : \"sample module " + Integer.toString(i) + "\"," + LS
-        + "  \"requires\" : [ ]" + LS
-        + "}";
-      c = api.createRestAssured3();
-      c.given()
-        .header("Content-Type", "application/json")
-        .body(docSampleModule)
-        .post("/_/proxy/modules")
-        .then()
-        .statusCode(201)
-        .log().ifValidationFails();
-      assertEmptyReport(c);
-    }
-    c = api.createRestAssured3();
-    r = c.given()
-      .get("/_/proxy/modules")
-      .then()
-      .statusCode(200).log().ifValidationFails().extract().response();
-    assertEmptyReport(c);
-
-    async.complete();
-  }
-
-  private void undeployFirst(Handler<AsyncResult<Void>> fut) {
+  private Future<Void> undeployAll() {
     Set<String> ids = vertx.deploymentIDs();
     Iterator<String> it = ids.iterator();
-    if (it.hasNext()) {
-      vertx.undeploy(it.next(), fut);
-    } else {
-      fut.handle(Future.succeededFuture());
+    Future<Void> future = Future.succeededFuture();
+    while (it.hasNext()) {
+      future = future.compose(x -> vertx.undeploy(it.next()));
     }
+    return future;
   }
 
-  private void undeployFirstAndDeploy(TestContext context, Handler<AsyncResult<String>> fut) {
-    async = context.async();
+  private Future<String> redeploy() {
     httpClient = null;
-    undeployFirst(context.asyncAssertSuccess(handler -> {
+    return undeployAll().compose(x -> {
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        fut.handle(res);
-        async.complete();
-      });
-    }));
+      return vertx.deployVerticle(MainVerticle.class.getName(), opt);
+    });
+  }
+
+  private Future<String> redeploy(TestContext context) {
+    Async async = context.async();
+    Future<String> future = redeploy().onComplete(res -> async.complete());
+    async.await();
+    return future;
   }
 
   @Test
   public void testInitdatabase(TestContext context) {
-    conf.remove("mongo_db_init");
-    conf.remove("postgres_db_init");
     conf.put("mode", "initdatabase");
-    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await(1000);
+    redeploy().onComplete(context.asyncAssertSuccess());
   }
 
   @Test
@@ -2625,48 +2539,192 @@ public class ModuleTest {
     if (!"postgres".equals(conf.getString("storage"))) {
       return;
     }
-    conf.remove("mongo_db_init");
-    conf.remove("postgres_db_init");
     conf.put("mode", "initdatabase");
     conf.put("postgres_password", "badpass");
-    undeployFirstAndDeploy(context, context.asyncAssertFailure(cause ->
+    redeploy().onComplete(context.asyncAssertFailure(cause ->
         context.assertTrue(cause.getMessage().contains(
           "password authentication failed for user "),
           cause.getMessage())));
-    async.await();
   }
 
   @Test
   public void testPurgedatabase(TestContext context) {
-    conf.remove("mongo_db_init");
-    conf.remove("postgres_db_init");
     conf.put("mode", "purgedatabase");
-    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await();
+    redeploy().onComplete(context.asyncAssertSuccess());
   }
 
   @Test
   public void testInternalModule(TestContext context) {
-    conf.remove("mongo_db_init");
-    conf.remove("postgres_db_init");
-    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await();
+    int foundStatus = "inmemory".equals(conf.getString("storage")) ? 404 : 200;
+
+      // check that supertenant has okapi module enabled already
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/supertenant/modules/okapi-0.0.0")
+        .then().statusCode(200)
+        .log().ifValidationFails();
+
+    // testlib has okapi module enabled
+    given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("id", "testlib").encode())
+        .post("/_/proxy/tenants")
+        .then().statusCode(201)
+        .log().ifValidationFails();
+
+    given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("id", "okapi").encode())
+        .post("/_/proxy/tenants/testlib/modules")
+        .then().statusCode(201)
+        .log().ifValidationFails();
+
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/testlib/modules/okapi-0.0.0")
+        .then().statusCode(200)
+        .log().ifValidationFails();
+
+    // create & enable sample-module also for testlib
+    final String docSampleModule = "{" + LS
+        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"provides\" : [ ]," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+    given()
+        .header("Content-Type", "application/json")
+        .body(docSampleModule)
+        .post("/_/proxy/modules")
+        .then().statusCode(201)
+        .log().ifValidationFails();
+    given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("id", "sample-module").encode())
+        .post("/_/proxy/tenants/testlib/modules")
+        .then().statusCode(201)
+        .log().ifValidationFails();
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/testlib/modules/sample-module-1.0.0")
+        .then().statusCode(200)
+        .log().ifValidationFails();
+
+    // nookapi tenant does not have okapi enabled
+    given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("id", "nookapi").encode())
+        .post("/_/proxy/tenants")
+        .then().statusCode(201)
+        .log().ifValidationFails();
+
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/nookapi/modules/okapi-0.0.0")
+        .then().statusCode(404)
+        .log().ifValidationFails();
+
+    redeploy(context).onComplete(context.asyncAssertSuccess());
+
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/supertenant/modules/okapi-0.0.0")
+        .then().statusCode(200)
+        .log().ifValidationFails();
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/testlib/modules/okapi-0.0.0")
+        .then().statusCode(foundStatus)
+        .log().ifValidationFails();
+
+    final String locHdrModule = createHeaderModule();
+
+    given()
+        .header("Content-Type", "application/json")
+        .body("[{\"id\":\"header-1\", \"action\":\"enable\"}]")
+        .post("/_/proxy/tenants/testlib/install?deploy=true")
+        .then().statusCode(foundStatus)
+        .log().ifValidationFails();
+
+    if (foundStatus == 200) {
+      given()
+          .header("X-Okapi-Tenant", "testlib")
+          .get("/permResult")
+          .then()
+          .statusCode(200)
+          .log().ifValidationFails()
+          .body("$", hasSize(3))
+          .body("[0].moduleId", is("okapi-0.0.0"))
+          .body("[1].moduleId", is("sample-module-1.0.0"))
+          .body("[2].moduleId", is("header-1"));
+    }
 
     conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
-    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await();
 
-    conf.put("okapiVersion", "2.0.0"); // downgrade from 3.0.0 to 2.0.0
-    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await();
+    redeploy(context).onComplete(context.asyncAssertSuccess());
+
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/supertenant/modules/okapi-3.0.0")
+        .then().statusCode(200)
+        .log().ifValidationFails();
+
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/testlib/modules/okapi-3.0.0")
+        .then().statusCode(foundStatus)
+        .log().ifValidationFails();
+
+    if (foundStatus == 200) {
+      given()
+          .get("/_/discovery/modules")
+          .then().statusCode(200)
+          .body("$", hasSize(1))
+          .body("[0].srvcId", is("header-1"))
+          .log().ifValidationFails();
+    }
+
+    if (foundStatus == 200) {
+      given()
+          .get("/_/proxy/tenants/testlib/modules")
+          .then().statusCode(200)
+          .body("$", hasSize(3))
+          .log().ifValidationFails();
+
+      given()
+          .header("X-Okapi-Tenant", "testlib")
+          .get("/permResult")
+          .then()
+          .statusCode(200)
+          .log().ifValidationFails()
+          .body("$", hasSize(1))
+          .body("[0].moduleId", is("okapi-3.0.0"));
+    }
+
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/nookapi/modules/okapi-3.0.0")
+        .then().statusCode(404)
+        .log().ifValidationFails();
+
+    conf.put("okapiVersion", "2.0.0"); // downgrade from 3.0.0 to 2.0.0 (which is not possible)
+
+    redeploy(context).onComplete(context.asyncAssertSuccess());
+
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/supertenant/modules/okapi-3.0.0")
+        .then().statusCode(foundStatus)
+        .log().ifValidationFails();
+    given()
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/testlib/modules/okapi-3.0.0")
+        .then().statusCode(foundStatus)
+        .log().ifValidationFails();
     conf.remove("okapiVersion");
   }
 
   @Test
   public void testEnvStored(TestContext context) {
-    conf.remove("mongo_db_init");
-    conf.remove("postgres_db_init");
-
     RestAssuredClient c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
@@ -2691,8 +2749,7 @@ public class ModuleTest {
         .log().ifValidationFails();
     assertEmptyReport(c);
 
-    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
-    async.await();
+    redeploy(context).onComplete(context.asyncAssertSuccess());
 
     // check that it is still gone after Okapi is restarted with any storage OKAPI-931
     c = api.createRestAssured3();

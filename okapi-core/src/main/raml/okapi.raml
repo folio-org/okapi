@@ -339,6 +339,50 @@ types:
           body:
             text/plain:
 
+/_/proxy/import/modules:
+  description: Proxy modules service, list import
+  post:
+    description: Announce a list of new modules to the proxy. Once successful a module
+      can be selected for a specific tenant. To announce only one module you may use
+      /_/proxy/modules.
+    queryParameters:
+      check:
+        description: Whether to check dependencies
+        type: boolean
+        required: false
+        default: true
+      preRelease:
+        description: Whether to allow pre-release modules in dependency check
+        type: boolean
+        required: false
+        default: true
+      npmSnapshot:
+        description: Whether to allow NPM module snapshots in dependency check
+        type: boolean
+        required: false
+        default: true
+    body:
+      application/json:
+        type: ModuleList
+    responses:
+      204:
+        description: OK
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      404:
+        description: Not Found
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
+
 /_/proxy/modules:
   description: Proxy modules service
   post:
@@ -805,11 +849,31 @@ types:
             body:
               text/plain:
           404:
-            description: Not Found
+            description: Tenant not Found
             body:
               text/plain:
           500:
             description: User error
+            body:
+              text/plain:
+      delete:
+        description: Delete all completed install jobs
+        responses:
+          204:
+            description: OK
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+          400:
+            description: Bad Request
+            body:
+              text/plain:
+          404:
+            description: Tenant not Found
+            body:
+              text/plain:
+          500:
+            description: Server Error
             body:
               text/plain:
       post:
@@ -932,7 +996,27 @@ types:
               body:
                 text/plain:
             500:
+              description: Internal error
+              body:
+                text/plain:
+        delete:
+          description: Delete install job
+          responses:
+            204:
+              description: OK
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
+            400:
               description: User error
+              body:
+                text/plain:
+            404:
+              description: Not Found
+              body:
+                text/plain:
+            500:
+              description: Internal error
               body:
                 text/plain:
     /upgrade:

@@ -75,25 +75,26 @@ public class PullManager {
         promise.handle(fail(cause, baseUrl))
     ).onSuccess(request -> {
       request.end();
-      request.onFailure(cause -> promise.handle(fail(cause, baseUrl)));
-      request.onSuccess(response -> {
-        response.handler(body::appendBuffer);
-        response.endHandler(x -> {
-          if (response.statusCode() != 200) {
-            logger.warn("pull for {} failed with status {}",
-                baseUrl, response.statusCode());
-            promise.fail(new OkapiError(ErrorType.USER,
-                "pull for " + baseUrl + " returned status "
-                    + response.statusCode() + "\n" + body.toString()));
-          } else {
-            List<String> result = new LinkedList<>();
-            result.add(baseUrl);
-            result.add(body.toString());
-            promise.complete(result);
-          }
-        });
-        response.exceptionHandler(x -> promise.fail(x));
-      });
+      request.response()
+          .onFailure(cause -> promise.handle(fail(cause, baseUrl)))
+          .onSuccess(response -> {
+            response.handler(body::appendBuffer);
+            response.endHandler(x -> {
+              if (response.statusCode() != 200) {
+                logger.warn("pull for {} failed with status {}",
+                    baseUrl, response.statusCode());
+                promise.fail(new OkapiError(ErrorType.USER,
+                    "pull for " + baseUrl + " returned status "
+                        + response.statusCode() + "\n" + body.toString()));
+              } else {
+                List<String> result = new LinkedList<>();
+                result.add(baseUrl);
+                result.add(body.toString());
+                promise.complete(result);
+              }
+            });
+            response.exceptionHandler(x -> promise.fail(x));
+          });
     });
     return promise.future();
   }
@@ -116,21 +117,22 @@ public class PullManager {
         .onFailure(res -> promise.fail(res.getMessage()))
         .onSuccess(request -> {
           request.end(Json.encodePrettily(idList));
-          request.onFailure(cause -> promise.fail(cause.getMessage()));
-          request.onSuccess(response -> {
-            final Buffer body = Buffer.buffer();
-            response.handler(body::appendBuffer);
-            response.endHandler(x -> {
-              if (response.statusCode() != 200) {
-                promise.fail(new OkapiError(ErrorType.USER, body.toString()));
-                return;
-              }
-              ModuleDescriptor[] ml = Json.decodeValue(body.toString(),
-                  ModuleDescriptor[].class);
-              promise.complete(ml);
-            });
-            response.exceptionHandler(x -> promise.fail(x.getMessage()));
-          });
+          request.response()
+              .onFailure(cause -> promise.fail(cause.getMessage()))
+              .onSuccess(response -> {
+                final Buffer body = Buffer.buffer();
+                response.handler(body::appendBuffer);
+                response.endHandler(x -> {
+                  if (response.statusCode() != 200) {
+                    promise.fail(new OkapiError(ErrorType.USER, body.toString()));
+                    return;
+                  }
+                  ModuleDescriptor[] ml = Json.decodeValue(body.toString(),
+                      ModuleDescriptor[].class);
+                  promise.complete(ml);
+                });
+                response.exceptionHandler(x -> promise.fail(x.getMessage()));
+              });
         });
     return promise.future();
   }

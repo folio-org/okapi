@@ -142,7 +142,7 @@ public class MultiTenantTest {
     httpClient.request(HttpMethod.DELETE, port,
         "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
           request.end();
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> {
               httpClient.close();

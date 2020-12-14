@@ -201,6 +201,13 @@ public class InternalModule {
         + "    \"permissionsRequired\" : [ \"okapi.discovery.nodes.get\"  ], "
         + "    \"type\" : \"internal\" "
         + "   }, "
+        // import modules
+        + "   {"
+        + "    \"methods\" :  [ \"POST\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/import/modules\","
+        + "    \"permissionsRequired\" : [ \"okapi.proxy.modules.post\" ], "
+        + "    \"type\" : \"internal\" "
+        + "   },"
         // Proxy service
         + "   {" // proxy, modules
         + "    \"methods\" :  [ \"POST\" ],"
@@ -264,9 +271,19 @@ public class InternalModule {
         + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.install.post\" ], "
         + "    \"type\" : \"internal\" "
         + "   }, {"
+        + "    \"methods\" :  [ \"DELETE\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/install\","
+        + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.install.delete\" ], "
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
         + "    \"methods\" :  [ \"GET\" ],"
         + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/install/{installId}\","
         + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.install.get\" ], "
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"DELETE\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/install/{installId}\","
+        + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.install.delete\" ], "
         + "    \"type\" : \"internal\" "
         + "   }, {"
         + "    \"methods\" :  [ \"POST\" ],"
@@ -408,8 +425,8 @@ public class InternalModule {
         + "   \"description\" : \"Get a module\" "
         + " }, { "
         + "   \"permissionName\" : \"okapi.proxy.modules.post\", "
-        + "   \"displayName\" : \"Okapi - declare a module\", "
-        + "   \"description\" : \"Declare a module\" "
+        + "   \"displayName\" : \"Okapi - announce a new module to the proxy\", "
+        + "   \"description\" : \"Announce a new module to the proxy\" "
         + " }, { "
         + "   \"permissionName\" : \"okapi.proxy.modules.put\", "
         + "   \"displayName\" : \"Okapi - update a module description\", "
@@ -456,6 +473,10 @@ public class InternalModule {
         + "   \"permissionName\" : \"okapi.proxy.tenants.install.get\", "
         + "   \"displayName\" : \"Okapi - get install job\", "
         + "   \"description\" : \"Retrieve install job by id\" "
+        + " }, { "
+        + "   \"permissionName\" : \"okapi.proxy.tenants.install.delete\", "
+        + "   \"displayName\" : \"Okapi - delete install job\", "
+        + "   \"description\" : \"Delete install job by id\" "
         + " }, { "
         + "   \"permissionName\" : \"okapi.proxy.tenants.install.post\", "
         + "   \"displayName\" : \"Okapi - Enable modules and dependencies\", "
@@ -559,6 +580,7 @@ public class InternalModule {
         + "     \"okapi.proxy.tenants.upgrade.post\", "
         + "     \"okapi.proxy.tenants.install.list\", "
         + "     \"okapi.proxy.tenants.install.get\", "
+        + "     \"okapi.proxy.tenants.install.delete\", "
         + "     \"okapi.proxy.tenants.install.post\" "
         + "   ]"
         + " }, "
@@ -749,9 +771,17 @@ public class InternalModule {
         .compose(installJobList -> Future.succeededFuture(Json.encodePrettily(installJobList)));
   }
 
+  private Future<String> installTenantModulesDeleteList(String tenantId) {
+    return tenantManager.installUpgradeDeleteList(tenantId).map("");
+  }
+
   private Future<String> installTenantModulesGet(String tenantId, String installId) {
     return tenantManager.installUpgradeGet(tenantId, installId)
         .compose(installJob -> Future.succeededFuture(Json.encodePrettily(installJob)));
+  }
+
+  private Future<String> installTenantModulesDelete(String tenantId, String installId) {
+    return tenantManager.installUpgradeDelete(tenantId, installId).map("");
   }
 
   private Future<String> upgradeModulesForTenant(ProxyContext pc, String tenantId) {
@@ -851,20 +881,38 @@ public class InternalModule {
     });
   }
 
-  private Future<String> createModule(ProxyContext pc, String body) {
+  private Future<Void> createModules(ProxyContext pc, List<ModuleDescriptor> list) {
     try {
-      final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
       HttpServerRequest req = pc.getCtx().request();
       final boolean check = ModuleUtil.getParamBoolean(req, "check", true);
       final boolean preRelease = ModuleUtil.getParamBoolean(req, "preRelease", true);
       final boolean npmSnapshot = ModuleUtil.getParamBoolean(req, "npmSnapshot", true);
-
-      String validerr = md.validate(logger);
-      if (!validerr.isEmpty()) {
-        logger.info("createModule validate failed: {}", validerr);
-        return Future.failedFuture(new OkapiError(ErrorType.USER, validerr));
+      for (ModuleDescriptor md : list) {
+        String validerr = md.validate(logger);
+        if (!validerr.isEmpty()) {
+          logger.info("createModules validate failed: {}", validerr);
+          return Future.failedFuture(new OkapiError(ErrorType.USER, validerr));
+        }
       }
-      return moduleManager.create(md, check, preRelease, npmSnapshot)
+      return moduleManager.createList(list, check, preRelease, npmSnapshot);
+    } catch (DecodeException ex) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
+    }
+  }
+
+  private Future<String> createModules(ProxyContext pc, String body) {
+    try {
+      final ModuleDescriptor[] modules = Json.decodeValue(body, ModuleDescriptor[].class);
+      return createModules(pc, Arrays.asList(modules)).map("");
+    } catch (DecodeException ex) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
+    }
+  }
+
+  private Future<String> createModule(ProxyContext pc, String body) {
+    try {
+      final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
+      return createModules(pc, Arrays.asList(md))
           .compose(res -> location(pc, md.getId(), null, Json.encodePrettily(md)));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
@@ -1104,6 +1152,11 @@ public class InternalModule {
     // default to json replies, error code overrides to text/plain
     pc.getCtx().response().putHeader("Content-Type", "application/json");
     if (n >= 4 && p.startsWith("/_/proxy/")) { // need at least /_/proxy/something
+      // /_/proxy/import/modules
+      if (segments[3].equals("import") && n == 5 && segments[4].equals("modules")
+          && m.equals(HttpMethod.POST)) {
+        return createModules(pc, req);
+      }
       if (segments[3].equals("modules")
           && moduleManager != null) {
         // /_/proxy/modules
@@ -1166,12 +1219,20 @@ public class InternalModule {
           return installTenantModulesGetList(decodedSegs[4]);
         }
         // /_/proxy/tenants/:id/install
+        if (n == 6 && m.equals(HttpMethod.DELETE) && segments[5].equals("install")) {
+          return installTenantModulesDeleteList(decodedSegs[4]);
+        }
+        // /_/proxy/tenants/:id/install
         if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("install")) {
           return installTenantModulesPost(pc, decodedSegs[4], req);
         }
         // /_/proxy/tenants/:tid/install/:rid
         if (n == 7 && m.equals(HttpMethod.GET) && segments[5].equals("install")) {
           return installTenantModulesGet(decodedSegs[4], decodedSegs[6]);
+        }
+        // /_/proxy/tenants/:tid/install/:rid
+        if (n == 7 && m.equals(HttpMethod.DELETE) && segments[5].equals("install")) {
+          return installTenantModulesDelete(decodedSegs[4], decodedSegs[6]);
         }
         // /_/proxy/tenants/:id/upgrade
         if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("upgrade")) {

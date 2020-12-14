@@ -85,6 +85,10 @@ public class ProxyService {
       Comparator.comparing((ModuleInstance a) -> a.getRoutingEntry().getPhaseLevel());
   private final TokenCache tokenCache;
 
+  // request + response HTTP headers that are forwarded in the pipeline
+  private static final String [] FORWARD_HEADERS =
+      new String [] { "Content-Type", "Content-Encoding"};
+
   /**
    * Construct Proxy service.
    * @param vertx Vert.x handle
@@ -645,23 +649,24 @@ public class ProxyService {
       clientsEnd(bcontent, clientRequestList);
       clientRequest.end(bcontent);
       log(pc, clientRequest);
-      clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
-      clientRequest.onSuccess(res -> {
-        MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
-            meth.name(), mi);
-        Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
-        if (newIt.hasNext()) {
-          makeTraceHeader(mi, res.statusCode(), pc);
-          pc.closeTimer();
-          relayToRequest(res, pc, mi);
-          proxyR(newIt, pc, null, bcontent, new LinkedList<>());
-        } else {
-          relayToResponse(ctx.response(), res, pc);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          res.endHandler(x -> proxyResponseImmediate(pc, null, bcontent, clientRequestList));
-          res.exceptionHandler(e -> logger.warn("proxyRequestHttpClient: res exception (b)", e));
-        }
-      });
+      clientRequest.response()
+          .onFailure(res -> proxyClientFailure(pc, mi, res))
+          .onSuccess(res -> {
+            MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
+                meth.name(), mi);
+            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+            if (newIt.hasNext()) {
+              makeTraceHeader(mi, res.statusCode(), pc);
+              pc.closeTimer();
+              relayToRequest(res, pc, mi);
+              proxyR(newIt, pc, null, bcontent, new LinkedList<>());
+            } else {
+              relayToResponse(ctx.response(), res, pc);
+              makeTraceHeader(mi, res.statusCode(), pc);
+              res.endHandler(x -> proxyResponseImmediate(pc, null, bcontent, clientRequestList));
+              res.exceptionHandler(e -> logger.warn("proxyRequestHttpClient: exception", e));
+            }
+          });
     });
   }
 
@@ -678,10 +683,10 @@ public class ProxyService {
       String method = ctx.request().method().name();
       String path = mi.getRoutingEntry().getStaticPath();
       final Timer.Sample sample = MetricsHelper.getTimerSample();
-      clientRequest.onFailure(e -> MetricsHelper.recordHttpClientError(pc.getTenant(),
-          method, path));
-      clientRequest.onSuccess(res -> MetricsHelper.recordHttpClientResponse(sample,
-          pc.getTenant(), res.statusCode(), method, mi));
+      clientRequest.response()
+          .onFailure(e -> MetricsHelper.recordHttpClientError(pc.getTenant(), method, path))
+          .onSuccess(res -> MetricsHelper.recordHttpClientResponse(sample,
+              pc.getTenant(), res.statusCode(), method, mi));
       if (!it.hasNext()) {
         relayToResponse(ctx.response(), null, pc);
         copyHeaders(clientRequest, ctx, mi);
@@ -823,8 +828,10 @@ public class ProxyService {
                                     List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
+    HttpServerRequest request = ctx.request();
+    HttpServerResponse response = ctx.response();
     Future<HttpClientRequest> fut = httpClient.request(
-        new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx)));
+        new RequestOptions().setMethod(request.method()).setAbsoluteURI(makeUrl(mi, ctx)));
     fut.onFailure(res -> proxyClientFailure(pc, mi, res));
     fut.onSuccess(clientRequest -> {
       final Timer.Sample sample = MetricsHelper.getTimerSample();
@@ -841,28 +848,29 @@ public class ProxyService {
         streamHandle(pc, stream, clientRequest, clientRequestList);
       }
       log(pc, clientRequest);
-      clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
-      clientRequest.onSuccess(res -> {
-        MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
-            ctx.request().method().name(), mi);
-        fixupXOkapiToken(mi.getModuleDescriptor(), ctx.request().headers(), res.headers());
-        Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
-        if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
-          makeTraceHeader(mi, res.statusCode(), pc);
-          relayToRequest(res, pc, mi);
-          final String ct = res.getHeader("Content-Type");
-          if (ct != null) {
-            ctx.request().headers().set("Content-Type", ct);
-          }
-          storeResponseInfo(pc, mi, res);
-          res.pause();
-          proxyR(newIt, pc, res, null, new LinkedList<>());
-        } else {
-          relayToResponse(ctx.response(), res, pc);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          proxyResponseImmediate(pc, res, null, new LinkedList<>());
-        }
-      });
+      clientRequest.response()
+          .onFailure(res -> proxyClientFailure(pc, mi, res))
+          .onSuccess(res -> {
+            MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
+                request.method().name(), mi);
+            fixupXOkapiToken(mi.getModuleDescriptor(), request.headers(), res.headers());
+            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+            if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
+              makeTraceHeader(mi, res.statusCode(), pc);
+              relayToRequest(res, pc, mi);
+              for (String header : FORWARD_HEADERS) {
+                MultiMap headers = request.headers();
+                request.headers().set(header, res.getHeader(header));
+              }
+              storeResponseInfo(pc, mi, res);
+              res.pause();
+              proxyR(newIt, pc, res, null, new LinkedList<>());
+            } else {
+              relayToResponse(response, res, pc);
+              makeTraceHeader(mi, res.statusCode(), pc);
+              proxyResponseImmediate(pc, res, null, new LinkedList<>());
+            }
+          });
     });
   }
 
@@ -879,30 +887,31 @@ public class ProxyService {
       copyHeaders(clientRequest, ctx, mi);
       clientRequest.end();
       log(pc, clientRequest);
-      clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
-      clientRequest.onSuccess(res -> {
-        MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
-            ctx.request().method().name(), mi);
-        Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
-        if (newIt.hasNext()) {
-          relayToRequest(res, pc, mi);
-          storeResponseInfo(pc, mi, res);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          res.endHandler(x
-              -> proxyR(newIt, pc, stream, bcontent, clientRequestList));
-        } else {
-          relayToResponse(ctx.response(), res, pc);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          if (res.statusCode() >= 200 && res.statusCode() <= 299) {
-            proxyResponseImmediate(pc, stream, bcontent, clientRequestList);
-          } else {
-            proxyResponseImmediate(pc, res, null, clientRequestList);
-            if (bcontent == null) {
-              stream.resume();
+      clientRequest.response()
+          .onFailure(res -> proxyClientFailure(pc, mi, res))
+          .onSuccess(res -> {
+            MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
+                ctx.request().method().name(), mi);
+            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+            if (newIt.hasNext()) {
+              relayToRequest(res, pc, mi);
+              storeResponseInfo(pc, mi, res);
+              makeTraceHeader(mi, res.statusCode(), pc);
+              res.endHandler(x
+                  -> proxyR(newIt, pc, stream, bcontent, clientRequestList));
+            } else {
+              relayToResponse(ctx.response(), res, pc);
+              makeTraceHeader(mi, res.statusCode(), pc);
+              if (res.statusCode() >= 200 && res.statusCode() <= 299) {
+                proxyResponseImmediate(pc, stream, bcontent, clientRequestList);
+              } else {
+                proxyResponseImmediate(pc, res, null, clientRequestList);
+                if (bcontent == null) {
+                  stream.resume();
+                }
+              }
             }
-          }
-        }
-      });
+          });
     });
   }
 
@@ -1184,53 +1193,63 @@ public class ProxyService {
         });
   }
 
+  private Future<OkapiClient> doCallSystemInterface2(
+      MultiMap headersIn, String tenantId, String authToken,
+      ModuleInstance inst, String modPerms, String request) {
+
+    Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
+    headers.put(XOkapiHeaders.URL_TO, inst.getUrl());
+    logger.debug("syscall begin {} {}{}", inst.getMethod(), inst.getUrl(), inst.getPath());
+    OkapiClient cli = new OkapiClient(this.httpClient, inst.getUrl(), vertx, headers);
+    String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
+    cli.newReqId(reqId); // "tenant" or "tenantpermissions"
+    cli.enableInfoLog();
+    if (inst.isWithRetry()) {
+      cli.setClosedRetry(40000);
+    }
+    final Timer.Sample sample = MetricsHelper.getTimerSample();
+    Promise<OkapiClient> promise = Promise.promise();
+    cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
+      logger.debug("syscall return {} {}{}", inst.getMethod(), inst.getUrl(), inst.getPath());
+      if (cres.failed()) {
+        String msg = messages.getMessage("11101", inst.getMethod(),
+            inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
+        logger.warn(msg, cres.cause());
+        MetricsHelper.recordHttpClientError(tenantId, inst.getMethod().name(), inst.getPath());
+        promise.fail(new OkapiError(ErrorType.USER, msg));
+        return;
+      }
+      MetricsHelper.recordHttpClientResponse(sample, tenantId, cli.getStatusCode(),
+          inst.getMethod().name(), inst);
+      // Pass response headers - needed for unit test, if nothing else
+      promise.complete(cli);
+    });
+    return promise.future();
+  }
+
   /**
    * Actually make a request to a system interface, like _tenant. Assumes we are
    * operating as the correct tenant.
    */
-  private Future<OkapiClient> doCallSystemInterface(
+  Future<OkapiClient> doCallSystemInterface(
       MultiMap headersIn, String tenantId, String authToken,
       ModuleInstance inst, String modPerms, String request) {
 
-    return discoveryManager.get(inst.getModuleDescriptor().getId()).compose(gres -> {
-      DeploymentDescriptor instance = null;
-      if (gres != null) {
-        instance = pickInstance(gres);
-      }
-      if (instance == null) {
-        return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("11100",
-            inst.getModuleDescriptor().getId(), inst.getPath())));
-      }
-      String baseurl = instance.getUrl();
-      Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
-      headers.put(XOkapiHeaders.URL_TO, baseurl);
-      logger.debug("syscall begin {} {}{}", inst.getMethod(), baseurl, inst.getPath());
-      OkapiClient cli = new OkapiClient(this.httpClient, baseurl, vertx, headers);
-      String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
-      cli.newReqId(reqId); // "tenant" or "tenantpermissions"
-      cli.enableInfoLog();
-      if (inst.isWithRetry()) {
-        cli.setClosedRetry(40000);
-      }
-      final Timer.Sample sample = MetricsHelper.getTimerSample();
-      Promise<OkapiClient> promise = Promise.promise();
-      cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
-        logger.debug("syscall return {} {}{}", inst.getMethod(), baseurl, inst.getPath());
-        if (cres.failed()) {
-          String msg = messages.getMessage("11101", inst.getMethod(),
-              inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
-          logger.warn(msg, cres.cause());
-          MetricsHelper.recordHttpClientError(tenantId, inst.getMethod().name(), inst.getPath());
-          promise.fail(new OkapiError(ErrorType.USER, msg));
-          return;
-        }
-        MetricsHelper.recordHttpClientResponse(sample, tenantId, cli.getStatusCode(),
-            inst.getMethod().name(), inst);
-        // Pass response headers - needed for unit test, if nothing else
-        promise.complete(cli);
-      });
-      return promise.future();
-    });
+    Future<Void> future = Future.succeededFuture();
+    if (inst.getUrl() == null) {
+      future = discoveryManager.get(inst.getModuleDescriptor().getId())
+          .compose(gres -> {
+            DeploymentDescriptor instance = pickInstance(gres);
+            if (instance == null) {
+              return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("11100",
+                  inst.getModuleDescriptor().getId(), inst.getPath())));
+            }
+            inst.setUrl(instance.getUrl());
+            return Future.succeededFuture();
+          });
+    }
+    return future.compose(x -> doCallSystemInterface2(
+        headersIn, tenantId, authToken, inst, modPerms, request));
   }
 
   /**

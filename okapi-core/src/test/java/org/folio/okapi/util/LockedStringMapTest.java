@@ -41,7 +41,7 @@ public class LockedStringMapTest {
   public void test1(TestContext context) {
     {
       Async async = context.async();
-      map.init(vertx, "FooMap").onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      map.init(vertx, "FooMap", true).onComplete(context.asyncAssertSuccess(x -> async.complete()));
       async.await();
     }
     {
@@ -86,7 +86,7 @@ public class LockedStringMapTest {
   public void test2(TestContext context) {
     {
       Async async = context.async();
-      map.init(vertx, "FooMap").onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      map.init(vertx, "FooMap", false).onComplete(context.asyncAssertSuccess(x -> async.complete()));
       async.await();
     }
     {
@@ -330,7 +330,7 @@ public class LockedStringMapTest {
   public void testConcurrent(TestContext context) {
     {
       Async async = context.async();
-      map.init(vertx, "FooMap").onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      map.init(vertx, "FooMap", true).onComplete(context.asyncAssertSuccess(x -> async.complete()));
       async.await();
     }
     {

@@ -6,7 +6,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
@@ -63,8 +62,8 @@ public class DiscoveryManager implements NodeListener {
     this.vertx = vertx;
     this.httpClient = vertx.createHttpClient();
     deliveryOptions = new DeliveryOptions().setSendTimeout(300000); // 5 minutes
-    return deployments.init(vertx, "discoveryList").compose(x ->
-        nodes.init(vertx, "discoveryNodes"));
+    return deployments.init(vertx, "discoveryList", false).compose(x ->
+        nodes.init(vertx, "discoveryNodes", false));
   }
 
   /**
@@ -436,7 +435,7 @@ public class DiscoveryManager implements NodeListener {
         return;
       }
       req.result().end();
-      req.result().onFailure(cause ->
+      req.result().response().onFailure(cause ->
           promise.handle(fail(cause, hd))
       ).onSuccess(response -> {
         response.endHandler(x -> {

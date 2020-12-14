@@ -10,10 +10,11 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
-
 
 /**
  * Test module that works with headers-only. Also implements a few other test
@@ -23,7 +24,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = OkapiLogger.get();
-  private JsonArray savedPermissions = new JsonArray();
+  private Map<String,JsonArray> savedPermissions = new HashMap<>();
 
   private void myHeaderHandle(RoutingContext ctx) {
     String h = ctx.request().getHeader("X-my-header");
@@ -44,29 +45,33 @@ public class MainVerticle extends AbstractVerticle {
    * @param ctx routing context
    */
   private void myPermissionHandle(RoutingContext ctx) {
+    String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     ReadStream<Buffer> content = ctx.request();
 
     Buffer buf = Buffer.buffer();
     content.handler(buf::appendBuffer);
     content.endHandler(x -> {
+      savedPermissions.putIfAbsent(tenant, new JsonArray());
       try {
-        savedPermissions.add(new JsonObject(buf));
+        savedPermissions.get(tenant).add(new JsonObject(buf));
       } catch (Exception e) {
         ctx.response().setStatusCode(400);
         ctx.response().end(e.getMessage());
         return;
       }
-      ctx.response().putHeader(XOkapiHeaders.TRACE, "GET test-header-module "
-          + ctx.request().path() + " 200 -");
+      ctx.response().putHeader(XOkapiHeaders.TRACE, ctx.request().method().name()
+          + " test-header-module " + ctx.request().path() + " 200 -");
       ctx.response().end();
     });
   }
 
   private void myPermResult(RoutingContext ctx) {
+    String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     ctx.response().setStatusCode(200);
     ctx.response().putHeader("Content-Type", "application/json");
-    ctx.response().end(savedPermissions.encodePrettily());
-    savedPermissions.clear();
+    JsonArray ar = savedPermissions.get(tenant);
+    ctx.response().end(ar != null ? savedPermissions.get(tenant).encodePrettily() : "");
+    savedPermissions.remove(tenant);
   }
 
   @Override

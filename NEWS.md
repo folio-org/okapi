@@ -1,3 +1,39 @@
+## 4.5.0 2020-12-09
+
+New features:
+
+ * [OKAPI-958](https://issues.folio.org/browse/OKAPI-958) Upgrade to Vert.x 4.0.0
+ * [OKAPI-875](https://issues.folio.org/browse/OKAPI-875) Asynchronous tenant interface. Okapi recognizes `_tenant`
+   interface 2.0.
+ * Provide utility script [`okapi-curl`](util/okapi-curl).
+
+Fixes:
+
+ * [OKAPI-956](https://issues.folio.org/browse/OKAPI-956) Update to default hazelcast version 4.0
+
+## 4.4.0 2020-11-19
+
+New features:
+
+ * [OKAPI-825](https://issues.folio.org/browse/OKAPI-825) Switch from postgresql-embedded to testcontainers
+ * [OKAPI-916](https://issues.folio.org/browse/OKAPI-916) Match path and pathPattern using hash map
+ * [OKAPI-610](https://issues.folio.org/browse/OKAPI-610) Posting multiple module descriptors to Okapi
+ * [OKAPI-910](https://issues.folio.org/browse/OKAPI-910) Cleanup ProxyContext logging
+ * [OKAPI-930](https://issues.folio.org/browse/OKAPI-930) Upgrade the Okapi module for all tenants
+ * [OKAPI-943](https://issues.folio.org/browse/OKAPI-943) GenericCompositeFuture utility
+ * [OKAPI-934](https://issues.folio.org/browse/OKAPI-934) Update okapi.sh launch script to support dockerRegistries
+ * [OKAPI-940](https://issues.folio.org/browse/OKAPI-940) Upgrade to 4.0.0CR1, Netty 4.1.53
+ * [OKAPI-942](https://issues.folio.org/browse/OKAPI-942) Delete install job service
+
+Fixes:
+
+ * [OKAPI-932](https://issues.folio.org/browse/OKAPI-932) Fix Mongo related unit test failures
+ * [OKAPI-935](https://issues.folio.org/browse/OKAPI-935) Fix Create container fails when pulling from custom registry
+ * [OKAPI-936](https://issues.folio.org/browse/OKAPI-936) Fix Request logging can send compressed data to the filter
+ * [OKAPI-937](https://issues.folio.org/browse/OKAPI-937) Fix okapi.sh --initdb option is broken
+ * [OKAPI-944](https://issues.folio.org/browse/OKAPI-944) Fix Unit tests failed on Mac and AWS EC2
+ * [OKAPI-945](https://issues.folio.org/browse/OKAPI-945) Fix Okapi silently downgrades modules to meet dependencies
+
 ## 4.3.0 2020-10-26
 
 This release has Prometheus support for Micrometer metrics; Docker registry

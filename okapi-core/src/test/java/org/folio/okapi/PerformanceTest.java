@@ -54,7 +54,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.DELETE, port,
         "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
           request.end();
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> {
               httpClient.close();
@@ -95,7 +95,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules")
         .onComplete(context.asyncAssertSuccess(req -> {
           req.end(doc);
-          req.onComplete(context.asyncAssertSuccess(response -> {
+          req.response(context.asyncAssertSuccess(response -> {
             logger.debug("declareAuth: " + response.statusCode() + " " + response.statusMessage());
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
@@ -116,7 +116,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/deployment/modules",
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             logger.debug("deployAuth: " + response.statusCode() + " " + response.statusMessage());
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
@@ -144,7 +144,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules",
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.handler(body -> {
               context.assertEquals(doc, body.toString());
@@ -167,7 +167,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/deployment/modules",
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               createTenant(context);
@@ -185,7 +185,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants",
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             locationTenant = response.getHeader("Location");
             response.handler(body -> {
@@ -205,7 +205,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> tenantEnableModuleSample(context));
           }));
@@ -219,7 +219,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> doLogin(context));
           }));
@@ -235,7 +235,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/authn/login", context.asyncAssertSuccess(request -> {
       request.putHeader("X-Okapi-Tenant", okapiTenant);
       request.end(doc);
-      request.onComplete(context.asyncAssertSuccess(response -> {
+      request.response(context.asyncAssertSuccess(response -> {
         context.assertEquals(200, response.statusCode());
         String headers = response.headers().entries().toString();
         okapiToken = response.getHeader("X-Okapi-Token");
@@ -249,7 +249,7 @@ public class PerformanceTest {
         context.asyncAssertSuccess(request -> {
           request.putHeader("X-Okapi-Tenant", okapiTenant);
           request.end();
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(200, response.statusCode());
             String headers = response.headers().entries().toString();
             response.handler(x -> {
@@ -277,7 +277,7 @@ public class PerformanceTest {
           request.putHeader("Accept", "text/xml");
           request.putHeader("Content-Type", "text/plain");
           request.end("Okapi");
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(200, response.statusCode());
             response.handler(body::appendBuffer);
             response.endHandler(x -> {
@@ -302,7 +302,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules",
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               deploySample2(context);
@@ -320,7 +320,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/discovery/modules",
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               tenantEnableModuleSample2(context);
@@ -336,7 +336,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               declareSample3(context);
@@ -369,7 +369,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules",
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               deploySample3(context);
@@ -386,7 +386,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/discovery/modules",
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               tenantEnableModuleSample3(context);
@@ -402,7 +402,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               repeatPostInit(context);
@@ -444,7 +444,7 @@ public class PerformanceTest {
           request.putHeader("X-Okapi-Token", okapiToken);
           request.putHeader("X-Okapi-Tenant", okapiTenant);
           request.end(msg);
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(200, response.statusCode());
             String headers = response.headers().entries().toString();
             response.handler(body::appendBuffer);
@@ -460,7 +460,7 @@ public class PerformanceTest {
   public void deleteTenant(TestContext context) {
     httpClient.request(HttpMethod.DELETE, port, "localhost", locationTenant,
         context.asyncAssertSuccess(request -> {
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> done(context));
           }));

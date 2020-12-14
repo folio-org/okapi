@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>4.4.0-SNAPSHOT</version>
+  <version>4.6.0-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
@@ -31,7 +31,7 @@
   <dependencyManagement>
     <dependencies>
       <!--
-        Overwrite 4.1.49.FINAL (from vertx-stack-depchain 4.0.0.CR1)
+        Overwrite 4.1.49.FINAL (from vertx-stack-depchain 4.0.0)
         by newer version.
       -->
       <dependency>
@@ -44,7 +44,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.0.0.CR1</version> <!-- also update depending versions below! -->
+        <version>4.0.0</version> <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>

@@ -37,6 +37,10 @@ import org.folio.okapi.util.VariableSubstitutor;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class DockerModuleHandle implements ModuleHandle {
 
+  static final String DOCKER_REGISTRIES_EMPTY_LIST =
+      "dockerRegistries=[] contains no registry and disables docker pull. "
+          + "For unauthenticated pull from DockerHub use [ {} ].";
+
   private final Logger logger;
 
   private final int hostPort;
@@ -248,7 +252,10 @@ public class DockerModuleHandle implements ModuleHandle {
     if (dockerRegistries == null) {
       return getUrl("/images/" + image + "/json");
     }
-    Future<JsonObject> future = Future.failedFuture("");
+    if (dockerRegistries.isEmpty()) {
+      logger.warn(DOCKER_REGISTRIES_EMPTY_LIST);
+    }
+    Future<JsonObject> future = Future.failedFuture(DOCKER_REGISTRIES_EMPTY_LIST);
     for (int i = 0; i < dockerRegistries.size(); i++) {
       JsonObject registry = dockerRegistries.getJsonObject(i);
       String prefix = getRegistryPrefix(registry);
@@ -267,7 +274,10 @@ public class DockerModuleHandle implements ModuleHandle {
           .mapEmpty();
     }
     logger.info("pull Image using dockerRegistries");
-    Future<Void> future = Future.failedFuture("");
+    if (dockerRegistries.isEmpty()) {
+      logger.warn(DOCKER_REGISTRIES_EMPTY_LIST);
+    }
+    Future<Void> future = Future.failedFuture(DOCKER_REGISTRIES_EMPTY_LIST);
     for (int i = 0; i < dockerRegistries.size(); i++) {
       JsonObject registry = dockerRegistries.getJsonObject(i);
       if (registry == null) {

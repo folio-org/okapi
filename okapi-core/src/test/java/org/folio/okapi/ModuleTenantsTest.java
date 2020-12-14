@@ -63,7 +63,7 @@ public class ModuleTenantsTest {
     httpClient.request(HttpMethod.DELETE, port,
         "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
           request.end();
-          request.onComplete(context.asyncAssertSuccess(response -> {
+          request.response(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> {
               httpClient.close();
@@ -1946,11 +1946,8 @@ public class ModuleTenantsTest {
       .body("[ {\"id\" : \"prov-1.0.0\", \"action\" : \"enable\"},"
         + " {\"id\" : \"prov-2.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(200)
-      .body(equalTo("[ {" + LS
-        + "  \"id\" : \"prov-2.0.0\"," + LS
-        + "  \"action\" : \"enable\"" + LS
-        + "} ]"));
+      .then().statusCode(400)
+      .body(equalTo("Cannot remove module prov-1.0.0 which is explicitly given"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -1961,11 +1958,8 @@ public class ModuleTenantsTest {
       .body("[ {\"id\" : \"prov-2.0.0\", \"action\" : \"enable\"},"
         + " {\"id\" : \"prov-1.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(200)
-      .body(equalTo("[ {" + LS
-        + "  \"id\" : \"prov-1.0.0\"," + LS
-        + "  \"action\" : \"enable\"" + LS
-        + "} ]"));
+      .then().statusCode(400)
+      .body(equalTo("Cannot remove module prov-2.0.0 which is explicitly given"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -2076,19 +2070,6 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body("[ {\"id\" : \"req1-1.0.0\", \"action\" : \"enable\"},"
-        + " {\"id\" : \"req2-1.0.0\", \"action\" : \"enable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(400).extract().response();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    Assert.assertEquals("Incompatible version for module req1-1.0.0 interface i1. "
-      + "Need 1.0. Have 2.0/prov-2.0.0", r.getBody().asString());
 
     c = api.createRestAssured3();
     r = c.given()
