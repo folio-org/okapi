@@ -132,9 +132,19 @@ parse_okapi_conf()  {
       OKAPI_JAVA_OPTS+=" -Dhost=${host}"
    fi
 
-   # configure okapi port
-   if [ "$port" ]; then
-      OKAPI_JAVA_OPTS+=" -Dport=${port}"
+   # configure okapi http port
+   # Environment variables with periods/dots in their names are deprecated
+   # because a period is not POSIX compliant and therefore some shells, notably,
+   # the BusyBox /bin/sh included in Alpine Linux, strip them:
+   # https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html
+   # https://github.com/docker-library/docs/tree/master/openjdk#environment-variables-with-periods-in-their-names
+   # https://wiki.ubuntu.com/DashAsBinSh
+   # https://wiki.ubuntu.com/DashAsBinSh/Spec
+   # Java property variable names allow periods/dots.
+   if [ "$http_port" ]; then
+      OKAPI_JAVA_OPTS+=" -Dhttp.port=${http_port}"
+   elif [ "$port" ]; then
+      OKAPI_JAVA_OPTS+=" -Dhttp.port=${port}"
    fi
 
    # configure module port range

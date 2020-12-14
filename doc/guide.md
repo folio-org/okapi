@@ -691,13 +691,13 @@ okapi-core must be last because its tests rely on the previous ones.)
 
 The result for each module and okapi-core is a combined jar file
 with all necessary components combined, including Vert.x. The listening
-port is adjusted with property `port`.
+port is adjusted with property `http.port` or `port`.
 
 For example, to run the okapi-test-auth-module module and listen on port 8600, use:
 
 ```
 cd okapi-test-auth-module
-java -Dport=8600 -jar target/okapi-test-auth-module-fat.jar
+java -Dhttp.port=8600 -jar target/okapi-test-auth-module-fat.jar
 ```
 
 In the same way, to run the okapi-core, specify its jar file. It is
@@ -707,7 +707,7 @@ single node, we use the `dev` mode.
 
 ```
 cd okapi-core
-java -Dport=8600 -jar target/okapi-core-fat.jar dev
+java -Dhttp.port=8600 -jar target/okapi-core-fat.jar dev
 ```
 
 There are other commands available. Supply `help` to get a description of
@@ -1015,7 +1015,7 @@ cat > /tmp/okapi-proxy-test-basic.1.json <<END
   ],
   "requires": [],
   "launchDescriptor": {
-    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+    "exec": "java -Dhttp.port=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
 }
 END
@@ -1067,7 +1067,7 @@ Content-Length: 370
     } ]
   } ],
   "launchDescriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+    "exec" : "java -Dhttp.port=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
 }
 ```
@@ -1158,7 +1158,7 @@ Content-Length: 259
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+    "exec" : "java -Dhttp.port=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
 }
 ```
@@ -1440,7 +1440,7 @@ cat > /tmp/okapi-deploy-test-auth.json <<END
   "srvcId": "test-auth-3.4.1",
   "nodeId": "localhost",
   "descriptor": {
-    "exec": "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
+    "exec": "java -Dhttp.port=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
 END
@@ -1463,7 +1463,7 @@ Content-Length: 268
   "nodeId" : "localhost",
   "url" : "http://localhost:9132",
   "descriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
+    "exec" : "java -Dhttp.port=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
 ```
@@ -1631,7 +1631,7 @@ cat > /tmp/okapi-proxy-test-basic.2.json <<END
     }
   ],
   "launchDescriptor": {
-    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
+    "exec": "java -Dhttp.port=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
     "env": [
       {
         "name": "helloGreeting",
@@ -1867,7 +1867,7 @@ there is no need to repeat all the `curl` commands.
     }
   ],
   "launchDescriptor": {
-    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
+    "exec": "java -Dhttp.port=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
     "env": [
       {
         "name": "helloGreeting",
@@ -1989,7 +1989,7 @@ cat > /tmp/okapi-proxy-foo.json <<END
   ],
   "requires": [],
   "launchDescriptor": {
-    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+    "exec": "java -Dhttp.port=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
 }
 END
@@ -2044,7 +2044,7 @@ cat > /tmp/okapi-proxy-bar.json <<END
   ],
   "requires": [],
   "launchDescriptor": {
-    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+    "exec": "java -Dhttp.port=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
 }
 END
@@ -2212,7 +2212,7 @@ same port. By default Okapi allocates 20 ports for the modules, so
 let's start the next Okapi on port 9150:
 
 ```
-java -Dport=9150 -jar okapi-core/target/okapi-core-fat.jar cluster
+java -Dhttp.port=9150 -jar okapi-core/target/okapi-core-fat.jar cluster
 ```
 Again Okapi prints some startup messages, but note that also the first Okapi
 prints some stuff. Those two are connecting, and talking to each other.
@@ -2731,7 +2731,7 @@ properties.
 When the `-D` option is used, it should be in the beginning of the
 command-line, before the `-jar`.
 
-* `port`: The port on which Okapi listens. Defaults to 9130
+* `http.port` or `port`: The port on which Okapi listens. Defaults to 9130.
 * `port_start` and `port_end`: The range of ports for modules. Default to
 `port`+1 to `port`+10, normally 9131 to 9141
 * `host`: Hostname to be used in the URLs returned by the deployment service.
