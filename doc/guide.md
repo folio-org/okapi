@@ -3138,12 +3138,14 @@ during the operation.
 
 Add 'loadSample=true` to parameters, to load sample data as well.
 
-If the module supports version 2 of the `_tenant` interface it should return status 201 with
-a
+If the module supports version 2 of the `_tenant` interface the module
+may either return 204 (No Content) if job is successfully completed.
+If the module chooses to perform the tenant operation asynchronously, it
+returns 201 (Created) with `Location` header. For example:
 
     Location: /_/tenant/6da99bac-457b-499f-89a4-34f4da8e9be8
     
-header. This signals that the tenant job has started. Use a GET request on the
+This signals that the tenant job has started. Use a GET request on the
 Location path returned to poll for the completion of the tenant job with the
 
     curl -H "X-Okapi-url: http://localhost:8081" -H "X-Okapi-Tenant: testlib" \
