@@ -479,13 +479,10 @@ public class TenantManager implements Liveness {
     String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
     String moduleTo = mdTo != null ? mdTo.getId() : null;
 
-    Promise<Void> promise = Promise.promise();
     return updateModuleCommit(tenant, moduleFrom, moduleTo)
         .compose(x -> {
-          if (moduleTo != null) {
-            EventBus eb = vertx.eventBus();
-            eb.publish(EVENT_NAME, tenant.getId());
-          }
+          EventBus eb = vertx.eventBus();
+          eb.publish(EVENT_NAME, tenant.getId());
           return Future.succeededFuture();
         });
   }
