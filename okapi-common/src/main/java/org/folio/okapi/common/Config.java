@@ -27,6 +27,30 @@ public class Config {
   }
 
   /**
+   * Returns string config info from properties and JSON config.
+   * Check in this order and return the first that is defined and,
+   * for properties, is not empty:
+   * key1 property, key2 property, key1 in JsonObject, key2 in JsonObject,
+   * {@code def} fallback value.
+   * @param key1 property key (JSON key)
+   * @param key2 property key (JSON key)
+   * @param def default value (may be null)
+   * @param conf JSON object configuration
+   * @return property value (possibly null)
+   */
+  public static String getSysConf(String key1, String key2, String def, JsonObject conf) {
+    String v = System.getProperty(key1);
+    if (v != null && ! v.isEmpty()) {
+      return v;
+    }
+    v = System.getProperty(key2);
+    if (v != null && ! v.isEmpty()) {
+      return v;
+    }
+    return conf.getString(key1, conf.getString(key2, def));
+  }
+
+  /**
    * Returns boolean config info from properties and JSON config.
    * Check boolean property first in system; if not found OR empty,
    * inspect JSON configuration
@@ -43,4 +67,5 @@ public class Config {
     }
     return Boolean.parseBoolean(v);
   }
+
 }

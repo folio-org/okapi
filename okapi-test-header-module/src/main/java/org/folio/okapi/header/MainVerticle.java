@@ -78,7 +78,8 @@ public class MainVerticle extends AbstractVerticle {
   public void start(Promise<Void> promise) throws IOException {
     Router router = Router.router(vertx);
 
-    final int port = Integer.parseInt(System.getProperty("port", "8080"));
+    final int port = Integer.parseInt(
+        System.getProperty("http.port", System.getProperty("port", "8080")));
     logger.info("Starting okapi-test-header-module {} on port {}",
         ManagementFactory.getRuntimeMXBean().getName(), port);
 
