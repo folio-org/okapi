@@ -1,3 +1,9 @@
+## 4.4.2 2020-12-15
+
+ * [OKAPI-959](https://issues.folio.org/browse/OKAPI-959) Fix metrics is missing values for module and url fields
+ * [OKAPI-967](https://issues.folio.org/browse/OKAPI-967) Fix Clustered Okapi not allowing bootstrapping of superuser
+ * [OKAPI-966](https://issues.folio.org/browse/OKAPI-966) Fix Okapi systemd service fails to start after upgrade to docker-ce v20
+
 ## 4.4.1 2020-12-07
 
  * [OKAPI-956](https://issues.folio.org/browse/OKAPI-956) Update to default hazelcast version 4.0
