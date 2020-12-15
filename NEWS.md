@@ -1,3 +1,9 @@
+## 4.5.2 2020-12-15
+
+ * [OKAPI-959](https://issues.folio.org/browse/OKAPI-959) Fix metrics is missing values for module and url fields
+ * [OKAPI-967](https://issues.folio.org/browse/OKAPI-967) Fix Clustered Okapi not allowing bootstrapping of superuser
+ * Update guide: mention 204 No Content as possible response for _tenant v2
+
 ## 4.5.1 2020-12-11
 
  * [OKAPI-966](https://issues.folio.org/browse/OKAPI-966) Fix Okapi systemd service fails to start after upgrade to docker-ce v20
