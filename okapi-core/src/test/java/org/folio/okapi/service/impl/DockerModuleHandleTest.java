@@ -5,6 +5,7 @@ import static org.folio.okapi.service.impl.DockerModuleHandle.DOCKER_REGISTRIES_
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
@@ -35,6 +36,18 @@ import static org.mockito.Mockito.*;
 public class DockerModuleHandleTest implements WithAssertions {
   private static final int MOCK_PORT = 9231;
   private static final Logger logger = OkapiLogger.get();
+
+  @Test
+  public void testRequestException(TestContext testContext) {
+    Vertx vertx = mock(Vertx.class);
+    HttpClient httpClient = mock(HttpClient.class);
+    when(vertx.createHttpClient()).thenReturn(httpClient);
+    when(httpClient.request(any())).thenThrow(new RuntimeException("foo"));
+    JsonObject conf = new JsonObject();
+    new DockerModuleHandle(vertx, new LaunchDescriptor(), null, null, null, 0, conf)
+        .postUrl(null, null)
+        .onComplete(testContext.asyncAssertFailure(e -> assertThat(e).hasMessage("foo")));
+  }
 
   @Test
   public void testDomainSocketAddresses() {

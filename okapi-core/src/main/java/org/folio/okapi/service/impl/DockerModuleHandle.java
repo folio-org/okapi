@@ -136,18 +136,22 @@ public class DockerModuleHandle implements ModuleHandle {
   private Future<HttpClientResponse> request(HttpMethod method, String url,
                                              MultiMap headers, Buffer body) {
 
-    RequestOptions requestOptions = new RequestOptions()
-        .setMethod(method)
-        .setAbsoluteURI(dockerUrl + url);
-    if (socketAddress != null) {
-      requestOptions.setServer(socketAddress);
-    }
-    return client.request(requestOptions).compose(request -> {
-      if (headers != null) {
-        request.headers().setAll(headers);
+    try {
+      RequestOptions requestOptions = new RequestOptions()
+          .setMethod(method)
+          .setAbsoluteURI(dockerUrl + url);
+      if (socketAddress != null) {
+        requestOptions.setServer(socketAddress);
       }
-      return request.send(body);
-    });
+      return client.request(requestOptions).compose(request -> {
+        if (headers != null) {
+          request.headers().setAll(headers);
+        }
+        return request.send(body);
+      });
+    } catch (Throwable e) {
+      return Future.failedFuture(e);
+    }
   }
 
   Future<Void> postUrl(String url, String msg) {
