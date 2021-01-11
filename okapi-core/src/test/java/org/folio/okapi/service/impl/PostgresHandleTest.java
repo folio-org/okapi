@@ -15,12 +15,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.testcontainers.containers.Container.ExecResult;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
 
 @Timeout(5000)
 @ExtendWith(VertxExtension.class)
-@Testcontainers(disabledWithoutDocker = true)
 class PostgresHandleTest extends PgTestBase implements WithAssertions {
 
   static final String KEY_PATH = "/var/lib/postgresql/data/server.key";
