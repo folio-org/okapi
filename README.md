@@ -13,8 +13,11 @@ The Okapi software has the following compile-time dependencies:
 
 * Apache Maven 3.3.x or higher
 
-In addition, the test suite must be able to bind to ports 9230-9239 to
-succeed.
+The test suite has these additional dependencies:
+
+* Docker, for details see https://www.testcontainers.org/supported_docker_environment/
+
+* Ports 9230-9239 must be free
 
 *Note: If tests fail, the API Gateway may be unable in some cases to
 shut down microservices that it has spawned, and they may need to be
@@ -28,6 +31,10 @@ To build and run:
     $ mvn exec:exec
 
 Okapi listens on port 9130.
+
+To build without running the test suite:
+
+    $ mvn install -DskipTests
 
 ## Developers
 
