@@ -269,7 +269,7 @@ public class DockerModuleHandle implements ModuleHandle {
 
   Future<Void> pullImage() {
     if (dockerRegistries == null) {
-      logger.info("pull image {}", image);
+      logger.info("pull image 1 {}", image);
       return postUrlJson("/images/create?fromImage=" + image, null, "pullImage", "")
           .mapEmpty();
     }
@@ -293,9 +293,14 @@ public class DockerModuleHandle implements ModuleHandle {
       }
       future = future.recover(x -> {
         String prefix = getRegistryPrefix(registry);
-        logger.info("pull image {}", prefix + image);
+        logger.info("pull image 2 {}", prefix + image);
         return postUrlJson("/images/create?fromImage=" + prefix + image,
-            authObject, "pullImage", "").mapEmpty();
+            authObject, "pullImage", "")
+            .onSuccess(x1 ->
+                logger.info("pullImage 2 returned success"))
+            .onFailure(x1 ->
+                logger.info("pullImage 2 returned failure {}", x1.getMessage()))
+            .mapEmpty();
       });
     }
     return future;
