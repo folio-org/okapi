@@ -146,7 +146,7 @@ public class DockerModuleHandle implements ModuleHandle {
       if (headers != null) {
         request.headers().setAll(headers);
       }
-      return request.send(body);
+      return request.end(body).compose(x -> request.send());
     });
   }
 
@@ -314,6 +314,7 @@ public class DockerModuleHandle implements ModuleHandle {
           new String(Base64.getEncoder().encode(auth.encodePrettily().getBytes())));
     }
     return request(HttpMethod.POST, url, headers, Buffer.buffer(doc)).compose(res -> {
+      HttpClientResponse res1 = res;
       Promise<Buffer> promise = Promise.promise();
       Buffer body = Buffer.buffer();
       res.exceptionHandler(d -> promise.fail(d));
