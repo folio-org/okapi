@@ -299,7 +299,7 @@ public class DockerModuleHandle implements ModuleHandle {
             .onSuccess(x1 ->
                 logger.info("pullImage 2 returned success"))
             .onFailure(x1 ->
-                logger.info("pullImage 2 returned failure {}", x1.getMessage()))
+                logger.info("pullImage 2 returned failure {}", x1.getMessage(), x1))
             .mapEmpty();
       });
     }
