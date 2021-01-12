@@ -211,9 +211,12 @@ public class DockerModuleHandleTest implements WithAssertions {
     router.routeWithRegex("/.*").handler(this::dockerMockHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    Async async1 = context.async();
     HttpServer listen = vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(MOCK_PORT, context.asyncAssertSuccess());
+        .listen(MOCK_PORT, context.asyncAssertSuccess(x -> async1.complete()));
+    async1.await();
+
     dockerPullJson = new JsonObject().put("message", "some message");
     dockerPullStatus = 200;
 
@@ -259,9 +262,12 @@ public class DockerModuleHandleTest implements WithAssertions {
     router.routeWithRegex("/.*").handler(this::dockerMockHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    Async async1 = context.async();
     HttpServer listen = vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(MOCK_PORT, context.asyncAssertSuccess());
+        .listen(MOCK_PORT, context.asyncAssertSuccess(x -> async1.complete()));
+    async1.await();
+
     dockerImageMatch = "foo";
     JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + MOCK_PORT);
     assertThat(getImage(context, vertx, conf)).contains("not found");
@@ -289,10 +295,12 @@ public class DockerModuleHandleTest implements WithAssertions {
 
     Router router = Router.router(vertx);
     router.routeWithRegex("/.*").handler(this::dockerMockHandle);
+    Async async1 = context.async();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     HttpServer listen = vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(MOCK_PORT, context.asyncAssertSuccess());
+        .listen(MOCK_PORT, context.asyncAssertSuccess(x -> async1.complete()));
+    async1.await();
 
     LaunchDescriptor ld = new LaunchDescriptor();
     ld.setWaitIterations(2);
