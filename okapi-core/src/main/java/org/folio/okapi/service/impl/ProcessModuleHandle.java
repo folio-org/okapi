@@ -70,7 +70,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     }
   }
 
-  private Future<Void> waitPortOpen(NetClient c, int port, int iter) {
+  private Future<Void> waitPortOpen(NetClient c, int iter) {
     return c.connect(port, "localhost")
         .compose(socket ->
                 socket.close().compose(y -> {
@@ -79,7 +79,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
                         messages.getMessage("11502", Integer.toString(port)));
                   }
                   Promise<Void> promise = Promise.promise();
-                  vertx.setTimer(100, x -> waitPortOpen(c, port, iter - 1)
+                  vertx.setTimer(100, x -> waitPortOpen(c, iter - 1)
                       .onComplete(promise::handle));
                   return promise.future();
                 }), x  -> Future.succeededFuture());
@@ -96,7 +96,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     // fail if port is already in use
     NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
     NetClient netClient = vertx.createNetClient(options);
-    return waitPortOpen(netClient, port, 5)
+    return waitPortOpen(netClient, 5)
         .onComplete(x -> netClient.close())
         .compose(x -> start2());
   }
