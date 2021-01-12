@@ -7,7 +7,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
@@ -47,6 +46,7 @@ import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.folio.okapi.util.CorsHelper;
+import org.folio.okapi.util.FuturisedHttpClient;
 import org.folio.okapi.util.MetricsHelper;
 import org.folio.okapi.util.ModuleCache;
 import org.folio.okapi.util.OkapiError;
@@ -73,7 +73,7 @@ public class ProxyService {
   private final InternalModule internalModule;
   private final String okapiUrl;
   private final Vertx vertx;
-  private final HttpClient httpClient;
+  private final FuturisedHttpClient httpClient;
   // for load balancing, so security is not an issue
   private static final Random random = new Random();
   private final int waitMs;
@@ -110,7 +110,7 @@ public class ProxyService {
     this.waitMs = config.getInteger("logWaitMs", 0);
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
-    httpClient = vertx.createHttpClient(opt);
+    httpClient = new FuturisedHttpClient(vertx, opt);
 
     String tcTtlMs = Config.getSysConf(TOKEN_CACHE_TTL_MS, null, config);
     String tcMaxSize = Config.getSysConf(TOKEN_CACHE_MAX_SIZE, null, config);
@@ -1201,7 +1201,7 @@ public class ProxyService {
     Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
     headers.put(XOkapiHeaders.URL_TO, inst.getUrl());
     logger.debug("syscall begin {} {}{}", inst.getMethod(), inst.getUrl(), inst.getPath());
-    OkapiClient cli = new OkapiClient(this.httpClient, inst.getUrl(), vertx, headers);
+    OkapiClient cli = new OkapiClient(httpClient.getHttpClient(), inst.getUrl(), vertx, headers);
     String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
     cli.newReqId(reqId); // "tenant" or "tenantpermissions"
     cli.enableInfoLog();
