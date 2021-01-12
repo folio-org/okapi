@@ -2744,7 +2744,7 @@ public class ModuleTest {
         .then().statusCode(foundStatus)
         .log().ifValidationFails();
 
-    final String locHdrModule = createHeaderModule("2.0");
+    final String locHdrModule = createHeaderModule("1.1");
 
     given()
         .header("Content-Type", "application/json")
