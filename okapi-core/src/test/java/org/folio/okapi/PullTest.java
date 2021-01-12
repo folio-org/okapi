@@ -2,6 +2,7 @@ package org.folio.okapi;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,6 +35,7 @@ public class PullTest {
   private static final String LS = System.lineSeparator();
   private String vert1;
   private String vert2;
+  private HttpServer otherServer;
   private final int port1 = 9231; // where we define MDs
   private final int port2 = 9230; // where we pull
   private final int port3 = 9232; // other non-proxy server
@@ -50,17 +52,18 @@ public class PullTest {
     Router router = Router.router(vertx);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-    vertx.createHttpServer(so)
-      .requestHandler(router)
-      .listen(
-        port3,
-        result -> {
-          if (result.failed()) {
-            context.fail(result.cause());
-          }
-          async.complete();
-        }
-      );
+
+    otherServer = vertx.createHttpServer(so)
+        .requestHandler(router)
+        .listen(
+            port3,
+            result -> {
+              if (result.failed()) {
+                context.fail(result.cause());
+              }
+              async.complete();
+            }
+        );
   }
 
   private void otherDeploy(TestContext context, Async async) {
@@ -111,6 +114,13 @@ public class PullTest {
     if (vert2 != null) {
       vertx.undeploy(vert2, res -> {
         vert2 = null;
+        td(context, async);
+      });
+      return;
+    }
+    if (otherServer != null) {
+      otherServer.close().onComplete(res -> {
+        otherServer = null;
         td(context, async);
       });
       return;
