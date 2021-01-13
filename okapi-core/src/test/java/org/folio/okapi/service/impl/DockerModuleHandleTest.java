@@ -127,7 +127,7 @@ public class DockerModuleHandleTest implements WithAssertions {
   private void dockerMockHandle(RoutingContext ctx) {
     HttpMethod method = ctx.request().method();
     String path = ctx.request().path();
-    logger.debug("dockerMockHandle {} {} {}", method.name(), path);
+    logger.debug("dockerMockHandle {} {}", method.name(), path);
     if (method.equals(HttpMethod.POST) && path.contains("/images/create")) {
       lastFromImage = ctx.request().getParam("fromImage");
       String auth = ctx.request().getHeader("X-Registry-Auth");
@@ -271,6 +271,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     dockerImageMatch = "foo";
     JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + MOCK_PORT);
     assertThat(getImage(context, vertx, conf)).contains("not found");
+    assertThat(getImage(context, vertx, conf)).contains("not found");
     dockerImageMatch = "folioci/mod-x";
     assertThat(getImage(context, vertx, conf)).isEqualTo("succeeded");
     conf.put("dockerRegistries", new JsonArray());  // zero registries, pull is disabled
@@ -382,7 +383,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       dockerMockJson.put("Config", 1);
 
       dh.start().onComplete(context.asyncAssertFailure(cause -> {
-        assertThat(cause.getMessage().contains("class java.lang.Integer cannot be cast to class io.vertx.core.json.JsonObject"));
+        assertThat(cause.getMessage()).contains("class java.lang.Integer cannot be cast to class io.vertx.core.json.JsonObject");
         async.complete();
       }));
       async.await();
