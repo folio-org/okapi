@@ -345,7 +345,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       dockerMockStatus = 102;
       dockerMockText = "Switch";
       dh.start().onComplete(context.asyncAssertFailure(cause -> {
-        context.assertEquals("/images/folioci/mod-x/json HTTP error 102\n",
+        context.assertEquals("getImage HTTP error 102\n",
             cause.getMessage());
         async.complete();
       }));
@@ -357,7 +357,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       dockerMockStatus = 404;
       dockerMockText = "NotHere";
       dh.start().onComplete(context.asyncAssertFailure(cause -> {
-        context.assertEquals("/images/folioci/mod-x/json HTTP error 404\nNotHere",
+        context.assertEquals("getImage HTTP error 404\nNotHere",
             cause.getMessage());
         async.complete();
       }));
@@ -491,7 +491,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     JsonObject versionRes = new JsonObject();
     {
       Async async = context.async();
-      dh.getUrl("/version").onComplete(res -> {
+      dh.getUrl("/version", "getVersion").onComplete(res -> {
         if (res.succeeded()) {
           versionRes.put("result", res.result());
         }
