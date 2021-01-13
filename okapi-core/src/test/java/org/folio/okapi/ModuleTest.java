@@ -1175,7 +1175,7 @@ public class ModuleTest {
     // this.
 
     // Create, deploy, and enable the header module
-    final String locHdrModule = createHeaderModule("2.0");
+    final String locHdrModule = createHeaderModule("1.1");
     locationHeaderDeployment = deployModule("header-1");
     final String docEnableHdr = "{" + LS
       + "  \"id\" : \"header-1\"" + LS
@@ -1202,8 +1202,8 @@ public class ModuleTest {
         .statusCode(200)
         .log().ifValidationFails()
         .body("$", hasSize(2))
-        .body("[0].moduleToId", is("okapi-0.0.0"))
-        .body("[1].moduleToId", is("header-1"));
+        .body("[0].moduleId", is("okapi-0.0.0"))
+        .body("[1].moduleId", is("header-1"));
 
     // Set up the test module
     // It provides a _tenant interface, but no _tenantPermissions
@@ -1259,8 +1259,8 @@ public class ModuleTest {
       + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
     final String expPerms = "{ "
-      + "\"moduleToId\" : \"sample-module-1\", "
-      + "\"permsTo\" : [ { "
+      + "\"moduleId\" : \"sample-module-1\", "
+      + "\"perms\" : [ { "
       + "\"permissionName\" : \"everything\", "
       + "\"displayName\" : \"every possible permission\", "
       + "\"description\" : \"All permissions combined\", "
@@ -1319,8 +1319,8 @@ public class ModuleTest {
       + "  \"id\" : \"sample-module2-1\"" + LS
       + "}";
     final String expPerms2 = "{ "
-      + "\"moduleToId\" : \"sample-module2-1\", "
-      + "\"permsTo\" : null }";
+      + "\"moduleId\" : \"sample-module2-1\", "
+      + "\"perms\" : null }";
 
     String locSampleEnable2 = given()
       .header("Content-Type", "application/json")
@@ -1471,9 +1471,8 @@ public class ModuleTest {
       + "  \"action\" : \"enable\"" + LS
       + "} ]";
     final String expPermsUpdated = "{ "
-        + "\"moduleToId\" : \"sample-module-2\", "
-        + "\"moduleFromId\" : \"sample-module-1\", "
-        + "\"permsTo\" : [ { "
+        + "\"moduleId\" : \"sample-module-2\", "
+        + "\"perms\" : [ { "
         + "\"permissionName\" : \"all\", "
         + "\"renamedFrom\" : [ \"everything\" ], "
         + "\"displayName\" : \"all possible permissions\", "
@@ -1489,25 +1488,6 @@ public class ModuleTest {
         + "}, { "
         + "\"permissionName\" : \"SYS#sample-module-2#/_/tenant#[POST, DELETE]\", "
         + "\"displayName\" : \"System generated: SYS#sample-module-2#/_/tenant#[POST, DELETE]\", "
-        + "\"description\" : \"System generated permission set\", "
-        + "\"subPermissions\" : [ \"sample.tenantperm\" ], "
-        + "\"visible\" : false "
-        + "} ], "
-        + "\"permsFrom\" : [ { "
-        + "\"permissionName\" : \"everything\", "
-        + "\"displayName\" : \"every possible permission\", "
-        + "\"description\" : \"All permissions combined\", "
-        + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
-        + "\"visible\" : true "
-        + "}, { "
-        + "\"permissionName\" : \"SYS#sample-module-1#/testb#[GET, POST]\", "
-        + "\"displayName\" : \"System generated: SYS#sample-module-1#/testb#[GET, POST]\", "
-        + "\"description\" : \"System generated permission set\", "
-        + "\"subPermissions\" : [ \"sample.modperm\" ], "
-        + "\"visible\" : false "
-        + "}, { "
-        + "\"permissionName\" : \"SYS#sample-module-1#/_/tenant#[POST, DELETE]\", "
-        + "\"displayName\" : \"System generated: SYS#sample-module-1#/_/tenant#[POST, DELETE]\", "
         + "\"description\" : \"System generated permission set\", "
         + "\"subPermissions\" : [ \"sample.tenantperm\" ], "
         + "\"visible\" : false "
@@ -2764,7 +2744,7 @@ public class ModuleTest {
         .then().statusCode(foundStatus)
         .log().ifValidationFails();
 
-    final String locHdrModule = createHeaderModule("2.0");
+    final String locHdrModule = createHeaderModule("1.1");
 
     given()
         .header("Content-Type", "application/json")
@@ -2781,9 +2761,9 @@ public class ModuleTest {
           .statusCode(200)
           .log().ifValidationFails()
           .body("$", hasSize(3))
-          .body("[0].moduleToId", is("okapi-0.0.0"))
-          .body("[1].moduleToId", is("sample-module-1.0.0"))
-          .body("[2].moduleToId", is("header-1"));
+          .body("[0].moduleId", is("okapi-0.0.0"))
+          .body("[1].moduleId", is("sample-module-1.0.0"))
+          .body("[2].moduleId", is("header-1"));
     }
 
     conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
@@ -2825,7 +2805,7 @@ public class ModuleTest {
           .statusCode(200)
           .log().ifValidationFails()
           .body("$", hasSize(1))
-          .body("[0].moduleToId", is("okapi-3.0.0"));
+          .body("[0].moduleId", is("okapi-3.0.0"));
     }
 
     given()
@@ -2923,454 +2903,5 @@ public class ModuleTest {
     c.given().delete("/_/proxy/modules/foo-1.0.0")
         .then().statusCode(404).body(containsString("delete: module foo-1.0.0 does not exist"));
     assertEmptyReport(c);
-  }
-
-  /**
-   * Test backwards compatibility of the _tenantPermissions interface v1.1
-   *
-   * @param context
-   */
-  @Test
-  public void testTenantPermissionsCompatibility(TestContext context) {
-    checkDbIsEmpty("testTenantPermissionsCompatibility starting", context);
-
-    RestAssuredClient c;
-    Response r;
-
-    // Set up a tenant to test with
-    final String locTenant = createTenant();
-
-    // Enable the Okapi internal module for our tenant.
-    // This is not unlike what happens to the superTenant, who has the internal
-    // module enabled from the boot up, before anyone can provide the
-    // _tenantPermissions interface. Its permissions should be (re)loaded
-    // when our Hdr module gets enabled.
-    final String locInternal = enableModule("okapi-0.0.0");
-
-    // Set up a module that does the _tenantPermissions interface that will
-    // get called when sample gets enabled. We (ab)use the header module for
-    // this.
-
-    // Create, deploy, and enable the header module
-    final String locHdrModule = createHeaderModule("1.1");
-    locationHeaderDeployment = deployModule("header-1");
-    final String docEnableHdr = "{" + LS
-      + "  \"id\" : \"header-1\"" + LS
-      + "}";
-
-    // Enable the header module. Check that tenantPermissions gets called
-    // both for header module, and the already-enabled okapi internal module.
-    Headers headers = given()
-      .header("Content-Type", "application/json")
-      .body(docEnableHdr)
-      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then()
-      .statusCode(201)
-      .log().ifValidationFails()
-      .extract().headers();
-    final String locHdrEnable = headers.getValue("Location");
-    // one trace from Okapi, two from the header module since it's called twice
-    context.assertEquals(3, headers.getValues("X-Okapi-Trace").size());
-
-    given()
-        .header("X-Okapi-Tenant", okapiTenant)
-        .get("/permResult")
-        .then()
-        .statusCode(200)
-        .log().ifValidationFails()
-        .body("$", hasSize(2))
-        .body("[0].moduleId", is("okapi-0.0.0"))
-        .body("[1].moduleId", is("header-1"));
-
-    // Set up the test module
-    // It provides a _tenant interface, but no _tenantPermissions
-    // Enabling it will end up invoking the _tenantPermissions in header-module
-    final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
-    final String docSampleModule = "{" + LS
-      + "  \"id\" : \"sample-module-1\"," + LS
-      + "  \"name\" : \"sample module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"," + LS
-      + "      \"level\" : \"30\"," + LS
-      + "      \"type\" : \"request-response\"," + LS
-      + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
-      + "      \"permissionsDesired\" : [ \"sample.extra\" ]," + LS
-      + "      \"modulePermissions\" : [ \"sample.modperm\" ]" + LS
-      + "    } ]" + LS
-      + "  }, {" + LS
-      + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"path\" : \"/_/tenant\"," + LS
-      + "      \"level\" : \"10\"," + LS
-      + "      \"type\" : \"system\"," + LS
-      + "      \"permissionsRequired\" : [ ]," + LS
-      + "      \"modulePermissions\" : [ \"sample.tenantperm\" ]" + LS
-      + "    } ]" + LS
-      + "  } ]," + LS
-      + "  \"permissionSets\" : [ {" + LS
-      + "    \"permissionName\" : \"everything\"," + LS
-      + "    \"displayName\" : \"every possible permission\"," + LS
-      + "    \"description\" : \"All permissions combined\"," + LS
-      + "    \"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ]," + LS
-      + "    \"visible\" : true" + LS
-      + "  } ]," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
-      + "  }" + LS
-      + "}";
-
-    // Create and deploy the sample module
-    final String locSampleModule = createModule(docSampleModule);
-    locationSampleDeployment = deployModule("sample-module-1");
-
-    // Enable the sample module. Verify that the _tenantPermissions gets
-    // invoked.
-    final String docEnable = "{" + LS
-      + "  \"id\" : \"sample-module-1\"" + LS
-      + "}";
-    final String expPerms = "{ "
-      + "\"moduleId\" : \"sample-module-1\", "
-      + "\"perms\" : [ { "
-      + "\"permissionName\" : \"everything\", "
-      + "\"displayName\" : \"every possible permission\", "
-      + "\"description\" : \"All permissions combined\", "
-      + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
-      + "\"visible\" : true "
-      + "}, { "
-      + "\"permissionName\" : \"SYS#sample-module-1#/testb#[GET, POST]\", "
-      + "\"displayName\" : \"System generated: SYS#sample-module-1#/testb#[GET, POST]\", "
-      + "\"description\" : \"System generated permission set\", "
-      + "\"subPermissions\" : [ \"sample.modperm\" ], "
-      + "\"visible\" : false "
-      + "}, { "
-      + "\"permissionName\" : \"SYS#sample-module-1#/_/tenant#[POST, DELETE]\", "
-      + "\"displayName\" : \"System generated: SYS#sample-module-1#/_/tenant#[POST, DELETE]\", "
-      + "\"description\" : \"System generated permission set\", "
-      + "\"subPermissions\" : [ \"sample.tenantperm\" ], "
-      + "\"visible\" : false "
-      + "} ] }";
-
-    String locSampleEnable = given()
-      .header("Content-Type", "application/json")
-      .body(docEnable)
-      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then()
-      .statusCode(201)
-      .log().ifValidationFails()
-      .extract().header("Location");
-
-    String body = given()
-        .header("X-Okapi-Tenant", okapiTenant)
-        .get("/permResult")
-        .then()
-        .statusCode(200)
-        .log().ifValidationFails()
-        .extract().body().asString();
-
-    JsonArray ar = new JsonArray(body);
-    context.assertEquals(1, ar.size());
-    context.assertEquals(new JsonObject(expPerms), ar.getJsonObject(0));
-
-    // Try with a minimal MD, to see we don't have null pointers hanging around
-    final String docSampleModule2 = "{" + LS
-      + "  \"id\" : \"sample-module2-1\"," + LS
-      + "  \"name\" : \"sample module2\"," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
-      + "  }" + LS
-      + "}";
-    // Create the sample module
-    final String locSampleModule2 = createModule(docSampleModule2);
-    final String locationSampleDeployment2 = deployModule("sample-module2-1");
-
-    // Enable the small module. Verify that the _tenantPermissions gets
-    // invoked.
-    final String docEnable2 = "{" + LS
-      + "  \"id\" : \"sample-module2-1\"" + LS
-      + "}";
-    final String expPerms2 = "{ "
-      + "\"moduleId\" : \"sample-module2-1\", "
-      + "\"perms\" : null }";
-
-    String locSampleEnable2 = given()
-      .header("Content-Type", "application/json")
-      .body(docEnable2)
-      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then()
-      .statusCode(201)
-      .log().ifValidationFails()
-      .extract().header("Location");
-
-    body = given()
-        .header("X-Okapi-Tenant", okapiTenant)
-        .get("/permResult")
-        .then()
-        .statusCode(200)
-        .log().ifValidationFails()
-        .extract().body().asString();
-
-    ar = new JsonArray(body);
-    context.assertEquals(1, ar.size());
-    context.assertEquals(new JsonObject(expPerms2), ar.getJsonObject(0));
-
-    // Tests to see that we get a new auth token for the system calls
-    // Disable sample, so we can re-enable it after we have established auth
-    given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
-    locSampleEnable = null;
-
-    // Declare and enable test-auth
-    final String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
-    final String docAuthModule = "{" + LS
-      + "  \"id\" : \"auth-1\"," + LS
-      + "  \"name\" : \"auth\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"auth\"," + LS
-      + "    \"version\" : \"1.2\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"path\" : \"/authn/login\"," + LS
-      + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"," + LS
-      + "      \"permissionsRequired\" : [ ]" + LS
-      + "    } ]" + LS
-      + "  } ]," + LS
-      + "  \"filters\" : [ {" + LS
-      + "    \"methods\" : [ \"*\" ]," + LS
-      + "    \"path\" : \"/\"," + LS
-      + "    \"phase\" : \"auth\"," + LS
-      + "    \"type\" : \"headers\"," + LS
-      + "    \"permissionsRequired\" : [ ]," + LS
-      + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
-      + "  } ]," + LS
-      + "  \"requires\" : [ ]," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
-      + "  }" + LS
-      + "}";
-    final String docEnableAuth = "{" + LS
-      + "  \"id\" : \"auth-1\"" + LS
-      + "}";
-    final String locAuthModule = createModule(docAuthModule);
-    final String locAuthDeployment = deployModule("auth-1");
-    final String locAuthEnable = given()
-      .header("Content-Type", "application/json")
-      .body(docEnableAuth)
-      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then()
-      .statusCode(201)
-      .log().ifValidationFails()
-      .extract().header("Location");
-
-    // Re-enable sample.
-    locSampleEnable = given()
-      .header("Content-Type", "application/json")
-      .body(docEnable)
-      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then()
-      .statusCode(201)
-      .log().ifValidationFails()
-      .extract().header("Location");
-
-    body = given()
-        .header("X-Okapi-Tenant", okapiTenant)
-        .get("/permResult")
-        .then()
-        .statusCode(200)
-        .log().ifValidationFails()
-        .extract().body().asString();
-
-    ar = new JsonArray(body);
-    context.assertEquals(2, ar.size());
-    context.assertEquals(new JsonObject(expPerms), ar.getJsonObject(1));
-
-    // Check that the tenant interface and the tenantpermission interfaces
-    // were called with proper auth tokens and with ModulePermissions
-
-    // Set up the test module
-    // It provides a _tenant interface, but no _tenantPermissions
-    // Enabling it will end up invoking the _tenantPermissions in header-module
-    final String docSampleModuleUpdated = "{" + LS
-      + "  \"id\" : \"sample-module-2\"," + LS
-      + "  \"name\" : \"sample module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"2.0\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"," + LS
-      + "      \"level\" : \"30\"," + LS
-      + "      \"type\" : \"request-response\"," + LS
-      + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
-      + "      \"permissionsDesired\" : [ \"sample.extra\" ]," + LS
-      + "      \"modulePermissions\" : [ \"sample.modperm\" ]" + LS
-      + "    } ]" + LS
-      + "  }, {" + LS
-      + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"path\" : \"/_/tenant\"," + LS
-      + "      \"level\" : \"10\"," + LS
-      + "      \"type\" : \"system\"," + LS
-      + "      \"permissionsRequired\" : [ ]," + LS
-      + "      \"modulePermissions\" : [ \"sample.tenantperm\" ]" + LS
-      + "    } ]" + LS
-      + "  } ]," + LS
-      + "  \"permissionSets\" : [ {" + LS
-      + "    \"permissionName\" : \"all\"," + LS
-      + "    \"displayName\" : \"all possible permissions\"," + LS
-      + "    \"description\" : \"All permissions combined\"," + LS
-      + "    \"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ]," + LS
-      + "    \"visible\" : true" + LS
-      + "  } ]," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
-      + "  }" + LS
-      + "}";
-
-    // Create and deploy the sample module
-    final String locSampleModuleUpdated = createModule(docSampleModuleUpdated);
-    final String locationSampleDeploymentUpdated = deployModule("sample-module-2");
-
-    // Enable the small module. Verify that the _tenantPermissions gets
-    // invoked.
-    final String docEnableUpdated = "[ {" + LS
-      + "  \"id\" : \"sample-module-2\"," + LS
-      + "  \"action\" : \"enable\"" + LS
-      + "} ]";
-    final String expPermsUpdated = "{ "
-        + "\"moduleId\" : \"sample-module-2\", "
-        + "\"perms\" : [ { "
-        + "\"permissionName\" : \"all\", "
-        + "\"displayName\" : \"all possible permissions\", "
-        + "\"description\" : \"All permissions combined\", "
-        + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
-        + "\"visible\" : true "
-        + "}, { "
-        + "\"permissionName\" : \"SYS#sample-module-2#/testb#[GET, POST]\", "
-        + "\"displayName\" : \"System generated: SYS#sample-module-2#/testb#[GET, POST]\", "
-        + "\"description\" : \"System generated permission set\", "
-        + "\"subPermissions\" : [ \"sample.modperm\" ], "
-        + "\"visible\" : false "
-        + "}, { "
-        + "\"permissionName\" : \"SYS#sample-module-2#/_/tenant#[POST, DELETE]\", "
-        + "\"displayName\" : \"System generated: SYS#sample-module-2#/_/tenant#[POST, DELETE]\", "
-        + "\"description\" : \"System generated permission set\", "
-        + "\"subPermissions\" : [ \"sample.tenantperm\" ], "
-        + "\"visible\" : false "
-        + "} ] }";
-
-    given()
-      .header("Content-Type", "application/json")
-      .body(docEnableUpdated)
-      .post("/_/proxy/tenants/" + okapiTenant + "/install")
-      .then()
-      .statusCode(200)
-      .log().ifValidationFails();
-
-    String locSampleEnableUpdated = "/_/proxy/tenants/" + okapiTenant + "/modules/sample-module-2";
-
-    body = given()
-        .header("X-Okapi-Tenant", okapiTenant)
-        .get("/permResult")
-        .then()
-        .statusCode(200)
-        .log().ifValidationFails()
-        .extract().body().asString();
-
-    ar = new JsonArray(body);
-    context.assertEquals(1, ar.size());
-    context.assertEquals(new JsonObject(expPermsUpdated), ar.getJsonObject(0));
-
-    // Clean up, so the next test starts with a clean slate (in reverse order)
-    logger.debug("testTenantPermissionsCompatibility cleaning up");
-
-    given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
-
-    given().delete(locAuthEnable).then().log().ifValidationFails().statusCode(204);
-    given().delete(locAuthDeployment).then().log().ifValidationFails().statusCode(204);
-    c = api.createRestAssured3();
-    c.given().delete(locAuthModule).then().log().ifValidationFails().statusCode(204);
-    assertEmptyReport(c);
-
-    given().delete(locSampleEnableUpdated).then().log().ifValidationFails().statusCode(204);
-    given().delete(locationSampleDeploymentUpdated).then().log().ifValidationFails().statusCode(204);
-    given().delete(locSampleModuleUpdated).then().log().ifValidationFails().statusCode(204);
-
-    given().delete(locSampleEnable2).then().log().ifValidationFails().statusCode(204);
-    given().delete(locationSampleDeployment2).then().log().ifValidationFails().statusCode(204);
-    given().delete(locSampleModule2).then().log().ifValidationFails().statusCode(204);
-    //given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
-    given().delete(locationSampleDeployment).then().log().ifValidationFails().statusCode(204);
-    given().delete(locSampleModule).then().log().ifValidationFails().statusCode(204);
-    locationSampleDeployment = null;
-    given().delete(locHdrEnable).then().log().ifValidationFails().statusCode(204);
-    given().delete(locationHeaderDeployment).then().log().ifValidationFails().statusCode(204);
-    locationHeaderDeployment = null;
-    given().delete(locHdrModule).then().log().ifValidationFails().statusCode(204);
-    given().delete(locInternal).then().log().ifValidationFails().statusCode(204);
-    given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
-    checkDbIsEmpty("testSystemInterfaces done", context);
-  }
-
-  /**
-   * Test that unknown versions of _tenantPermissions are rejected.
-   *
-   * @param context
-   */
-  @Test
-  public void testTenantPermissionsUnknownVersion(TestContext context) {
-    checkDbIsEmpty("testTenantPermissionsUnknownVersion starting", context);
-
-    // Set up a tenant to test with
-    final String locTenant = createTenant();
-
-    // Enable the Okapi internal module for our tenant.
-    // This is not unlike what happens to the superTenant, who has the internal
-    // module enabled from the boot up, before anyone can provide the
-    // _tenantPermissions interface. Its permissions should normally be (re)loaded
-    // when our Hdr module gets enabled, but we're expecting the call to enable
-    // mod-permissions to fail due to an unknown version of _tenantPermissions
-    final String locInternal = enableModule("okapi-0.0.0");
-
-    // Set up a module that does the _tenantPermissions interface that will
-    // get called when sample gets enabled. We (ab)use the header module for
-    // this.
-
-    // Create, deploy, and enable the header module w/ unknown _tenantPermissions version
-    final String locHdrModule = createHeaderModule("9.0");
-    locationHeaderDeployment = deployModule("header-1");
-    final String docEnableHdr = "{" + LS
-      + "  \"id\" : \"header-1\"" + LS
-      + "}";
-
-    // Enable the header module. Check that we get an appropriate error response.
-    String body = given()
-      .header("Content-Type", "application/json")
-      .body(docEnableHdr)
-      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then()
-      .statusCode(400)
-      .log().ifValidationFails()
-      .extract().asString();
-    context.assertEquals("Unknown version of _tenantPermissions interface in use 9.0.", body);
-
-    // Clean up, so the next test starts with a clean slate (in reverse order)
-    logger.debug("testTenantPermissionsUnknownVersion cleaning up");
-
-    given().delete(locationHeaderDeployment).then().log().ifValidationFails().statusCode(204);
-    locationHeaderDeployment = null;
-    given().delete(locHdrModule).then().log().ifValidationFails().statusCode(204);
-    given().delete(locInternal).then().log().ifValidationFails().statusCode(204);
-    given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
-    checkDbIsEmpty("testSystemInterfaces done", context);
   }
 }
