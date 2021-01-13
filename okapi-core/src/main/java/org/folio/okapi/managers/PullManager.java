@@ -4,7 +4,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
@@ -20,18 +19,19 @@ import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.util.FuturisedHttpClient;
 import org.folio.okapi.util.OkapiError;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class PullManager {
 
   private final Logger logger = OkapiLogger.get();
-  private final HttpClient httpClient;
+  private final FuturisedHttpClient httpClient;
   private final ModuleManager moduleManager;
   private final Messages messages = Messages.getInstance();
 
   public PullManager(Vertx vertx, ModuleManager moduleManager) {
-    this.httpClient = vertx.createHttpClient();
+    this.httpClient = new FuturisedHttpClient(vertx);
     this.moduleManager = moduleManager;
   }
 
