@@ -1962,7 +1962,8 @@ Assuming `test-basic.get.list` and `test-basic-view.list` were defined in previo
 1. Update any `childOf`/`subPermission` relationships.  `test-basic.collection.get` would be added to any permission's `childOf` or `subPermissions` fields which contain `test-basic.get.list` or `test-basic.view.list`
 
 See the following for additional details of how this is handled by the permissions module.
-* [Migration of Static Permissions Upon Upgrade](https://wiki.folio.org/display/DD/Migration+of+Static+Permissions+Upon+Upgrade "Migration of Static Permissions Upon Upgrade") * [Permissions API Definition](https://github.com/folio-org/mod-permissions/blob/master/ramls/permissions.raml)
+* [Migration of Static Permissions Upon Upgrade](https://wiki.folio.org/display/DD/Migration+of+Static+Permissions+Upon+Upgrade "Migration of Static Permissions Upon Upgrade")
+* [Permissions API Definition](https://github.com/folio-org/mod-permissions/blob/master/ramls/permissions.raml)
 * [TenantPermission API Definition](https://github.com/folio-org/mod-permissions/blob/master/ramls/tenantPermissions.raml)
 
 ### Optional interfaces
