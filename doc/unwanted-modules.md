@@ -25,12 +25,12 @@ You can find these at http://localhost:9130/_/proxy/tenants/diku/modules
 
 (At the time of writing, there are exactly 100 of them!)
 
-Ignore the `names`, and consider the `id`s, discarding the version number. For example, if the output includes `edge-ncip-1.7.0-SNAPSHOT.17`, then you are interested in the ID `edge-ncip`.
+Ignore the `names`, and consider the `id`s, discarding the version number. For example, if the output includes `mod-email-1.10.0-SNAPSHOT.49`, then you are interested in the ID `mod-email`.
 
 
 ## 2. Choose the ones that are not wanted
 
-For example, if you are working on the single-record copy-cataloguing facilities provided by mod-copycat, then you certainly need to retain `mod-inventory`, `but edge-oai-pmh` is not likely to be of interest, and `mod-circulation` may not be needed.
+For example, if you are working on the single-record copy-cataloguing facilities provided by mod-copycat, then you certainly need to retain `mod-inventory`, `but mod-email` is not likely to be of interest, and `mod-circulation` may not be needed.
 
 
 ## 3. Check that disabling will not have catastrophic consequences
