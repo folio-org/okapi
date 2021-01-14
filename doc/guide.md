@@ -1943,7 +1943,7 @@ As desribed earlier, permissions and permissionSets can be defined in the Module
 
 When mod-permissions is enabled for a tenant, OKAPI will invoke the `_tenantPermissions` API for all modules currently enabled for that tenant.  This is needed to inform the permissions module of any permissions defined in module descriptors enabled for the tenant prior to mod-permissions.
 
-Note that OKAPI is only responsible for providing the permissions and the corresponding moduleId to the `_tenantPermissions` API.  Determination of the appropriate actions to be taken is the responsibility of the permissions module.   Most of this will happen without explicit or special provisioning in the ModuleDescriptor.  Adding, removing or updating the permissions in the `permissionsSet` proprety is sufficient.  One exception to that is renaming of permissions.   If you wish to rename an existing permission, use the `renamedFrom` property on the permission object, e.g. 
+Note that OKAPI is only responsible for providing the permissions and the corresponding moduleId to the `_tenantPermissions` API.  Determination of the appropriate actions to be taken is the responsibility of the permissions module.   Most of this will happen without explicit or special provisioning in the ModuleDescriptor.  Adding, removing or updating the permissions in the `permissionsSet` property is sufficient.  One exception to that is renaming of permissions.   If you wish to rename an existing permission, use the `renamedFrom` property on the permission object, e.g. 
 ```
 ...
   "permissionSets": [
@@ -1951,17 +1951,19 @@ Note that OKAPI is only responsible for providing the permissions and the corres
       "permissionName": "test-basic.collection.get",
       "displayName": "test-basic list records",
       "description": "Get a list of records",
-      "renamedFrom": [ "test-basic.get.list", "test-basic.view.list" ]
+	    "renamedFrom": [ "test-basic.get.list", "test-basic.view.list" ]
     }, 
 ...
 ```
-Assuming `test-basic.get.list` and `test-basic-view.list` were defined in an versions of the ModuleDescriptor, this would result in:
+Assuming `test-basic.get.list` and `test-basic-view.list` were defined in previous versions of the ModuleDescriptor, this would result in:
 1. `test-basic.get.list` and `test-basic.view.list` being deprecated.
 1. A new permission `test-basic.collection.get` being created.
 1. Update any permission assignments so that any users that were granted  `test-basic.get.list` or `test-basic.view.list` are automatically granted `test-basic.collection.get`
 1. Update any `childOf`/`subPermission` relationships.  `test-basic.collection.get` would be added to any permission's `childOf` or `subPermissions` fields which contain `test-basic.get.list` or `test-basic.view.list`
 
-See [Migration of Static Permissions Upon Upgrade](https://wiki.folio.org/display/DD/Migration+of+Static+Permissions+Upon+Upgrade "Migration of Static Permissions Upon Upgrade") and the [Permissions API Definition](https://github.com/folio-org/mod-permissions/blob/master/ramls/permissions.raml) for additional details of how this is handled by the permissions module.
+See the following for additional details of how this is handled by the permissions module.
+* [Migration of Static Permissions Upon Upgrade](https://wiki.folio.org/display/DD/Migration+of+Static+Permissions+Upon+Upgrade "Migration of Static Permissions Upon Upgrade") * [Permissions API Definition](https://github.com/folio-org/mod-permissions/blob/master/ramls/permissions.raml)
+* [TenantPermission API Definition](https://github.com/folio-org/mod-permissions/blob/master/ramls/tenantPermissions.raml)
 
 ### Optional interfaces
 
