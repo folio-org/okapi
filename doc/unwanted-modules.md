@@ -10,7 +10,7 @@ So to reduce the in-memory size of FOLIO, we want to identify modules that we kn
 This is a multi-stage process:
 
 <!-- md2toc -l 2 -s 1 unwanted-modules.md -->
-* [1. Identify the modules running on the tenant of interest](#1-identify-the-modules-running-on-the-tenant-of-interest)
+* [1. Identify the modules currently running](#1-identify-the-modules-currently-running)
 * [2. Choose the ones that are not wanted](#2-choose-the-ones-that-are-not-wanted)
 * [3. Check that disabling will not have catastrophic consequences](#3-check-that-disabling-will-not-have-catastrophic-consequences)
 * [4. Disable these modules (and those that depend on them)](#4-disable-these-modules-and-those-that-depend-on-them)
@@ -19,13 +19,11 @@ This is a multi-stage process:
 In the development scenario, there is almost always only a single tenant in play, `diku`, so we will make that simplifying assumption in this document. To make the examples concrete, we will also assume that Okapi is running on localhost port 9130.
 
 
-## 1. Identify the modules running on the tenant of interest
+## 1. Identify the modules currently running
 
-You can find these at http://localhost:9130/_/proxy/tenants/diku/modules
+You can find these at http://localhost:9130/_/discovery/modules but the output is very verbose. You can pick out the service-IDs, which are the only parts you need, using `jq`:
 
-(At the time of writing, there are exactly 100 of them!)
-
-Ignore the `names`, and consider the `id`s, discarding the version number. For example, if the output includes `mod-email-1.10.0-SNAPSHOT.49`, then you are interested in the ID `mod-email`.
+	curl http://localhost:9130/_/discovery/modules | jq '.[].srvcId'
 
 
 ## 2. Choose the ones that are not wanted
