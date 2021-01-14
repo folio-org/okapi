@@ -1951,7 +1951,7 @@ Note that OKAPI is only responsible for providing the permissions and the corres
       "permissionName": "test-basic.collection.get",
       "displayName": "test-basic list records",
       "description": "Get a list of records",
-	  "renamedFrom": [ "test-basic.get.list", "test-basic.view.list" ]
+      "renamedFrom": [ "test-basic.get.list", "test-basic.view.list" ]
     }, 
 ...
 ```
