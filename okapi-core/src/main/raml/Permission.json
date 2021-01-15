@@ -10,7 +10,7 @@
       "description": "Permission ID (usually module.service.method or similar)",
       "type": "string"
     },
-    "renamedFrom": {
+    "replaces": {
       "description": "previously used names for this permission",
       "type": "array",
       "items": {
