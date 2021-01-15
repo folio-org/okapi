@@ -1943,7 +1943,7 @@ As desribed earlier, permissions and permissionSets can be defined in the Module
 
 When mod-permissions is enabled for a tenant, OKAPI will invoke the `_tenantPermissions` API for all modules currently enabled for that tenant.  This is needed to inform the permissions module of any permissions defined in module descriptors enabled for the tenant prior to mod-permissions.
 
-Note that OKAPI is only responsible for providing the permissions and the corresponding moduleId to the `_tenantPermissions` API.  Determination of the appropriate actions to be taken is the responsibility of the permissions module.   Most of this will happen without explicit or special provisioning in the ModuleDescriptor.  Adding, removing or updating the permissions in the `permissionsSet` property is sufficient.  One exception to that is renaming of permissions.   If you wish to rename an existing permission, use the `renamedFrom` property on the permission object, e.g. 
+Note that OKAPI is only responsible for providing the permissions and the corresponding moduleId to the `_tenantPermissions` API.  Determination of the appropriate actions to be taken is the responsibility of the permissions module.   Most of this will happen without explicit or special provisioning in the ModuleDescriptor.  Adding, removing or updating the permissions in the `permissionsSet` property is sufficient.  One exception to that is renaming or replaceing one or more permissions with another.   This is accomplished via the `replaces` property on the permission object, e.g. 
 ```
 ...
   "permissionSets": [
@@ -1951,7 +1951,7 @@ Note that OKAPI is only responsible for providing the permissions and the corres
       "permissionName": "test-basic.collection.get",
       "displayName": "test-basic list records",
       "description": "Get a list of records",
-      "renamedFrom": [ "test-basic.get.list", "test-basic.view.list" ]
+      "replaces": [ "test-basic.get.list", "test-basic.view.list" ]
     }, 
 ...
 ```
