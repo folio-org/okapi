@@ -1,3 +1,21 @@
+## 4.6.0 2021-01-15
+
+New features:
+
+ * [OKAPI-947](https://issues.folio.org/browse/OKAPI-947) Implement static permission migration. Okapi uses new _tenantPermissions interface 2.0 if that's provided (by mod-permissions).
+
+Other:
+
+ * [OKAPI-971](https://issues.folio.org/browse/OKAPI-971) Fail unit tests if docker is not available (needed for testcontainers)
+
+Fixes:
+
+ * [OKAPI-968](https://issues.folio.org/browse/OKAPI-968) Fix Unhandled exception in DockerModuleHandle.request
+ * [OKAPI-959](https://issues.folio.org/browse/OKAPI-959) Fix Metrics is missing values for module and url fields
+ * [OKAPI-970](https://issues.folio.org/browse/OKAPI-970) Testcontainers 1.15.1 needed for latest docker
+ * [OKAPI-967](https://issues.folio.org/browse/OKAPI-967) Fix Clustered Okapi not allowing bootstrapping of superuser
+ * [OKAPI-966](https://issues.folio.org/browse/OKAPI-966) Fix Okapi systemd service fails to start after upgrade to docker-ce v20
+
 ## 4.5.0 2020-12-09
 
 New features:
