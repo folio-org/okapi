@@ -5,6 +5,7 @@ import static org.folio.okapi.service.impl.DockerModuleHandle.DOCKER_REGISTRIES_
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
@@ -37,6 +38,18 @@ public class DockerModuleHandleTest implements WithAssertions {
   private static final Logger logger = OkapiLogger.get();
 
   @Test
+  public void testRequestException(TestContext testContext) {
+    Vertx vertx = mock(Vertx.class);
+    HttpClient httpClient = mock(HttpClient.class);
+    when(vertx.createHttpClient(any())).thenReturn(httpClient);
+    when(httpClient.request(any())).thenThrow(new RuntimeException("foo"));
+    JsonObject conf = new JsonObject();
+    new DockerModuleHandle(vertx, new LaunchDescriptor(), null, null, null, 0, conf)
+        .postUrl(null, null)
+        .onComplete(testContext.asyncAssertFailure(e -> assertThat(e).hasMessage("foo")));
+  }
+
+  @Test
   public void testDomainSocketAddresses() {
     StringBuilder s = new StringBuilder();
     String u = DockerModuleHandle.setupDockerAddress(s, "unix://socket");
@@ -67,6 +80,13 @@ public class DockerModuleHandleTest implements WithAssertions {
     Assert.assertEquals("", s.toString());
   }
 
+  private void assertConnectionRefused(Throwable t) {
+    // the message "Connection refused" gets translated, for example "Verbindungsaufbau abgelehnt",
+    // therefore check Exception name and port
+    assertThat(t.getClass().getName() + " " + t.getMessage())
+    .contains("ConnectException").contains(":9231");
+  }
+
   @Test
   public void testNoDockerAtPort(TestContext context) {
     Vertx vertx = Vertx.vertx();
@@ -80,22 +100,12 @@ public class DockerModuleHandleTest implements WithAssertions {
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
         "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, conf);
 
-    dh.start().onComplete(context.asyncAssertFailure(cause ->
-        context.assertTrue(cause.getMessage().contains("Connection refused"),
-            cause.getMessage())));
-    dh.stop().onComplete(context.asyncAssertFailure(cause ->
-        context.assertTrue(cause.getMessage().contains("Connection refused"),
-            cause.getMessage())));
+    dh.start().onComplete(context.asyncAssertFailure(this::assertConnectionRefused));
+    dh.stop().onComplete(context.asyncAssertFailure(this::assertConnectionRefused));
 
-    dh.startContainer().onComplete(context.asyncAssertFailure(cause ->
-        context.assertTrue(cause.getMessage().contains("Connection refused"),
-            cause.getMessage())));
-    dh.stopContainer().onComplete(context.asyncAssertFailure(cause ->
-        context.assertTrue(cause.getMessage().contains("Connection refused"),
-            cause.getMessage())));
-    dh.deleteContainer().onComplete(context.asyncAssertFailure(cause ->
-        context.assertTrue(cause.getMessage().contains("Connection refused"),
-            cause.getMessage())));
+    dh.startContainer().onComplete(context.asyncAssertFailure(this::assertConnectionRefused));
+    dh.stopContainer().onComplete(context.asyncAssertFailure(this::assertConnectionRefused));
+    dh.deleteContainer().onComplete(context.asyncAssertFailure(this::assertConnectionRefused));
   }
 
   @Test

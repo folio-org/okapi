@@ -5,7 +5,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
@@ -27,6 +26,7 @@ import org.folio.okapi.common.Config;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
+import org.folio.okapi.util.FuturisedHttpClient;
 import org.folio.okapi.util.TcpPortWaiting;
 import org.folio.okapi.util.VariableSubstitutor;
 
@@ -51,7 +51,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private final EnvEntry[] env;
   private final AnyDescriptor dockerArgs;
   private final boolean dockerPull;
-  private final HttpClient client;
+  private final FuturisedHttpClient client;
   private final StringBuilder logBuffer;
   private final JsonArray dockerRegistries;
   private int logSkip;
@@ -76,7 +76,7 @@ public class DockerModuleHandle implements ModuleHandle {
     this.cmd = desc.getDockerCmd();
     this.env = desc.getEnv();
     this.dockerArgs = desc.getDockerArgs();
-    this.client = vertx.createHttpClient();
+    this.client = new FuturisedHttpClient(vertx);
     this.logBuffer = new StringBuilder();
     this.logSkip = 0;
     logger.info("Docker handler with native: {}", vertx.isNativeTransportEnabled());

@@ -5,7 +5,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.DeliveryOptions;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
@@ -27,6 +26,7 @@ import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
+import org.folio.okapi.util.FuturisedHttpClient;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.LockedTypedMap2;
 import org.folio.okapi.util.OkapiError;
@@ -48,7 +48,7 @@ public class DiscoveryManager implements NodeListener {
   private Vertx vertx;
   private ClusterManager clusterManager;
   private ModuleManager moduleManager;
-  private HttpClient httpClient;
+  private FuturisedHttpClient httpClient;
   private final DeploymentStore deploymentStore;
   private final Messages messages = Messages.getInstance();
   private DeliveryOptions deliveryOptions;
@@ -60,7 +60,7 @@ public class DiscoveryManager implements NodeListener {
    */
   public Future<Void> init(Vertx vertx) {
     this.vertx = vertx;
-    this.httpClient = vertx.createHttpClient();
+    this.httpClient = new FuturisedHttpClient(vertx);
     deliveryOptions = new DeliveryOptions().setSendTimeout(300000); // 5 minutes
     return deployments.init(vertx, "discoveryList", false).compose(x ->
         nodes.init(vertx, "discoveryNodes", false));
