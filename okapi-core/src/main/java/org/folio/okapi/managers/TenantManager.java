@@ -23,6 +23,7 @@ import org.folio.okapi.bean.InstallJob;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
+import org.folio.okapi.bean.Permission;
 import org.folio.okapi.bean.PermissionList;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Tenant;
@@ -641,6 +642,17 @@ public class TenantManager implements Liveness {
     );
   }
 
+  private Permission[] stripPermissionReplaces(Permission[] perms) {
+    if (perms != null) {
+      for (Permission perm : perms) {
+        if (perm.getReplaces() != null) {
+          perm.setReplaces(null);
+        }
+      }
+    }
+    return perms;
+  }
+
   private Future<Void> invokePermissionsForModule(Tenant tenant, ModuleDescriptor mdTo,
       ModuleDescriptor permsModule, ProxyContext pc) {
 
@@ -650,9 +662,14 @@ public class TenantManager implements Liveness {
     InterfaceDescriptor permInt = permsModule.getSystemInterface("_tenantPermissions");
     String permIntVer = permInt.getVersion();
     if (permIntVer.equals("1.0")) {
-      pl = new PermissionList(moduleTo, mdTo.getPermissionSets());
-    } else {
+      pl = new PermissionList(moduleTo, stripPermissionReplaces(mdTo.getPermissionSets()));
+    } else if (permIntVer.equals("1.1")) {
+      pl = new PermissionList(moduleTo, stripPermissionReplaces(mdTo.getExpandedPermissionSets()));
+    } else if (permIntVer.equals("2.0")) {
       pl = new PermissionList(moduleTo, mdTo.getExpandedPermissionSets());
+    } else {
+      return Future.failedFuture(new OkapiError(ErrorType.USER,
+          "Unknown version of _tenantPermissions interface in use " + permIntVer + "."));
     }
     String pljson = Json.encodePrettily(pl);
     logger.debug("tenantPerms Req: {}", pljson);

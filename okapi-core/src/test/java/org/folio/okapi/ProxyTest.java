@@ -3759,7 +3759,7 @@ public class ProxyTest {
     setupBasicTenant(tenant);
 
     String moduleId = "module-1.0.0";
-    setupBasicModule(tenant, moduleId, "1.1", false, false);
+    setupBasicModule(tenant, moduleId, "1.1", false, false, false);
     RestAssuredClient c = api.createRestAssured3();
 
     String body = new JsonObject().put("id", "test").encode();
@@ -3803,7 +3803,7 @@ public class ProxyTest {
     Assert.assertEquals(0, timerPermissions.size());
 
     String moduleId0 = "perm-1.0.0";
-    setupBasicModule(tenant, moduleId0, "1.0", false, true);
+    setupBasicModule(tenant, moduleId0, "1.0", false, true, false);
     Assert.assertEquals(2, timerPermissions.size());
     Assert.assertTrue(timerPermissions.containsKey(moduleId0));
     Assert.assertTrue(timerPermissions.containsKey(moduleA0));
@@ -3811,7 +3811,7 @@ public class ProxyTest {
         timerPermissions.getJsonArray(moduleA0).getJsonObject(0).getString("permissionName"));
 
     String moduleId1 = "perm-1.0.1";
-    setupBasicModule(tenant, moduleId1, "1.0", false, true);
+    setupBasicModule(tenant, moduleId1, "1.0", false, true, true);
     Assert.assertEquals(3, timerPermissions.size());
     Assert.assertTrue(timerPermissions.containsKey(moduleId0));
     Assert.assertTrue(timerPermissions.containsKey(moduleA0));
@@ -3833,6 +3833,15 @@ public class ProxyTest {
     given().delete("/_/proxy/tenants/" + tenant).then().statusCode(204);
   }
 
+  private boolean hasPermReplaces(JsonArray permissions) {
+    for (int i=0; i<permissions.size(); i++) {
+      if (permissions.getJsonObject(i).getJsonArray("replaces") != null) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @Test
   public void testTenantPermissionsVersion() {
     String tenant = "test-tenant-permissions-tenant";
@@ -3842,16 +3851,23 @@ public class ProxyTest {
 
     setupBasicTenant(tenant);
 
-    // test _tenantpermissions 1.0 vs 1.1
-    for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1")) {
+    // test _tenantpermissions 1.0 vs 1.1 vs 2.0
+    for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1", "2.0")) {
       timerPermissions.clear();
-      setupBasicModule(tenant, moduleId, tenantPermissionsVersion, true, true);
+      setupBasicModule(tenant, moduleId, tenantPermissionsVersion, true, true, true);
       setupBasicAuth(tenant, authModuleId);
+
+      JsonArray permissions = timerPermissions.getJsonArray(moduleId);
       // system generates permission sets for 1.1 version
       if (tenantPermissionsVersion.equals("1.0")) {
-        Assert.assertEquals(1, timerPermissions.getJsonArray(moduleId).size());
+        Assert.assertEquals(2, permissions.size());
+        Assert.assertFalse(hasPermReplaces(permissions));
+      } else if (tenantPermissionsVersion.equals("1.1")) {
+        Assert.assertEquals(5, permissions.size());
+        Assert.assertFalse(hasPermReplaces(permissions));
       } else {
-        Assert.assertEquals(4, timerPermissions.getJsonArray(moduleId).size());
+        Assert.assertEquals(5, permissions.size());
+        Assert.assertTrue(hasPermReplaces(permissions));
       }
       // proxy calls
       RestAssuredClient c = api.createRestAssured3();
@@ -3891,7 +3907,7 @@ public class ProxyTest {
     String body = new JsonObject().put("id", "test").encode();
 
     setupBasicTenant(tenant);
-    setupBasicModule(tenant, moduleId, "1.1", false, false);
+    setupBasicModule(tenant, moduleId, "1.1", false, false, false);
     setupBasicAuth(tenant, authModuleId);
 
     RestAssuredClient c = api.createRestAssured3();
@@ -4092,7 +4108,7 @@ public class ProxyTest {
 
   // add basic module
   private void setupBasicModule(String tenant, String moduleId, String tenantPermissionsVersion,
-                                boolean provideTimer, boolean provideTenantPermissions) {
+      boolean provideTimer, boolean provideTenantPermissions, boolean doPermReplace) {
     JsonArray providesAr = new JsonArray();
     if (provideTimer) {
         providesAr.add(new JsonObject()
@@ -4124,7 +4140,7 @@ public class ProxyTest {
                   .put("permissionsRequired", new JsonArray()))));
 
     }
-    String mdJson = new JsonObject()
+    JsonObject mdJsonObj = new JsonObject()
         .put("id", moduleId)
         .put("provides", providesAr
             .add(new JsonObject()
@@ -4171,12 +4187,29 @@ public class ProxyTest {
                         .put("pathPattern", "/corscall")
                         .put("permissionsRequired", new JsonArray())
                         .put("delegateCORS", "true")))))
-        .put("requires", new JsonArray())
-        .put("permissionSets", new JsonArray()
-            .add(new JsonObject()
-                .put("permissionName", "timercall.post.id")
-                .put("displayName", "d")))
-        .encodePrettily();
+        .put("requires", new JsonArray());
+
+    JsonArray permSets = new JsonArray()
+        .add(new JsonObject()
+            .put("permissionName", "timercall.post.id")
+            .put("displayName", "d"));
+
+    if (doPermReplace) {
+      permSets.add(new JsonObject()
+          .put("permissionName", "regularcall.everything")
+          .put("displayName", "All regularcall permissions")
+          .put("replaces", new JsonArray()
+              .add("regularcall.all"))
+          .put("subPermissions", new JsonArray()
+              .add("regularcall.test.post")));
+    } else {
+      permSets.add(new JsonObject()
+          .put("permissionName", "regularcall.all")
+          .put("displayName", "All regularcall permissions")
+          .put("subPermissions", new JsonArray()
+              .add("regularcall.test.post")));
+    }
+    String mdJson = mdJsonObj.put("permissionSets", permSets).encodePrettily();
 
     // registration
     RestAssuredClient c = api.createRestAssured3();
