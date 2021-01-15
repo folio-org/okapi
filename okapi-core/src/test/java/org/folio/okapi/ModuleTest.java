@@ -1175,7 +1175,7 @@ public class ModuleTest {
     // this.
 
     // Create, deploy, and enable the header module
-    final String locHdrModule = createHeaderModule("1.1");
+    final String locHdrModule = createHeaderModule("2.0");
     locationHeaderDeployment = deployModule("header-1");
     final String docEnableHdr = "{" + LS
       + "  \"id\" : \"header-1\"" + LS
@@ -1449,7 +1449,7 @@ public class ModuleTest {
       + "  } ]," + LS
       + "  \"permissionSets\" : [ {" + LS
       + "    \"permissionName\" : \"all\"," + LS
-      + "    \"renamedFrom\" : [ \"everything\" ]," + LS
+      + "    \"replaces\" : [ \"everything\" ]," + LS
       + "    \"displayName\" : \"all possible permissions\"," + LS
       + "    \"description\" : \"All permissions combined\"," + LS
       + "    \"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ]," + LS
@@ -1474,7 +1474,7 @@ public class ModuleTest {
         + "\"moduleId\" : \"sample-module-2\", "
         + "\"perms\" : [ { "
         + "\"permissionName\" : \"all\", "
-        + "\"renamedFrom\" : [ \"everything\" ], "
+        + "\"replaces\" : [ \"everything\" ], "
         + "\"displayName\" : \"all possible permissions\", "
         + "\"description\" : \"All permissions combined\", "
         + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
@@ -2903,5 +2903,58 @@ public class ModuleTest {
     c.given().delete("/_/proxy/modules/foo-1.0.0")
         .then().statusCode(404).body(containsString("delete: module foo-1.0.0 does not exist"));
     assertEmptyReport(c);
+  }
+
+  /**
+   * Test that unknown versions of _tenantPermissions are rejected.
+   *
+   * @param context
+   */
+  @Test
+  public void testTenantPermissionsUnknownVersion(TestContext context) {
+    checkDbIsEmpty("testTenantPermissionsUnknownVersion starting", context);
+
+    // Set up a tenant to test with
+    final String locTenant = createTenant();
+
+    // Enable the Okapi internal module for our tenant.
+    // This is not unlike what happens to the superTenant, who has the internal
+    // module enabled from the boot up, before anyone can provide the
+    // _tenantPermissions interface. Its permissions should normally be (re)loaded
+    // when our Hdr module gets enabled, but we're expecting the call to enable
+    // mod-permissions to fail due to an unknown version of _tenantPermissions
+    final String locInternal = enableModule("okapi-0.0.0");
+
+    // Set up a module that does the _tenantPermissions interface that will
+    // get called when sample gets enabled. We (ab)use the header module for
+    // this.
+
+    // Create, deploy, and enable the header module w/ unknown _tenantPermissions version
+    final String locHdrModule = createHeaderModule("9.0");
+    locationHeaderDeployment = deployModule("header-1");
+    final String docEnableHdr = "{" + LS
+      + "  \"id\" : \"header-1\"" + LS
+      + "}";
+
+    // Enable the header module. Check that we get an appropriate error response.
+    String body = given()
+      .header("Content-Type", "application/json")
+      .body(docEnableHdr)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then()
+      .statusCode(400)
+      .log().ifValidationFails()
+      .extract().asString();
+    context.assertEquals("Unknown version of _tenantPermissions interface in use 9.0.", body);
+
+    // Clean up, so the next test starts with a clean slate (in reverse order)
+    logger.debug("testTenantPermissionsUnknownVersion cleaning up");
+
+    given().delete(locationHeaderDeployment).then().log().ifValidationFails().statusCode(204);
+    locationHeaderDeployment = null;
+    given().delete(locHdrModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locInternal).then().log().ifValidationFails().statusCode(204);
+    given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
+    checkDbIsEmpty("testSystemInterfaces done", context);
   }
 }
