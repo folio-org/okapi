@@ -1449,7 +1449,7 @@ public class ModuleTest {
       + "  } ]," + LS
       + "  \"permissionSets\" : [ {" + LS
       + "    \"permissionName\" : \"all\"," + LS
-      + "    \"renamedFrom\" : [ \"everything\" ]," + LS
+      + "    \"replaces\" : [ \"everything\" ]," + LS
       + "    \"displayName\" : \"all possible permissions\"," + LS
       + "    \"description\" : \"All permissions combined\"," + LS
       + "    \"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ]," + LS
@@ -1474,7 +1474,7 @@ public class ModuleTest {
         + "\"moduleId\" : \"sample-module-2\", "
         + "\"perms\" : [ { "
         + "\"permissionName\" : \"all\", "
-        + "\"renamedFrom\" : [ \"everything\" ], "
+        + "\"replaces\" : [ \"everything\" ], "
         + "\"displayName\" : \"all possible permissions\", "
         + "\"description\" : \"All permissions combined\", "
         + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
