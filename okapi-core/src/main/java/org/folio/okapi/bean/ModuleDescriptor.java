@@ -192,6 +192,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     interfaceDescriptor.setId(id);
     interfaceDescriptor.setVersion(version);
     interfaceDescriptor.setHandlers(entries);
+    setProvides(interfaceDescriptors);
   }
 
   public InterfaceDescriptor[] getOptional() {
@@ -294,8 +295,21 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     return permissionSets;
   }
 
+  /**
+   * Set permission sets.
+   * @param permissionSets permission sets
+   * @throws IllegalArgumentException if permissionName is missing
+   */
   public void setPermissionSets(Permission[] permissionSets) {
     this.permissionSets = permissionSets;
+    if (permissionSets != null) {
+      for (Permission permission : permissionSets) {
+        String permissionName = permission.getPermissionName();
+        if (permissionName == null) {
+          throw new IllegalArgumentException("Missing permissionName");
+        }
+      }
+    }
   }
 
   /**

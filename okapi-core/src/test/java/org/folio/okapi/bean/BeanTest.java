@@ -3,12 +3,15 @@ package org.folio.okapi.bean;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.OkapiLogger;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 @java.lang.SuppressWarnings({"squid:S1166", "squid:S1192"})
 public class BeanTest {
   private static final String LS = System.lineSeparator();
+  private final Logger logger = OkapiLogger.get();
 
   @Test
   public void testDeploymentDescriptor1() {
@@ -225,8 +228,6 @@ public class BeanTest {
 
   @Test
   public void testModuleDescriptorBadMethod() {
-    int fail = 0;
-
     final String docModuleDescriptor = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -239,20 +240,17 @@ public class BeanTest {
       + "  } ]" + LS
       + "}";
 
+    String msg = null;
     try {
-      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
-        ModuleDescriptor.class);
-      String pretty = Json.encodePrettily(md);
+      Json.decodeValue(docModuleDescriptor, ModuleDescriptor.class);
     } catch (DecodeException ex) {
-      fail = 400;
+      msg = ex.getMessage();
     }
-    assertEquals(400, fail);
+    assertTrue(msg, msg.startsWith("Failed to decode:NOST"));
   }
 
   @Test
   public void testModuleDescriptorTimers() {
-    int fail = 0;
-
     final String docModuleDescriptor = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -286,21 +284,11 @@ public class BeanTest {
       + "  } ]" + LS
       + "}";
 
-    try {
-      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
-        ModuleDescriptor.class);
-      String pretty = Json.encodePrettily(md);
-    } catch (DecodeException ex) {
-      ex.printStackTrace();
-      fail = 400;
-    }
-    assertEquals(0, fail);
+    Json.decodeValue(docModuleDescriptor, ModuleDescriptor.class);
   }
 
   @Test
   public void testModuleDescriptorTimers2() {
-    int fail = 0;
-
     final String docModuleDescriptor = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -315,20 +303,17 @@ public class BeanTest {
       + "  } ]" + LS
       + "}";
 
+    String msg = null;
     try {
-      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
-        ModuleDescriptor.class);
-      String pretty = Json.encodePrettily(md);
+      Json.decodeValue(docModuleDescriptor, ModuleDescriptor.class);
     } catch (DecodeException ex) {
-      fail = 400;
+      msg = ex.getMessage();
     }
-    assertEquals(400, fail);
+    assertTrue(msg, msg.startsWith("Failed to decode:second1"));
   }
 
   @Test
   public void testMultipleProvides() {
-    int fail = 0;
-
     final String docModuleDescriptor = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -352,15 +337,42 @@ public class BeanTest {
       + "  } ]" + LS
       + "}";
 
+    String msg = null;
     try {
-      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
-        ModuleDescriptor.class);
-      String pretty = Json.encodePrettily(md);
+      Json.decodeValue(docModuleDescriptor, ModuleDescriptor.class);
     } catch (DecodeException ex) {
-      ex.printStackTrace();
-      fail = 400;
+      msg = ex.getMessage();
     }
-    assertEquals(400, fail);
+    assertTrue(msg, msg.startsWith("Failed to decode:Interface"));
   }
 
+  @Test
+  public void testMissingPermissionName() {
+    final String docModuleDescriptor = "{" + LS
+        + "  \"id\" : \"sample-module-1\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"api\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"GET\" ]," + LS
+        + "      \"pathPattern\" : \"/test\"," + LS
+        + "      \"permissionsRequired\" : [\"/test.get\"]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]," + LS
+        + "  \"permissionSets\": [ {" + LS
+        + "    \"permissionName\" : \"foo\"" + LS
+        + " }, {" + LS
+        + "    \"description\" : \"foo\"" + LS
+        + " }]" + LS
+        + "}";
+
+    String msg = null;
+    try {
+      Json.decodeValue(docModuleDescriptor, ModuleDescriptor.class);
+    } catch (DecodeException e) {
+      msg = e.getMessage();
+    }
+    assertTrue(msg, msg.startsWith("Failed to decode:Missing permissionName"));
+  }
 }
