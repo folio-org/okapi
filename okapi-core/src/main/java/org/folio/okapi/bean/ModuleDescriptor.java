@@ -301,7 +301,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    * @throws IllegalArgumentException if permissionName is missing
    */
   public void setPermissionSets(Permission[] permissionSets) {
-    this.permissionSets = permissionSets;
     if (permissionSets != null) {
       for (Permission permission : permissionSets) {
         String permissionName = permission.getPermissionName();
@@ -310,6 +309,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
         }
       }
     }
+    this.permissionSets = permissionSets;
   }
 
   /**

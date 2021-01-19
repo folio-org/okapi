@@ -239,7 +239,7 @@ public class BeanTest {
       + "}";
 
     ModuleDescriptor moduleDescriptor = Json.decodeValue(docModuleDescriptor, ModuleDescriptor.class);
-    moduleDescriptor.setPermissionSets(null);
+    moduleDescriptor.setPermissionSets(null); // to cover the if (permissionSets != null) ..
     assertNull(moduleDescriptor.getPermissionSets());
   }
 
