@@ -437,7 +437,7 @@ public class DockerModuleHandle implements ModuleHandle {
         .compose(
             x -> deleteContainer(),
             // if stopContainer fails with e run deleteContainer but return original failure e
-            e -> deleteContainer())
+            e -> deleteContainer().eventually(x -> Future.failedFuture(e)))
         .onComplete(x -> ports.free(hostPort));
   }
 }
