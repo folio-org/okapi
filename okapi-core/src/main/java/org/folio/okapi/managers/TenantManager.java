@@ -57,7 +57,7 @@ public class TenantManager implements Liveness {
   private DiscoveryManager discoveryManager;
   private final TenantStore tenantStore;
   private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
-  private static final String MAP_NAMAE = "tenants";
+  private static final String MAP_NAME = "tenants";
   private final LockedTypedMap2<InstallJob> jobs = new LockedTypedMap2<>(InstallJob.class);
   private static final String EVENT_NAME = "timer";
   private final Set<String> timers = new HashSet<>();
@@ -96,7 +96,7 @@ public class TenantManager implements Liveness {
   public Future<Void> init(Vertx vertx) {
     this.vertx = vertx;
 
-    return tenants.init(vertx, MAP_NAMAE, local)
+    return tenants.init(vertx, MAP_NAME, local)
         .compose(x -> jobs.init(vertx, "installJobs", local))
         .compose(x -> loadTenants());
   }
