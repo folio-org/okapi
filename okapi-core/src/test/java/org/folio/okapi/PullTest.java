@@ -39,7 +39,7 @@ public class PullTest {
   private static RamlDefinition api;
 
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
+  public static void setUpBeforeClass() {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
   }
 
