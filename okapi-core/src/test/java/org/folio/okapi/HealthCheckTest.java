@@ -11,7 +11,6 @@ import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Assert;
@@ -27,7 +26,7 @@ public class HealthCheckTest {
   private static RamlDefinition api;
 
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
+  public static void setUpBeforeClass() {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
   }
 

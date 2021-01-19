@@ -31,13 +31,13 @@ public class EnvTest {
   private Vertx vertx;
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
-  private String locationSampleDeployment1;
   private final int port = 9230;
   private static RamlDefinition api;
 
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
+  public static void setUpBeforeClass() {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
+    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
   }
 
   @Before
@@ -175,23 +175,20 @@ public class EnvTest {
     final String okapiTenant = "roskilde";
     RestAssured.port = port;
     RestAssuredClient c;
-    Response r;
     // add Env entry
     final String doc = "{" + LS
             + "  \"name\" : \"helloGreeting\"," + LS
             + "  \"value\" : \"hejsa\"" + LS
             + "}";
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
             .header("Content-Type", "application/json")
             .body(doc).post("/_/env")
             .then()
             .statusCode(201)
-            .body(equalTo(doc))
-            .extract().response();
+            .body(equalTo(doc));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
-    String locationName1 = r.getHeader("Location");
     // deploy module
     final String docSampleDeployment = "{" + LS
       + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
@@ -201,15 +198,13 @@ public class EnvTest {
       + "  }" + LS
       + "}";
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
             .header("Content-Type", "application/json")
             .body(docSampleDeployment).post("/_/deployment/modules")
             .then()
-            .statusCode(201)
-            .extract().response();
+            .statusCode(201);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
-    locationSampleDeployment1 = r.getHeader("Location");
     // proxy module
     final String docSampleModule1 = "{" + LS
       + "  \"id\" : \"sample-module-1.0.0\"," + LS
@@ -248,10 +243,9 @@ public class EnvTest {
       + "  \"requires\" : [ ]" + LS
       + "}";
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
             .header("Content-Type", "application/json")
-            .body(docSampleModule1).post("/_/proxy/modules").then().statusCode(201)
-            .extract().response();
+            .body(docSampleModule1).post("/_/proxy/modules").then().statusCode(201);
     Assert.assertTrue(
             "raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
@@ -262,30 +256,27 @@ public class EnvTest {
             + "  \"description\" : \"Roskilde bibliotek\"" + LS
             + "}";
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
             .header("Content-Type", "application/json")
             .body(docTenantRoskilde).post("/_/proxy/tenants")
             .then().statusCode(201)
-            .body(equalTo(docTenantRoskilde))
-            .extract().response();
+            .body(equalTo(docTenantRoskilde));
     Assert.assertTrue(
             "raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
-    final String locationTenantRoskilde = r.getHeader("Location");
     // associate tenant for module
     final String docEnableSample = "{" + LS
       + "  \"id\" : \"sample-module-1.0.0\"" + LS
       + "}";
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
             .header("Content-Type", "application/json")
             .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
             .then().statusCode(201)
-            .body(equalTo(docEnableSample)).extract().response();
+            .body(equalTo(docEnableSample));
     Assert.assertTrue(
             "raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
-    final String locationTenantModule = r.getHeader("Location");
 
     // run module
     c = api.createRestAssured3();
