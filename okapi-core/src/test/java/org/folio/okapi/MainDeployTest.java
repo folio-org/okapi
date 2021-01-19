@@ -4,12 +4,9 @@ import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
-import io.restassured.response.Response;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.OkapiLogger;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -20,7 +17,6 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class MainDeployTest {
 
-  private final Logger logger = OkapiLogger.get();
   private static final int port = 9230;
   private static RamlDefinition api;
 
@@ -30,6 +26,7 @@ public class MainDeployTest {
         "io.vertx.core.logging.Log4jLogDelegateFactory");
     // can't set Verticle options so we set a property instead
     System.setProperty("port", Integer.toString(port));
+    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
     RestAssured.port = port;
   }
@@ -41,9 +38,9 @@ public class MainDeployTest {
 
   @Test
   public void testInitWithException(TestContext context) {
-    new MainDeploy().init(null, context.asyncAssertFailure(throwable -> {
-      context.assertTrue(throwable instanceof NullPointerException);
-    }));
+    new MainDeploy().init(null, context.asyncAssertFailure(throwable ->
+      context.assertTrue(throwable instanceof NullPointerException)
+    ));
   }
 
   @Test
@@ -82,11 +79,9 @@ public class MainDeployTest {
     MainDeploy d = new MainDeploy();
     d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
-      Response r;
 
       c = api.createRestAssured3();
-      r = c.given().get("/_/version")
-        .then().statusCode(200).log().ifValidationFails().extract().response();
+      c.given().get("/_/version").then().statusCode(200);
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
@@ -103,11 +98,9 @@ public class MainDeployTest {
     MainDeploy d = new MainDeploy();
     d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
-      Response r;
 
       c = api.createRestAssured3();
-      r = c.given().get("/_/deployment/modules")
-        .then().statusCode(200).log().ifValidationFails().extract().response();
+      c.given().get("/_/deployment/modules").then().statusCode(200);
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
@@ -124,11 +117,9 @@ public class MainDeployTest {
     MainDeploy d = new MainDeploy();
     d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
-      Response r;
 
       c = api.createRestAssured3();
-      r = c.given().get("/_/proxy/modules")
-        .then().statusCode(200).log().ifValidationFails().extract().response();
+      c.given().get("/_/proxy/modules").then().statusCode(200);
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
@@ -145,11 +136,9 @@ public class MainDeployTest {
     MainDeploy d = new MainDeploy();
     d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
-      Response r;
 
       c = api.createRestAssured3();
-      r = c.given().get("/_/proxy/modules")
-        .then().statusCode(200).log().ifValidationFails().extract().response();
+      c.given().get("/_/proxy/modules").then().statusCode(200);
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
@@ -174,12 +163,9 @@ public class MainDeployTest {
     MainDeploy d = new MainDeploy();
     d.init(args, context.asyncAssertSuccess(vertx -> {
       RestAssuredClient c;
-      Response r;
 
       c = api.createRestAssured3();
-
-      r = c.given().get("/_/proxy/modules")
-        .then().statusCode(200).log().ifValidationFails().extract().response();
+      c.given().get("/_/proxy/modules").then().statusCode(200);
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
       vertx.close(context.asyncAssertSuccess(x -> async.complete()));

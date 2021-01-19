@@ -5,6 +5,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
@@ -28,7 +29,6 @@ import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.util.FuturisedHttpClient;
 import org.folio.okapi.util.TcpPortWaiting;
 import org.folio.okapi.util.VariableSubstitutor;
-
 
 // Docker Module. Using the Docker HTTP API.
 // We don't do local unix sockets. The dockerd must unfortunately be listening on localhost.
@@ -115,49 +115,50 @@ public class DockerModuleHandle implements ModuleHandle {
     return u + "/" + DEFAULT_DOCKER_VERSION;
   }
 
-  private Future<Void> handle204(HttpClientResponse result, String msg) {
-    Buffer body = Buffer.buffer();
-    result.handler(body::appendBuffer);
-    Promise<Void> promise = Promise.promise();
-    result.endHandler(d -> {
-      if (result.statusCode() == 204) {
-        promise.complete();
-      } else {
-        String m = msg + " HTTP error "
-            + result.statusCode() + "\n"
-            + body.toString();
-        logger.error(m);
-        promise.fail(m);
-      }
-    });
-    return promise.future();
+  private Future<Void> handle204(HttpClientRequest req, String msg) {
+    return req.end()
+        .compose(x -> req.response()
+            .compose(result -> {
+              Buffer body = Buffer.buffer();
+              result.handler(body::appendBuffer);
+              Promise<Void> promise = Promise.promise();
+              result.endHandler(d -> {
+                if (result.statusCode() == 204) {
+                  promise.complete();
+                } else {
+                  String m = msg + " HTTP error "
+                      + result.statusCode() + "\n"
+                      + body.toString();
+                  logger.error(m);
+                  promise.fail(m);
+                }
+              });
+              return promise.future();
+            }));
   }
 
-  private Future<HttpClientResponse> request(HttpMethod method, String url,
-                                             MultiMap headers, Buffer body) {
-
+  private Future<HttpClientRequest> request(HttpMethod method, String url, MultiMap headers) {
     RequestOptions requestOptions = new RequestOptions()
         .setMethod(method)
         .setAbsoluteURI(dockerUrl + url);
     if (socketAddress != null) {
       requestOptions.setServer(socketAddress);
     }
-    return client.request(requestOptions).compose(request -> {
-      if (headers != null) {
-        request.headers().setAll(headers);
-      }
-      return request.send(body);
-    });
+    if (headers != null) {
+      requestOptions.setHeaders(headers);
+    }
+    return client.request(requestOptions);
   }
 
+
   Future<Void> postUrl(String url, String msg) {
-    return request(HttpMethod.POST, url, null, Buffer.buffer())
-        .compose(res -> handle204(res, msg));
+    return request(HttpMethod.POST, url, null)
+        .compose(req -> handle204(req, msg));
   }
 
   Future<Void> deleteUrl(String url, String msg) {
-    return request(HttpMethod.DELETE, url, null, Buffer.buffer())
-        .compose(res -> handle204(res, msg));
+    return request(HttpMethod.DELETE, url, null)
+        .compose(req -> handle204(req, msg));
   }
 
   Future<Void> startContainer() {
@@ -194,50 +195,57 @@ public class DockerModuleHandle implements ModuleHandle {
   Future<Void> getContainerLog() {
     final String url = "/containers/" + containerId
         + "/logs?stderr=1&stdout=1&follow=1";
-    return request(HttpMethod.GET, url, null, Buffer.buffer()).compose(res -> {
-      if (res.statusCode() == 200) {
-        // stream OK. Continue other work but keep fetching!
-        // remove 8 bytes of binary data and final newline
-        res.handler(this::logHandler);
-        return tcpPortWaiting.waitReady(null);
-      } else {
-        String m = "getContainerLog HTTP error "
-            + res.statusCode();
-        logger.error(m);
-        return Future.failedFuture(m);
-      }
-    });
+    return request(HttpMethod.GET, url, null)
+        .compose(req -> req.end()
+            .compose(x -> req.response()
+            .compose(res -> {
+              if (res.statusCode() == 200) {
+                // stream OK. Continue other work but keep fetching!
+                // remove 8 bytes of binary data and final newline
+                res.handler(this::logHandler);
+                return tcpPortWaiting.waitReady(null);
+              } else {
+                String m = "getContainerLog HTTP error "
+                    + res.statusCode();
+                logger.error(m);
+                return Future.failedFuture(m);
+              }
+            })));
   }
 
-  Future<JsonObject> getUrl(String url) {
-    return request(HttpMethod.GET, url, null, Buffer.buffer())
-        .compose(res -> {
-          Buffer body = Buffer.buffer();
-          Promise<JsonObject> promise = Promise.promise();
-          res.exceptionHandler(d -> {
-            logger.warn("{}: {}", url, d.getMessage());
-            promise.fail(url + ": " + d.getMessage());
-          });
-          res.handler(body::appendBuffer);
-          res.endHandler(d -> {
-            if (res.statusCode() != 200) {
-              String m = url + " HTTP error "
-                  + res.statusCode() + "\n"
-                  + body.toString();
-              logger.error(m);
-              promise.fail(m);
-              return;
-            }
-            try {
-              JsonObject b = body.toJsonObject();
-              promise.complete(b);
-            } catch (DecodeException e) {
-              logger.warn("{}", e.getMessage(), e);
-              promise.fail(e);
-            }
-          });
-          return promise.future();
-        });
+  private Future<JsonObject> handleResponseJsonObject(HttpClientResponse res, String msg) {
+    Buffer body = Buffer.buffer();
+    Promise<JsonObject> promise = Promise.promise();
+    res.exceptionHandler(d -> {
+      logger.warn("{}: {}", res.request().absoluteURI(), d.getMessage(), d);
+      promise.fail(d);
+    });
+    res.handler(body::appendBuffer);
+    res.endHandler(d -> {
+      if (res.statusCode() != 200 && res.statusCode() != 201) {
+        String m = msg + " HTTP error "
+            + res.statusCode() + "\n"
+            + body.toString();
+        logger.error(m);
+        promise.fail(m);
+        return;
+      }
+      try {
+        JsonObject b = body.toJsonObject();
+        promise.complete(b);
+      } catch (DecodeException e) {
+        logger.warn("{}", e.getMessage(), e);
+        promise.fail(e);
+      }
+    });
+    return promise.future();
+  }
+
+  Future<JsonObject> getUrl(String url, String msg) {
+    return request(HttpMethod.GET, url, null)
+        .compose(req -> req.end()
+            .compose(x -> req.response())
+            .compose(res -> handleResponseJsonObject(res, msg)));
   }
 
   private static String getRegistryPrefix(JsonObject registry) {
@@ -250,7 +258,7 @@ public class DockerModuleHandle implements ModuleHandle {
 
   Future<JsonObject> getImage() {
     if (dockerRegistries == null) {
-      return getUrl("/images/" + image + "/json");
+      return getUrl("/images/" + image + "/json", "getImage");
     }
     if (dockerRegistries.isEmpty()) {
       logger.warn(DOCKER_REGISTRIES_EMPTY_LIST);
@@ -259,7 +267,7 @@ public class DockerModuleHandle implements ModuleHandle {
     for (int i = 0; i < dockerRegistries.size(); i++) {
       JsonObject registry = dockerRegistries.getJsonObject(i);
       String prefix = getRegistryPrefix(registry);
-      future = future.recover(x -> getUrl("/images/" + prefix + image + "/json")
+      future = future.recover(x -> getUrl("/images/" + prefix + image + "/json", "getImage")
           .onSuccess(y -> {
             image = prefix + image;
           }));
@@ -295,37 +303,28 @@ public class DockerModuleHandle implements ModuleHandle {
         String prefix = getRegistryPrefix(registry);
         logger.info("pull image {}", prefix + image);
         return postUrlJson("/images/create?fromImage=" + prefix + image,
-            authObject, "pullImage", "").mapEmpty();
+            authObject, "pullImage", "")
+            .onSuccess(x1 ->
+                logger.info("pullImage 2 returned success"))
+            .onFailure(x1 ->
+                logger.info("pullImage 2 returned failure {}", x1.getMessage(), x1))
+            .mapEmpty();
       });
     }
     return future;
   }
 
-  Future<Buffer> postUrlJson(String url, JsonObject auth, String msg, String doc) {
+  Future<JsonObject> postUrlJson(String url, JsonObject auth, String msg, String doc) {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     headers.add("Content-Type", "application/json");
     if (auth != null && auth.size() > 0) {
       headers.add("X-Registry-Auth",
           new String(Base64.getEncoder().encode(auth.encodePrettily().getBytes())));
     }
-    return request(HttpMethod.POST, url, headers, Buffer.buffer(doc)).compose(res -> {
-      Promise<Buffer> promise = Promise.promise();
-      Buffer body = Buffer.buffer();
-      res.exceptionHandler(d -> promise.fail(d));
-      res.handler(body::appendBuffer);
-      res.endHandler(d -> {
-        if (res.statusCode() >= 200 && res.statusCode() <= 201) {
-          promise.complete(body);
-        } else {
-          String m = msg + " HTTP error "
-              + res.statusCode() + "\n"
-              + body.toString();
-          logger.error(m);
-          promise.fail(m);
-        }
-      });
-      return promise.future();
-    });
+    return request(HttpMethod.POST, url, headers)
+        .compose(req -> req.end(doc)
+            .compose(x -> req.response())
+            .compose(res -> handleResponseJsonObject(res, msg)));
   }
 
   String getCreateContainerDoc(int exposedPort) {
@@ -388,7 +387,7 @@ public class DockerModuleHandle implements ModuleHandle {
 
     String doc = getCreateContainerDoc(exposedPort);
     return postUrlJson("/containers/create", null,"createContainer", doc).compose(res -> {
-      containerId = res.toJsonObject().getString("Id");
+      containerId = res.getString("Id");
       return Future.succeededFuture();
     });
   }
