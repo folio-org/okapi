@@ -186,17 +186,17 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     }
     NetClientOptions options = new NetClientOptions().setConnectTimeout(50);
     NetClient c = vertx.createNetClient(options);
-    return c.connect(port, "localhost").compose(socket -> {
-      return socket.close().otherwiseEmpty().compose(x -> {
-        if (iter > 0) {
-          Promise<Void> promise = Promise.promise();
-          vertx.setTimer(100, id -> waitPortToClose(iter - 1).onComplete(promise));
-          return promise.future();
-        } else {
-          return Future.failedFuture(messages.getMessage("11503", Integer.toString(port)));
-        }
-      });
-    }, fail -> Future.succeededFuture());
+    return c.connect(port, "localhost").compose(
+        socket -> socket.close()
+            .otherwiseEmpty().compose(x -> {
+              if (iter == 0) {
+                return Future.failedFuture(messages.getMessage("11503", Integer.toString(port)));
+              }
+              Promise<Void> promise = Promise.promise();
+              vertx.setTimer(100, id -> waitPortToClose(iter - 1).onComplete(promise));
+              return promise.future();
+            }),
+        noSocket -> Future.succeededFuture());
   }
 
   @Override

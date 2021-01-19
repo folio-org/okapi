@@ -15,10 +15,10 @@ public class Storage {
 
   private MongoHandle mongo;
   private PostgresHandle postgres;
-  private ModuleStore moduleStore;
-  private TenantStore tenantStore;
-  private DeploymentStore deploymentStore;
-  private EnvStore envStore;
+  private final ModuleStore moduleStore;
+  private final TenantStore tenantStore;
+  private final DeploymentStore deploymentStore;
+  private final EnvStore envStore;
 
   public enum InitMode {
     NORMAL, // normal operation

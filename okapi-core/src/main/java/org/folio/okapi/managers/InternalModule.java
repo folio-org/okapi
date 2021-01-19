@@ -912,7 +912,7 @@ public class InternalModule {
   private Future<String> createModule(ProxyContext pc, String body) {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
-      return createModules(pc, Arrays.asList(md))
+      return createModules(pc, Collections.singletonList(md))
           .compose(res -> location(pc, md.getId(), null, Json.encodePrettily(md)));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
@@ -933,14 +933,14 @@ public class InternalModule {
           try {
             final boolean dot = ModuleUtil.getParamBoolean(pc.getCtx().request(), "dot", false);
             mdl = ModuleUtil.filter(pc.getCtx().request(), mdl, dot, true);
+            String s;
             if (dot) {
-              String s = GraphDot.report(mdl);
+              s = GraphDot.report(mdl);
               pc.getCtx().response().putHeader("Content-Type", "text/plain");
-              return Future.succeededFuture(s);
             } else {
-              String s = Json.encodePrettily(mdl);
-              return Future.succeededFuture(s);
+              s = Json.encodePrettily(mdl);
             }
+            return Future.succeededFuture(s);
           } catch (DecodeException ex) {
             return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
           }

@@ -93,7 +93,7 @@ public class PullManager {
                 promise.complete(result);
               }
             });
-            response.exceptionHandler(x -> promise.fail(x));
+            response.exceptionHandler(promise::fail);
           });
     });
     return promise.future();
@@ -139,8 +139,7 @@ public class PullManager {
 
   private Future<List<ModuleDescriptor>> pullSmart(String remoteUrl,
                                                    Collection<ModuleDescriptor> localList) {
-    return getList(remoteUrl, localList).compose(res -> {
-      ModuleDescriptor[] remoteList = res;
+    return getList(remoteUrl, localList).compose(remoteList -> {
       List<ModuleDescriptor> mustAddList = new LinkedList<>();
       List<ModuleDescriptor> briefList = new LinkedList<>();
       Set<String> enabled = new TreeSet<>();
@@ -161,15 +160,13 @@ public class PullManager {
 
   Future<List<ModuleDescriptor>> pull(PullDescriptor pd) {
     return getRemoteUrl(Arrays.asList(pd.getUrls()))
-        .compose(resUrl -> {
-          return moduleManager.getModulesWithFilter(true, true, null).compose(
-              resLocal -> {
-                final String remoteUrl = resUrl.get(0);
-                final String remoteVersion = resUrl.get(1);
-                logger.info("Remote registry at {} is version {}", remoteUrl, remoteVersion);
-                logger.info("pull smart");
-                return pullSmart(remoteUrl, resLocal);
-              });
-        });
+        .compose(resUrl -> moduleManager.getModulesWithFilter(true, true, null)
+            .compose(resLocal -> {
+              final String remoteUrl = resUrl.get(0);
+              final String remoteVersion = resUrl.get(1);
+              logger.info("Remote registry at {} is version {}", remoteUrl, remoteVersion);
+              logger.info("pull smart");
+              return pullSmart(remoteUrl, resLocal);
+            }));
   }
 }

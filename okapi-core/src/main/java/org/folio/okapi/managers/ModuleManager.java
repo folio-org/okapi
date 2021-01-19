@@ -1,9 +1,7 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -15,6 +13,7 @@ import java.util.TreeSet;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
@@ -31,13 +30,10 @@ import org.folio.okapi.util.OkapiError;
 public class ModuleManager {
 
   private final Logger logger = OkapiLogger.get();
-  private final String mapName = "modules";
-  private static final String EVENT_NAME = "moduleUpdate";
+  private static final String MAP_NAME = "modules";
   private final LockedTypedMap1<ModuleDescriptor> modules
       = new LockedTypedMap1<>(ModuleDescriptor.class);
-  private final Map<String,ModuleDescriptor> enabledModulesCache = new HashMap<>();
   private final ModuleStore moduleStore;
-  private Vertx vertx;
   private final Messages messages = Messages.getInstance();
   private final boolean local;
 
@@ -52,22 +48,8 @@ public class ModuleManager {
    * @return future result
    */
   public Future<Void> init(Vertx vertx) {
-    this.vertx = vertx;
-    consumeModulesUpdated();
-    return modules.init(vertx, mapName, local)
+    return modules.init(vertx, MAP_NAME, local)
         .compose(x -> loadModules());
-  }
-
-  private void consumeModulesUpdated() {
-    EventBus eb = vertx.eventBus();
-    eb.consumer(EVENT_NAME, res -> {
-      String moduleId = (String) res.body();
-      enabledModulesCache.remove(moduleId);
-    });
-  }
-
-  private void invalidateCacheEntry(String id) {
-    vertx.eventBus().publish(EVENT_NAME, id);
   }
 
   /**
@@ -84,11 +66,11 @@ public class ModuleManager {
         return Future.succeededFuture();
       }
       return moduleStore.getAll().compose(res -> {
-        List<Future> futures = new LinkedList<>();
+        List<Future<Void>> futures = new LinkedList<>();
         for (ModuleDescriptor md : res) {
           futures.add(modules.add(md.getId(), md));
         }
-        return CompositeFuture.all(futures).mapEmpty();
+        return GenericCompositeFuture.all(futures).mapEmpty();
       });
     });
   }
@@ -136,14 +118,14 @@ public class ModuleManager {
   }
 
   private Future<Void> createList2(List<ModuleDescriptor> list) {
-    List<Future> futures = new LinkedList<>();
+    List<Future<Void>> futures = new LinkedList<>();
     for (ModuleDescriptor md : list) {
       if (moduleStore != null) {
         futures.add(moduleStore.insert(md));
       }
       futures.add(modules.add(md.getId(), md));
     }
-    return CompositeFuture.all(futures).mapEmpty();
+    return GenericCompositeFuture.all(futures).mapEmpty();
   }
 
   /**
@@ -180,7 +162,6 @@ public class ModuleManager {
   }
 
   private Future<Void> deleteInternal(String id) {
-    invalidateCacheEntry(id);
     return modules.remove(id).mapEmpty();
   }
 
@@ -189,7 +170,7 @@ public class ModuleManager {
    * an {@link OkapiError} with {@link ErrorType#NOT_FOUND}.
    *
    * @param id module ID to get.
-   * @returns fut future with resulting Module Descriptor
+   * @return fut future with resulting Module Descriptor
    */
   public Future<ModuleDescriptor> get(String id) {
     return modules.getNotFound(id);

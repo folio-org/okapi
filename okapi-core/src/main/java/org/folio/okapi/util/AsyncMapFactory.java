@@ -28,7 +28,7 @@ class AsyncMapFactory {
   public static <K, V> Future<AsyncMap<K, V>> create(Vertx vertx, String mapName, boolean local) {
     SharedData shared = vertx.sharedData();
     if (!local && vertx.isClustered()) {
-      return  shared.<K, V>getClusterWideMap(mapName);
+      return  shared.getClusterWideMap(mapName);
     }
     // Dirty trickery to make sure we can run two verticles in our tests,
     // without them sharing the 'shared' memory. Only when running in non-
@@ -36,6 +36,6 @@ class AsyncMapFactory {
     // Also used in deploy-only nodes, where we want local-only tenant and
     // module lists with only the hard-coded supertenant and internalModule.
     String id = vertx.getOrCreateContext().deploymentID();
-    return shared.<K, V>getLocalAsyncMap(mapName + id);
+    return shared.getLocalAsyncMap(mapName + id);
   }
 }

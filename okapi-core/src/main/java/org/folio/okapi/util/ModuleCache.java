@@ -78,11 +78,7 @@ public class ModuleCache {
                   List<RoutingEntry> entries) {
     for (RoutingEntry routingEntry : entries) {
       String prefix = getPatternPrefix(routingEntry);
-      List<ModuleCacheEntry> list = map.get(prefix);
-      if (list == null) {
-        list = new LinkedList<>();
-        map.put(prefix, list);
-      }
+      List<ModuleCacheEntry> list = map.computeIfAbsent(prefix, k -> new LinkedList<>());
       list.add(new ModuleCacheEntry(moduleDescriptor, routingEntry));
     }
   }
@@ -177,7 +173,7 @@ public class ModuleCache {
    * @throws IllegalArgumentException for redirect errors
    */
   public List<ModuleInstance> lookup(String uri, HttpMethod method, String id) {
-    logger.debug("lookup {} {} id={}", () -> method.name(), () -> uri, () -> id);
+    logger.debug("lookup {} {} id={}", method::name, () -> uri, () -> id);
     logger.debug("Available modules {}", () -> ModuleUtil.moduleList(moduleDescriptors));
     // perform lookup of filters
     List<ModuleInstance> instances = lookup(uri, method, filterMap, false, null);

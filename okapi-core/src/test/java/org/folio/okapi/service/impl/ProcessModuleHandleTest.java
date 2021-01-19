@@ -1,6 +1,5 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.NetServer;
@@ -12,6 +11,7 @@ import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
 import org.junit.Assume;
@@ -274,12 +274,12 @@ public class ProcessModuleHandleTest {
       mhs[i] = createModuleHandle(desc, 9231+i);
     }
     logger.debug("Start");
-    List<Future> futures = new LinkedList<>();
+    List<Future<Void>> futures = new LinkedList<>();
     for (ModuleHandle mh : mhs) {
       futures.add(mh.start());
     }
     Async async1 = context.async();
-    CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(res -> async1.complete()));
+    GenericCompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(res -> async1.complete()));
     async1.await();
 
     futures = new LinkedList<>();
@@ -287,7 +287,7 @@ public class ProcessModuleHandleTest {
       futures.add(mh.stop());
     }
     Async async2 = context.async();
-    CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(res -> async2.complete()));
+    GenericCompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(res -> async2.complete()));
     async2.await();
   }
 }

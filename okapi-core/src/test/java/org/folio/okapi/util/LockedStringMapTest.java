@@ -1,14 +1,13 @@
 package org.folio.okapi.util;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Test;
@@ -334,32 +333,32 @@ public class LockedStringMapTest {
       async.await();
     }
     {
-      List<Future> futures = new LinkedList<>();
+      List<Future<Void>> futures = new LinkedList<>();
       for (int i = 0; i < 10; i++) {
         futures.add(map.addOrReplace(true,"k", "l", Integer.toString(i)));
       }
       Async async = context.async();
-      CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      GenericCompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
       async.await();
     }
     {
-      List<Future> futures = new LinkedList<>();
+      List<Future<Void>> futures = new LinkedList<>();
       for (int i = 0; i < 10; i++) {
         futures.add(map.addOrReplace(true,"k", Integer.toString(i), Integer.toString(i)));
       }
       Async async = context.async();
-      CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      GenericCompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
       async.await();
     }
 
     {
-      List<Future> futures = new LinkedList<>();
+      List<Future<Boolean>> futures = new LinkedList<>();
       for (int i = 0; i < 10; i++) {
         futures.add(map.remove("k", "l"));
         futures.add(map.remove("k", Integer.toString(i)));
       }
       Async async = context.async();
-      CompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      GenericCompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
       async.await();
     }
   }

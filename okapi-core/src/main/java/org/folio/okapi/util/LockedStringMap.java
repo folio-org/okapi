@@ -35,7 +35,7 @@ public class LockedStringMap {
    * Initialize a shared map.
    * @param vertx Vert.x handle
    * @param mapName name of shared map
-   * @parm local true to force local map even if clustered
+   * @param local true to force local map even if clustered
    * @return Future
    */
   public Future<Void> init(Vertx vertx, String mapName, boolean local) {
@@ -118,8 +118,7 @@ public class LockedStringMap {
    * @return fut async result
    */
   public Future<Void> addOrReplace(boolean allowReplace, String k, String k2, String value) {
-    return list.get(k).compose(resGet -> {
-      String oldVal = resGet;
+    return list.get(k).compose(oldVal -> {
       String newVal;
       if (k2 == null) {
         newVal = value;
@@ -156,8 +155,7 @@ public class LockedStringMap {
 
   private Future<Void> addOrReplace2(boolean allowReplace, String k, String k2, String value) {
     Promise<Void> promise = Promise.promise();
-    vertx.setTimer(DELAY, x -> addOrReplace(allowReplace, k, k2, value)
-        .onComplete(promise::handle));
+    vertx.setTimer(DELAY, x -> addOrReplace(allowReplace, k, k2, value).onComplete(promise));
     return promise.future();
   }
 
@@ -183,7 +181,7 @@ public class LockedStringMap {
   }
 
   public Future<Boolean> remove(String k) {
-    return remove(k, (String) null);
+    return remove(k, null);
   }
 
   /**
@@ -219,7 +217,7 @@ public class LockedStringMap {
       return Future.succeededFuture(true);
     } else {
       Promise<Boolean> promise = Promise.promise();
-      vertx.setTimer(DELAY, res -> remove(k, k2).onComplete(promise::handle));
+      vertx.setTimer(DELAY, res -> remove(k, k2).onComplete(promise));
       return promise.future();
     }
   }
