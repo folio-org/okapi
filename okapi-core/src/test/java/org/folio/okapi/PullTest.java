@@ -13,7 +13,6 @@ import io.restassured.response.Response;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
@@ -33,9 +32,6 @@ public class PullTest {
   private Vertx vertx;
 
   private static final String LS = System.lineSeparator();
-  private String vert1;
-  private String vert2;
-  private HttpServer otherServer;
   private final int port1 = 9231; // where we define MDs
   private final int port2 = 9230; // where we pull
   private final int port3 = 9232; // other non-proxy server
@@ -48,85 +44,29 @@ public class PullTest {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
   }
 
-  private void setupOtherHttpServer(TestContext context, Async async) {
-    Router router = Router.router(vertx);
-
-    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-
-    otherServer = vertx.createHttpServer(so)
-        .requestHandler(router)
-        .listen(
-            port3,
-            result -> {
-              if (result.failed()) {
-                context.fail(result.cause());
-              }
-              async.complete();
-            }
-        );
-  }
-
-  private void otherDeploy(TestContext context, Async async) {
-    DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(new JsonObject().put("port", Integer.toString(port1))
-      );
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-      if (res.failed()) {
-        context.fail(res.cause());
-      } else {
-        vert2 = res.result();
-        setupOtherHttpServer(context, async);
-      }
-    });
-  }
-
   @Before
   public void setUp(TestContext context) {
     logger.debug("staring PullTest");
     vertx = Vertx.vertx();
-    Async async = context.async();
-    DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(new JsonObject().put("port", Integer.toString(port2))
+    DeploymentOptions opt1 = new DeploymentOptions()
+      .setConfig(new JsonObject().put("port", Integer.toString(port1))
       );
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-      if (res.failed()) {
-        context.fail(res.cause());
-      } else {
-        vert1 = res.result();
-        otherDeploy(context, async);
-      }
-    });
+    DeploymentOptions opt2 = new DeploymentOptions()
+        .setConfig(new JsonObject().put("port", Integer.toString(port2))
+        );
+    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+
+    vertx.deployVerticle(MainVerticle.class, opt1)
+      .compose(x -> vertx.deployVerticle(MainVerticle.class, opt2))
+      .compose(x -> vertx.createHttpServer(so)
+          .requestHandler(Router.router(vertx))
+          .listen(port3))
+      .onComplete(context.asyncAssertSuccess());
   }
 
   @After
   public void tearDown(TestContext context) {
-    td(context, context.async());
-  }
-
-  private void td(TestContext context, Async async) {
-    if (vert1 != null) {
-      vertx.undeploy(vert1, res -> {
-        vert1 = null;
-        td(context, async);
-      });
-      return;
-    }
-    if (vert2 != null) {
-      vertx.undeploy(vert2, res -> {
-        vert2 = null;
-        td(context, async);
-      });
-      return;
-    }
-    if (otherServer != null) {
-      otherServer.close().onComplete(res -> {
-        otherServer = null;
-        td(context, async);
-      });
-      return;
-    }
     vertx.close(context.asyncAssertSuccess());
-    async.complete();
   }
 
   @Test
