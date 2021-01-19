@@ -12,112 +12,82 @@ public class BeanTest {
 
   @Test
   public void testDeploymentDescriptor1() {
-    int fail = 0;
     final String docSampleDeployment = "{" + LS
-      + "  \"srvcId\" : \"sample-module-1\"," + LS
-      + "  \"descriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
-      + "    \"env\" : [ {" + LS
-      + "      \"name\" : \"helloGreeting\"," + LS
-      + "      \"value\" : \"hej\"" + LS
-      + "    } ]" + LS
-      + "  }" + LS
-      + "}";
+        + "  \"srvcId\" : \"sample-module-1\"," + LS
+        + "  \"descriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
+        + "    \"env\" : [ {" + LS
+        + "      \"name\" : \"helloGreeting\"," + LS
+        + "      \"value\" : \"hej\"" + LS
+        + "    } ]" + LS
+        + "  }" + LS
+        + "}";
 
-    try {
-      final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
+    final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
         DeploymentDescriptor.class);
-      String pretty = Json.encodePrettily(md);
-      assertEquals(docSampleDeployment, pretty);
-    } catch (DecodeException ex) {
-      ex.printStackTrace();
-      fail = 400;
-    }
-    assertEquals(0, fail);
+    String pretty = Json.encodePrettily(md);
+    assertEquals(docSampleDeployment, pretty);
   }
 
   @Test
   public void testDeploymentDescriptor2() {
-    int fail = 0;
     final String docSampleDeployment = "{" + LS
-      + "  \"srvcId\" : \"sample-module-1\"," + LS
-      + "  \"descriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
-      + "    \"env\" : [ {" + LS
-      + "      \"name\" : \"helloGreeting\"" + LS
-      + "    } ]" + LS
-      + "  }" + LS
-      + "}";
+        + "  \"srvcId\" : \"sample-module-1\"," + LS
+        + "  \"descriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
+        + "    \"env\" : [ {" + LS
+        + "      \"name\" : \"helloGreeting\"" + LS
+        + "    } ]" + LS
+        + "  }" + LS
+        + "}";
 
-    try {
-      final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
+    final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
         DeploymentDescriptor.class);
-      String pretty = Json.encodePrettily(md);
-      assertEquals(docSampleDeployment, pretty);
-    } catch (DecodeException ex) {
-      ex.printStackTrace();
-      fail = 400;
-    }
-    assertEquals(0, fail);
+    String pretty = Json.encodePrettily(md);
+    assertEquals(docSampleDeployment, pretty);
   }
 
   @Test
   public void testDeploymentDescriptor3() {
-    int fail = 0;
     final String docSampleDeployment = "{" + LS
-      + "  \"srvcId\" : \"sample-module-1\"," + LS
-      + "  \"descriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-      + "  }" + LS
-      + "}";
+        + "  \"srvcId\" : \"sample-module-1\"," + LS
+        + "  \"descriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+        + "  }" + LS
+        + "}";
 
-    try {
-      final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
+    final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
         DeploymentDescriptor.class);
-      String pretty = Json.encodePrettily(md);
-      assertEquals(docSampleDeployment, pretty);
-    } catch (DecodeException ex) {
-      ex.printStackTrace();
-      fail = 400;
-    }
-    assertEquals(0, fail);
+    String pretty = Json.encodePrettily(md);
+    assertEquals(docSampleDeployment, pretty);
   }
 
   @Test
   public void testDeploymentDescriptor4() {
-    int fail = 0;
     final String docSampleDeployment = "{" + LS
-      + "  \"srvcId\" : \"sample-module-1\"," + LS
-      + "  \"descriptor\" : {" + LS
-      + "    \"dockerImage\" : \"my-image\"," + LS
-      + "    \"dockerArgs\" : {" + LS
-      + "      \"Hostname\" : \"localhost\"," + LS
-      + "      \"User\" : \"nobody\"" + LS
-      + "    }," + LS
-      + "    \"dockerCMD\" : [ \"a\", \"b\" ]" + LS
-      + "  }" + LS
-      + "}";
+        + "  \"srvcId\" : \"sample-module-1\"," + LS
+        + "  \"descriptor\" : {" + LS
+        + "    \"dockerImage\" : \"my-image\"," + LS
+        + "    \"dockerArgs\" : {" + LS
+        + "      \"Hostname\" : \"localhost\"," + LS
+        + "      \"User\" : \"nobody\"" + LS
+        + "    }," + LS
+        + "    \"dockerCMD\" : [ \"a\", \"b\" ]" + LS
+        + "  }" + LS
+        + "}";
 
-    try {
-      final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
+    final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
         DeploymentDescriptor.class);
-      assertEquals("b", md.getDescriptor().getDockerCmd()[1]);
-      String pretty = Json.encodePrettily(md);
-      assertEquals(docSampleDeployment, pretty);
-    } catch (DecodeException ex) {
-      ex.printStackTrace();
-      fail = 400;
-    }
-    assertEquals(0, fail);
+    assertEquals("b", md.getDescriptor().getDockerCmd()[1]);
+    String pretty = Json.encodePrettily(md);
+    assertEquals(docSampleDeployment, pretty);
   }
 
   @Test
   public void testModuleDescriptor1() {
-    int fail = 0;
-
     final String docModuleDescriptor = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
@@ -157,23 +127,16 @@ public class BeanTest {
       + "    \"language\" : \"java\"" + LS
       + "  }," + LS
       + "  \"replaces\" : [ \"old-module\", \"other-module\" ]" + LS
-      + "}";
+        + "}";
 
-    try {
-      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
+    final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
         ModuleDescriptor.class);
-      String pretty = Json.encodePrettily(md);
-      assertEquals(docModuleDescriptor, pretty);
-    } catch (DecodeException ex) {
-      ex.printStackTrace();
-      fail = 400;
-    }
-    assertEquals(0, fail);
+    String pretty = Json.encodePrettily(md);
+    assertEquals(docModuleDescriptor, pretty);
   }
 
   @Test
   public void testModuleDescriptor2() {
-    int fail = 0;
 
     final String docModuleDescriptor = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
@@ -209,24 +172,16 @@ public class BeanTest {
       + "  } ]" + LS
       + "}";
 
-    try {
-      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
+    final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
         ModuleDescriptor.class);
-      String pretty = Json.encodePrettily(md);
-      assertEquals(docModuleDescriptor, pretty);
-      final ModuleInstance mi = new ModuleInstance(md, md.getFilters()[0], "/test/123", HttpMethod.GET, true);
-      assertEquals("/events/test/123", mi.getPath());
-    } catch (DecodeException ex) {
-      ex.printStackTrace();
-      fail = 400;
-    }
-    assertEquals(0, fail);
+    String pretty = Json.encodePrettily(md);
+    assertEquals(docModuleDescriptor, pretty);
+    final ModuleInstance mi = new ModuleInstance(md, md.getFilters()[0], "/test/123", HttpMethod.GET, true);
+    assertEquals("/events/test/123", mi.getPath());
   }
 
   @Test
-  public void testModuleDescriptorBadMethod() {
-    int fail = 0;
-
+  public void testModuleDescriptorBadMethod()  {
     final String docModuleDescriptor = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -239,20 +194,17 @@ public class BeanTest {
       + "  } ]" + LS
       + "}";
 
+    String msg = null;
     try {
-      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
-        ModuleDescriptor.class);
-      String pretty = Json.encodePrettily(md);
+      Json.decodeValue(docModuleDescriptor, ModuleDescriptor.class);
     } catch (DecodeException ex) {
-      fail = 400;
+      msg = ex.getMessage();
     }
-    assertEquals(400, fail);
+    assertTrue(msg, msg.startsWith("Failed to decode:NOST"));
   }
 
   @Test
   public void testModuleDescriptorTimers() {
-    int fail = 0;
-
     final String docModuleDescriptor = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -286,21 +238,13 @@ public class BeanTest {
       + "  } ]" + LS
       + "}";
 
-    try {
-      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
-        ModuleDescriptor.class);
-      String pretty = Json.encodePrettily(md);
-    } catch (DecodeException ex) {
-      ex.printStackTrace();
-      fail = 400;
-    }
-    assertEquals(0, fail);
+    ModuleDescriptor moduleDescriptor = Json.decodeValue(docModuleDescriptor, ModuleDescriptor.class);
+    moduleDescriptor.setPermissionSets(null); // to cover the if (permissionSets != null) ..
+    assertNull(moduleDescriptor.getPermissionSets());
   }
 
   @Test
   public void testModuleDescriptorTimers2() {
-    int fail = 0;
-
     final String docModuleDescriptor = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -315,20 +259,17 @@ public class BeanTest {
       + "  } ]" + LS
       + "}";
 
+    String msg = null;
     try {
-      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
-        ModuleDescriptor.class);
-      String pretty = Json.encodePrettily(md);
+      Json.decodeValue(docModuleDescriptor, ModuleDescriptor.class);
     } catch (DecodeException ex) {
-      fail = 400;
+      msg = ex.getMessage();
     }
-    assertEquals(400, fail);
+    assertTrue(msg, msg.startsWith("Failed to decode:second1"));
   }
 
   @Test
   public void testMultipleProvides() {
-    int fail = 0;
-
     final String docModuleDescriptor = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -352,15 +293,42 @@ public class BeanTest {
       + "  } ]" + LS
       + "}";
 
+    String msg = null;
     try {
-      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
-        ModuleDescriptor.class);
-      String pretty = Json.encodePrettily(md);
+      Json.decodeValue(docModuleDescriptor, ModuleDescriptor.class);
     } catch (DecodeException ex) {
-      ex.printStackTrace();
-      fail = 400;
+      msg = ex.getMessage();
     }
-    assertEquals(400, fail);
+    assertTrue(msg, msg.startsWith("Failed to decode:Interface"));
   }
 
+  @Test
+  public void testMissingPermissionName() {
+    final String docModuleDescriptor = "{" + LS
+        + "  \"id\" : \"sample-module-1\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"api\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"GET\" ]," + LS
+        + "      \"pathPattern\" : \"/test\"," + LS
+        + "      \"permissionsRequired\" : [\"/test.get\"]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]," + LS
+        + "  \"permissionSets\": [ {" + LS
+        + "    \"permissionName\" : \"foo\"" + LS
+        + " }, {" + LS
+        + "    \"description\" : \"foo\"" + LS
+        + " }]" + LS
+        + "}";
+
+    String msg = null;
+    try {
+      Json.decodeValue(docModuleDescriptor, ModuleDescriptor.class);
+    } catch (DecodeException e) {
+      msg = e.getMessage();
+    }
+    assertTrue(msg, msg.startsWith("Failed to decode:Missing permissionName"));
+  }
 }
