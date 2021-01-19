@@ -40,6 +40,7 @@ public class ModuleTenantsTest {
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
+    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
   }
 
   @Before

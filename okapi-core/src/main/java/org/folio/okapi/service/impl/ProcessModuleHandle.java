@@ -70,6 +70,23 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     }
   }
 
+  private Future<Void> waitPortOpen(NetClient c, int iter) {
+    return c.connect(port, "localhost")
+        .compose(
+            socket -> socket.close()
+                .compose(y -> {
+                  if (iter == 0) {
+                    return Future.failedFuture(
+                        messages.getMessage("11502", Integer.toString(port)));
+                  }
+                  Promise<Void> promise = Promise.promise();
+                  vertx.setTimer(100, x ->
+                      waitPortOpen(c, iter - 1).onComplete(promise));
+                  return promise.future();
+                }),
+            noSocket -> Future.succeededFuture());
+  }
+
   @Override
   public Future<Void> start() {
     if (process != null) {
@@ -80,11 +97,10 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     }
     // fail if port is already in use
     NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
-    NetClient c = vertx.createNetClient(options);
-    return c.connect(port, "localhost").compose(socket -> {
-      return socket.close().otherwiseEmpty()
-          .compose(x -> Future.failedFuture(messages.getMessage("11502", Integer.toString(port))));
-    }, fail -> start2());
+    NetClient netClient = vertx.createNetClient(options);
+    return waitPortOpen(netClient, 5)
+        .onComplete(x -> netClient.close())
+        .compose(x -> start2());
   }
 
   @Override
@@ -174,7 +190,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
       return socket.close().otherwiseEmpty().compose(x -> {
         if (iter > 0) {
           Promise<Void> promise = Promise.promise();
-          vertx.setTimer(100, id -> waitPortToClose(iter - 1).onComplete(promise::handle));
+          vertx.setTimer(100, id -> waitPortToClose(iter - 1).onComplete(promise));
           return promise.future();
         } else {
           return Future.failedFuture(messages.getMessage("11503", Integer.toString(port)));

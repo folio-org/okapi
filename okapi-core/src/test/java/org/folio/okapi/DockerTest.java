@@ -43,6 +43,7 @@ public class DockerTest {
 
   @Before
   public void setUp(TestContext context) {
+    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     Async async = context.async();
     VertxOptions options = new VertxOptions();
     options.setBlockedThreadCheckInterval(60000); // in ms
@@ -113,7 +114,6 @@ public class DockerTest {
         res.handler(body::appendBuffer);
         res.endHandler(d -> {
           if (res.statusCode() == 200) {
-            boolean gotIt = false;
             try {
               JsonArray ar = body.toJsonArray();
               future.handle(Future.succeededFuture(ar));
@@ -165,7 +165,6 @@ public class DockerTest {
       return;
     }
     RestAssuredClient c;
-    Response r;
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
       .assumingBaseUri("https://okapi.cloud");
 
@@ -193,12 +192,11 @@ public class DockerTest {
       + "}";
 
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
       .header("Content-Type", "application/json")
       .body(docSampleDockerModule).post("/_/proxy/modules")
       .then()
-      .statusCode(201).log().ifValidationFails()
-      .extract().response();
+      .statusCode(201);
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
 
@@ -208,10 +206,9 @@ public class DockerTest {
       + "}";
 
     c = api.createRestAssured3();
-    r = c.given().header("Content-Type", "application/json")
+    c.given().header("Content-Type", "application/json")
       .body(doc1).post("/_/discovery/modules")
-      .then().statusCode(201)
-      .extract().response();
+      .then().statusCode(201);
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
   }
@@ -219,7 +216,6 @@ public class DockerTest {
   @Test
   public void deployUnknownModule(TestContext context) {
     RestAssuredClient c;
-    Response r;
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
       .assumingBaseUri("https://okapi.cloud");
 
@@ -237,12 +233,11 @@ public class DockerTest {
       + "}";
 
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
       .header("Content-Type", "application/json")
       .body(docSampleDockerModule).post("/_/proxy/modules")
       .then()
-      .statusCode(201).log().ifValidationFails()
-      .extract().response();
+      .statusCode(201);
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
 
@@ -262,9 +257,6 @@ public class DockerTest {
   @Test
   public void deployBadListeningPort(TestContext context) {
     org.junit.Assume.assumeTrue(haveDocker);
-    if (!haveDocker) {
-      return;
-    }
     RestAssuredClient c;
     Response r;
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
@@ -293,12 +285,11 @@ public class DockerTest {
       + "}";
 
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
       .header("Content-Type", "application/json")
       .body(docUserDockerModule).post("/_/proxy/modules")
       .then()
-      .statusCode(201)
-      .extract().response();
+      .statusCode(201);
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
 
@@ -311,7 +302,6 @@ public class DockerTest {
     r = c.given().header("Content-Type", "application/json")
       .body(doc2).post("/_/discovery/modules")
       .then().statusCode(400).extract().response();
-    int statusCode = r.getStatusCode();
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
     context.assertTrue(r.getBody().asString().contains("Could not connect to port 9234"),
@@ -321,9 +311,6 @@ public class DockerTest {
   @Test
   public void deployModUsers(TestContext context) {
     org.junit.Assume.assumeTrue(haveDocker);
-    if (!haveDocker) {
-      return;
-    }
     RestAssuredClient c;
     Response r;
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
@@ -352,12 +339,11 @@ public class DockerTest {
       + "}";
 
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
       .header("Content-Type", "application/json")
       .body(docUserDockerModule).post("/_/proxy/modules")
       .then()
-      .statusCode(201)
-      .extract().response();
+      .statusCode(201);
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
 

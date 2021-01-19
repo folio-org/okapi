@@ -137,7 +137,7 @@ public class DockerModuleHandleTest implements WithAssertions {
   private void dockerMockHandle(RoutingContext ctx) {
     HttpMethod method = ctx.request().method();
     String path = ctx.request().path();
-    logger.debug("dockerMockHandle {} {} {}", method.name(), path);
+    logger.debug("dockerMockHandle {} {}", method.name(), path);
     if (method.equals(HttpMethod.POST) && path.contains("/images/create")) {
       lastFromImage = ctx.request().getParam("fromImage");
       String auth = ctx.request().getHeader("X-Registry-Auth");
@@ -221,9 +221,12 @@ public class DockerModuleHandleTest implements WithAssertions {
     router.routeWithRegex("/.*").handler(this::dockerMockHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    Async async1 = context.async();
     HttpServer listen = vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(MOCK_PORT, context.asyncAssertSuccess());
+        .listen(MOCK_PORT, context.asyncAssertSuccess(x -> async1.complete()));
+    async1.await();
+
     dockerPullJson = new JsonObject().put("message", "some message");
     dockerPullStatus = 200;
 
@@ -269,11 +272,15 @@ public class DockerModuleHandleTest implements WithAssertions {
     router.routeWithRegex("/.*").handler(this::dockerMockHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    Async async1 = context.async();
     HttpServer listen = vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(MOCK_PORT, context.asyncAssertSuccess());
+        .listen(MOCK_PORT, context.asyncAssertSuccess(x -> async1.complete()));
+    async1.await();
+
     dockerImageMatch = "foo";
     JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:" + MOCK_PORT);
+    assertThat(getImage(context, vertx, conf)).contains("not found");
     assertThat(getImage(context, vertx, conf)).contains("not found");
     dockerImageMatch = "folioci/mod-x";
     assertThat(getImage(context, vertx, conf)).isEqualTo("succeeded");
@@ -299,10 +306,12 @@ public class DockerModuleHandleTest implements WithAssertions {
 
     Router router = Router.router(vertx);
     router.routeWithRegex("/.*").handler(this::dockerMockHandle);
+    Async async1 = context.async();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     HttpServer listen = vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(MOCK_PORT, context.asyncAssertSuccess());
+        .listen(MOCK_PORT, context.asyncAssertSuccess(x -> async1.complete()));
+    async1.await();
 
     LaunchDescriptor ld = new LaunchDescriptor();
     ld.setWaitIterations(2);
@@ -346,7 +355,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       dockerMockStatus = 102;
       dockerMockText = "Switch";
       dh.start().onComplete(context.asyncAssertFailure(cause -> {
-        context.assertEquals("/images/folioci/mod-x/json HTTP error 102\n",
+        context.assertEquals("getImage HTTP error 102\n",
             cause.getMessage());
         async.complete();
       }));
@@ -358,7 +367,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       dockerMockStatus = 404;
       dockerMockText = "NotHere";
       dh.start().onComplete(context.asyncAssertFailure(cause -> {
-        context.assertEquals("/images/folioci/mod-x/json HTTP error 404\nNotHere",
+        context.assertEquals("getImage HTTP error 404\nNotHere",
             cause.getMessage());
         async.complete();
       }));
@@ -384,7 +393,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       dockerMockJson.put("Config", 1);
 
       dh.start().onComplete(context.asyncAssertFailure(cause -> {
-        assertThat(cause.getMessage().contains("class java.lang.Integer cannot be cast to class io.vertx.core.json.JsonObject"));
+        assertThat(cause.getMessage()).contains("class java.lang.Integer cannot be cast to class io.vertx.core.json.JsonObject");
         async.complete();
       }));
       async.await();
@@ -492,7 +501,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     JsonObject versionRes = new JsonObject();
     {
       Async async = context.async();
-      dh.getUrl("/version").onComplete(res -> {
+      dh.getUrl("/version", "getVersion").onComplete(res -> {
         if (res.succeeded()) {
           versionRes.put("result", res.result());
         }
