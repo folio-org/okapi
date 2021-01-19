@@ -9,6 +9,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.GenericCompositeFuture;
@@ -51,8 +52,7 @@ public class ProcessModuleHandleTest {
   };
 
   private ModuleHandle createModuleHandle(LaunchDescriptor desc, int port) {
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, "test", ports, port);
-    return pmh;
+    return new ProcessModuleHandle(vertx, desc, "test", ports, port);
   }
 
   @Test
@@ -172,11 +172,26 @@ public class ProcessModuleHandleTest {
       desc.setExec("java " + testModuleArgs);
       ModuleHandle mh = createModuleHandle(desc, 9231);
       mh.start().onComplete(context.asyncAssertFailure(cause -> {
-        context.assertEquals("port 9231 already in use", cause.getMessage());
         ns.close();
+        context.assertEquals("port 9231 already in use", cause.getMessage());
         // stop is not necessary, but check that we can call it anyway
         mh.stop().onComplete(context.asyncAssertSuccess());
       }));
+    }));
+  }
+
+  @Test
+  public void testWaitPortClose(TestContext context) {
+    final NetServer ns = vertx.createNetServer().connectHandler( res -> { res.close(); });
+    ns.listen(9231, context.asyncAssertSuccess(res -> {
+      LaunchDescriptor desc = new LaunchDescriptor();
+      desc.setExec("java " + testModuleArgs);
+      ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, "id", new Ports(9231, 9233), 9231);
+      pmh.waitPortToClose(0)
+          .onComplete(context.asyncAssertFailure(x -> {
+            ns.close();
+            context.assertEquals("port 9231 not shut down", x.getMessage());
+          }));
     }));
   }
 
@@ -187,8 +202,11 @@ public class ProcessModuleHandleTest {
     Assume.assumeFalse(os.contains("win"));
 
     LaunchDescriptor desc = new LaunchDescriptor();
+    EnvEntry [] envEntries = new EnvEntry[] { new EnvEntry("myenv", "val") };
+    desc.setEnv(envEntries);
+
     // program should operate OK
-    desc.setCmdlineStart("java -DpidFile=test-module.pid " + testModuleArgs + " 2>&1 >/dev/null &");
+    desc.setCmdlineStart("test \"$myenv\" = \"val\" && java -DpidFile=test-module.pid " + testModuleArgs + " 2>&1 >/dev/null &");
     desc.setCmdlineStop("kill `cat test-module.pid`; rm -f test-module.pid");
     ModuleHandle mh = createModuleHandle(desc, 9231);
 

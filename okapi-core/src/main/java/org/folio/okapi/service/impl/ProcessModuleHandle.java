@@ -180,7 +180,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
         .compose(x -> tcpPortWaiting.waitReady(process).onFailure(y -> stopProcess()));
   }
 
-  private Future<Void> waitPortToClose(int iter) {
+  Future<Void> waitPortToClose(int iter) {
     if (port == 0) {
       return Future.succeededFuture();
     }
