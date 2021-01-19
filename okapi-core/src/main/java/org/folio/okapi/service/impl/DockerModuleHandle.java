@@ -398,15 +398,12 @@ public class DockerModuleHandle implements ModuleHandle {
     if (exposedPorts == null) {
       throw (new IllegalArgumentException(messages.getMessage("11301")));
     }
-    int exposedPort = 0;
     for (Map.Entry<String, Object> next : exposedPorts) {
       String key = next.getKey();
       String port = key.split("/")[0];
-      if (exposedPort == 0) {
-        exposedPort = Integer.parseInt(port);
-      }
+      return Integer.parseInt(port);
     }
-    return exposedPort;
+    return 0;
   }
 
   private Future<Void> prepareContainer() {

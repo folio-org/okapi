@@ -927,7 +927,8 @@ public class TenantManager implements Liveness {
   }
 
   Future<List<InstallJob>> installUpgradeGetList(String tenantId) {
-    return tenants.getNotFound(tenantId).compose(x -> jobs.get(tenantId)
+    return tenants.getNotFound(tenantId)
+        .compose(x -> jobs.get(tenantId)
         .map(list -> Objects.requireNonNullElseGet(list, LinkedList::new)));
   }
 
