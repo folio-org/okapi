@@ -416,6 +416,20 @@ public class DockerModuleHandleTest implements WithAssertions {
       Async async = context.async();
       dockerMockStatus = 200;
       dockerMockJson = new JsonObject();
+      dockerMockJson.put("Config", new JsonObject().put("foo", 1)
+          .put("ExposedPorts", new JsonObject()));
+
+      dh.start().onComplete(context.asyncAssertFailure(cause -> {
+        context.assertEquals("Missing EXPOSE in image", cause.getMessage());
+        async.complete();
+      }));
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      dockerMockStatus = 200;
+      dockerMockJson = new JsonObject();
       dockerMockJson.put("Config", new JsonObject().put("ExposedPorts",
           new JsonObject().put("notInteger", "a")));
 
