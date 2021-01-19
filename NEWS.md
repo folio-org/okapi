@@ -1,3 +1,8 @@
+## 4.6.1 2021-01-19
+
+ * [OKAPI-973](https://issues.folio.org/browse/OKAPI-973) Fix DockerModuleHandle IllegalStateException checkEnded
+ * [OKAPI-974](https://issues.folio.org/browse/OKAPI-974) Make permissionName a required property
+
 ## 4.6.0 2021-01-15
 
 New features:
