@@ -89,7 +89,10 @@ public class DiscoveryManager implements NodeListener {
         futures.add(deployments.get(dd.getSrvcId(), dd.getInstId()).compose(d -> {
           if (d == null) {
             logger.info("Restart: adding {} {}", dd.getSrvcId(), dd.getInstId());
-            return addAndDeploy0(dd);
+            return addAndDeploy0(dd).recover(cause -> {
+              logger.warn("Deployment of {} {} failed (ignored)", dd.getSrvcId(), dd.getInstId());
+              return Future.succeededFuture();
+            });
           } else {
             logger.info("Restart: skipping {} {}", dd.getSrvcId(), dd.getInstId());
             return Future.succeededFuture();
@@ -490,7 +493,14 @@ public class DiscoveryManager implements NodeListener {
   }
 
   Future<NodeDescriptor> getNode(String nodeId) {
-    return nodeUrl(nodeId).compose(x -> getNode1(x));
+    return nodeUrl(nodeId)
+        .compose(nodeDescriptor -> getNode1(nodeDescriptor))
+        .compose(nodeDescriptor -> {
+          if (nodeDescriptor == null) {
+            return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, nodeId));
+          }
+          return Future.succeededFuture(nodeDescriptor);
+        });
   }
 
   private Future<NodeDescriptor> getNode1(String nodeId) {
@@ -500,7 +510,7 @@ public class DiscoveryManager implements NodeListener {
         return Future.succeededFuture(null);
       }
     }
-    return nodes.getNotFound(nodeId);
+    return nodes.get(nodeId);
   }
 
   Future<NodeDescriptor> updateNode(String nodeId, NodeDescriptor nd) {
