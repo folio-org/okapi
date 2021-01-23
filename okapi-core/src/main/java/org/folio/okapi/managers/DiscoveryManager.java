@@ -89,10 +89,7 @@ public class DiscoveryManager implements NodeListener {
         futures.add(deployments.get(dd.getSrvcId(), dd.getInstId()).compose(d -> {
           if (d == null) {
             logger.info("Restart: adding {} {}", dd.getSrvcId(), dd.getInstId());
-            return addAndDeploy0(dd).recover(cause -> {
-              logger.warn("Deployment of {} {} failed (ignored)", dd.getSrvcId(), dd.getInstId());
-              return Future.succeededFuture();
-            });
+            return addAndDeployIgnoreError(dd);
           } else {
             logger.info("Restart: skipping {} {}", dd.getSrvcId(), dd.getInstId());
             return Future.succeededFuture();
@@ -134,6 +131,14 @@ public class DiscoveryManager implements NodeListener {
 
   Future<DeploymentDescriptor> addAndDeploy(DeploymentDescriptor dd) {
     return addAndDeploy0(dd).compose(res -> deploymentStore.insert(res).map(res));
+  }
+
+  Future<DeploymentDescriptor> addAndDeployIgnoreError(DeploymentDescriptor dd) {
+    return addAndDeploy0(dd).recover(cause -> {
+      logger.warn("Deployment of {} {} failed (ignored): {}", dd.getSrvcId(), dd.getInstId(),
+          cause.getMessage());
+      return Future.succeededFuture();
+    });
   }
 
   /**
