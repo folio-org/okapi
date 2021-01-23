@@ -497,7 +497,8 @@ public class DiscoveryManager implements NodeListener {
         .compose(nodeDescriptor -> getNode1(nodeDescriptor))
         .compose(nodeDescriptor -> {
           if (nodeDescriptor == null) {
-            return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, nodeId));
+            return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND,
+                messages.getMessage("10806", nodeId)));
           }
           return Future.succeededFuture(nodeDescriptor);
         });
