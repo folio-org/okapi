@@ -286,42 +286,27 @@ public class DiscoveryManager implements NodeListener {
     if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
       return Future.succeededFuture();
     }
-    return nodes.getKeys().compose(allNodes -> {
-      return deployments.get(md.getId()).compose(res -> {
-        logger.info("autoDeploy {} res={}", md.getId(), res);
-        if (res != null) {
-          return Future.succeededFuture(); // already deployed
-        }
-        return autoDeploy2(md, allNodes, new LinkedList<>());
-      });
+    return deployments.get(md.getId()).compose(res -> {
+      if (res != null) {
+        logger.info("autoDeploy {} already deployed", md.getId());
+        return Future.succeededFuture(); // already deployed
+      }
+      return nodes.getKeys().compose(allNodes -> autoDeploy2(md, allNodes));
     });
   }
 
-  private Future<Void> autoDeploy2(ModuleDescriptor md,
-                                   Collection<String> allNodes, List<DeploymentDescriptor> ddList) {
-
+  private Future<Void> autoDeploy2(ModuleDescriptor md, Collection<String> allNodes) {
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
     List<Future> futures = new LinkedList<>();
     // deploy on all nodes for now
     for (String node : allNodes) {
       // check if we have deploy on node
-      logger.info("autoDeploy {} consider {}", md.getId(), node);
-      DeploymentDescriptor foundDd = null;
-      for (DeploymentDescriptor dd : ddList) {
-        if (dd.getNodeId() == null || node.equals(dd.getNodeId())) {
-          foundDd = dd;
-        }
-      }
-      if (foundDd == null) {
-        logger.info("autoDeploy {} must deploy on node {}", md.getId(), node);
-        DeploymentDescriptor dd = new DeploymentDescriptor();
-        dd.setDescriptor(modLaunchDesc);
-        dd.setSrvcId(md.getId());
-        dd.setNodeId(node);
-        futures.add(addAndDeploy(dd));
-      } else {
-        logger.info("autoDeploy {} already deployed on {}", md.getId(), node);
-      }
+      logger.info("autoDeploy {} must deploy on node {}", md.getId(), node);
+      DeploymentDescriptor dd = new DeploymentDescriptor();
+      dd.setDescriptor(modLaunchDesc);
+      dd.setSrvcId(md.getId());
+      dd.setNodeId(node);
+      futures.add(addAndDeploy(dd));
     }
     return CompositeFuture.all(futures).mapEmpty();
   }
