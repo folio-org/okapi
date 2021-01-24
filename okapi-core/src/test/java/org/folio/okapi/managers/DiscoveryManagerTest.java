@@ -46,7 +46,7 @@ public class DiscoveryManagerTest extends TestBase {
   public void healthUnknown(TestContext context) {
     Async async = context.async();
     DiscoveryManager discoveryManager = new DiscoveryManager(null);
-    discoveryManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(res -> {
+    discoveryManager.init(vertx).onComplete(context.asyncAssertSuccess(res -> {
       DeploymentDescriptor dd = new DeploymentDescriptor();
       discoveryManager.health(dd).onComplete(res1 -> {
         context.assertTrue(res1.succeeded());
@@ -62,7 +62,7 @@ public class DiscoveryManagerTest extends TestBase {
   public void healthUnknown2(TestContext context) {
     Async async = context.async();
     DiscoveryManager discoveryManager = new DiscoveryManager(null);
-    discoveryManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(res -> {
+    discoveryManager.init(vertx).onComplete(context.asyncAssertSuccess(res -> {
       DeploymentDescriptor dd = new DeploymentDescriptor();
       dd.setUrl("");
       discoveryManager.health(dd).onComplete(res1 -> {
@@ -79,7 +79,7 @@ public class DiscoveryManagerTest extends TestBase {
   public void healthFails(TestContext context) {
     Async async = context.async();
     DiscoveryManager discoveryManager = new DiscoveryManager(null);
-    discoveryManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(res -> {
+    discoveryManager.init(vertx).onComplete(context.asyncAssertSuccess(res -> {
       DeploymentDescriptor dd = new DeploymentDescriptor();
       dd.setUrl("http://localhost:9230");
       discoveryManager.health(dd).onComplete(res1 -> {
@@ -128,7 +128,7 @@ public class DiscoveryManagerTest extends TestBase {
     future = future.compose(x -> {
       DiscoveryManager discoveryManager = new DiscoveryManager(deploymentStore);
       discoveryManager.setModuleManager(moduleManager);
-      return discoveryManager.init(Vertx.vertx())
+      return discoveryManager.init(vertx)
           .compose(y -> discoveryManager.restartModules())
           .compose(y -> discoveryManager.restartModules());
     });

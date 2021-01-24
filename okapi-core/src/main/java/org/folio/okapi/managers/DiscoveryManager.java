@@ -464,31 +464,31 @@ public class DiscoveryManager implements NodeListener {
   /**
    * Translate node url or node name to its id. If not found, returns the id itself.
    *
-   * @param nodeId node ID or URL
+   * @param nodeRef node ID, node URL or node name
    * @return future with id
    */
-  private Future<String> nodeUrl(String nodeId) {
+  private Future<String> getNodeId(String nodeRef) {
     return getNodes().compose(result -> {
       for (NodeDescriptor nd : result) {
-        if (nodeId.compareTo(nd.getUrl()) == 0) {
+        if (nodeRef.compareTo(nd.getUrl()) == 0) {
           return Future.succeededFuture(nd.getNodeId());
         }
         String nm = nd.getNodeName();
-        if (nm != null && nodeId.compareTo(nm) == 0) {
+        if (nm != null && nodeRef.compareTo(nm) == 0) {
           return Future.succeededFuture(nd.getNodeId());
         }
       }
-      return Future.succeededFuture(nodeId); // try with the original id
+      return Future.succeededFuture(nodeRef); // try with the original id
     });
   }
 
-  Future<NodeDescriptor> getNode(String nodeId) {
-    return nodeUrl(nodeId)
-        .compose(nodeDescriptor -> getNode1(nodeDescriptor))
+  Future<NodeDescriptor> getNode(String nodeRef) {
+    return getNodeId(nodeRef)
+        .compose(nodeId -> getNode1(nodeId))
         .compose(nodeDescriptor -> {
           if (nodeDescriptor == null) {
             return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND,
-                messages.getMessage("10806", nodeId)));
+                messages.getMessage("10806", nodeRef)));
           }
           return Future.succeededFuture(nodeDescriptor);
         });
