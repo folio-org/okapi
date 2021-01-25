@@ -89,7 +89,7 @@ public class DiscoveryManager implements NodeListener {
         futures.add(deployments.get(dd.getSrvcId(), dd.getInstId()).compose(d -> {
           if (d == null) {
             logger.info("Restart: adding {} {}", dd.getSrvcId(), dd.getInstId());
-            return addAndDeploy0(dd);
+            return addAndDeployIgnoreError(dd);
           } else {
             logger.info("Restart: skipping {} {}", dd.getSrvcId(), dd.getInstId());
             return Future.succeededFuture();
@@ -131,6 +131,14 @@ public class DiscoveryManager implements NodeListener {
 
   Future<DeploymentDescriptor> addAndDeploy(DeploymentDescriptor dd) {
     return addAndDeploy0(dd).compose(res -> deploymentStore.insert(res).map(res));
+  }
+
+  Future<DeploymentDescriptor> addAndDeployIgnoreError(DeploymentDescriptor dd) {
+    return addAndDeploy0(dd).recover(cause -> {
+      logger.warn("Deployment of {} {} failed (ignored): {}", dd.getSrvcId(), dd.getInstId(),
+          cause.getMessage());
+      return Future.succeededFuture();
+    });
   }
 
   /**
@@ -278,42 +286,27 @@ public class DiscoveryManager implements NodeListener {
     if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
       return Future.succeededFuture();
     }
-    return nodes.getKeys().compose(allNodes ->
-        deployments.get(md.getId()).compose(res -> {
-          logger.info("autoDeploy {} res={}", md.getId(), res);
-          if (res != null) {
-            return Future.succeededFuture(); // already deployed
-          }
-          return autoDeploy2(md, allNodes, new LinkedList<>());
-        })
-    );
+    return deployments.get(md.getId()).compose(res -> {
+      if (res != null) {
+        logger.info("autoDeploy {} already deployed", md.getId());
+        return Future.succeededFuture(); // already deployed
+      }
+      return nodes.getKeys().compose(allNodes -> autoDeploy2(md, allNodes));
+    });
   }
 
-  private Future<Void> autoDeploy2(ModuleDescriptor md,
-                                   Collection<String> allNodes, List<DeploymentDescriptor> ddList) {
-
+  private Future<Void> autoDeploy2(ModuleDescriptor md, Collection<String> allNodes) {
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
     List<Future<DeploymentDescriptor>> futures = new LinkedList<>();
     // deploy on all nodes for now
     for (String node : allNodes) {
       // check if we have deploy on node
-      logger.info("autoDeploy {} consider {}", md.getId(), node);
-      DeploymentDescriptor foundDd = null;
-      for (DeploymentDescriptor dd : ddList) {
-        if (dd.getNodeId() == null || node.equals(dd.getNodeId())) {
-          foundDd = dd;
-        }
-      }
-      if (foundDd == null) {
-        logger.info("autoDeploy {} must deploy on node {}", md.getId(), node);
-        DeploymentDescriptor dd = new DeploymentDescriptor();
-        dd.setDescriptor(modLaunchDesc);
-        dd.setSrvcId(md.getId());
-        dd.setNodeId(node);
-        futures.add(addAndDeploy(dd));
-      } else {
-        logger.info("autoDeploy {} already deployed on {}", md.getId(), node);
-      }
+      logger.info("autoDeploy {} must deploy on node {}", md.getId(), node);
+      DeploymentDescriptor dd = new DeploymentDescriptor();
+      dd.setDescriptor(modLaunchDesc);
+      dd.setSrvcId(md.getId());
+      dd.setNodeId(node);
+      futures.add(addAndDeploy(dd));
     }
     return GenericCompositeFuture.all(futures).mapEmpty();
   }
@@ -470,26 +463,34 @@ public class DiscoveryManager implements NodeListener {
   /**
    * Translate node url or node name to its id. If not found, returns the id itself.
    *
-   * @param nodeId node ID or URL
+   * @param nodeRef node ID, node URL or node name
    * @return future with id
    */
-  private Future<String> nodeUrl(String nodeId) {
+  private Future<String> getNodeId(String nodeRef) {
     return getNodes().compose(result -> {
       for (NodeDescriptor nd : result) {
-        if (nodeId.compareTo(nd.getUrl()) == 0) {
+        if (nodeRef.compareTo(nd.getUrl()) == 0) {
           return Future.succeededFuture(nd.getNodeId());
         }
         String nm = nd.getNodeName();
-        if (nm != null && nodeId.compareTo(nm) == 0) {
+        if (nm != null && nodeRef.compareTo(nm) == 0) {
           return Future.succeededFuture(nd.getNodeId());
         }
       }
-      return Future.succeededFuture(nodeId); // try with the original id
+      return Future.succeededFuture(nodeRef); // try with the original id
     });
   }
 
-  Future<NodeDescriptor> getNode(String nodeId) {
-    return nodeUrl(nodeId).compose(this::getNode1);
+  Future<NodeDescriptor> getNode(String nodeRef) {
+    return getNodeId(nodeRef)
+        .compose(nodeId -> getNode1(nodeId))
+        .compose(nodeDescriptor -> {
+          if (nodeDescriptor == null) {
+            return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND,
+                messages.getMessage("10806", nodeRef)));
+          }
+          return Future.succeededFuture(nodeDescriptor);
+        });
   }
 
   private Future<NodeDescriptor> getNode1(String nodeId) {
@@ -499,7 +500,7 @@ public class DiscoveryManager implements NodeListener {
         return Future.succeededFuture(null);
       }
     }
-    return nodes.getNotFound(nodeId);
+    return nodes.get(nodeId);
   }
 
   Future<NodeDescriptor> updateNode(String nodeId, NodeDescriptor nd) {

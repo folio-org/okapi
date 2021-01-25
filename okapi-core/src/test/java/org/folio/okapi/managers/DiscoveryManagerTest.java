@@ -13,18 +13,32 @@ import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.impl.DeploymentStoreNull;
 import org.folio.okapi.util.TestBase;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class DiscoveryManagerTest extends TestBase {
 
+  private Vertx vertx;
+
+  @Before
+  public void setup(TestContext context) {
+    vertx = Vertx.vertx();
+  }
+
+  @After
+  public void after(TestContext context) {
+    vertx.close(context.asyncAssertSuccess());
+  }
+
   @Test
   public void isLeaderWithoutClusterManager(TestContext context) {
     DiscoveryManager discoveryManager = new DiscoveryManager(null);
 
-    discoveryManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(then ->
+    discoveryManager.init(vertx).onComplete(context.asyncAssertSuccess(then ->
         Assert.assertEquals(true, discoveryManager.isLeader())));
   }
 
@@ -32,7 +46,7 @@ public class DiscoveryManagerTest extends TestBase {
   public void healthUnknown(TestContext context) {
     Async async = context.async();
     DiscoveryManager discoveryManager = new DiscoveryManager(null);
-    discoveryManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(res -> {
+    discoveryManager.init(vertx).onComplete(context.asyncAssertSuccess(res -> {
       DeploymentDescriptor dd = new DeploymentDescriptor();
       discoveryManager.health(dd).onComplete(res1 -> {
         context.assertTrue(res1.succeeded());
@@ -48,7 +62,7 @@ public class DiscoveryManagerTest extends TestBase {
   public void healthUnknown2(TestContext context) {
     Async async = context.async();
     DiscoveryManager discoveryManager = new DiscoveryManager(null);
-    discoveryManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(res -> {
+    discoveryManager.init(vertx).onComplete(context.asyncAssertSuccess(res -> {
       DeploymentDescriptor dd = new DeploymentDescriptor();
       dd.setUrl("");
       discoveryManager.health(dd).onComplete(res1 -> {
@@ -65,7 +79,7 @@ public class DiscoveryManagerTest extends TestBase {
   public void healthFails(TestContext context) {
     Async async = context.async();
     DiscoveryManager discoveryManager = new DiscoveryManager(null);
-    discoveryManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(res -> {
+    discoveryManager.init(vertx).onComplete(context.asyncAssertSuccess(res -> {
       DeploymentDescriptor dd = new DeploymentDescriptor();
       dd.setUrl("http://localhost:9230");
       discoveryManager.health(dd).onComplete(res1 -> {
@@ -114,10 +128,20 @@ public class DiscoveryManagerTest extends TestBase {
     future = future.compose(x -> {
       DiscoveryManager discoveryManager = new DiscoveryManager(deploymentStore);
       discoveryManager.setModuleManager(moduleManager);
-      return discoveryManager.init(Vertx.vertx())
+      return discoveryManager.init(vertx)
           .compose(y -> discoveryManager.restartModules())
           .compose(y -> discoveryManager.restartModules());
     });
     future.onComplete(context.asyncAssertSuccess());
+  }
+
+  @Test
+  public void testAddAndDeployIgnoreError(TestContext context) {
+    DiscoveryManager discoveryManager = new DiscoveryManager(null);
+
+    discoveryManager.init(vertx)
+        .onComplete(context.asyncAssertSuccess(then ->
+            discoveryManager.addAndDeployIgnoreError(new DeploymentDescriptor())
+                .onComplete(context.asyncAssertSuccess())));
   }
 }
