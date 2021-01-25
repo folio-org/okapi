@@ -1,3 +1,7 @@
+## 4.6.2 2021-01-25
+
+ * [OKAPI-976](https://issues.folio.org/browse/OKAPI-976) Fix NPE in DiscoveryManager after restarting Okapi
+
 ## 4.6.1 2021-01-19
 
  * [OKAPI-973](https://issues.folio.org/browse/OKAPI-973) Fix DockerModuleHandle IllegalStateException checkEnded
