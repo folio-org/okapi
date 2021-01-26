@@ -76,7 +76,7 @@ public class TokenCache {
     if (ret == null) {
       MetricsHelper.recordTokenCacheMiss(tenant, method, path, userId);
       logger.debug("Cache Miss: {}", key);
-      return ret;
+      return null;
     } else if (ret.isExpired()) {
       MetricsHelper.recordTokenCacheExpired(tenant, method, path, userId);
       logger.debug("Cache Hit (Expired): {}", key);

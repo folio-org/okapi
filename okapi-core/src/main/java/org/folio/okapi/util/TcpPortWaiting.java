@@ -44,12 +44,12 @@ public class TcpPortWaiting {
         c.close().onComplete(x -> promise.complete());
       } else if (count < maxIterations && (process == null || process.isRunning())) {
         c.close().onComplete(x -> vertx.setTimer((long) (count + 1) * MILLISECONDS,
-            id -> tryConnect(process, count + 1).onComplete(promise::handle)));
+            id -> tryConnect(process, count + 1).onComplete(promise)));
       } else {
-        c.close().onComplete(x -> {
-          promise.fail(messages.getMessage("11501",
-              Integer.toString(port), res.cause().getMessage()));
-        });
+        c.close().onComplete(x ->
+            promise.fail(messages.getMessage("11501",
+                Integer.toString(port), res.cause().getMessage()))
+        );
       }
     });
     return promise.future();

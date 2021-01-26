@@ -129,7 +129,7 @@ public class ModuleUtil {
         throw new DecodeException(messages.getMessage("11604", orderByStr));
       }
       if (orderStr == null || "desc".equals(orderStr)) {
-        Collections.sort(list, Collections.reverseOrder());
+        list.sort(Collections.reverseOrder());
       } else if ("asc".equals(orderStr)) {
         Collections.sort(list);
       } else {

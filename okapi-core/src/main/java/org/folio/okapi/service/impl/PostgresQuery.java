@@ -1,19 +1,15 @@
 package org.folio.okapi.service.impl;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.SqlConnection;
 import io.vertx.sqlclient.Tuple;
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.OkapiLogger;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class PostgresQuery {
 
   private SqlConnection conn;
-  private static final Logger logger = OkapiLogger.get();
   private final PostgresHandle pg;
 
   PostgresQuery(PostgresHandle pg) {

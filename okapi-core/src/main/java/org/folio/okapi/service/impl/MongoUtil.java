@@ -7,15 +7,12 @@ import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.mongo.UpdateOptions;
 import java.util.LinkedList;
 import java.util.List;
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.OkapiLogger;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 class MongoUtil<T> {
 
   private final String collection;
   private final MongoClient cli;
-  private final Logger logger = OkapiLogger.get();
 
   public MongoUtil(String collection, MongoClient cli) {
     this.collection = collection;

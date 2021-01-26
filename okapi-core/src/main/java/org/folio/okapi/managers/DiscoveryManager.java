@@ -1,6 +1,5 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -22,6 +21,7 @@ import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -84,7 +84,7 @@ public class DiscoveryManager implements NodeListener {
    */
   public Future<Void> restartModules() {
     return deploymentStore.getAll().compose(result -> {
-      List<Future> futures = new LinkedList<>();
+      List<Future<DeploymentDescriptor>> futures = new LinkedList<>();
       for (DeploymentDescriptor dd : result) {
         futures.add(deployments.get(dd.getSrvcId(), dd.getInstId()).compose(d -> {
           if (d == null) {
@@ -96,7 +96,7 @@ public class DiscoveryManager implements NodeListener {
           }
         }));
       }
-      return CompositeFuture.all(futures).mapEmpty();
+      return GenericCompositeFuture.all(futures).mapEmpty();
     });
   }
 
@@ -229,18 +229,18 @@ public class DiscoveryManager implements NodeListener {
 
   Future<Void> removeAndUndeploy() {
     logger.info("removeAndUndeploy all");
-    return this.get().compose(res -> removeAndUndeploy(res));
+    return this.get().compose(this::removeAndUndeploy);
   }
 
   private Future<Void> removeAndUndeploy(List<DeploymentDescriptor> ddList) {
 
-    List<Future> futures = new LinkedList<>();
+    List<Future<Void>> futures = new LinkedList<>();
     for (DeploymentDescriptor dd : ddList) {
       futures.add(callUndeploy(dd)
           .compose(res -> deploymentStore.delete(dd.getInstId()))
           .mapEmpty());
     }
-    return CompositeFuture.all(futures).mapEmpty();
+    return GenericCompositeFuture.all(futures).mapEmpty();
   }
 
   private Future<Void> callUndeploy(DeploymentDescriptor md) {
@@ -297,7 +297,7 @@ public class DiscoveryManager implements NodeListener {
 
   private Future<Void> autoDeploy2(ModuleDescriptor md, Collection<String> allNodes) {
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
-    List<Future> futures = new LinkedList<>();
+    List<Future<DeploymentDescriptor>> futures = new LinkedList<>();
     // deploy on all nodes for now
     for (String node : allNodes) {
       // check if we have deploy on node
@@ -308,7 +308,7 @@ public class DiscoveryManager implements NodeListener {
       dd.setNodeId(node);
       futures.add(addAndDeploy(dd));
     }
-    return CompositeFuture.all(futures).mapEmpty();
+    return GenericCompositeFuture.all(futures).mapEmpty();
   }
 
   Future<Void> autoUndeploy(ModuleDescriptor md) {
@@ -317,18 +317,17 @@ public class DiscoveryManager implements NodeListener {
     if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
       return Future.succeededFuture();
     }
-    return deployments.get(md.getId()).compose(res -> {
-      List<DeploymentDescriptor> ddList = res;
-      if (ddList == null) {
+    return deployments.get(md.getId()).compose(deploymentList -> {
+      if (deploymentList == null) {
         return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, md.getId()));
       }
-      List<Future> futures = new LinkedList<>();
-      for (DeploymentDescriptor dd : ddList) {
+      List<Future<Void>> futures = new LinkedList<>();
+      for (DeploymentDescriptor dd : deploymentList) {
         if (dd.getNodeId() != null) {
           futures.add(callUndeploy(dd));
         }
       }
-      return CompositeFuture.all(futures).mapEmpty();
+      return GenericCompositeFuture.all(futures).mapEmpty();
     });
   }
 
@@ -366,41 +365,41 @@ public class DiscoveryManager implements NodeListener {
   public Future<List<DeploymentDescriptor>> get() {
     return deployments.getKeys().compose(keys -> {
       List<DeploymentDescriptor> all = new LinkedList<>();
-      List<Future> futures = new LinkedList<>();
+      List<Future<NodeDescriptor>> futures = new LinkedList<>();
       for (String s : keys) {
         futures.add(this.get(s).compose(res -> {
           all.addAll(res);
           return Future.succeededFuture();
         }));
       }
-      return CompositeFuture.all(futures).map(all);
+      return GenericCompositeFuture.all(futures).map(all);
     });
   }
 
   Future<DeploymentDescriptor> get(String srvcId, String instId) {
-    return deployments.getNotFound(srvcId, instId).compose(md -> {
-      return nodes.getAll().compose(nodeRes -> {
-        Collection<NodeDescriptor> nodesCollection = nodeRes.values();
-        // check that the node is alive, but only on non-url instances
-        if (!isAlive(md, nodesCollection)) {
-          return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND,
-              messages.getMessage("10805")));
-        }
-        return Future.succeededFuture(md);
-      });
-    });
+    return deployments.getNotFound(srvcId, instId).compose(md ->
+        nodes.getAll().compose(nodeRes -> {
+          Collection<NodeDescriptor> nodesCollection = nodeRes.values();
+          // check that the node is alive, but only on non-url instances
+          if (!isAlive(md, nodesCollection)) {
+            return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND,
+                messages.getMessage("10805")));
+          }
+          return Future.succeededFuture(md);
+        })
+    );
   }
 
   private Future<List<HealthDescriptor>> healthList(List<DeploymentDescriptor> list) {
     List<HealthDescriptor> all = new LinkedList<>();
-    List<Future> futures = new LinkedList<>();
+    List<Future<Void>> futures = new LinkedList<>();
     for (DeploymentDescriptor md : list) {
       futures.add(health(md).compose(x -> {
         all.add(x);
         return Future.succeededFuture();
       }));
     }
-    return CompositeFuture.all(futures).compose(x -> Future.succeededFuture(all));
+    return GenericCompositeFuture.all(futures).compose(x -> Future.succeededFuture(all));
   }
 
   Future<HealthDescriptor> fail(Throwable cause, HealthDescriptor hd) {
@@ -443,15 +442,15 @@ public class DiscoveryManager implements NodeListener {
   }
 
   Future<List<HealthDescriptor>> health() {
-    return get().compose(res -> healthList(res));
+    return get().compose(this::healthList);
   }
 
   Future<HealthDescriptor> health(String srvcId, String instId) {
-    return DiscoveryManager.this.get(srvcId, instId).compose(res -> health(res));
+    return DiscoveryManager.this.get(srvcId, instId).compose(this::health);
   }
 
   Future<List<HealthDescriptor>> health(String srvcId) {
-    return getNonEmpty(srvcId).compose(res -> healthList(res));
+    return getNonEmpty(srvcId).compose(this::healthList);
   }
 
   Future<Void> addNode(NodeDescriptor nd) {
@@ -512,13 +511,12 @@ public class DiscoveryManager implements NodeListener {
             messages.getMessage("10806", nodeId)));
       }
     }
-    return nodes.getNotFound(nodeId).compose(gres -> {
-      NodeDescriptor old = gres;
-      if (!old.getNodeId().equals(nd.getNodeId()) || !nd.getNodeId().equals(nodeId)) {
+    return nodes.getNotFound(nodeId).compose(res -> {
+      if (!res.getNodeId().equals(nd.getNodeId()) || !nd.getNodeId().equals(nodeId)) {
         return Future.failedFuture(new OkapiError(ErrorType.USER,
             messages.getMessage("10807", nodeId)));
       }
-      if (!old.getUrl().equals(nd.getUrl())) {
+      if (!res.getUrl().equals(nd.getUrl())) {
         return Future.failedFuture(new OkapiError(ErrorType.USER,
             messages.getMessage("10808", nodeId)));
       }
@@ -533,14 +531,14 @@ public class DiscoveryManager implements NodeListener {
         keys.retainAll(n);
       }
       List<NodeDescriptor> nodes = new LinkedList<>();
-      List<Future> futures = new LinkedList<>();
+      List<Future<Void>> futures = new LinkedList<>();
       for (String nodeId : keys) {
         futures.add(getNode1(nodeId).compose(x -> {
           nodes.add(x);
           return Future.succeededFuture();
         }));
       }
-      return CompositeFuture.all(futures).map(nodes);
+      return GenericCompositeFuture.all(futures).map(nodes);
     });
   }
 

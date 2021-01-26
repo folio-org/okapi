@@ -9,7 +9,6 @@ import java.util.SortedMap;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
-import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.TenantStore;
 
@@ -23,7 +22,6 @@ public class TenantStoreMongo implements TenantStore {
   private final MongoClient cli;
   private final MongoUtil<Tenant> util;
   private static final String COLLECTION = "okapi.tenants";
-  private final Messages messages = Messages.getInstance();
 
   private JsonObject encodeTenant(Tenant t, String id) {
     JsonObject j = new JsonObject(Json.encode(t));
@@ -56,12 +54,11 @@ public class TenantStoreMongo implements TenantStore {
     final String id = td.getId();
     JsonObject jq = new JsonObject().put("_id", id);
     return cli.find(COLLECTION, jq).compose(res -> {
-      List<JsonObject> l = res;
-      if (l.isEmpty()) {
+      if (res.isEmpty()) {
         Tenant t = new Tenant(td);
         return insert(t);
       }
-      JsonObject d = l.get(0);
+      JsonObject d = res.get(0);
       final Tenant t = decodeTenant(d);
       Tenant nt = new Tenant(td, t.getEnabled());
       JsonObject document = encodeTenant(nt, id);

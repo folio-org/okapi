@@ -15,7 +15,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Iterator;
 import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.AnyDescriptor;
@@ -81,7 +80,7 @@ public class DockerModuleHandle implements ModuleHandle {
     this.logSkip = 0;
     logger.info("Docker handler with native: {}", vertx.isNativeTransportEnabled());
     Boolean b = desc.getDockerPull();
-    this.dockerPull = b == null || b.booleanValue();
+    this.dockerPull = b == null || b;
     StringBuilder socketFile = new StringBuilder();
     this.dockerUrl = setupDockerAddress(socketFile,
         Config.getSysConf("dockerUrl", DEFAULT_DOCKER_URL, config));
@@ -268,9 +267,7 @@ public class DockerModuleHandle implements ModuleHandle {
       JsonObject registry = dockerRegistries.getJsonObject(i);
       String prefix = getRegistryPrefix(registry);
       future = future.recover(x -> getUrl("/images/" + prefix + image + "/json", "getImage")
-          .onSuccess(y -> {
-            image = prefix + image;
-          }));
+          .onSuccess(y -> image = prefix + image));
     }
     return future;
   }
@@ -398,20 +395,14 @@ public class DockerModuleHandle implements ModuleHandle {
       throw (new IllegalArgumentException(messages.getMessage("11302")));
     }
     JsonObject exposedPorts = config.getJsonObject("ExposedPorts");
-    if (exposedPorts == null) {
-      throw (new IllegalArgumentException(messages.getMessage("11301")));
-    }
-    int exposedPort = 0;
-    Iterator<Map.Entry<String, Object>> iterator = exposedPorts.iterator();
-    while (iterator.hasNext()) {
-      Map.Entry<String, Object> next = iterator.next();
-      String key = next.getKey();
-      String port = key.split("/")[0];
-      if (exposedPort == 0) {
-        exposedPort = Integer.valueOf(port);
+    if (exposedPorts != null) {
+      for (Map.Entry<String, Object> next : exposedPorts) {
+        String key = next.getKey();
+        String port = key.split("/")[0];
+        return Integer.parseInt(port);
       }
     }
-    return exposedPort;
+    throw (new IllegalArgumentException(messages.getMessage("11301")));
   }
 
   private Future<Void> prepareContainer() {
@@ -445,7 +436,7 @@ public class DockerModuleHandle implements ModuleHandle {
         .compose(
             x -> deleteContainer(),
             // if stopContainer fails with e run deleteContainer but return original failure e
-            e -> deleteContainer().onComplete(x -> Future.failedFuture(e)))
+            e -> deleteContainer().eventually(x -> Future.failedFuture(e)))
         .onComplete(x -> ports.free(hostPort));
   }
 }

@@ -1,6 +1,5 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -11,12 +10,13 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InstallJob;
@@ -31,6 +31,7 @@ import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor.Action;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
@@ -51,20 +52,20 @@ import org.folio.okapi.util.TenantInstallOptions;
 public class TenantManager implements Liveness {
 
   private static final Logger logger = OkapiLogger.get();
-  private ModuleManager moduleManager;
+  private final ModuleManager moduleManager;
   private ProxyService proxyService = null;
   private DiscoveryManager discoveryManager;
   private final TenantStore tenantStore;
   private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
-  private String mapName = "tenants";
-  private LockedTypedMap2<InstallJob> jobs = new LockedTypedMap2<>(InstallJob.class);
+  private static final String MAP_NAME = "tenants";
+  private final LockedTypedMap2<InstallJob> jobs = new LockedTypedMap2<>(InstallJob.class);
   private static final String EVENT_NAME = "timer";
-  private Set<String> timers = new HashSet<>();
-  private static Messages messages = Messages.getInstance();
+  private final Set<String> timers = new HashSet<>();
+  private static final Messages messages = Messages.getInstance();
   private Vertx vertx;
-  private Map<String, ModuleCache> enabledModulesCache = new HashMap<>();
+  private final Map<String, ModuleCache> enabledModulesCache = new HashMap<>();
   // tenants with new permission module (_tenantPermissions version 1.1 or later)
-  private Map<String, Boolean> expandedModulesCache = new HashMap<>();
+  private final Map<String, Boolean> expandedModulesCache = new HashMap<>();
   private final boolean local;
   private static final int TENANT_INIT_DELAY = 300; // initial wait in ms
   private static final int TENANT_INIT_INCREASE = 1250;  // increase factor (/ 1000)
@@ -95,7 +96,7 @@ public class TenantManager implements Liveness {
   public Future<Void> init(Vertx vertx) {
     this.vertx = vertx;
 
-    return tenants.init(vertx, mapName, local)
+    return tenants.init(vertx, MAP_NAME, local)
         .compose(x -> jobs.init(vertx, "installJobs", local))
         .compose(x -> loadTenants());
   }
@@ -146,7 +147,7 @@ public class TenantManager implements Liveness {
 
   Future<List<TenantDescriptor>> list() {
     return tenants.getKeys().compose(lres -> {
-      List<Future> futures = new LinkedList<>();
+      List<Future<Void>> futures = new LinkedList<>();
       List<TenantDescriptor> tdl = new LinkedList<>();
       for (String s : lres) {
         futures.add(tenants.getNotFound(s).compose(res -> {
@@ -154,7 +155,7 @@ public class TenantManager implements Liveness {
           return Future.succeededFuture();
         }));
       }
-      return CompositeFuture.all(futures).map(tdl);
+      return GenericCompositeFuture.all(futures).map(tdl);
     });
   }
 
@@ -284,8 +285,8 @@ public class TenantManager implements Liveness {
     }
     return invokePermissions(tenant, options, mdTo, pc)
         .compose(x -> invokeTenantInterface(tenant, options, mdFrom, mdTo, pc))
-        .compose(x -> invokePermissionsPermMod(tenant, options, mdFrom, mdTo, pc))
-        .compose(x -> commitModuleChange(tenant, mdFrom, mdTo, pc))
+        .compose(x -> invokePermissionsPermMod(tenant, options, mdTo, pc))
+        .compose(x -> commitModuleChange(tenant, mdFrom, mdTo))
         .compose(x -> Future.succeededFuture((mdTo != null ? mdTo.getId() : ""))
     );
   }
@@ -294,13 +295,13 @@ public class TenantManager implements Liveness {
                               ModuleInstance deleteInstance, ProxyContext pc,
                               Promise<Void> promise, long waitMs) {
     proxyService.callSystemInterface(tenant, getInstance, "", pc)
-        .onFailure(x -> promise.fail(x))
+        .onFailure(promise::fail)
         .onSuccess(cli -> {
           JsonObject obj = new JsonObject(cli.getResponsebody());
           Boolean complete = obj.getBoolean("complete");
           if (Boolean.TRUE.equals(complete)) {
             proxyService.callSystemInterface(tenant, deleteInstance, "", pc)
-                .onFailure(x -> promise.fail(x))
+                .onFailure(promise::fail)
                 .onSuccess(x -> {
                   String error = obj.getString("error");
                   if (error == null) {
@@ -420,14 +421,12 @@ public class TenantManager implements Liveness {
    *
    * @param tenant tenant
    * @param options install options
-   * @param mdFrom module from
    * @param mdTo module to
    * @param pc proxy context
    * @return fut response
    */
   private Future<Void> invokePermissionsPermMod(Tenant tenant, TenantInstallOptions options,
-                                                ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
-                                                ProxyContext pc) {
+                                                ModuleDescriptor mdTo, ProxyContext pc) {
     if (mdTo == null || !options.getInvoke()
         || mdTo.getSystemInterface("_tenantPermissions") == null) {
       return Future.succeededFuture();
@@ -463,11 +462,10 @@ public class TenantManager implements Liveness {
    * @param tenant tenant
    * @param mdFrom module from (null if new module)
    * @param mdTo module to (null if module is removed)
-   * @param pc ProxyContext
    * @return future
    */
   private Future<Void> commitModuleChange(Tenant tenant, ModuleDescriptor mdFrom,
-                                          ModuleDescriptor mdTo, ProxyContext pc) {
+                                          ModuleDescriptor mdTo) {
 
     String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
     String moduleTo = mdTo != null ? mdTo.getId() : null;
@@ -526,8 +524,6 @@ public class TenantManager implements Liveness {
       }
       logger.info("Tenant {} moving from {} to {}", tenantId, moduleFrom, moduleTo);
       TenantInstallOptions options = new TenantInstallOptions();
-      String fromVer = new ModuleId(enver).getSemVer().toString();
-      ModuleDescriptor mdFrom = InternalModule.moduleDescriptor(fromVer);
       return invokePermissions(tenant, options, md, null).compose(x ->
           updateModuleCommit(tenant, moduleFrom, moduleTo));
     });
@@ -562,17 +558,17 @@ public class TenantManager implements Liveness {
     logger.info("handleTimer tenant {} module {} seq1 {}", tenantId, moduleId, seq1);
     tenants.getNotFound(tenantId).onFailure(cause ->
         stopTimer(tenantId, moduleId, seq1)
-    ).onSuccess(tenant -> {
-      getEnabledModules(tenant).onFailure(cause ->
-          stopTimer(tenantId, moduleId, seq1)
-      ).onSuccess(mdList -> {
-        try {
-          handleTimer(tenant, mdList, moduleId, seq1);
-        } catch (Exception ex) {
-          logger.warn("handleTimer exception {}", ex.getMessage(), ex);
-        }
-      });
-    });
+    ).onSuccess(tenant ->
+        getEnabledModules(tenant).onFailure(cause ->
+            stopTimer(tenantId, moduleId, seq1)
+        ).onSuccess(mdList -> {
+          try {
+            handleTimer(tenant, mdList, moduleId, seq1);
+          } catch (Exception ex) {
+            logger.warn("handleTimer exception {}", ex.getMessage(), ex);
+          }
+        })
+    );
   }
 
   private void handleTimer(Tenant tenant, List<ModuleDescriptor> mdList,
@@ -658,18 +654,23 @@ public class TenantManager implements Liveness {
 
     logger.debug("Loading permissions for {} (using {})", mdTo.getName(), permsModule.getName());
     String moduleTo = mdTo.getId();
-    PermissionList pl = null;
+    PermissionList pl;
     InterfaceDescriptor permInt = permsModule.getSystemInterface("_tenantPermissions");
     String permIntVer = permInt.getVersion();
-    if (permIntVer.equals("1.0")) {
-      pl = new PermissionList(moduleTo, stripPermissionReplaces(mdTo.getPermissionSets()));
-    } else if (permIntVer.equals("1.1")) {
-      pl = new PermissionList(moduleTo, stripPermissionReplaces(mdTo.getExpandedPermissionSets()));
-    } else if (permIntVer.equals("2.0")) {
-      pl = new PermissionList(moduleTo, mdTo.getExpandedPermissionSets());
-    } else {
-      return Future.failedFuture(new OkapiError(ErrorType.USER,
-          "Unknown version of _tenantPermissions interface in use " + permIntVer + "."));
+    switch (permIntVer) {
+      case "1.0":
+        pl = new PermissionList(moduleTo, stripPermissionReplaces(mdTo.getPermissionSets()));
+        break;
+      case "1.1":
+        pl = new PermissionList(moduleTo, stripPermissionReplaces(
+            mdTo.getExpandedPermissionSets()));
+        break;
+      case "2.0":
+        pl = new PermissionList(moduleTo, mdTo.getExpandedPermissionSets());
+        break;
+      default:
+        return Future.failedFuture(new OkapiError(ErrorType.USER,
+            "Unknown version of _tenantPermissions interface in use " + permIntVer + "."));
     }
     String pljson = Json.encodePrettily(pl);
     logger.debug("tenantPerms Req: {}", pljson);
@@ -738,7 +739,7 @@ public class TenantManager implements Liveness {
                 logger.warn("Module '{}' uses old-fashioned tenant "
                     + "interface. Define InterfaceType=system, and add a RoutingEntry."
                     + " Falling back to calling /_/tenant.", md.getId());
-                return Future.succeededFuture(Arrays.asList(new ModuleInstance(md, null,
+                return Future.succeededFuture(Collections.singletonList(new ModuleInstance(md, null,
                     "/_/tenant", HttpMethod.POST, true).withRetry()));
               }
             }
@@ -926,12 +927,9 @@ public class TenantManager implements Liveness {
   }
 
   Future<List<InstallJob>> installUpgradeGetList(String tenantId) {
-    return tenants.getNotFound(tenantId).compose(x -> jobs.get(tenantId).compose(list -> {
-      if (list == null) {
-        return Future.succeededFuture(new LinkedList<>());
-      }
-      return Future.succeededFuture(list);
-    }));
+    return tenants.getNotFound(tenantId)
+        .compose(x -> jobs.get(tenantId)
+        .map(list -> Objects.requireNonNullElseGet(list, LinkedList::new)));
   }
 
   Future<Void> installUpgradeDeleteList(String tenantId) {
@@ -976,11 +974,8 @@ public class TenantManager implements Liveness {
               InstallJob job = new InstallJob();
               job.setId(installId);
               job.setStartDate(Instant.now().toString());
-              if (tml == null) {
-                job.setModules(upgrades(modsAvailable, modsEnabled));
-              } else {
-                job.setModules(tml);
-              }
+              job.setModules(Objects.requireNonNullElseGet(tml,
+                  () -> upgrades(modsAvailable, modsEnabled)));
               job.setComplete(false);
               return runJob(tenant, pc, options, modsAvailable, modsEnabled, job);
             }));
@@ -1098,7 +1093,7 @@ public class TenantManager implements Liveness {
   private Future<Void> autoDeploy(Tenant tenant, InstallJob job, Map<String,
       ModuleDescriptor> modsAvailable, List<TenantModuleDescriptor> tml) {
 
-    List<Future> futures = new LinkedList<>();
+    List<Future<Void>> futures = new LinkedList<>();
     for (TenantModuleDescriptor tm : tml) {
       if (tm.getAction() == Action.enable || tm.getAction() == Action.uptodate) {
         ModuleDescriptor md = modsAvailable.get(tm.getId());
@@ -1108,7 +1103,7 @@ public class TenantManager implements Liveness {
                 .onFailure(x -> tm.setMessage(x.getMessage()))));
       }
     }
-    return CompositeFuture.all(futures).mapEmpty();
+    return GenericCompositeFuture.all(futures).mapEmpty();
   }
 
   private Future<Void> installTenantModule(Tenant tenant, ProxyContext pc,
@@ -1134,11 +1129,11 @@ public class TenantManager implements Liveness {
                                     Map<String, ModuleDescriptor> modsAvailable,
                                     List<TenantModuleDescriptor> tml) {
 
-    List<Future> futures = new LinkedList<>();
+    List<Future<Void>> futures = new LinkedList<>();
     for (TenantModuleDescriptor tm : tml) {
       futures.add(autoUndeploy(tenant, job, modsAvailable, tm));
     }
-    return CompositeFuture.all(futures).mapEmpty();
+    return GenericCompositeFuture.all(futures).mapEmpty();
   }
 
   private Future<Void> autoUndeploy(Tenant tenant, InstallJob job,
@@ -1168,14 +1163,14 @@ public class TenantManager implements Liveness {
   Future<List<ModuleDescriptor>> listModules(String id) {
     return tenants.getNotFound(id).compose(t -> {
       List<ModuleDescriptor> tl = new LinkedList<>();
-      List<Future> futures = new LinkedList<>();
+      List<Future<Void>> futures = new LinkedList<>();
       for (String moduleId : t.listModules()) {
         futures.add(moduleManager.get(moduleId).compose(x -> {
           tl.add(x);
           return Future.succeededFuture();
         }));
       }
-      return CompositeFuture.all(futures).map(tl);
+      return GenericCompositeFuture.all(futures).map(tl);
     });
   }
 
@@ -1187,7 +1182,7 @@ public class TenantManager implements Liveness {
   public Future<List<String>> getModuleUser(String mod) {
     return tenants.getKeys().compose(kres -> {
       List<String> users = new LinkedList<>();
-      List<Future> futures = new LinkedList<>();
+      List<Future<Void>> futures = new LinkedList<>();
       for (String tid : kres) {
         futures.add(tenants.get(tid).compose(t -> {
           if (t.isEnabled(mod)) {
@@ -1196,7 +1191,7 @@ public class TenantManager implements Liveness {
           return Future.succeededFuture();
         }));
       }
-      return CompositeFuture.all(futures).map(users);
+      return GenericCompositeFuture.all(futures).map(users);
     });
   }
 
@@ -1211,11 +1206,11 @@ public class TenantManager implements Liveness {
         return Future.succeededFuture();
       }
       return tenantStore.listTenants().compose(res -> {
-        List<Future> futures = new LinkedList<>();
+        List<Future<Void>> futures = new LinkedList<>();
         for (Tenant t : res) {
           futures.add(tenants.add(t.getId(), t));
         }
-        return CompositeFuture.all(futures).mapEmpty();
+        return GenericCompositeFuture.all(futures).mapEmpty();
       });
     });
   }
@@ -1238,7 +1233,7 @@ public class TenantManager implements Liveness {
    * @return list of modules
    */
   public Future<List<ModuleDescriptor>> getEnabledModules(Tenant tenant) {
-    return getModuleCache(tenant).map(cache -> cache.getModules());
+    return getModuleCache(tenant).map(ModuleCache::getModules);
   }
 
   private Future<Void> reloadEnabledModules(String tenantId) {
@@ -1256,7 +1251,7 @@ public class TenantManager implements Liveness {
       return Future.succeededFuture(); // only happens in tests really
     }
     List<ModuleDescriptor> mdl = new LinkedList<>();
-    List<Future> futures = new LinkedList<>();
+    List<Future<Void>> futures = new LinkedList<>();
     for (String tenantId : tenant.getEnabled().keySet()) {
       futures.add(moduleManager.get(tenantId).compose(md -> {
         InterfaceDescriptor id = md.getSystemInterface("_tenantPermissions");
@@ -1267,7 +1262,7 @@ public class TenantManager implements Liveness {
         return Future.succeededFuture();
       }));
     }
-    return CompositeFuture.all(futures).compose(res -> {
+    return GenericCompositeFuture.all(futures).compose(res -> {
       enabledModulesCache.put(tenant.getId(), new ModuleCache(mdl));
       return Future.succeededFuture();
     });

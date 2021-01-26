@@ -10,7 +10,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
 import java.lang.management.ManagementFactory;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
@@ -23,7 +23,6 @@ import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.MetricsUtil;
-import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.OkapiStringUtil;
@@ -142,22 +141,19 @@ public class MainVerticle extends AbstractVerticle {
     if (enableDeployment) {
       deploymentManager = new DeploymentManager(vertx, discoveryManager, envManager,
           host, port, nodeName, config);
-      Runtime.getRuntime().addShutdownHook(new Thread() {
-        @Override
-        public void run() {
-          CountDownLatch latch = new CountDownLatch(1);
-          deploymentManager.shutdown().onComplete(ar -> latch.countDown());
-          try {
-            if (!latch.await(2, TimeUnit.MINUTES)) {
-              logger.error("Timed out waiting to undeploy all");
-            }
-          } catch (InterruptedException e) {
-            logger.error("Exception while shutting down");
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(e);
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        CountDownLatch latch = new CountDownLatch(1);
+        deploymentManager.shutdown().onComplete(ar -> latch.countDown());
+        try {
+          if (!latch.await(2, TimeUnit.MINUTES)) {
+            logger.error("Timed out waiting to undeploy all");
           }
+        } catch (InterruptedException e) {
+          logger.error("Exception while shutting down");
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(e);
         }
-      });
+      }));
     }
     if (enableProxy) {
       ModuleStore moduleStore = storage.getModuleStore();
@@ -170,9 +166,8 @@ public class MainVerticle extends AbstractVerticle {
       InternalModule internalModule = new InternalModule(moduleManager,
           tenantManager, deploymentManager, discoveryManager,
           envManager, pullManager,okapiVersion);
-      proxyService = new ProxyService(vertx,
-          moduleManager, tenantManager, discoveryManager,
-          internalModule, okapiUrl, config);
+      proxyService = new ProxyService(vertx, tenantManager, discoveryManager, internalModule,
+          okapiUrl, config);
       tenantManager.setProxyService(proxyService);
     } else { // not really proxying, except to /_/deployment
       moduleManager = new ModuleManager(null, true);
@@ -182,9 +177,8 @@ public class MainVerticle extends AbstractVerticle {
           null, null, deploymentManager, null,
           envManager, null, okapiVersion);
       // no modules, tenants, or discovery. Only deployment and env.
-      proxyService = new ProxyService(vertx,
-          moduleManager, tenantManager, discoveryManager,
-          internalModule, okapiUrl, config);
+      proxyService = new ProxyService(vertx, tenantManager, discoveryManager, internalModule,
+          okapiUrl, config);
     }
   }
 
@@ -196,7 +190,7 @@ public class MainVerticle extends AbstractVerticle {
     if (deploymentManager != null) {
       future = future.compose(x -> deploymentManager.shutdown());
     }
-    future.compose(x -> discoveryManager.shutdown()).onComplete(promise::handle);
+    future.compose(x -> discoveryManager.shutdown()).onComplete(promise);
   }
 
   @Override
@@ -216,7 +210,7 @@ public class MainVerticle extends AbstractVerticle {
       fut = fut.compose(x -> startDeployment());
       fut = fut.compose(x -> startListening());
       fut = fut.compose(x -> startRedeploy());
-      fut = fut.compose(x -> healthManager.init(vertx, Arrays.asList(tenantManager)));
+      fut = fut.compose(x -> healthManager.init(vertx, Collections.singletonList(tenantManager)));
     }
     fut.onComplete(x -> {
       if (x.failed()) {
@@ -262,7 +256,7 @@ public class MainVerticle extends AbstractVerticle {
           }
           logger.debug("Creating the internal Okapi module {} with interface version {}",
               okapiModule, interfaceVersion);
-          return moduleManager.createList(Arrays.asList(md), true, true, true);
+          return moduleManager.createList(Collections.singletonList(md), true, true, true);
         }).compose(x -> checkSuperTenant(okapiModule));
   }
 
