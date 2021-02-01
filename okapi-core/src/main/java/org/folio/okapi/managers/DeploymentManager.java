@@ -1,6 +1,5 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
@@ -22,6 +21,7 @@ import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
@@ -76,7 +76,7 @@ public class DeploymentManager {
 
   /**
    * Initialize deployment manager.
-   * @returns async result
+   * @return async result
    */
   public Future<Void> init() {
     NodeDescriptor nd = new NodeDescriptor();
@@ -107,14 +107,14 @@ public class DeploymentManager {
    */
   public Future<Void> shutdown() {
     logger.info("shutdown");
-    List<Future> futures = new LinkedList<>();
+    List<Future<Void>> futures = new LinkedList<>();
     Collection<DeploymentDescriptor> col = list.values();
     for (DeploymentDescriptor dd : col) {
       ModuleHandle mh = dd.getModuleHandle();
       logger.info("shutting down {}", dd.getSrvcId());
       futures.add(mh.stop());
     }
-    return CompositeFuture.all(futures).mapEmpty();
+    return GenericCompositeFuture.all(futures).mapEmpty();
   }
 
   Future<DeploymentDescriptor> deploy(DeploymentDescriptor md1) {

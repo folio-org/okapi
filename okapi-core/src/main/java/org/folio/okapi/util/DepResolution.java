@@ -615,7 +615,7 @@ public class DepResolution {
    * @return list with Top-N set
    */
   public static List<ModuleDescriptor> getLatestProducts(int limit, List<ModuleDescriptor> mdl) {
-    Collections.sort(mdl, Collections.reverseOrder());
+    mdl.sort(Collections.reverseOrder());
     Iterator<ModuleDescriptor> it = mdl.listIterator();
     String product = "";
     int no = 0;

@@ -1,6 +1,5 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import java.util.LinkedList;
@@ -8,12 +7,12 @@ import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.EnvStore;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.OkapiError;
-
 
 public class EnvManager {
 
@@ -40,11 +39,11 @@ public class EnvManager {
     return envMap.init(vertx, "env", false)
         .compose(x -> envStore.getAll())
         .compose(x -> {
-          List<Future> futures = new LinkedList<>();
+          List<Future<Void>> futures = new LinkedList<>();
           for (EnvEntry e : x) {
             futures.add(add1(e));
           }
-          return CompositeFuture.all(futures).mapEmpty();
+          return GenericCompositeFuture.all(futures).mapEmpty();
         });
   }
 

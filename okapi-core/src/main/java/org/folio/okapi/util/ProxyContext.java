@@ -44,7 +44,7 @@ public class ProxyContext {
   private final Messages messages = Messages.getInstance();
   private String userId;
 
-  private Timer.Sample sample;
+  private final Timer.Sample sample;
   private ModuleInstance handlerModuleInstance;
 
   public ModuleInstance getHandlerModuleInstance() {
