@@ -318,7 +318,8 @@ public class TenantManager implements Liveness {
                       message.append(ar.getString(i));
                     }
                   }
-                  promise.fail(message.toString());
+                  promise.fail(messages.getMessage("10410",
+                      getInstance.getModuleDescriptor().getId(), message.toString()));
                 });
             return;
           }
