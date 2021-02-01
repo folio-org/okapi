@@ -1354,13 +1354,13 @@ public class InstallTest {
     deployAsyncInitModule(context, module, portModule);
 
     JsonObject job = enableAndWait(context, okapiTenant, module);
-    context.assertEquals("foo bar error", job.getJsonArray("modules")
+    context.assertEquals("Tenant operation failed for module init-v2-module-1.0.0: foo bar error", job.getJsonArray("modules")
         .getJsonObject(0).getString("message"));
 
     tModule.setErrorMessage("foo bar error", new JsonArray().add("msg1").add("msg2"));
 
     job = enableAndWait(context, okapiTenant, module);
-    context.assertEquals("foo bar error\nmsg1\nmsg2", job.getJsonArray("modules")
+    context.assertEquals("Tenant operation failed for module init-v2-module-1.0.0: foo bar error\nmsg1\nmsg2", job.getJsonArray("modules")
         .getJsonObject(0).getString("message"));
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
