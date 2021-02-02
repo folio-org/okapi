@@ -229,12 +229,19 @@ public class DockerModuleHandle implements ModuleHandle {
         promise.fail(m);
         return;
       }
+      // Docker returns lines of JSON objects.. We just consider the first one
+      // which is all we need.
+      String line = body.toString();
+      int idx = line.indexOf('\n');
+      if (idx != -1) {
+        line = line.substring(0, idx);
+      }
       try {
-        JsonObject b = body.toJsonObject();
+        JsonObject b = new JsonObject(line);
         promise.complete(b);
       } catch (DecodeException e) {
         logger.warn("{}", e.getMessage(), e);
-        logger.warn("while decoding {}", body.toString());
+        logger.warn("while decoding {}", line);
         promise.fail(e);
       }
     });

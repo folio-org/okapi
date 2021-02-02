@@ -169,7 +169,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       ctx.response().setStatusCode(dockerMockStatus);
       if (dockerMockJson != null) {
         ctx.response().putHeader("Context-Type", "application/json");
-        ctx.response().end(Json.encodePrettily(dockerMockJson));
+        ctx.response().end(Json.encode(dockerMockJson));
       } else if (dockerMockText != null) {
         ctx.response().end(dockerMockText);
       } else {
@@ -389,7 +389,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     {
       Async async = context.async();
       dockerMockStatus = 200;
-      dockerMockJson = new JsonObject();
+      dockerMockText = "{}\n1";
 
       dh.start().onComplete(context.asyncAssertFailure(cause -> {
         context.assertEquals("Missing Config in image", cause.getMessage());
