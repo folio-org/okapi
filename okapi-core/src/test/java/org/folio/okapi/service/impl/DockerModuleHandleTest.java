@@ -348,6 +348,18 @@ public class DockerModuleHandleTest implements WithAssertions {
       async.await();
     }
 
+    {
+      Async async = context.async();
+      dockerMockStatus = 200;
+      dockerMockText = "{} 1";
+      dh.start().onComplete(context.asyncAssertFailure(cause -> {
+        context.assertTrue(cause.getMessage().contains("Unexpected trailing token"),
+            cause.getMessage());
+        async.complete();
+      }));
+      async.await();
+    }
+
     dockerPullStatus = 500;
 
     {
