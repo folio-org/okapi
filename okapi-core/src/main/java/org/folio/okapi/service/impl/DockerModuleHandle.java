@@ -268,7 +268,7 @@ public class DockerModuleHandle implements ModuleHandle {
       return getUrl("/images/" + image + "/json", "getImage");
     }
     if (dockerRegistries.isEmpty()) {
-      logger.warn(DOCKER_REGISTRIES_EMPTY_LIST);
+      logger.warn("{}", DOCKER_REGISTRIES_EMPTY_LIST);
     }
     Future<JsonObject> future = Future.failedFuture(DOCKER_REGISTRIES_EMPTY_LIST);
     for (int i = 0; i < dockerRegistries.size(); i++) {
@@ -288,7 +288,7 @@ public class DockerModuleHandle implements ModuleHandle {
     }
     logger.info("pull Image using dockerRegistries");
     if (dockerRegistries.isEmpty()) {
-      logger.warn(DOCKER_REGISTRIES_EMPTY_LIST);
+      logger.warn("{}", DOCKER_REGISTRIES_EMPTY_LIST);
     }
     Future<Void> future = Future.failedFuture(DOCKER_REGISTRIES_EMPTY_LIST);
     for (int i = 0; i < dockerRegistries.size(); i++) {
