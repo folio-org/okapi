@@ -235,6 +235,7 @@ public class DockerModuleHandle implements ModuleHandle {
         promise.complete(b);
       } catch (DecodeException e) {
         logger.warn("{}", e.getMessage(), e);
+        logger.warn("while decoding {}", body.toString());
         promise.fail(e);
       }
     });
