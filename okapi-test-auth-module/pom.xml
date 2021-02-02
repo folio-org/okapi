@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.folio.okapi</groupId>
     <artifactId>okapi</artifactId>
-    <version>4.6.3-SNAPSHOT</version>
+    <version>4.6.4-SNAPSHOT</version>
   </parent>
   <artifactId>okapi-test-auth-module</artifactId>
   <name>okapi-test-auth-module</name>

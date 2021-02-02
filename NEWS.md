@@ -1,3 +1,7 @@
+## 4.6.3 2021-02-01
+
+ * [OKAPI-979](https://issues.folio.org/browse/OKAPI-979) Ensure module is logged for tenant operation failures
+
 ## 4.6.2 2021-01-25
 
  * [OKAPI-976](https://issues.folio.org/browse/OKAPI-976) Fix NPE in DiscoveryManager after restarting Okapi
