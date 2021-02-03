@@ -50,7 +50,7 @@ fi
 path="$1"
 shift
 
-exec curl \
+exec curl -w '\n' \
 	-H "X-Okapi-Token:$OKAPI_TOKEN" \
 	-H "Content-Type:application/json" \
 	-H "Accept:*/*" \
