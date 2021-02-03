@@ -3,26 +3,56 @@
 # Edit the `.okapi` file in your home directory to contain something like:
 #
 #	OKAPI_URL=https://east-okapi.folio-dev.indexdata.com
-#	OKAPI_TENANT=reshare_east
 #	OKAPI_TOKEN=xxxxxxxx
+#
+# You obtain OKAPI_TOKEN with
+#
+#	okapi-curl login
 #
 # Now you can issue much simpler curl commands by using `okapi-curl`, for example:
 #
-#	okapi-curl http://localhost:9130/copycat/target-profiles
+#	okapi-curl /copycat/profiles
+# or
+#	okapi-curl /copycat/profiles -d"{}"
 
 if [ $# = 0 ]; then
-   echo "Usage: $0 <path> [<curl-options>]" >&2
-   exit 1;
+	echo "Usage: $0 <path> [<curl-options>]" >&2
+	exit 1;
+fi
+
+. ~/.okapi
+if test -z "$OKAPI_URL"; then
+	echo "OKAPI_URL must be given in .okapi"
+	exit 1
+fi
+if test "$1" = "login"; then
+	echo -n "Tenant:"
+	read tenant
+	echo -n "User:"
+	read username
+	echo -n "Password:"
+	read password
+	curl -o tmp.okapi.out -D tmp.okapi.headers -s \
+		-H "X-Okapi-Tenant:$tenant" \
+		-H 'Content-Type:application/json' \
+		-H 'Accept:*/*' \
+		-d"{\"username\":\"$username\",\"password\":\"$password\"}" \
+		"$OKAPI_URL/authn/login"
+       OKAPI_TOKEN=`cat tmp.okapi.headers|awk '/x-okapi-token/ {print $2}'| tr -d '[:space:]'`
+       if test -z "$OKAPI_TOKEN"; then
+               exit 1
+       fi
+       echo OKAPI_URL=$OKAPI_URL >~/.okapi
+       echo OKAPI_TOKEN=$OKAPI_TOKEN >>~/.okapi
+       exit 0
 fi
 
 path="$1"
 shift
 
-. ~/.okapi
 exec curl \
-	-H "X-Okapi-Tenant: $OKAPI_TENANT" \
-	-H "X-Okapi-Token: $OKAPI_TOKEN" \
-	-H "Content-Type: application/json" \
-	-H "Accept: */*" \
+	-H "X-Okapi-Token:$OKAPI_TOKEN" \
+	-H "Content-Type:application/json" \
+	-H "Accept:*/*" \
 	${@+"$@"} \
-	"$OKAPI_URL/$path"
+	"${OKAPI_URL}{$path}"
