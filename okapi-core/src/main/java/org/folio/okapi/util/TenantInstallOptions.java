@@ -73,10 +73,6 @@ public class TenantInstallOptions {
     invoke = v;
   }
 
-  public String getInvoke() {
-    return invoke;
-  }
-
   /**
    * Check if module is to be invoked during install.
    * @param id module ID.
