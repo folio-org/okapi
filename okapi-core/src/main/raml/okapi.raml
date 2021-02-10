@@ -709,8 +709,11 @@ types:
         queryParameters:
           invoke:
             description: |
-              Whether to invoke for tenant init/permissions/purge
-            type: boolean
+              Whether to invoke for tenant init/permissions/purge. Use
+              "true" to invoke, "false" to not invoke. Any other value
+              is a regular expression that is matched against the module ID.
+              If that pattern matches, invoke is performed (same as "true)".
+            type: string
             required: false
             default: true
           purge:
@@ -764,8 +767,12 @@ types:
             This call will eventually be replaced by the 'install' service.
           queryParameters:
             invoke:
-              description: Whether to invoke for tenant init/permissions/purge
-              type: boolean
+              description: |
+                Whether to invoke for tenant init/permissions/purge. Use
+                "true" to invoke, "false" to not invoke. Any other value
+                is a regular expression that is matched against the module ID.
+                If that pattern matches, invoke is performed (same as "true)".
+              type: string
               required: false
               default: true
             purge:
@@ -808,8 +815,12 @@ types:
             This call will eventually be replaced by the 'install' service.
           queryParameters:
             invoke:
-              description: Whether to invoke for tenant init/permissions/purge
-              type: boolean
+              description: |
+                Whether to invoke for tenant init/permissions/purge. Use
+                "true" to invoke, "false" to not invoke. Any other value
+                is a regular expression that is matched against the module ID.
+                If that pattern matches, invoke is performed (same as "true)".
+              type: string
               required: false
               default: true
             purge:
@@ -913,8 +924,12 @@ types:
             required: false
             default: false
           invoke:
-            description: Whether to invoke for tenant init/permissions/purge
-            type: boolean
+            description: |
+              Whether to invoke for tenant init/permissions/purge. Use
+              "true" to invoke, "false" to not invoke. Any other value
+              is a regular expression that is matched against the module ID.
+              If that pattern matches, invoke is performed (same as "true)".
+            type: string
             required: false
             default: true
           npmSnapshot:
@@ -1048,8 +1063,12 @@ types:
             required: false
             default: false
           invoke:
-            description: Whether to invoke for tenant init/permissions/purge
-            type: boolean
+            description: |
+              Whether to invoke for tenant init/permissions/purge. Use
+              "true" to invoke, "false" to not invoke. Any other value
+              is a regular expression that is matched against the module ID.
+              If that pattern matches, invoke is performed (same as "true)".
+            type: string
             required: false
             default: true
           preRelease:
