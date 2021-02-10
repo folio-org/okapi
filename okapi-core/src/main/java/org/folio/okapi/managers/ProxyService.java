@@ -1125,6 +1125,9 @@ public class ProxyService {
     // If we have auth for current (super)tenant is irrelevant here!
     logger.debug("callSystemInterface: Checking if {} has auth", tenantId);
 
+    if ("true".equals(System.getProperty("skipAuthSys"))) {
+      return doCallSystemInterface(headersIn, tenantId, null, inst, null, request);
+    }
     return tenantManager.getEnabledModules(tenant).compose(enabledModules -> {
       for (ModuleDescriptor md : enabledModules) {
         RoutingEntry[] filters = md.getFilters();
