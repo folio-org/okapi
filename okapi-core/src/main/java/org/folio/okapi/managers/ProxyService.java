@@ -75,6 +75,7 @@ public class ProxyService {
   // for load balancing, so security is not an issue
   private static final Random random = new Random();
   private final int waitMs;
+  private final boolean enableSystemAuth;
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
   private static final String TOKEN_CACHE_MAX_SIZE = "token_cache_max_size";
   private static final String TOKEN_CACHE_TTL_MS = "token_cache_ttl_ms";
@@ -104,6 +105,7 @@ public class ProxyService {
     this.discoveryManager = dm;
     this.okapiUrl = okapiUrl;
     this.waitMs = config.getInteger("logWaitMs", 0);
+    this.enableSystemAuth = Config.getSysConfBoolean("enable_system_auth", true, config);
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
     httpClient = new FuturisedHttpClient(vertx, opt);
@@ -1125,7 +1127,7 @@ public class ProxyService {
     // If we have auth for current (super)tenant is irrelevant here!
     logger.debug("callSystemInterface: Checking if {} has auth", tenantId);
 
-    if ("true".equals(System.getProperty("skipAuthSys"))) {
+    if (!enableSystemAuth) {
       return doCallSystemInterface(headersIn, tenantId, null, inst, null, request);
     }
     return tenantManager.getEnabledModules(tenant).compose(enabledModules -> {

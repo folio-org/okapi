@@ -340,8 +340,7 @@ public class TenantManager implements Liveness {
   private Future<Void> invokeTenantInterface(Tenant tenant, TenantInstallOptions options,
                                              ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
                                              ProxyContext pc) {
-
-    if (!options.getInvoke()) {
+    if (!options.checkInvoke(mdTo.getId())) {
       return Future.succeededFuture();
     }
     JsonObject jo = new JsonObject();
@@ -405,7 +404,7 @@ public class TenantManager implements Liveness {
    */
   private Future<Void> invokePermissions(Tenant tenant, TenantInstallOptions options,
       ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc) {
-    if (!options.getInvoke()) {
+    if (!options.checkInvoke(mdTo.getId())) {
       return Future.succeededFuture();
     }
     if (mdTo != null && mdTo.getSystemInterface("_tenantPermissions") != null) {
@@ -430,7 +429,7 @@ public class TenantManager implements Liveness {
    */
   private Future<Void> invokePermissionsPermMod(Tenant tenant, TenantInstallOptions options,
                                                 ModuleDescriptor mdTo, ProxyContext pc) {
-    if (mdTo == null || !options.getInvoke()
+    if (mdTo == null || !options.checkInvoke(mdTo.getId())
         || mdTo.getSystemInterface("_tenantPermissions") == null) {
       return Future.succeededFuture();
     }
