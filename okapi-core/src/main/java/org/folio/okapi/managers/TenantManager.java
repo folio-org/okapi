@@ -398,7 +398,8 @@ public class TenantManager implements Liveness {
    *
    * @param tenant tenant
    * @param options install options
-   * @param mdTo module to
+   * @param mdFrom module from - is null if enabling for the first time
+   * @param mdTo module to - is null if disabling
    * @param pc proxy content
    * @return Future
    */
