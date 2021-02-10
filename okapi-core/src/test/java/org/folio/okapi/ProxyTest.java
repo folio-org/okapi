@@ -4374,7 +4374,7 @@ public class ProxyTest {
     }
 
     given()
-        .body(installJson).post("/_/proxy/tenants/testlib/install?invoke=true")
+        .body(installJson).post("/_/proxy/tenants/testlib/install?invoke=.*")
         .then().statusCode(200);
 
     long startTime = System.nanoTime();
