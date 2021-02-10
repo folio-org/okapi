@@ -409,10 +409,7 @@ public class TenantManager implements Liveness {
       return Future.succeededFuture();
     }
     return findSystemInterface(tenant, "_tenantPermissions").compose(md -> {
-      if (md == null) {
-        return Future.succeededFuture();
-      }
-      if (!options.checkInvoke(md.getId())) {
+      if (md == null || !options.checkInvoke(md.getId())) {
         return Future.succeededFuture();
       }
       return invokePermissionsForModule(tenant, mdFrom, mdTo, md, pc);
