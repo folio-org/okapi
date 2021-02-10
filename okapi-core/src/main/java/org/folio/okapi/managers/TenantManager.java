@@ -340,9 +340,6 @@ public class TenantManager implements Liveness {
   private Future<Void> invokeTenantInterface(Tenant tenant, TenantInstallOptions options,
                                              ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
                                              ProxyContext pc) {
-    if (!options.checkInvoke(mdTo.getId())) {
-      return Future.succeededFuture();
-    }
     JsonObject jo = new JsonObject();
     if (mdTo != null) {
       jo.put("module_to", mdTo.getId());
@@ -353,6 +350,9 @@ public class TenantManager implements Liveness {
     String tenantParameters = options.getTenantParameters();
     boolean purge = mdTo == null && options.getPurge();
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
+    if (!options.checkInvoke(md.getId())) {
+      return Future.succeededFuture();
+    }
     return getTenantInstanceForModule(md, mdFrom, mdTo, jo, tenantParameters, purge)
         .compose(instances -> {
           if (instances.isEmpty()) {
@@ -404,14 +404,14 @@ public class TenantManager implements Liveness {
    */
   private Future<Void> invokePermissions(Tenant tenant, TenantInstallOptions options,
       ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc) {
-    if (!options.checkInvoke(mdTo.getId())) {
-      return Future.succeededFuture();
-    }
     if (mdTo != null && mdTo.getSystemInterface("_tenantPermissions") != null) {
       return Future.succeededFuture();
     }
     return findSystemInterface(tenant, "_tenantPermissions").compose(md -> {
       if (md == null) {
+        return Future.succeededFuture();
+      }
+      if (!options.checkInvoke(md.getId())) {
         return Future.succeededFuture();
       }
       return invokePermissionsForModule(tenant, mdFrom, mdTo, md, pc);
