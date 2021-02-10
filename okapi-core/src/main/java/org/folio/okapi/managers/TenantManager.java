@@ -673,11 +673,9 @@ public class TenantManager implements Liveness {
       case "2.0":
         if (mdTo != null) {
           pl = new PermissionList(mdTo.getId(), mdTo.getExpandedPermissionSets());
-        } else if (mdFrom != null) {
+        } else  {
           // attempt an empty list for the module being disabled
           pl = new PermissionList(mdFrom.getId(), new Permission[0]);
-        } else {
-          return Future.succeededFuture();
         }
         break;
       default:
