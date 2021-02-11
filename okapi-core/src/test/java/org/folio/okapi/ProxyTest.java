@@ -3298,9 +3298,8 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    Assert.assertEquals(3, timerPermissions.size());
-    Assert.assertTrue(timerPermissions.containsKey("edge-module-1.0.0"));
-    Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.0"));
+    Assert.assertEquals(timerPermissions.encodePrettily(), 2, timerPermissions.size());
+    Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.1"));
     Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.1"));
 
     // re-enable edge-module and check that permissions for it are available at tenant-init

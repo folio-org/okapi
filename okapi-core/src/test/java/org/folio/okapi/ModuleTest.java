@@ -1183,8 +1183,8 @@ public class ModuleTest {
         .then()
         .statusCode(200)
         .body("$", hasSize(2))
-        .body("[0].moduleId", is("okapi-0.0.0"))
-        .body("[1].moduleId", is("header-1"));
+        .body("[0].moduleId", is("header-1"))
+        .body("[1].moduleId", is("okapi-0.0.0"));
 
     // Set up the test module
     // It provides a _tenant interface, but no _tenantPermissions
