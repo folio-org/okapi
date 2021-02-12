@@ -2,10 +2,9 @@ package org.folio.okapi.util;
 
 import com.zaxxer.nuprocess.NuProcess;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.net.NetClient;
-import io.vertx.core.net.NetClientOptions;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
@@ -34,25 +33,31 @@ public class TcpPortWaiting {
   }
 
   private Future<Void> tryConnect(NuProcess process, int count) {
-    NetClientOptions options = new NetClientOptions().setConnectTimeout(MILLISECONDS);
-    NetClient c = vertx.createNetClient(options);
     logger.info("tryConnect() host {} port {} count {}", host, port, count);
-    Promise<Void> promise = Promise.promise();
-    c.connect(port, host, res -> {
-      if (res.succeeded()) {
-        logger.info("Connected to service at host {} port {} count {}", host, port, count);
-        c.close().onComplete(x -> promise.complete());
-      } else if (count < maxIterations && (process == null || process.isRunning())) {
-        c.close().onComplete(x -> vertx.setTimer((long) (count + 1) * MILLISECONDS,
-            id -> tryConnect(process, count + 1).onComplete(promise::handle)));
-      } else {
-        c.close().onComplete(x -> {
-          promise.fail(messages.getMessage("11501",
-              Integer.toString(port), res.cause().getMessage()));
+    return tryConnect()
+        .onSuccess(res -> {
+          logger.info("Connected to service at host {} port {} count {}", host, port, count);
+        })
+        .recover(cause -> {
+          if (count < maxIterations && (process == null || process.isRunning())) {
+            return Future.future(promise ->
+                vertx.setTimer((long) (count + 1) * MILLISECONDS,
+                    id -> tryConnect(process, count + 1).onComplete(promise)));
+          } else {
+            return Future.failedFuture(messages.getMessage("11501",
+                Integer.toString(port), cause.getMessage()));
+          }
         });
-      }
-    });
-    return promise.future();
+  }
+
+  private Future<Void> tryConnect() {
+    // don't use NetClient because container ports are immediately ready, instead check for HTTP
+    WebClientOptions options = new WebClientOptions().setConnectTimeout(MILLISECONDS);
+    WebClient c = WebClient.create(vertx, options);
+    return c.get(port, host, "/")
+        .send()
+        .<Void>mapEmpty()
+        .onComplete(result -> c.close());
   }
 
   public void setMaxIterations(int maxIterations) {
