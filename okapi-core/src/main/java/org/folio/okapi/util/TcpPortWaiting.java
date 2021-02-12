@@ -34,6 +34,7 @@ public class TcpPortWaiting {
   }
 
   private Future<Void> tryConnect(NuProcess process, int count) {
+    // don't use NetClient because container ports are immediately ready, instead check for HTTP response
     WebClientOptions options = new WebClientOptions().setConnectTimeout(MILLISECONDS);
     WebClient c = WebClient.create(vertx, options);
     logger.info("tryConnect() host {} port {} count {}", host, port, count);
