@@ -34,28 +34,31 @@ public class TcpPortWaiting {
   }
 
   private Future<Void> tryConnect(NuProcess process, int count) {
-    // don't use NetClient because container ports are immediately ready, instead check for HTTP response
-    WebClientOptions options = new WebClientOptions().setConnectTimeout(MILLISECONDS);
-    WebClient c = WebClient.create(vertx, options);
     logger.info("tryConnect() host {} port {} count {}", host, port, count);
-    Promise<Void> promise = Promise.promise();
-    c.get(port, host, "/").send()
+    return tryConnect()
         .onSuccess(res -> {
-          c.close();
           logger.info("Connected to service at host {} port {} count {}", host, port, count);
-          promise.complete();
         })
-        .onFailure(cause -> {
-          c.close();
+        .recover(cause -> {
           if (count < maxIterations && (process == null || process.isRunning())) {
-            vertx.setTimer((long) (count + 1) * MILLISECONDS,
-                id -> tryConnect(process, count + 1).onComplete(promise));
+            return Future.future(promise ->
+                vertx.setTimer((long) (count + 1) * MILLISECONDS,
+                    id -> tryConnect(process, count + 1).onComplete(promise)));
           } else {
-            promise.fail(messages.getMessage("11501",
+            return Future.failedFuture(messages.getMessage("11501",
                 Integer.toString(port), cause.getMessage()));
           }
         });
-    return promise.future();
+  }
+
+  private Future<Void> tryConnect() {
+    // don't use NetClient because container ports are immediately ready, instead check for HTTP
+    WebClientOptions options = new WebClientOptions().setConnectTimeout(MILLISECONDS);
+    WebClient c = WebClient.create(vertx, options);
+    return c.get(port, host, "/")
+        .send()
+        .<Void>mapEmpty()
+        .onComplete(result -> c.close());
   }
 
   public void setMaxIterations(int maxIterations) {
