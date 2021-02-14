@@ -509,6 +509,7 @@ public class TenantManager implements Liveness {
           enver = emod;
         }
       }
+      logger.info("Checking okapi module for tenant {} md={}", tenantId, moduleTo);
       String moduleFrom = enver;
       if (moduleFrom == null) {
         logger.info("Tenant {} does not have okapi module enabled already", tenantId);
