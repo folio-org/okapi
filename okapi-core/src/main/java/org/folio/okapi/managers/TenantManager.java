@@ -283,7 +283,7 @@ public class TenantManager implements Liveness {
     if (mdFrom == null && mdTo == null) {
       return Future.succeededFuture("");
     }
-    return invokePermissions(tenant, options, mdTo, pc)
+    return invokePermissions(tenant, options, mdFrom, mdTo, pc)
         .compose(x -> invokeTenantInterface(tenant, options, mdFrom, mdTo, pc))
         .compose(x -> invokePermissionsPermMod(tenant, options, mdTo, pc))
         .compose(x -> commitModuleChange(tenant, mdFrom, mdTo))
@@ -340,10 +340,6 @@ public class TenantManager implements Liveness {
   private Future<Void> invokeTenantInterface(Tenant tenant, TenantInstallOptions options,
                                              ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
                                              ProxyContext pc) {
-
-    if (!options.getInvoke()) {
-      return Future.succeededFuture();
-    }
     JsonObject jo = new JsonObject();
     if (mdTo != null) {
       jo.put("module_to", mdTo.getId());
@@ -354,6 +350,9 @@ public class TenantManager implements Liveness {
     String tenantParameters = options.getTenantParameters();
     boolean purge = mdTo == null && options.getPurge();
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
+    if (!options.checkInvoke(md.getId())) {
+      return Future.succeededFuture();
+    }
     return getTenantInstanceForModule(md, mdFrom, mdTo, jo, tenantParameters, purge)
         .compose(instances -> {
           if (instances.isEmpty()) {
@@ -399,21 +398,21 @@ public class TenantManager implements Liveness {
    *
    * @param tenant tenant
    * @param options install options
-   * @param mdTo module to
+   * @param mdFrom module from - is null if enabling for the first time
+   * @param mdTo module to - is null if disabling
    * @param pc proxy content
    * @return Future
    */
   private Future<Void> invokePermissions(Tenant tenant, TenantInstallOptions options,
-      ModuleDescriptor mdTo, ProxyContext pc) {
-    if (mdTo == null || !options.getInvoke()
-        || mdTo.getSystemInterface("_tenantPermissions") != null) {
+      ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc) {
+    if (mdTo != null && mdTo.getSystemInterface("_tenantPermissions") != null) {
       return Future.succeededFuture();
     }
     return findSystemInterface(tenant, "_tenantPermissions").compose(md -> {
-      if (md == null) {
+      if (md == null || !options.checkInvoke(md.getId())) {
         return Future.succeededFuture();
       }
-      return invokePermissionsForModule(tenant, mdTo, md, pc);
+      return invokePermissionsForModule(tenant, mdFrom, mdTo, md, pc);
     });
   }
 
@@ -428,14 +427,14 @@ public class TenantManager implements Liveness {
    */
   private Future<Void> invokePermissionsPermMod(Tenant tenant, TenantInstallOptions options,
                                                 ModuleDescriptor mdTo, ProxyContext pc) {
-    if (mdTo == null || !options.getInvoke()
+    if (mdTo == null || !options.checkInvoke(mdTo.getId())
         || mdTo.getSystemInterface("_tenantPermissions") == null) {
       return Future.succeededFuture();
     }
     // enabling permissions module.
     return findSystemInterface(tenant, "_tenantPermissions")
         .compose(res -> loadPermissionsForEnabled(tenant, mdTo, pc))
-        .compose(res -> invokePermissionsForModule(tenant, mdTo, mdTo, pc));
+        .compose(res -> invokePermissionsForModule(tenant, null, mdTo, mdTo, pc));
   }
 
   /**
@@ -452,7 +451,7 @@ public class TenantManager implements Liveness {
     Future<Void> future = Future.succeededFuture();
     for (String mdid : tenant.listModules()) {
       future = future.compose(x -> moduleManager.get(mdid)
-          .compose(md -> invokePermissionsForModule(tenant, md, permsModule, pc)));
+          .compose(md -> invokePermissionsForModule(tenant, null, md, permsModule, pc)));
     }
     return future;
   }
@@ -526,7 +525,7 @@ public class TenantManager implements Liveness {
       }
       logger.info("Tenant {} moving from {} to {}", tenantId, moduleFrom, moduleTo);
       TenantInstallOptions options = new TenantInstallOptions();
-      return invokePermissions(tenant, options, md, null).compose(x ->
+      return invokePermissions(tenant, options, null, md, null).compose(x ->
           updateModuleCommit(tenant, moduleFrom, moduleTo));
     });
   }
@@ -651,31 +650,41 @@ public class TenantManager implements Liveness {
     return perms;
   }
 
-  private Future<Void> invokePermissionsForModule(Tenant tenant, ModuleDescriptor mdTo,
-      ModuleDescriptor permsModule, ProxyContext pc) {
+  private Future<Void> invokePermissionsForModule(Tenant tenant,
+                                                  ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+                                                  ModuleDescriptor permsModule, ProxyContext pc) {
 
-    logger.debug("Loading permissions for {} (using {})", mdTo.getName(), permsModule.getName());
-    String moduleTo = mdTo.getId();
     PermissionList pl;
     InterfaceDescriptor permInt = permsModule.getSystemInterface("_tenantPermissions");
     String permIntVer = permInt.getVersion();
     switch (permIntVer) {
       case "1.0":
-        pl = new PermissionList(moduleTo, stripPermissionReplaces(mdTo.getPermissionSets()));
+        if (mdTo == null) {
+          return Future.succeededFuture();
+        }
+        pl = new PermissionList(mdTo.getId(), stripPermissionReplaces(mdTo.getPermissionSets()));
         break;
       case "1.1":
-        pl = new PermissionList(moduleTo, stripPermissionReplaces(
+        if (mdTo == null) {
+          return Future.succeededFuture();
+        }
+        pl = new PermissionList(mdTo.getId(), stripPermissionReplaces(
             mdTo.getExpandedPermissionSets()));
         break;
       case "2.0":
-        pl = new PermissionList(moduleTo, mdTo.getExpandedPermissionSets());
+        if (mdTo != null) {
+          pl = new PermissionList(mdTo.getId(), mdTo.getExpandedPermissionSets());
+        } else  {
+          // attempt an empty list for the module being disabled
+          pl = new PermissionList(mdFrom.getId(), new Permission[0]);
+        }
         break;
       default:
         return Future.failedFuture(new OkapiError(ErrorType.USER,
             "Unknown version of _tenantPermissions interface in use " + permIntVer + "."));
     }
     String pljson = Json.encodePrettily(pl);
-    logger.debug("tenantPerms Req: {}", pljson);
+    logger.info("tenantPerms Req: {}", pljson);
     String permPath = "";
     List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
     ModuleInstance permInst = null;
@@ -700,8 +709,6 @@ public class TenantManager implements Liveness {
     }
     return proxyService.callSystemInterface(tenant, permInst, pljson, pc).compose(cres -> {
       pc.passOkapiTraceHeaders(cres);
-      logger.debug("tenantPerms request to {} succeeded for module {} and tenant {}",
-          permsModule.getId(), moduleTo, tenant.getId());
       return Future.succeededFuture();
     });
   }

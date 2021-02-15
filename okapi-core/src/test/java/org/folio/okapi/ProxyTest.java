@@ -488,7 +488,7 @@ public class ProxyTest {
         .header("Content-Type", "application/json")
         .body(new JsonArray().add(new JsonObject().put("id", "timer-module-1.0.0").put("action", "enable"))
             .add(new JsonObject().put("id", "request-pre-1.0.0").put("action", "enable")).encode())
-        .post("/_/proxy/tenants/" + tenant + "/install?deploy=true")
+        .post("/_/proxy/tenants/" + tenant + "/install?deploy=true&invoke=true")
         .then().statusCode(200).log().ifValidationFails();
 
     upload(context, tenant, "/echo", 0);
@@ -4374,7 +4374,7 @@ public class ProxyTest {
     }
 
     given()
-        .body(installJson).post("/_/proxy/tenants/testlib/install?invoke=true")
+        .body(installJson).post("/_/proxy/tenants/testlib/install?invoke=.*")
         .then().statusCode(200);
 
     long startTime = System.nanoTime();

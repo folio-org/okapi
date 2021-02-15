@@ -1384,8 +1384,8 @@ public class ModuleTest {
         .extract().body().asString();
 
     ar = new JsonArray(body);
-    context.assertEquals(2, ar.size());
-    context.assertEquals(new JsonObject(expPerms), ar.getJsonObject(1));
+    context.assertEquals(3, ar.size());
+    context.assertEquals(new JsonObject(expPerms), ar.getJsonObject(2));
 
     // Check that the tenant interface and the tenantpermission interfaces
     // were called with proper auth tokens and with ModulePermissions

@@ -32,7 +32,7 @@ public class ModuleUtil {
     options.setDeploy(getParamBoolean(req, "deploy", false));
     options.setPurge(getParamBoolean(req, "purge", false));
     options.setTenantParameters(req.getParam("tenantParameters"));
-    options.setInvoke(getParamBoolean(req, "invoke", true));
+    options.setInvoke(req.getParam("invoke"));
     options.setAsync(getParamBoolean(req, "async", false));
     options.setIgnoreErrors(getParamBoolean(req, "ignoreErrors", false));
     return options;

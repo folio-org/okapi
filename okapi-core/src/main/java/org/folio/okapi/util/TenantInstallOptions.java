@@ -9,7 +9,7 @@ public class TenantInstallOptions {
   private String tenantParameters;
   private boolean npmSnapshot = false;
   private boolean depCheck = true;
-  private boolean invoke = true;
+  private String invoke;
   private boolean async = false;
   private boolean ignoreErrors = false;
 
@@ -69,12 +69,23 @@ public class TenantInstallOptions {
     return depCheck;
   }
 
-  public void setInvoke(boolean v) {
+  public void setInvoke(String v) {
     invoke = v;
   }
 
-  public boolean getInvoke() {
-    return invoke;
+  /**
+   * Check if module is to be invoked during install.
+   * @param id module ID.
+   * @return whether to invoke the module.
+   */
+  public boolean checkInvoke(String id) {
+    if (invoke == null || "true".equals(invoke)) {
+      return true;
+    }
+    if ("false".equals(invoke)) {
+      return false;
+    }
+    return id.matches(invoke);
   }
 
   public void setAsync(boolean v) {
