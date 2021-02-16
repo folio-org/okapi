@@ -81,7 +81,12 @@ public class GenericCompositeFutureTest implements WithAssertions {
     }
 
     @Override
-    public <U> Future<U> eventually(Function<Void, Future<U>> function) {
+    public <U> Future<U> transform(Function<AsyncResult<T>, Future<U>> mapper) {
+      return null;
+    }
+
+    @Override
+    public <U> Future<T> eventually(Function<Void, Future<U>> mapper) {
       return null;
     }
 
