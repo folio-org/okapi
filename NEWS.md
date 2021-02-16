@@ -1,3 +1,9 @@
+## 4.6.4 2021-02-16
+
+ * [OKAPI-978](https://issues.folio.org/browse/OKAPI-978) Fix Exception on Docker pull
+ * [OKAPI-984](https://issues.folio.org/browse/OKAPI-984) Fix Retry when slow module start causes "connection refused"
+ * [OKAPI-986](https://issues.folio.org/browse/OKAPI-986) Upgrade Vert.x 4.0.2, Netty 4.1.59 (CVE-2021-21290)
+
 ## 4.6.3 2021-02-01
 
  * [OKAPI-979](https://issues.folio.org/browse/OKAPI-979) Ensure module is logged for tenant operation failures
