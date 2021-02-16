@@ -31,20 +31,21 @@
   <dependencyManagement>
     <dependencies>
       <!--
-        Overwrite 4.1.49.FINAL (from vertx-stack-depchain 4.0.0)
-        by newer version.
+        Overwrite 4.1.52.FINAL (from vertx-stack-depchain 4.0.2)
+        that contains a temp file vulnerability (CVE-2021-21290)
+        https://github.com/netty/netty/security/advisories/GHSA-5mcr-gq6c-3hq2
       -->
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
-        <version>4.1.53.Final</version>
+        <version>4.1.59.Final</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.0.0</version> <!-- also update depending versions below! -->
+        <version>4.0.2</version> <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -52,19 +53,10 @@
       <!-- START: versions that depend on the vertx-stack-depchain version -->
       <dependency>
         <groupId>io.micrometer</groupId>
-        <artifactId>micrometer-registry-influx</artifactId>
-        <version>1.4.2</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml -->
-        <!-- use 1.4.2 because 1.5.2 in above POM link does not work -->
-      </dependency>
-      <dependency>
-        <groupId>io.micrometer</groupId>
-        <artifactId>micrometer-registry-prometheus</artifactId>
-        <version>1.5.2</version> <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml -->
-      </dependency>
-      <dependency>
-        <groupId>io.micrometer</groupId>
-        <artifactId>micrometer-registry-jmx</artifactId>
-        <version>1.5.2</version> <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml -->
+        <artifactId>micrometer-bom</artifactId>
+        <version>1.6.3</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>com.hazelcast</groupId>
@@ -74,12 +66,12 @@
       <dependency>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast-aws</artifactId>
-        <version>3.2</version>  <!-- https://github.com/hazelcast/hazelcast-aws#requirements -->
+        <version>3.3</version>  <!-- https://github.com/hazelcast/hazelcast-aws#requirements -->
       </dependency>
       <dependency>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast-kubernetes</artifactId>
-        <version>2.0.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml -->
+        <version>2.2.1</version>  <!-- https://github.com/hazelcast/hazelcast-kubernetes#requirements-and-recommendations -->
       </dependency>
       <!-- END: versions that depend on the vertx-stack-depchain version -->
 
