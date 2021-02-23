@@ -37,6 +37,7 @@ This document is intended to be short, so that is is easy to comply and to asses
 * Provide a `ModuleDescriptor.json`
 * Provide an `ExternalDeploymentDescriptor.json`
 * Provide a `TenantAssociationDescriptor.json`
+* Provide health-check endpoint `/admin/health`. Should have responce code `200`
 * XXX What else?
 
 
