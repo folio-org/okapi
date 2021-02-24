@@ -1,3 +1,7 @@
+## 4.6.5 2021-02-24
+
+ * [OKAPI-988](https://issues.folio.org/browse/OKAPI-988) Deployment fails with Docker (part two)
+
 ## 4.6.4 2021-02-16
 
  * [OKAPI-978](https://issues.folio.org/browse/OKAPI-978) Fix Exception on Docker pull
