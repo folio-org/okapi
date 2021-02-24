@@ -90,7 +90,7 @@ public class DockerModuleHandle implements ModuleHandle {
       socketAddress = null;
     }
     dockerRegistries = config.getJsonArray("dockerRegistries");
-    tcpPortWaiting = new TcpPortWaiting(vertx, containerHost, port);
+    tcpPortWaiting = new TcpPortWaiting(vertx, id, containerHost, port);
     if (desc.getWaitIterations() != null) {
       tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
     }
@@ -197,19 +197,19 @@ public class DockerModuleHandle implements ModuleHandle {
     return request(HttpMethod.GET, url, null)
         .compose(req -> req.end()
             .compose(x -> req.response()
-            .compose(res -> {
-              if (res.statusCode() == 200) {
-                // stream OK. Continue other work but keep fetching!
-                // remove 8 bytes of binary data and final newline
-                res.handler(this::logHandler);
-                return tcpPortWaiting.waitReady(null);
-              } else {
-                String m = "getContainerLog HTTP error "
-                    + res.statusCode();
-                logger.error(m);
-                return Future.failedFuture(m);
-              }
-            })));
+                .compose(res -> {
+                  if (res.statusCode() == 200) {
+                    // stream OK. Continue other work but keep fetching!
+                    // remove 8 bytes of binary data and final newline
+                    res.handler(this::logHandler);
+                    return Future.succeededFuture();
+                  } else {
+                    String m = "getContainerLog HTTP error "
+                        + res.statusCode();
+                    logger.error(m);
+                    return Future.failedFuture(m);
+                  }
+                })));
   }
 
   private Future<JsonObject> handleResponseJsonObject(HttpClientResponse res, String msg) {
@@ -426,7 +426,9 @@ public class DockerModuleHandle implements ModuleHandle {
       }
     }).compose(this::createContainer)
         .compose(res -> startContainer().onFailure(cause -> deleteContainer()))
-        .compose(res -> getContainerLog().onFailure(cause -> stop()));
+        .compose(res -> getContainerLog())
+        .compose(res -> tcpPortWaiting.waitReady(null))
+        .onFailure(cause -> stop());
   }
 
   @Override

@@ -59,7 +59,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     this.port = port;
     this.ports = ports;
     this.process = null;
-    this.tcpPortWaiting = new TcpPortWaiting(vertx, "localhost", port);
+    this.tcpPortWaiting = new TcpPortWaiting(vertx, id, "localhost", port);
     if (desc.getWaitIterations() != null) {
       tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
     }
