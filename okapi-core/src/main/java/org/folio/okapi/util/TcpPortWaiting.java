@@ -15,29 +15,31 @@ public class TcpPortWaiting {
   private static final int MILLISECONDS = 200;
   private final Messages messages = Messages.getInstance();
 
-  private int maxIterations = 30; // x*(x+1) * 0.1 seconds.
+  private int maxIterations = 60; // x*(x+1) * 0.1 seconds.
   private final Vertx vertx;
+  private final String name;
   private final String host;
   private final int port;
 
   /**
    * Create TCP port waiting utility.
    * @param vertx Vert.x handle
+   * @param name name of service or module
    * @param host host for server that utility it waiting for
    * @param port port for server; special value 0 will disable waiting for the server
    */
-  public TcpPortWaiting(Vertx vertx, String host, int port) {
+  public TcpPortWaiting(Vertx vertx, String name, String host, int port) {
     this.vertx = vertx;
     this.host = host;
     this.port = port;
+    this.name = name;
   }
 
   private Future<Void> tryConnect(NuProcess process, int count) {
-    logger.info("tryConnect() host {} port {} count {}", host, port, count);
+    logger.info("Try connect to service {} at {}:{} count {}", name, host, port, count);
     return tryConnect()
-        .onSuccess(res -> {
-          logger.info("Connected to service at host {} port {} count {}", host, port, count);
-        })
+        .onSuccess(res -> logger.info("Connected to service {} at {}:{} count {}",
+            name, host, port, count))
         .recover(cause -> {
           if (count < maxIterations && (process == null || process.isRunning())) {
             return Future.future(promise ->
