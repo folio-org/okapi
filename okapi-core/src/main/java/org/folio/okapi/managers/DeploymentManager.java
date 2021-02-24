@@ -169,7 +169,7 @@ public class DeploymentManager {
       String moduleUrl = "http://" + host + ":" + usePort;
       String moduleHost = host;
       if (descriptor.getDockerImage() != null) {
-        moduleHost = Config.getSysConf("containerHost", "localhost", config);
+        moduleHost = Config.getSysConf("containerHost", host, config);
       }
       ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor,
           md1.getSrvcId(), ports, moduleHost, usePort, config);
