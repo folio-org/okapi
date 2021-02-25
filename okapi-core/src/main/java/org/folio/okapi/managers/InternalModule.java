@@ -1,6 +1,7 @@
 package org.folio.okapi.managers;
 
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
@@ -722,7 +723,7 @@ public class InternalModule {
 
   private Future<String> enableModuleForTenant(ProxyContext pc, String tenantId, String body) {
     try {
-      TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
+      TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
 
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
@@ -737,14 +738,14 @@ public class InternalModule {
   }
 
   private Future<String> disableModuleForTenant(ProxyContext pc, String tenantId, String module) {
-    TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
+    TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
     return tenantManager.enableAndDisableModule(tenantId, options, module, null, pc).map("");
   }
 
   private Future<String> installTenantModulesPost(ProxyContext pc, String tenantId, String body) {
 
     try {
-      TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
+      TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
 
       final TenantModuleDescriptor[] tml = Json.decodeValue(body,
           TenantModuleDescriptor[].class);
@@ -786,7 +787,7 @@ public class InternalModule {
 
   private Future<String> upgradeModulesForTenant(ProxyContext pc, String tenantId) {
 
-    TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
+    TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
     UUID installId = UUID.randomUUID();
     return tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, null)
         .compose(res -> {
@@ -803,7 +804,7 @@ public class InternalModule {
 
   private Future<String> upgradeModuleForTenant(ProxyContext pc, String tenantId,
                                                 String mod, String body) {
-    TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
+    TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
     try {
       final String module_from = mod;
       final TenantModuleDescriptor td = Json.decodeValue(body,
@@ -825,8 +826,9 @@ public class InternalModule {
 
     try {
       return tenantManager.listModules(tenantId).compose(mdl -> {
-        final boolean dot = ModuleUtil.getParamBoolean(pc.getCtx().request(), "dot", false);
-        mdl = ModuleUtil.filter(pc.getCtx().request(), mdl, dot, false);
+        MultiMap params = pc.getCtx().request().params();
+        final boolean dot = ModuleUtil.getParamBoolean(params, "dot", false);
+        mdl = ModuleUtil.filter(params, mdl, dot, false);
         if (dot) {
           String s = GraphDot.report(mdl);
           pc.getCtx().response().putHeader("Content-Type", "text/plain");
@@ -841,7 +843,7 @@ public class InternalModule {
 
   private Future<String> disableModulesForTenant(ProxyContext pc, String tenantId) {
 
-    TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
+    TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
     return tenantManager.disableModules(tenantId, options, pc)
         .compose(res -> Future.succeededFuture(""));
   }
@@ -860,9 +862,9 @@ public class InternalModule {
   }
 
   private Future<String> listInterfaces(ProxyContext pc, String tenantId) {
-
-    final boolean full = ModuleUtil.getParamBoolean(pc.getCtx().request(), "full", false);
-    final String type = pc.getCtx().request().getParam("type");
+    MultiMap params = pc.getCtx().request().params();
+    final boolean full = ModuleUtil.getParamBoolean(params, "full", false);
+    final String type = params.get("type");
     return tenantManager.listInterfaces(tenantId, full, type)
         .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
@@ -883,10 +885,10 @@ public class InternalModule {
 
   private Future<Void> createModules(ProxyContext pc, List<ModuleDescriptor> list) {
     try {
-      HttpServerRequest req = pc.getCtx().request();
-      final boolean check = ModuleUtil.getParamBoolean(req, "check", true);
-      final boolean preRelease = ModuleUtil.getParamBoolean(req, "preRelease", true);
-      final boolean npmSnapshot = ModuleUtil.getParamBoolean(req, "npmSnapshot", true);
+      MultiMap params = pc.getCtx().request().params();
+      final boolean check = ModuleUtil.getParamBoolean(params, "check", true);
+      final boolean preRelease = ModuleUtil.getParamBoolean(params, "preRelease", true);
+      final boolean npmSnapshot = ModuleUtil.getParamBoolean(params, "npmSnapshot", true);
       for (ModuleDescriptor md : list) {
         String validerr = md.validate(logger);
         if (!validerr.isEmpty()) {
@@ -931,8 +933,9 @@ public class InternalModule {
     return moduleManager.getModulesWithFilter(true, true, Arrays.asList(skipModules))
         .compose(mdl -> {
           try {
-            final boolean dot = ModuleUtil.getParamBoolean(pc.getCtx().request(), "dot", false);
-            mdl = ModuleUtil.filter(pc.getCtx().request(), mdl, dot, true);
+            MultiMap params = pc.getCtx().request().params();
+            final boolean dot = ModuleUtil.getParamBoolean(params, "dot", false);
+            mdl = ModuleUtil.filter(params, mdl, dot, true);
             String s;
             if (dot) {
               s = GraphDot.report(mdl);
