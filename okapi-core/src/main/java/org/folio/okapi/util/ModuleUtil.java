@@ -1,6 +1,6 @@
 package org.folio.okapi.util;
 
-import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.MultiMap;
 import io.vertx.core.json.DecodeException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,42 +11,42 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 
-public class ModuleUtil {
+public final class ModuleUtil {
   private ModuleUtil() {
-    throw new IllegalAccessError(this.toString());
+    throw new UnsupportedOperationException("Cannot instantiate utility class.");
   }
 
   private static final Messages messages = Messages.getInstance();
 
   /**
    * Create tenant install options from HTTP request parameters.
-   * @param req HTTP server request
+   * @param params HTTP server request parameters
    * @return tenant install options
    */
-  public static TenantInstallOptions createTenantOptions(HttpServerRequest req) {
+  public static TenantInstallOptions createTenantOptions(MultiMap params) {
     TenantInstallOptions options = new TenantInstallOptions();
 
-    options.setSimulate(getParamBoolean(req, "simulate", false));
-    options.setPreRelease(getParamBoolean(req, "preRelease", true));
-    options.setNpmSnapshot(getParamBoolean(req, "npmSnapshot", true));
-    options.setDeploy(getParamBoolean(req, "deploy", false));
-    options.setPurge(getParamBoolean(req, "purge", false));
-    options.setTenantParameters(req.getParam("tenantParameters"));
-    options.setInvoke(req.getParam("invoke"));
-    options.setAsync(getParamBoolean(req, "async", false));
-    options.setIgnoreErrors(getParamBoolean(req, "ignoreErrors", false));
+    options.setSimulate(getParamBoolean(params, "simulate", false));
+    options.setPreRelease(getParamBoolean(params, "preRelease", true));
+    options.setNpmSnapshot(getParamBoolean(params, "npmSnapshot", true));
+    options.setDeploy(getParamBoolean(params, "deploy", false));
+    options.setPurge(getParamBoolean(params, "purge", false));
+    options.setTenantParameters(params.get("tenantParameters"));
+    options.setInvoke(params.get("invoke"));
+    options.setAsync(getParamBoolean(params, "async", false));
+    options.setIgnoreErrors(getParamBoolean(params, "ignoreErrors", false));
     return options;
   }
 
   /**
    * Lookup boolean query parameter in HTTP request.
-   * @param req HTTP server request
+   * @param params HTTP server request parameters
    * @param name name of query parameter
    * @param defValue default value if omitted
    * @return boolean value
    */
-  public static boolean getParamBoolean(HttpServerRequest req, String name, boolean defValue) {
-    String v = req.getParam(name);
+  public static boolean getParamBoolean(MultiMap params, String name, boolean defValue) {
+    String v = params.get(name);
     if (v == null) {
       return defValue;
     } else if ("true".equals(v)) {
@@ -79,29 +79,29 @@ public class ModuleUtil {
 
   /**
    * Produce list of modules based on various filters.
-   * @param req HTTP server request
+   * @param params HTTP server request parameters
    * @param list list of modules to consider
    * @param full true: force full view of each module; false: consider "full" query parameter
    * @param includeName whether to include module name property always
    * @return list of modules
    */
   public static List<ModuleDescriptor> filter(
-      HttpServerRequest req, List<ModuleDescriptor> list, boolean full, boolean includeName) {
+      MultiMap params, List<ModuleDescriptor> list, boolean full, boolean includeName) {
     ModuleId filter = null;
-    String filterStr = req.getParam("filter");
+    String filterStr = params.get("filter");
     if (filterStr != null) {
       filter = new ModuleId(filterStr);
     }
-    final String latestStr = req.getParam("latest");
-    final String provideStr = req.getParam("provide");
-    final String requireStr = req.getParam("require");
-    final String orderByStr = req.getParam("orderBy");
-    final String orderStr = req.getParam("order");
-    final boolean preRelease = getParamBoolean(req, "preRelease", true);
-    final boolean npmSnapshot = getParamBoolean(req, "npmSnapshot", true);
-    final String scope = req.getParam("scope");
+    final String latestStr = params.get("latest");
+    final String provideStr = params.get("provide");
+    final String requireStr = params.get("require");
+    final String orderByStr = params.get("orderBy");
+    final String orderStr = params.get("order");
+    final boolean preRelease = getParamBoolean(params, "preRelease", true);
+    final boolean npmSnapshot = getParamBoolean(params, "npmSnapshot", true);
+    final String scope = params.get("scope");
     if (!full) {
-      full = getParamBoolean(req, "full", false);
+      full = getParamBoolean(params, "full", false);
     }
     Iterator<ModuleDescriptor> iterator = list.iterator();
     while (iterator.hasNext()) {
@@ -111,7 +111,8 @@ public class ModuleUtil {
       if ((filter != null && !idThis.hasPrefix(filter))
           || (!npmSnapshot && idThis.hasNpmSnapshot())
           || (!preRelease && idThis.hasPreRelease())
-          || !interfaceCheck(md.getRequires(), requireStr, scope)
+          || !(interfaceCheck(md.getRequires(), requireStr, scope)
+          || interfaceCheck(md.getOptional(), requireStr, scope))
           || !interfaceCheck(md.getProvides(), provideStr, scope)) {
         iterator.remove();
       }
@@ -119,7 +120,7 @@ public class ModuleUtil {
     if (latestStr != null) {
       try {
         int limit = Integer.parseInt(latestStr);
-        list = DepResolution.getLatestProducts(limit, list);
+        DepResolution.getLatestProducts(limit, list);
       } catch (NumberFormatException ex) {
         throw new DecodeException(messages.getMessage("11608", "latest", ex.getMessage()));
       }
