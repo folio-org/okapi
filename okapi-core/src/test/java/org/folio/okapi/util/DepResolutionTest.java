@@ -16,6 +16,7 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor.Action;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.testutil.UtilityClassTester;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,6 +42,11 @@ public class DepResolutionTest {
   private ModuleDescriptor st101;
   private ModuleDescriptor ot100;
   private ModuleDescriptor ot101;
+
+  @Test
+  public void isUtilityClass() {
+    UtilityClassTester.assertUtilityClass(DepResolution.class);
+  }
 
   private static Map<String, ModuleDescriptor> map(ModuleDescriptor... array) {
     Map<String, ModuleDescriptor> map = new HashMap<>();
