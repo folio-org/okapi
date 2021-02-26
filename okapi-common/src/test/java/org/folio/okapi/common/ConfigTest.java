@@ -5,27 +5,32 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class ConfigTest {
+  private static final String VAR_NAME = "OkapiConfigTest1";
+  private static final String VAR_NAME2 = "OkapiConfigTest2";
+
   @Test
   public void testConfig() {
     JsonObject conf = new JsonObject();
-    final String varName = "foo-bar92304239";
 
-    Assert.assertEquals("123", Config.getSysConf(varName, "123", conf));
-    Assert.assertEquals(null, Config.getSysConf(varName, null, conf));
+    System.clearProperty(VAR_NAME);
+    Assert.assertNull(System.getProperty(VAR_NAME));
 
-    conf.put(varName, "124");
-    Assert.assertEquals("124", Config.getSysConf(varName, "123", conf));
+    Assert.assertEquals("123", Config.getSysConf(VAR_NAME, "123", conf));
+    Assert.assertEquals(null, Config.getSysConf(VAR_NAME, null, conf));
 
-    System.setProperty(varName, "129");
-    Assert.assertEquals("129", Config.getSysConf(varName, "123", conf));
+    conf.put(VAR_NAME, "124");
+    Assert.assertEquals("124", Config.getSysConf(VAR_NAME, "123", conf));
 
-    System.setProperty(varName, "");
-    Assert.assertEquals("124", Config.getSysConf(varName, "123", conf));
+    System.setProperty(VAR_NAME, "129");
+    Assert.assertEquals("129", Config.getSysConf(VAR_NAME, "123", conf));
+
+    System.setProperty(VAR_NAME, "");
+    Assert.assertEquals("124", Config.getSysConf(VAR_NAME, "123", conf));
   }
 
   private void assert2(String prop1, String prop2, String json1, String json2, String expected) {
-    final String key1 = "foo-bar92304231";
-    final String key2 = "foo-bar92304232";
+    final String key1 = VAR_NAME;
+    final String key2 = VAR_NAME2;
     JsonObject conf = new JsonObject();
     if (json1 != null) {
       conf.put(key1, json1);
@@ -62,67 +67,68 @@ public class ConfigTest {
   @Test
   public void testBoolean() {
     JsonObject conf = new JsonObject();
-    final String varName = "foo-bar92304238";
 
-    Assert.assertEquals(true, Config.getSysConfBoolean(varName, true, conf));
-    Assert.assertEquals(null, Config.getSysConfBoolean(varName, null, conf));
+    System.clearProperty(VAR_NAME);
+    Assert.assertNull(System.getProperty(VAR_NAME));
+    Assert.assertEquals(true, Config.getSysConfBoolean(VAR_NAME, true, conf));
+    Assert.assertEquals(null, Config.getSysConfBoolean(VAR_NAME, null, conf));
 
-    conf.put(varName, false);
-    Assert.assertEquals(false, Config.getSysConfBoolean(varName, true, conf));
+    conf.put(VAR_NAME, false);
+    Assert.assertEquals(false, Config.getSysConfBoolean(VAR_NAME, true, conf));
 
-    conf.put(varName, "xx");
+    conf.put(VAR_NAME, "xx");
     boolean thrown = false;
     try {
-      Config.getSysConfBoolean(varName, true, conf);
+      Config.getSysConfBoolean(VAR_NAME, true, conf);
     } catch (ClassCastException ex) {
       thrown = true;
     }
     Assert.assertTrue(thrown);
 
-    System.setProperty(varName, "xx"); // treated as false
-    Assert.assertEquals(false, Config.getSysConfBoolean(varName, null, conf));
+    System.setProperty(VAR_NAME, "xx"); // treated as false
+    Assert.assertEquals(false, Config.getSysConfBoolean(VAR_NAME, null, conf));
 
-    System.setProperty(varName, "true");
-    Assert.assertEquals(true, Config.getSysConfBoolean(varName, false, conf));
+    System.setProperty(VAR_NAME, "true");
+    Assert.assertEquals(true, Config.getSysConfBoolean(VAR_NAME, false, conf));
 
-    System.setProperty(varName, "false");
-    Assert.assertEquals(false, Config.getSysConfBoolean(varName, true, conf));
+    System.setProperty(VAR_NAME, "false");
+    Assert.assertEquals(false, Config.getSysConfBoolean(VAR_NAME, true, conf));
 
-    conf.put(varName, false);
-    System.setProperty(varName, "");
-    Assert.assertEquals(false, Config.getSysConfBoolean(varName, true, conf));
+    conf.put(VAR_NAME, false);
+    System.setProperty(VAR_NAME, "");
+    Assert.assertEquals(false, Config.getSysConfBoolean(VAR_NAME, true, conf));
 
-    conf.remove(varName);
-    Assert.assertEquals(true, Config.getSysConfBoolean(varName, true, conf));
-    Assert.assertEquals(null, Config.getSysConfBoolean(varName, null, conf));
-
+    conf.remove(VAR_NAME);
+    Assert.assertEquals(true, Config.getSysConfBoolean(VAR_NAME, true, conf));
+    Assert.assertEquals(null, Config.getSysConfBoolean(VAR_NAME, null, conf));
   }
 
   @Test
   public void testInteger() {
     JsonObject conf = new JsonObject();
-    final String varName = "foo-bar92304239";
 
-    Assert.assertEquals((Integer) 42, Config.getSysConfInteger(varName, 42, conf));
-    Assert.assertEquals(null, Config.getSysConfInteger(varName, null, conf));
+    System.clearProperty(VAR_NAME);
+    Assert.assertNull(System.getProperty(VAR_NAME));
+    Assert.assertEquals((Integer) 42, Config.getSysConfInteger(VAR_NAME, 42, conf));
+    Assert.assertEquals(null, Config.getSysConfInteger(VAR_NAME, null, conf));
 
-    conf.put(varName, "xx");
+    conf.put(VAR_NAME, "xx");
     boolean thrown = false;
     try {
-      Config.getSysConfInteger(varName, null, conf);
+      Config.getSysConfInteger(VAR_NAME, null, conf);
     } catch (ClassCastException ex) {
       thrown = true;
     }
     Assert.assertTrue(thrown);
 
-    conf.put(varName, 41);
-    Assert.assertEquals((Integer) 41, Config.getSysConfInteger(varName, null, conf));
+    conf.put(VAR_NAME, 41);
+    Assert.assertEquals((Integer) 41, Config.getSysConfInteger(VAR_NAME, null, conf));
 
-    System.setProperty(varName, "42");
-    Assert.assertEquals((Integer) 42, Config.getSysConfInteger(varName, null, conf));
+    System.setProperty(VAR_NAME, "42");
+    Assert.assertEquals((Integer) 42, Config.getSysConfInteger(VAR_NAME, null, conf));
 
-    System.setProperty(varName, "");
-    Assert.assertTrue(System.getProperty(varName).isEmpty());
-    Assert.assertEquals((Integer) 41, Config.getSysConfInteger(varName, null, conf));
+    System.setProperty(VAR_NAME, "");
+    Assert.assertTrue(System.getProperty(VAR_NAME).isEmpty());
+    Assert.assertEquals((Integer) 41, Config.getSysConfInteger(VAR_NAME, null, conf));
   }
 }
