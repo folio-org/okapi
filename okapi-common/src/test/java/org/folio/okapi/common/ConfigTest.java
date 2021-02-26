@@ -118,10 +118,11 @@ public class ConfigTest {
     conf.put(varName, 41);
     Assert.assertEquals((Integer) 41, Config.getSysConfInteger(varName, null, conf));
 
-    System.setProperty(varName, "");
-    Assert.assertEquals((Integer) 41, Config.getSysConfInteger(varName, null, conf));
-
     System.setProperty(varName, "42");
     Assert.assertEquals((Integer) 42, Config.getSysConfInteger(varName, null, conf));
+
+    System.setProperty(varName, "");
+    Assert.assertTrue(System.getProperty(varName).isEmpty());
+    Assert.assertEquals((Integer) 41, Config.getSysConfInteger(varName, null, conf));
   }
 }
