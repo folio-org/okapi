@@ -70,10 +70,10 @@ public class ConfigTest {
     conf.put(varName, false);
     Assert.assertEquals(false, Config.getSysConfBoolean(varName, true, conf));
 
+    conf.put(varName, "xx");
     boolean thrown = false;
     try {
-      conf.put(varName, "xx");
-      Assert.assertEquals(false, Config.getSysConfBoolean(varName, true, conf));
+      Config.getSysConfBoolean(varName, true, conf);
     } catch (ClassCastException ex) {
       thrown = true;
     }
@@ -106,16 +106,19 @@ public class ConfigTest {
     Assert.assertEquals((Integer) 42, Config.getSysConfInteger(varName, 42, conf));
     Assert.assertEquals(null, Config.getSysConfInteger(varName, null, conf));
 
+    conf.put(varName, "xx");
     boolean thrown = false;
     try {
-      conf.put(varName, "xx");
-      Assert.assertEquals(false, Config.getSysConfInteger(varName, null, conf));
+      Config.getSysConfInteger(varName, null, conf);
     } catch (ClassCastException ex) {
       thrown = true;
     }
     Assert.assertTrue(thrown);
 
     conf.put(varName, 41);
+    Assert.assertEquals((Integer) 41, Config.getSysConfInteger(varName, null, conf));
+
+    System.setProperty(varName, "");
     Assert.assertEquals((Integer) 41, Config.getSysConfInteger(varName, null, conf));
 
     System.setProperty(varName, "42");
