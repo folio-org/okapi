@@ -1,3 +1,28 @@
+## 4.7.0 2021-02-26
+
+This release includes improvements for communication with the
+permissions module. It also includes a setting for controlling
+how long Okapi waits for deployment readiness.
+
+New features:
+ * [OKAPI-985](https://issues.folio.org/browse/OKAPI-985) PoC refresh last strategy for _tenantPemissions
+ * [OKAPI-982](https://issues.folio.org/browse/OKAPI-982) Inform mod-permissions when module is disabled
+ * [OKAPI-990](https://issues.folio.org/browse/OKAPI-990) Config deploy.waitIterations for Docker deployment
+
+Fixes (some of which are also cherry-picked to 4.6+ series)
+ * [OKAPI-987](https://issues.folio.org/browse/OKAPI-987) Modules require does not seem to take into account optional dependencies
+ * [OKAPI-986](https://issues.folio.org/browse/OKAPI-986) Vert.x 4.0.2, Netty 4.1.59 (CVE-2021-21290)
+ * [OKAPI-984](https://issues.folio.org/browse/OKAPI-984) Retry when slow module startup causes "connection refused"
+ * [OKAPI-979](https://issues.folio.org/browse/OKAPI-979) Ensure module is logged for tenant operation failures
+ * [OKAPI-978](https://issues.folio.org/browse/OKAPI-978) Exception on Docker pull
+ * [OKAPI-976](https://issues.folio.org/browse/OKAPI-976) NPE in DiscoveryManager after restarting Okapi
+ * [OKAPI-974](https://issues.folio.org/browse/OKAPI-974) Make permissionName a required property
+ * [OKAPI-973](https://issues.folio.org/browse/OKAPI-973) DockerModuleHandle IllegalStateException checkEnded
+
+Other:
+ * [OKAPI-980](https://issues.folio.org/browse/OKAPI-980) Okapi-curl has a login facility. Is now maintained by Mike Taylor [here](https://github.com/MikeTaylor/okapi-curl)
+ * [OKAPI-975](https://issues.folio.org/browse/OKAPI-975) Use GenericCompositeFuture rather than internal one
+
 ## 4.6.0 2021-01-15
 
 New features:
