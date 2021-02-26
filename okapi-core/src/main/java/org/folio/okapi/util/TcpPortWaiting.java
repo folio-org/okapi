@@ -3,6 +3,7 @@ package org.folio.okapi.util;
 import com.zaxxer.nuprocess.NuProcess;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import org.apache.logging.log4j.Logger;
@@ -15,7 +16,7 @@ public class TcpPortWaiting {
   private static final int MILLISECONDS = 200;
   private final Messages messages = Messages.getInstance();
 
-  private int maxIterations = 60; // x*(x+1) * 0.1 seconds.
+  private int maxIterations = 60; // x*(x+1) * 0.2 seconds.
   private final Vertx vertx;
   private final String name;
   private final String host;

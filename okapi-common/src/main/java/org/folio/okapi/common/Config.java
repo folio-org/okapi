@@ -68,4 +68,19 @@ public class Config {
     return Boolean.parseBoolean(v);
   }
 
+  /**
+   * Returns integer config info from properties and JSON config.
+   * Check property first in system; if not found OR empty, inspect JSON configuration.
+   * @param key property key (JSON key).
+   * @param def default value (may be null).
+   * @param conf JSON object configuration.
+   * @return value (possibly null).
+   */
+  public static Integer getSysConfInteger(String key, Integer def, JsonObject conf) {
+    final String v = System.getProperty(key);
+    if (v == null || v.isEmpty()) {
+      return conf.getInteger(key, def);
+    }
+    return Integer.parseInt(v);
+  }
 }

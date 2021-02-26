@@ -91,8 +91,11 @@ public class DockerModuleHandle implements ModuleHandle {
     }
     dockerRegistries = config.getJsonArray("dockerRegistries");
     tcpPortWaiting = new TcpPortWaiting(vertx, id, containerHost, port);
-    if (desc.getWaitIterations() != null) {
-      tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
+
+    Integer maxIterations = Config.getSysConfInteger("deploy.waitIterations",
+        desc.getWaitIterations(), config);
+    if (maxIterations != null) {
+      tcpPortWaiting.setMaxIterations(maxIterations);
     }
   }
 

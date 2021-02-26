@@ -27,7 +27,7 @@ public class ModuleHandleFactory {
                                     Ports ports, String moduleHost, int port, JsonObject config) {
     ModuleHandle mh = null;
     if (desc.getDockerImage() == null) {
-      mh = new ProcessModuleHandle(vertx, desc, id, ports, port);
+      mh = new ProcessModuleHandle(vertx, desc, id, ports, port, config);
     } else if (desc.getDockerImage() != null) {
       mh = new DockerModuleHandle(vertx, desc, id, ports, moduleHost, port, config);
     }
