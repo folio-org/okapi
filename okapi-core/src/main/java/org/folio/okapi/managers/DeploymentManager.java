@@ -171,10 +171,6 @@ public class DeploymentManager {
       if (descriptor.getDockerImage() != null) {
         moduleHost = Config.getSysConf("containerHost", host, config);
       }
-      Integer maxIterations = Config.getSysConfInteger("deploy.waitIterations", null, config);
-      if (maxIterations != null) {
-        descriptor.setWaitIterations(maxIterations);
-      }
       ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor,
           md1.getSrvcId(), ports, moduleHost, usePort, config);
       return mh.start().compose(res -> {

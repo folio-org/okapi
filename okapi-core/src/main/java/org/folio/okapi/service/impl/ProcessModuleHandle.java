@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
+import org.folio.okapi.common.Config;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
@@ -47,9 +48,10 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
    * @param id process identifier used for logging (possibly module ID)
    * @param ports ports handle
    * @param port listening port for module
+   * @param config Vertx. config
    */
   public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc, String id,
-                             Ports ports, int port) {
+                             Ports ports, int port, JsonObject config) {
     this.vertx = vertx;
     this.id = id;
     this.exec = desc.getExec();
@@ -60,8 +62,11 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     this.ports = ports;
     this.process = null;
     this.tcpPortWaiting = new TcpPortWaiting(vertx, id, "localhost", port);
-    if (desc.getWaitIterations() != null) {
-      tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
+
+    Integer maxIterations = Config.getSysConfInteger("deploy.waitIterations",
+        desc.getWaitIterations(), config);
+    if (maxIterations != null) {
+      tcpPortWaiting.setMaxIterations(maxIterations);
     }
   }
 

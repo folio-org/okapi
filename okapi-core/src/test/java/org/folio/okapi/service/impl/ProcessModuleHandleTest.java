@@ -2,6 +2,7 @@ package org.folio.okapi.service.impl;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetServer;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -52,7 +53,7 @@ public class ProcessModuleHandleTest {
   };
 
   private ModuleHandle createModuleHandle(LaunchDescriptor desc, int port) {
-    return new ProcessModuleHandle(vertx, desc, "test", ports, port);
+    return new ProcessModuleHandle(vertx, desc, "test", ports, port, new JsonObject());
   }
 
   @Test
@@ -186,7 +187,8 @@ public class ProcessModuleHandleTest {
     ns.listen(9231, context.asyncAssertSuccess(res -> {
       LaunchDescriptor desc = new LaunchDescriptor();
       desc.setExec("java " + testModuleArgs);
-      ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, "id", new Ports(9231, 9233), 9231);
+      ProcessModuleHandle pmh = new ProcessModuleHandle(
+          vertx, desc, "id", new Ports(9231, 9233), 9231, new JsonObject());
       pmh.waitPortToClose(0)
           .onComplete(context.asyncAssertFailure(x -> {
             ns.close();
