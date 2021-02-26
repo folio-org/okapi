@@ -2816,6 +2816,9 @@ leave it unmodified (default).
   Defaults to 10000.
 * `token_cache_ttl_ms`: Time to live in milliseconds for token cache entries.
   Defaults to 180000 (3 minutes).
+* `deploy.waitIterations`: Maximum number of iterations for deployment - before
+  giving up (readiness check). A value, `n`, corresponds to roughly  `n*n*0.2` seconds.
+  This value, if set, overrides the `waitIterations` in the launch descriptor.
 
 #### Command
 

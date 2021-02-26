@@ -15,7 +15,7 @@ public class TcpPortWaiting {
   private static final int MILLISECONDS = 200;
   private final Messages messages = Messages.getInstance();
 
-  private int maxIterations = 60; // x*(x+1) * 0.1 seconds.
+  private int maxIterations = 60; // x*(x+1) * 0.2 seconds.
   private final Vertx vertx;
   private final String name;
   private final String host;

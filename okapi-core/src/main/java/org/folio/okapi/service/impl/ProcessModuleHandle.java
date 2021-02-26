@@ -63,11 +63,6 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     if (desc.getWaitIterations() != null) {
       tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
     }
-    JsonObject config = vertx.getOrCreateContext().config();
-    Integer maxIterations = config.getInteger("deploy.waitIterations");
-    if (maxIterations != null) {
-      tcpPortWaiting.setMaxIterations(maxIterations);
-    }
   }
 
   private Future<Void> waitPortOpen(NetClient c, int iter) {

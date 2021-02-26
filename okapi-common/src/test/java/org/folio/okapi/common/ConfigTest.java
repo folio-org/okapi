@@ -49,14 +49,14 @@ public class ConfigTest {
   @Test
   public void testConfig2Keys() {
     assert2(null, null, null, null, "de");
-    assert2("",   "",   null, null, "de");
+    assert2("", "", null, null, "de");
     assert2(null, null, null, "j2", "j2");
     assert2(null, null, "j1", "j2", "j1");
     assert2(null, "p2", "j1", "j2", "p2");
-    assert2("",   "p2", "j1", "j2", "p2");
+    assert2("", "p2", "j1", "j2", "p2");
     assert2("p1", "p2", "j1", "j2", "p1");
     assert2("p1", null, null, null, "p1");
-    assert2("p1", "",   "",   "",   "p1");
+    assert2("p1", "", "", "", "p1");
   }
 
   @Test
@@ -98,4 +98,27 @@ public class ConfigTest {
 
   }
 
+  @Test
+  public void testInteger() {
+    JsonObject conf = new JsonObject();
+    final String varName = "foo-bar92304239";
+
+    Assert.assertEquals((Integer) 42, Config.getSysConfInteger(varName, 42, conf));
+    Assert.assertEquals(null, Config.getSysConfInteger(varName, null, conf));
+
+    boolean thrown = false;
+    try {
+      conf.put(varName, "xx");
+      Assert.assertEquals(false, Config.getSysConfInteger(varName, null, conf));
+    } catch (ClassCastException ex) {
+      thrown = true;
+    }
+    Assert.assertTrue(thrown);
+
+    conf.put(varName, 41);
+    Assert.assertEquals((Integer) 41, Config.getSysConfInteger(varName, null, conf));
+
+    System.setProperty(varName, "42");
+    Assert.assertEquals((Integer) 42, Config.getSysConfInteger(varName, null, conf));
+  }
 }
