@@ -19,13 +19,13 @@ import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
 
-public class DepResolution {
+public final class DepResolution {
 
   private static final Logger logger = OkapiLogger.get();
   private static final Messages messages = Messages.getInstance();
 
   private DepResolution() {
-    throw new IllegalAccessError("DepResolution");
+    throw new UnsupportedOperationException("DepResolution");
   }
 
   private static Map<String, InterfaceDescriptor> checkPresenceDependency(
@@ -611,10 +611,9 @@ public class DepResolution {
   /**
    * Return top-N set of modules - in order of module ID.
    * @param limit max number for each module (Top-N)
-   * @param mdl modules to consider
-   * @return list with Top-N set
+   * @param mdl modules to consider (will be modified!)
    */
-  public static List<ModuleDescriptor> getLatestProducts(int limit, List<ModuleDescriptor> mdl) {
+  public static void getLatestProducts(int limit, List<ModuleDescriptor> mdl) {
     mdl.sort(Collections.reverseOrder());
     Iterator<ModuleDescriptor> it = mdl.listIterator();
     String product = "";
@@ -629,6 +628,5 @@ public class DepResolution {
       }
       no++;
     }
-    return mdl;
   }
 }

@@ -3170,6 +3170,11 @@ during the operation.
 
 Add 'loadSample=true` to parameters, to load sample data as well.
 
+This is what Okapi calls as part of an install similar to:
+
+    curl -d'[{"id":"mod-foo-1.0.0", "action":"enable"}]' \
+      http://localhost:9130/_/proxy/tenants/testlib/install?tenantParameters=loadReference%3Dtrue
+
 If the module supports version 2 of the `_tenant` interface the module
 may either return 204 (No Content) if job is successfully completed.
 If the module chooses to perform the tenant operation asynchronously, it
