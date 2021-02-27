@@ -162,6 +162,11 @@ parse_okapi_conf()  {
       OKAPI_JAVA_OPTS+=" -Dokapiurl=${okapiurl}"
    fi
 
+   # configure iterations for readiness check
+   if [ "$deploy_waitIterations" ]; then
+      OKAPI_JAVA_OPTS+=" -Ddeploy_waitIterations=${deploy_waitIterations}"
+   fi
+
    # configure Vert.x cache dir
    if [ "$vertx_cache_dir_base" ]; then
       OKAPI_JAVA_OPTS+=" -Dvertx.cacheDirBase=${vertx_cache_dir_base}"

@@ -63,7 +63,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     this.process = null;
     this.tcpPortWaiting = new TcpPortWaiting(vertx, id, "localhost", port);
 
-    Integer maxIterations = Config.getSysConfInteger("deploy.waitIterations",
+    Integer maxIterations = Config.getSysConfInteger("deploy_waitIterations",
         desc.getWaitIterations(), config);
     if (maxIterations != null) {
       tcpPortWaiting.setMaxIterations(maxIterations);
