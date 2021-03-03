@@ -1,7 +1,3 @@
-## 4.7.1
-
- * [OKAPI-991](https://issues.folio.org/browse/OKAPI-991) Fix deploy\_waitIterations (was deploy.waitIterations)
-
 ## 4.7.0 2021-02-26
 
 This release includes improvements for communication with the
