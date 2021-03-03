@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.folio.okapi</groupId>
     <artifactId>okapi</artifactId>
-    <version>4.7.1</version>
+    <version>4.7.2-SNAPSHOT</version>
   </parent>
   <artifactId>okapi-core</artifactId>
   <dependencies>
