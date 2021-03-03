@@ -129,6 +129,11 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <dependency>
+        <groupId>org.folio</groupId>
+        <artifactId>testing</artifactId>
+        <version>32.2.0</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
