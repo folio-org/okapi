@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.rest.testing.UtilityClassTester;
+import org.folio.okapi.testutil.UtilityClassTester;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
