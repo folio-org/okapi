@@ -61,7 +61,7 @@ public class DiscoveryManager implements NodeListener {
   public Future<Void> init(Vertx vertx) {
     this.vertx = vertx;
     this.httpClient = new FuturisedHttpClient(vertx);
-    deliveryOptions = new DeliveryOptions().setSendTimeout(300000); // 5 minutes
+    deliveryOptions = new DeliveryOptions().setSendTimeout(36000000); // 1 hour
     return deployments.init(vertx, "discoveryList", false).compose(x ->
         nodes.init(vertx, "discoveryNodes", false));
   }
