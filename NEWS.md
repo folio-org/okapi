@@ -1,3 +1,9 @@
+## 4.7.1 2021-03-03
+
+Fixes an issue with deployment timing out before expected.
+
+ * [OKAPI-992](https://issues.folio.org/browse/OKAPI-992) Fix Okapi discovery times out after 5 minutes
+
 ## 4.7.0 2021-02-26
 
 This release includes improvements for communication with the
