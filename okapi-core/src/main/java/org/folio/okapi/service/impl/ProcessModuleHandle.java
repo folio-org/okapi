@@ -171,9 +171,9 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
         return;
       }
       if (exitCode == Integer.MIN_VALUE) {
-        promise.fail(messages.getMessage("11504", commandLineF));
+        promise.fail(messages.getMessage("11504", id, commandLineF));
       } else {
-        promise.fail(messages.getMessage("11500", exitCode));
+        promise.fail(messages.getMessage("11500", id, Integer.toString(exitCode)));
       }
     });
     return promise.future()
@@ -220,9 +220,10 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
         return;
       }
       if (exitCode == Integer.MIN_VALUE) {
-        promise.handle(Future.failedFuture(messages.getMessage("11504", commandLine)));
+        promise.handle(Future.failedFuture(messages.getMessage("11504", id, commandLine)));
       } else {
-        promise.handle(Future.failedFuture(messages.getMessage("11500", exitCode)));
+        promise.handle(Future.failedFuture(messages.getMessage("11500", id,
+            Integer.toString(exitCode))));
       }
     });
     return promise.future().compose(x -> {
