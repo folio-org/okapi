@@ -48,7 +48,7 @@ public class TcpPortWaiting {
                     id -> tryConnect(process, count + 1).onComplete(promise)));
           } else {
             return Future.failedFuture(messages.getMessage("11501",
-                Integer.toString(port), cause.getMessage()));
+                name, host, Integer.toString(port), cause.getMessage()));
           }
         });
   }

@@ -9,6 +9,8 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
@@ -76,7 +78,9 @@ public class ProcessModuleHandleTest {
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
     mh.start().onComplete(context.asyncAssertFailure(cause ->
-      context.assertTrue(cause.getMessage().startsWith("Deployment failed. Could not connect to port 9231"))
+      context.assertTrue(cause.getMessage()
+              .startsWith("Deployment failed for service test. Could not connect to localhost:9231"),
+          cause.getMessage())
     ));
   }
 
@@ -88,7 +92,7 @@ public class ProcessModuleHandleTest {
     ModuleHandle mh = createModuleHandle(desc, 0);
 
     mh.start().onComplete(context.asyncAssertFailure(cause ->
-        context.assertEquals("Could not execute gyf 10 0", cause.getMessage())
+        context.assertEquals("Execution for service test failed while executing gyf 10 0", cause.getMessage())
     ));
   }
 
@@ -229,7 +233,7 @@ public class ProcessModuleHandleTest {
 
     mh.start().onComplete(context.asyncAssertSuccess(res ->
         mh.stop().onComplete(context.asyncAssertFailure(cause ->
-            context.assertEquals("Could not execute gyf", cause.getMessage())
+            context.assertEquals("Execution for service test failed while executing gyf", cause.getMessage())
         ))
     ));
   }
@@ -247,7 +251,7 @@ public class ProcessModuleHandleTest {
 
     mh.start().onComplete(context.asyncAssertSuccess(res ->
         mh.stop().onComplete(context.asyncAssertFailure(cause ->
-            context.assertEquals("Service returned with exit code 1", cause.getMessage())
+            context.assertEquals("Service test returned with exit code 1", cause.getMessage())
         ))
     ));
   }
@@ -278,7 +282,7 @@ public class ProcessModuleHandleTest {
     ModuleHandle mh = createModuleHandle(desc, 0);
 
     mh.start().onComplete(context.asyncAssertFailure(cause ->
-        context.assertEquals("Could not execute gyf 0", cause.getMessage())
+        context.assertEquals("Execution for service test failed while executing gyf 0", cause.getMessage())
     ));
   }
 
