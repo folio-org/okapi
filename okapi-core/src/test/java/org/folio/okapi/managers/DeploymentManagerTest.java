@@ -90,7 +90,7 @@ public class DeploymentManagerTest {
     DeploymentDescriptor dd = new DeploymentDescriptor("2", "sid", descriptor);
     dm.deploy(dd).onComplete(res -> {
       context.assertFalse(res.succeeded());
-      context.assertEquals("Service returned with exit code 1", res.cause().getMessage());
+      context.assertEquals("Service sid returned with exit code 1", res.cause().getMessage());
       async.complete();
     });
     async.await();

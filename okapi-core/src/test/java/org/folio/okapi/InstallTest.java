@@ -340,7 +340,7 @@ public class InstallTest {
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"basic-module-1.0.0\"," + LS
         + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"Service returned with exit code 1\"," + LS
+        + "    \"message\" : \"Service basic-module-1.0.0 returned with exit code 1\"," + LS
         + "    \"stage\" : \"deploy\"" + LS
         + "  } ]" + LS
         + "}", job.encodePrettily());
