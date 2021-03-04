@@ -362,7 +362,7 @@ public class DockerTest {
     // Deal with port forwarding not working in Jenkins pipeline FOLIO-2404
     String rBody = r.getBody().asString();
     if (statusCode == 400) {
-      context.assertTrue(rBody.contains("Could not connect to port localhost:9234")
+      context.assertTrue(rBody.contains("Could not connect to localhost:9234")
         || rBody.contains("port is already allocated"), "body is " + rBody);
     } else {
       context.assertEquals(201, statusCode);
