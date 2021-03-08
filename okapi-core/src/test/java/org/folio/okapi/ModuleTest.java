@@ -2699,9 +2699,9 @@ public class ModuleTest {
           .then()
           .statusCode(200)
           .body("$", hasSize(3))
-          .body("[0].moduleId", is("okapi-0.0.0"))
-          .body("[1].moduleId", is("sample-module-1.0.0"))
-          .body("[2].moduleId", is("header-1"));
+          .body("[0].moduleId", is("header-1"))
+          .body("[1].moduleId", is("okapi-0.0.0"))
+          .body("[2].moduleId", is("sample-module-1.0.0"));
     }
 
     conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
