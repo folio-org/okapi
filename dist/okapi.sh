@@ -164,7 +164,7 @@ parse_okapi_conf()  {
 
    # configure iterations for readiness check
    if [ "$deploy_waitIterations" ]; then
-      OKAPI_JAVA_OPTS+=" -Ddeploy_waitIterations=${deploy_waitIterations}"
+      OKAPI_JAVA_OPTS+=" -Ddeploy.waitIterations=${deploy_waitIterations}"
    fi
 
    # configure Vert.x cache dir

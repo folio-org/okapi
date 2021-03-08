@@ -12,7 +12,7 @@ import org.folio.okapi.common.Config;
  */
 public final class ConfNames {
 
-  public static final String DEPLOY_WAIT_ITERATIONS = "deploy_waitIterations";
+  public static final String DEPLOY_WAIT_ITERATIONS = "deploy.waitIterations";
   public static final String DOCKER_URL = "dockerUrl";
 
   private ConfNames() {
