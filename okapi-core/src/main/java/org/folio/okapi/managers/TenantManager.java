@@ -275,25 +275,19 @@ public class TenantManager implements Liveness {
               ? enableAndDisableCheck(tenant, mdFrom.result(), mdTo.result())
               : Future.succeededFuture())
         .compose(x -> enableAndDisableModule(tenant, options, mdFrom.result(),
-            mdTo.result(), true, pc));
+            mdTo.result(), pc));
   }
 
   private Future<String> enableAndDisableModule(Tenant tenant, TenantInstallOptions options,
                                                 ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
-                                                boolean reload, ProxyContext pc) {
+                                                ProxyContext pc) {
     if (mdFrom == null && mdTo == null) {
       return Future.succeededFuture("");
     }
     return invokePermissions(tenant, options, mdFrom, mdTo, pc)
         .compose(x -> invokeTenantInterface(tenant, options, mdFrom, mdTo, pc))
         .compose(x -> invokePermissionsPermMod(tenant, options, mdTo, pc))
-        .compose(x -> {
-          if (reload) {
-            return reloadPermissions(tenant, options, mdTo, pc);
-          } else {
-            return Future.succeededFuture();
-          }
-        })
+        .compose(x -> reloadPermissions(tenant, options, mdFrom, mdTo, pc))
         .compose(x -> commitModuleChange(tenant, mdFrom, mdTo))
         .compose(x -> Future.succeededFuture((mdTo != null ? mdTo.getId() : ""))
     );
@@ -444,24 +438,29 @@ public class TenantManager implements Liveness {
   }
 
   /**
-   * Announce permissions for a set of modules to a permissions module.
+   * Conditionally announce permissions for a set of modules to a permissions module.
+   *
+   * <p>This will only happen if the permissions module is being enabled for the first time,
+   * not when it's upgraded.
    *
    * @param tenant tenant
-   * @param mdTo permissions module
+   * @param mdFrom permissions module from
+   * @param mdTo permissions module to
    * @param pc ProxyContext
    * @return future
    */
   private Future<Void> reloadPermissions(Tenant tenant, TenantInstallOptions options,
-                                         ModuleDescriptor mdTo, ProxyContext pc) {
+                                         ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+                                         ProxyContext pc) {
 
-    if (mdTo == null || !options.checkInvoke(mdTo.getId())
-        || mdTo.getSystemInterface("_tenantPermissions") == null) {
-      return Future.succeededFuture();
-    }
     Future<Void> future = Future.succeededFuture();
-    for (String mdid : tenant.listModules()) {
-      future = future.compose(x -> moduleManager.get(mdid)
-          .compose(md -> invokePermissionsForModule(tenant, null, md, mdTo, pc)));
+    // only reload if mod-permissions is being enabled (not when upgraded)
+    if (mdFrom == null && mdTo != null && options.checkInvoke(mdTo.getId())
+        && mdTo.getSystemInterface("_tenantPermissions") != null) {
+      for (String mdid : tenant.listModules()) {
+        future = future.compose(x -> moduleManager.get(mdid)
+            .compose(md -> invokePermissionsForModule(tenant, null, md, mdTo, pc)));
+      }
     }
     return future;
   }
@@ -1074,10 +1073,12 @@ public class TenantManager implements Liveness {
             return jobs.put(t.getId(), job.getId(), job);
           });
         }
+        // if we are really upgrading permissions do a refresh last
         for (TenantModuleDescriptor tm : tml) {
-          if (tm.getAction() == Action.enable) {
+          if (tm.getAction() == Action.enable && tm.getFrom() != null) {
             ModuleDescriptor mdTo = modsAvailable.get(tm.getId());
-            future = future.compose(x -> reloadPermissions(t, options, mdTo, pc));
+            // mdFrom is null so reloadPermissions is triggered!!!!
+            future = future.compose(x -> reloadPermissions(t, options, null, mdTo, pc));
           }
         }
         if (options.getDeploy()) {
@@ -1145,7 +1146,7 @@ public class TenantManager implements Liveness {
     } else if (tm.getAction() == Action.disable) {
       mdFrom = modsAvailable.get(tm.getId());
     }
-    return enableAndDisableModule(tenant, options, mdFrom, mdTo, false, pc)
+    return enableAndDisableModule(tenant, options, mdFrom, mdTo, pc)
         .onFailure(x -> tm.setMessage(x.getMessage()))
         .mapEmpty();
   }
