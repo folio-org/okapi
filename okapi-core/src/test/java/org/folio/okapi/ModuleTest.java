@@ -119,7 +119,7 @@ public class ModuleTest {
     conf = new JsonObject();
 
     conf.put("storage", value)
-        .put("deploy.waitIterations", 30)
+        .put(ConfNames.DEPLOY_WAIT_ITERATIONS, 30)
         .put("port", "9230")
         .put("port_start", "9231")
         .put("port_end", "9237")

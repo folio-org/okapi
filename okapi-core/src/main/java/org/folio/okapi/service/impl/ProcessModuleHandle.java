@@ -12,6 +12,7 @@ import io.vertx.core.net.NetClientOptions;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.ConfNames;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
@@ -63,7 +64,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     this.process = null;
     this.tcpPortWaiting = new TcpPortWaiting(vertx, id, "localhost", port);
 
-    Integer maxIterations = Config.getSysConfInteger("deploy.waitIterations",
+    Integer maxIterations = Config.getSysConfInteger(ConfNames.DEPLOY_WAIT_ITERATIONS,
         desc.getWaitIterations(), config);
     if (maxIterations != null) {
       tcpPortWaiting.setMaxIterations(maxIterations);

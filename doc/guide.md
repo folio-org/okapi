@@ -2760,7 +2760,7 @@ properties.
 When the `-D` option is used, it should be in the beginning of the
 command-line, before the `-jar`.
 
-* `http.port` or `port`: The port on which Okapi listens. Defaults to 9130.
+* `http.port` (in okapi.conf: `http_port`) or `port`: The port on which Okapi listens. Defaults to 9130.
 * `port_start` and `port_end`: The range of ports for modules. Default to
 `port`+1 to `port`+10, normally 9131 to 9141
 * `host`: Hostname to be used in the URLs returned by the deployment service.
@@ -2816,8 +2816,9 @@ leave it unmodified (default).
   Defaults to 10000.
 * `token_cache_ttl_ms`: Time to live in milliseconds for token cache entries.
   Defaults to 180000 (3 minutes).
-* `deploy.waitIterations`: Maximum number of iterations for deployment - before
-  giving up (readiness check). A value, `n`, corresponds to roughly  `n*n*0.2` seconds.
+* `deploy.waitIterations` (in okapi.conf: `deploy_waitIterations`):
+  Maximum number of iterations for deployment - before
+  giving up (readiness check). Defaults to 60. A value, `n`, corresponds to roughly `n*n*0.2` seconds.
   This value, if set, overrides the `waitIterations` in the launch descriptor.
 
 #### Command

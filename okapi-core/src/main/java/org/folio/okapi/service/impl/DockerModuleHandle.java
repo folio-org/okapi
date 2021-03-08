@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.ConfNames;
 import org.folio.okapi.bean.AnyDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
@@ -83,7 +84,7 @@ public class DockerModuleHandle implements ModuleHandle {
     this.dockerPull = b == null || b;
     StringBuilder socketFile = new StringBuilder();
     this.dockerUrl = setupDockerAddress(socketFile,
-        Config.getSysConf("dockerUrl", DEFAULT_DOCKER_URL, config));
+        Config.getSysConf(ConfNames.DOCKER_URL, DEFAULT_DOCKER_URL, config));
     if (socketFile.length() > 0) {
       socketAddress = SocketAddress.domainSocketAddress(socketFile.toString());
     } else {
@@ -92,7 +93,7 @@ public class DockerModuleHandle implements ModuleHandle {
     dockerRegistries = config.getJsonArray("dockerRegistries");
     tcpPortWaiting = new TcpPortWaiting(vertx, id, containerHost, port);
 
-    Integer maxIterations = Config.getSysConfInteger("deploy.waitIterations",
+    Integer maxIterations = Config.getSysConfInteger(ConfNames.DEPLOY_WAIT_ITERATIONS,
         desc.getWaitIterations(), config);
     if (maxIterations != null) {
       tcpPortWaiting.setMaxIterations(maxIterations);

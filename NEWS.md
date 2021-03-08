@@ -5,7 +5,7 @@ permissions module. It also includes a setting for controlling
 how long Okapi waits for deployment readiness.
 
 New features:
- * [OKAPI-985](https://issues.folio.org/browse/OKAPI-985) PoC refresh last strategy for _tenantPemissions
+ * [OKAPI-985](https://issues.folio.org/browse/OKAPI-985) PoC refresh last strategy for \_tenantPemissions
  * [OKAPI-982](https://issues.folio.org/browse/OKAPI-982) Inform mod-permissions when module is disabled
  * [OKAPI-990](https://issues.folio.org/browse/OKAPI-990) Config deploy.waitIterations for Docker deployment
 
@@ -27,7 +27,7 @@ Other:
 
 New features:
 
- * [OKAPI-947](https://issues.folio.org/browse/OKAPI-947) Implement static permission migration. Okapi uses new _tenantPermissions interface 2.0 if that's provided (by mod-permissions).
+ * [OKAPI-947](https://issues.folio.org/browse/OKAPI-947) Implement static permission migration. Okapi uses new \_tenantPermissions interface 2.0 if that's provided (by mod-permissions).
 
 Other:
 
