@@ -1,3 +1,9 @@
+## 4.7.2 2021-04-08
+
+ * [OKAPI-996](https://issues.folio.org/browse/OKAPI-996) Reload permissions immediately on enable (not upgrade)
+ * [OKAPI-994](https://issues.folio.org/browse/OKAPI-994) Include ID in some deployment error messages
+ * [OKAPI-960](https://issues.folio.org/browse/OKAPI-960) Add personal data disclosure form
+
 ## 4.7.1 2021-03-03
 
 Fixes an issue with deployment timing out before expected.
