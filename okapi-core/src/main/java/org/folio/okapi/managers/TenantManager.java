@@ -438,7 +438,10 @@ public class TenantManager implements Liveness {
   }
 
   /**
-   * Announce permissions for a set of modules to a permissions module.
+   *
+   * Conditionally announce permissions for a set of modules to a permissions module.
+   * This will only happen if the permissions module is being enabled for the first time,
+   * not when it's upgraded.
    *
    * @param tenant tenant
    * @param mdFrom permissions module from
