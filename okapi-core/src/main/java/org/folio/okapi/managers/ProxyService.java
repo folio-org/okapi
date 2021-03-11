@@ -624,13 +624,15 @@ public class ProxyService {
         pc.getHandlerModuleInstance());
   }
 
-  private void proxyClientFailure(ProxyContext pc, ModuleInstance mi, Throwable res) {
-    String e = res.getMessage();
-    logger.warn("proxyClientFailure: {}: {}", mi.getUrl(), e);
+  private void proxyClientFailure(
+      ProxyContext pc, ModuleInstance mi, RequestOptions requestOptions, Throwable res) {
+
+    String msg = res.getMessage() + ": " + requestOptions.toJson().encode();
+    logger.warn("proxyClientFailure: {}: {}", mi.getUrl(), msg);
     MetricsHelper.recordHttpClientError(pc.getTenant(), mi.getMethod().name(),
         mi.getRoutingEntry().getStaticPath());
     pc.responseError(500, messages.getMessage("10107",
-        mi.getModuleDescriptor().getId(), mi.getUrl(), e));
+        mi.getModuleDescriptor().getId(), mi.getUrl(), msg));
   }
 
   private void proxyRequestHttpClient(
@@ -641,9 +643,9 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     String url = makeUrl(mi, ctx);
     HttpMethod meth = ctx.request().method();
-    Future<HttpClientRequest> fut = httpClient.request(
-        new RequestOptions().setMethod(meth).setAbsoluteURI(url));
-    fut.onFailure(res -> proxyClientFailure(pc, mi, res));
+    RequestOptions requestOptions = new RequestOptions().setMethod(meth).setAbsoluteURI(url);
+    Future<HttpClientRequest> fut = httpClient.request(requestOptions);
+    fut.onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res));
     fut.onSuccess(clientRequest -> {
       final Timer.Sample sample = MetricsHelper.getTimerSample();
       copyHeaders(clientRequest, ctx, mi);
@@ -652,7 +654,7 @@ public class ProxyService {
       clientRequest.end(bcontent);
       log(clientRequest);
       clientRequest.response()
-          .onFailure(res -> proxyClientFailure(pc, mi, res))
+          .onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res))
           .onSuccess(res -> {
             MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
                 meth.name(), mi);
@@ -830,9 +832,10 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     HttpServerRequest request = ctx.request();
     HttpServerResponse response = ctx.response();
-    Future<HttpClientRequest> fut = httpClient.request(
-        new RequestOptions().setMethod(request.method()).setAbsoluteURI(makeUrl(mi, ctx)));
-    fut.onFailure(res -> proxyClientFailure(pc, mi, res));
+    RequestOptions requestOptions =
+        new RequestOptions().setMethod(request.method()).setAbsoluteURI(makeUrl(mi, ctx));
+    Future<HttpClientRequest> fut = httpClient.request(requestOptions);
+    fut.onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res));
     fut.onSuccess(clientRequest -> {
       final Timer.Sample sample = MetricsHelper.getTimerSample();
       copyHeaders(clientRequest, ctx, mi);
@@ -849,7 +852,7 @@ public class ProxyService {
       }
       log(clientRequest);
       clientRequest.response()
-          .onFailure(res -> proxyClientFailure(pc, mi, res))
+          .onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res))
           .onSuccess(res -> {
             MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
                 request.method().name(), mi);
@@ -878,16 +881,17 @@ public class ProxyService {
                             List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
-    Future<HttpClientRequest> fut = httpClient.request(
-        new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx)));
-    fut.onFailure(res -> proxyClientFailure(pc, mi, res));
+    RequestOptions requestOptions =
+        new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx));
+    Future<HttpClientRequest> fut = httpClient.request(requestOptions);
+    fut.onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res));
     fut.onSuccess(clientRequest -> {
       final Timer.Sample sample = MetricsHelper.getTimerSample();
       copyHeaders(clientRequest, ctx, mi);
       clientRequest.end();
       log(clientRequest);
       clientRequest.response()
-          .onFailure(res -> proxyClientFailure(pc, mi, res))
+          .onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res))
           .onSuccess(res -> {
             MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
                 ctx.request().method().name(), mi);
