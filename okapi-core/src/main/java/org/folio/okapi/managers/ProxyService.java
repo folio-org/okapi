@@ -625,9 +625,9 @@ public class ProxyService {
   }
 
   private void proxyClientFailure(
-      ProxyContext pc, ModuleInstance mi, RequestOptions requestOptions, Throwable res) {
+      ProxyContext pc, ModuleInstance mi, RequestOptions options, Throwable res) {
 
-    String msg = res.getMessage() + ": " + requestOptions.toJson().encode();
+    String msg = res.getMessage() + ": " + options.getMethod() + " " + options.getURI();
     logger.warn("proxyClientFailure: {}: {}", mi.getUrl(), msg);
     MetricsHelper.recordHttpClientError(pc.getTenant(), mi.getMethod().name(),
         mi.getRoutingEntry().getStaticPath());
