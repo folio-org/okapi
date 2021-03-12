@@ -16,7 +16,7 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor.Action;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.testutil.UtilityClassTester;
+import org.folio.okapi.testing.UtilityClassTester;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

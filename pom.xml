@@ -9,6 +9,7 @@
   <name>okapi</name>
 
   <modules>
+    <module>okapi-testing</module>
     <module>okapi-common</module>
     <module>okapi-test-module</module>
     <module>okapi-test-auth-module</module>
