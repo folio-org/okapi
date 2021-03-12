@@ -46,7 +46,7 @@ public final class UtilityClassTester {
   }
 
   static void assertNonAccessible(Constructor<?> constructor) {
-    assertTrue("constructor must be non-accessible", ! constructor.isAccessible());
+    assertTrue("constructor must be non-accessible", ! constructor.canAccess(null));
   }
 
   /**

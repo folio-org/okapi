@@ -7,11 +7,6 @@ import java.lang.reflect.Constructor;
 import org.junit.Test;
 
 public class UtilityClassTesterTest {
-  @Test
-  public void selfTest() {
-    UtilityClassTester.assertUtilityClass(UtilityClassTester.class);
-  }
-
   public void assertMessage(Class<?> clazz, String message) {
     try {
       UtilityClassTester.assertUtilityClass(clazz);
