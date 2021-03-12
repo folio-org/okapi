@@ -19,26 +19,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-<!--
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <outputFile>${project.build.directory}/${project.artifactId}-fat.jar</outputFile>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
--->
 </project>
