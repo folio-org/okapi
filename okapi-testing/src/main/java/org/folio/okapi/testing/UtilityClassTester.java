@@ -45,10 +45,6 @@ public final class UtilityClassTester {
         + "to fail unintended invocation via reflection.");
   }
 
-  static void assertNonAccessible(Constructor<?> constructor) {
-    assertTrue("constructor must be non-accessible", ! constructor.canAccess(null));
-  }
-
   /**
    * Assert that the clazz has these utility class properties:
    * Class is final, has only one constructor that is private and
@@ -61,7 +57,6 @@ public final class UtilityClassTester {
       assertTrue("number of constructors is 1", clazz.getDeclaredConstructors().length == 1);
       final Constructor<?> constructor = clazz.getDeclaredConstructor();
       assertTrue("constructor must be private", Modifier.isPrivate(constructor.getModifiers()));
-      assertNonAccessible(constructor);
       assertInvocationException(constructor);
       for (final Method method : clazz.getMethods()) {
         if (method.getDeclaringClass().equals(clazz)) {

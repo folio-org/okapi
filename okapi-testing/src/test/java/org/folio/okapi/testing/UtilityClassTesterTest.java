@@ -7,6 +7,11 @@ import java.lang.reflect.Constructor;
 import org.junit.Test;
 
 public class UtilityClassTesterTest {
+  @Test
+  public void selfTest() {
+    UtilityClassTester.assertUtilityClass(UtilityClassTester.class);
+  }
+
   public void assertMessage(Class<?> clazz, String message) {
     try {
       UtilityClassTester.assertUtilityClass(clazz);
@@ -49,13 +54,6 @@ public class UtilityClassTesterTest {
   @Test
   public void constructorThrowsWrongException() {
     assertMessage(ConstructorThrowsWrongException.class, "must throw UnsupportedOperationException");
-  }
-
-  @Test(expected = AssertionError.class)
-  public void constructorIsAccessible() throws SecurityException, NoSuchMethodException {
-    final Constructor<?> constructor = ConstructorIsAccessible.class.getDeclaredConstructor();
-    constructor.setAccessible(true);
-    UtilityClassTester.assertNonAccessible(constructor);
   }
 
   @Test
