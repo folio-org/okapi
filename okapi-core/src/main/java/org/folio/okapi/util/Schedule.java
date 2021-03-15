@@ -25,10 +25,6 @@ public class Schedule {
     return i;
   }
 
-  static void parseComp(List<Integer> l, String spec, int min, int max) {
-    parseComp(l, spec, min, max, new String[0]);
-  }
-
   static void addVal(List<Integer> l, int val, int min, int max) {
     if (val < min) {
       throw new IllegalArgumentException("Cron-spec value "
@@ -39,6 +35,10 @@ public class Schedule {
           + val + " above maximum " + min);
     }
     l.add(val);
+  }
+
+  static void parseComp(List<Integer> l, String spec, int min, int max) {
+    parseComp(l, spec, min, max, new String[0]);
   }
 
   static void parseComp(List<Integer> l, String spec, int min, int max, String [] names) {
