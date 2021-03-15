@@ -54,8 +54,16 @@ public class ScheduleTest {
     Schedule.parseComp(l, "", 4, 63, null);
 
     Assertions.assertThrows(IllegalArgumentException.class, () -> {
-          Schedule.parseComp(l, "*/", 4, 63, null);
-        });
+      Schedule.parseComp(l, "*/", 4, 63, null);
+    });
+
+    Assertions.assertThrows(IllegalArgumentException.class, () -> {
+      Schedule.parseComp(l, "*x", 4, 63, null);
+    });
+
+    Assertions.assertThrows(IllegalArgumentException.class, () -> {
+      Schedule.parseComp(l, "6x", 4, 63, null);
+    });
 
     Assertions.assertThrows(IllegalArgumentException.class, () -> {
       Schedule.parseComp(l, "a", 4, 63, null);
