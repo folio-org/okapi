@@ -25,6 +25,22 @@ public class Schedule {
     return i;
   }
 
+  static void parseComp(List<Integer> l, String spec, int min, int max) {
+    parseComp(l, spec, min, max, new String[0]);
+  }
+
+  static void addVal(List<Integer> l, int val, int min, int max) {
+    if (val < min) {
+      throw new IllegalArgumentException("Cron-spec value "
+          + val + " below minimum " + min);
+    }
+    if (val > max) {
+      throw new IllegalArgumentException("Cron-spec value "
+          + val + " above maximum " + min);
+    }
+    l.add(val);
+  }
+
   static void parseComp(List<Integer> l, String spec, int min, int max, String [] names) {
     int [] val = new int[1];
     int i = 0;
@@ -43,26 +59,16 @@ public class Schedule {
         }
       } else {
         boolean found = false;
-        if (names != null) {
-          for (int j = 0; j < names.length; j++) {
-            if (spec.startsWith(names[j], i)) {
-              l.add(j + min);
-              i += names[j].length();
-              found = true;
-            }
+        for (int j = 0; j < names.length; j++) {
+          if (spec.startsWith(names[j], i)) {
+            l.add(j + min);
+            i += names[j].length();
+            found = true;
           }
         }
         if (!found) {
           i = parseNumber(spec, i, val);
-          if (val[0] < min) {
-            throw new IllegalArgumentException("Cron-spec value "
-                + val[0] + " below minimum " + min);
-          }
-          if (val[0] > max) {
-            throw new IllegalArgumentException("Cron-spec value "
-                + val[0] + " above maximum " + min);
-          }
-          l.add(val[0]);
+          addVal(l, val[0], min, max);
         }
       }
       if (i < spec.length() && spec.charAt(i) == ',') {
@@ -92,10 +98,10 @@ public class Schedule {
       throw new IllegalArgumentException("Spec must be exactly 5 components: "
           + "minute hour day month weekday");
     }
-    parseComp(minute, components[0], 0, 59, null);
-    parseComp(hour, components[1], 0, 23, null);
-    parseComp(dayOfMonth, components[2], 1, 31, null);
-    parseComp(monthOfYear, components[3], 1, 12, null);
+    parseComp(minute, components[0], 0, 59);
+    parseComp(hour, components[1], 0, 23);
+    parseComp(dayOfMonth, components[2], 1, 31);
+    parseComp(monthOfYear, components[3], 1, 12);
     parseComp(dayOfWeek, components[4], 0, 6,
         new String [] { "monday", "tuesday", "wednesday", "thursday",
             "friday", "saturday", "sunday"});

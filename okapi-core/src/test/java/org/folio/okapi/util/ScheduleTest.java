@@ -15,28 +15,28 @@ public class ScheduleTest {
   @Test
   void testParseComp1() {
     List<Integer> l = new LinkedList<>();
-    Schedule.parseComp(l, "32", 0, 59, null);
+    Schedule.parseComp(l, "32", 0, 59);
     assertThat(l).containsExactlyInAnyOrder(32);
   }
 
   @Test
   void testParseComp2() {
     List<Integer> l = new LinkedList<>();
-    Schedule.parseComp(l, "3,7,59", 0, 59, null);
+    Schedule.parseComp(l, "3,7,59", 0, 59);
     assertThat(l).containsExactlyInAnyOrder(3, 7, 59);
   }
 
   @Test
   void testParseComp3() {
     List<Integer> l = new LinkedList<>();
-    Schedule.parseComp(l, "*", 2, 5, null);
+    Schedule.parseComp(l, "*", 2, 5);
     assertThat(l).containsExactlyInAnyOrder(2, 3, 4, 5);
   }
 
   @Test
   void testParseComp4() {
     List<Integer> l = new LinkedList<>();
-    Schedule.parseComp(l, "*/15", 4, 63, null);
+    Schedule.parseComp(l, "*/15", 4, 63);
     assertThat(l).containsExactlyInAnyOrder(4, 19, 34, 49);
   }
 
@@ -51,30 +51,30 @@ public class ScheduleTest {
   @Test
   void testParseCompFail() {
     List<Integer> l = new LinkedList<>();
-    Schedule.parseComp(l, "", 4, 63, null);
+    Schedule.parseComp(l, "", 4, 63);
 
     Assertions.assertThrows(IllegalArgumentException.class, () -> {
-      Schedule.parseComp(l, "*/", 4, 63, null);
+      Schedule.parseComp(l, "*/", 4, 63);
     });
 
     Assertions.assertThrows(IllegalArgumentException.class, () -> {
-      Schedule.parseComp(l, "*x", 4, 63, null);
+      Schedule.parseComp(l, "*x", 4, 63);
     });
 
     Assertions.assertThrows(IllegalArgumentException.class, () -> {
-      Schedule.parseComp(l, "6x", 4, 63, null);
+      Schedule.parseComp(l, "6x", 4, 63);
     });
 
     Assertions.assertThrows(IllegalArgumentException.class, () -> {
-      Schedule.parseComp(l, "a", 4, 63, null);
+      Schedule.parseComp(l, "a", 4, 63);
     });
 
     Assertions.assertThrows(IllegalArgumentException.class, () -> {
-      Schedule.parseComp(l, "3", 4, 63, null);
+      Schedule.parseComp(l, "3", 4, 63);
     });
 
     Assertions.assertThrows(IllegalArgumentException.class, () -> {
-      Schedule.parseComp(l, "64", 4, 63, null);
+      Schedule.parseComp(l, "64", 4, 63);
     });
 
     Assertions.assertThrows(IllegalArgumentException.class, () -> {
@@ -139,6 +139,5 @@ public class ScheduleTest {
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
     assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(178639L, ChronoUnit.MINUTES));
   }
-
 
 }
