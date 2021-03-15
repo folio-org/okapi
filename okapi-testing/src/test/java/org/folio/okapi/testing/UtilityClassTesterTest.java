@@ -12,7 +12,7 @@ public class UtilityClassTesterTest {
     UtilityClassTester.assertUtilityClass(UtilityClassTester.class);
   }
 
-  public void assertMessage(Class<?> clazz, String message) {
+  private void assertMessage(Class<?> clazz, String message) {
     try {
       UtilityClassTester.assertUtilityClass(clazz);
     } catch (AssertionError e) {
