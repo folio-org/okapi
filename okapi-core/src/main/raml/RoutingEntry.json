@@ -49,6 +49,10 @@
       "description": "Delay between calls",
       "type": "string"
     },
+    "schedule": {
+      "description": "Timer schedule",
+      "type": "string"
+    },
     "permissionsRequired": {
       "description": "Required permissions for this entry",
       "type": ["array", "null"],

@@ -6,9 +6,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.util.Schedule;
 
 /**
  * One entry in Okapi's routing table. Each entry contains one or more HTTP
@@ -29,6 +31,7 @@ public class RoutingEntry {
   private String redirectPath; // only for type='redirect'
   private String unit;
   private String delay;
+  private Schedule schedule;
   private long factor;
   private String[] permissionsRequired;
   private String[] permissionsDesired;
@@ -177,6 +180,14 @@ public class RoutingEntry {
     this.delay = delay;
   }
 
+  public String getSchedule() {
+    return schedule.toString();
+  }
+
+  public void setSchedule(String schedule) {
+    this.schedule = new Schedule(schedule);
+  }
+
   /**
    * get timer delay in milliseconds.
    */
@@ -185,6 +196,8 @@ public class RoutingEntry {
     if (this.delay != null && unit != null) {
       long delayMilliSeconds = Integer.parseInt(this.delay);
       return delayMilliSeconds * factor;
+    } else if (schedule != null) {
+      return schedule.getNextEventMillis(LocalDateTime.now());
     } else {
       return 0;
     }
