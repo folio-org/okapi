@@ -2,15 +2,13 @@ package org.folio.okapi.bean;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.OkapiLogger;
+import io.vertx.core.json.Json;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class RoutingEntryTest {
-  private final Logger logger = OkapiLogger.get();
-
   @Test
   void testMethods() {
     RoutingEntry t = new RoutingEntry();
@@ -286,5 +284,23 @@ class RoutingEntryTest {
 
     t.setPathPattern("/{tenantId}/b/{moduleId}");
     assertTrue(t.matchUriTenant("/diku/b/other", "diku"));
+  }
+
+  @Test
+  void testTimerSchedule() {
+    RoutingEntry t = new RoutingEntry();
+    Assertions.assertThat(t.getDelayMilliSeconds()).isEqualTo(0L);
+    String cron = "3 2 * * *";
+    t.setSchedule(cron);
+    Assertions.assertThat(t.getDelayMilliSeconds()).isGreaterThan(0L);
+    String encode = Json.encode(t);
+    assertEquals(encode, "{\"schedule\":\"" + cron + "\"}");
+    RoutingEntry t2 = Json.decodeValue(encode, RoutingEntry.class);
+    assertEquals(t2.getSchedule(), cron);
+
+    Exception e = assertThrows(DecodeException.class, () ->
+      Json.decodeValue("{\"schedule\":\"3 2 x * *\"}", RoutingEntry.class)
+    );
+    Assertions.assertThat(e.getMessage()).contains("Expected number here: x");
   }
 }
