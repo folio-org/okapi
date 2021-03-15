@@ -181,7 +181,7 @@ public class RoutingEntry {
   }
 
   public String getSchedule() {
-    return schedule.toString();
+    return schedule == null ? null : schedule.toString();
   }
 
   public void setSchedule(String schedule) {
