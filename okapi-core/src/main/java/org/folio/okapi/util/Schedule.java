@@ -45,7 +45,7 @@ public class Schedule {
         boolean found = false;
         if (names != null) {
           for (int j = 0; j < names.length; j++) {
-            if (spec.substring(i).startsWith(names[j])) {
+            if (spec.startsWith(names[j], i)) {
               l.add(j + min);
               i += names[j].length();
               found = true;
