@@ -1,4 +1,4 @@
-package org.folio.okapi.testutil;
+package org.folio.okapi.testing;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -18,15 +18,15 @@ public final class UtilityClassTester {
    * @param constructor  Constructor of a utility class
    */
   @SuppressWarnings({
-    "squid:S1166",  /* suppress "Either log or rethrow this exception" */
-    "squid:S3011",  /* suppress "Changing accessibility is security sensitive" and
-                       suppress "Make sure that this accessibility update is safe here."
-                       This is save because
-                       - it runs during unit tests only, and
-                       - it invokes the constructor only, no write access, no i/o.
-                       There is no other way to test whether a private constructor
-                       throws an Exception.
-                     */
+      "squid:S1166",  /* suppress "Either log or rethrow this exception" */
+      "squid:S3011",  /* suppress "Changing accessibility is security sensitive" and
+                         suppress "Make sure that this accessibility update is safe here."
+                         This is safe because
+                         - it runs during unit tests only, and
+                         - it invokes the constructor only, no write access, no i/o.
+                         There is no other way to test whether a private constructor
+                         throws an Exception.
+                       */
   })
   private static void assertInvocationException(Constructor<?> constructor) {
     try {
@@ -45,10 +45,6 @@ public final class UtilityClassTester {
         + "to fail unintended invocation via reflection.");
   }
 
-  static void assertNonAccessible(Constructor<?> constructor) {
-    assertTrue("constructor must be non-accessible", ! constructor.isAccessible());
-  }
-
   /**
    * Assert that the clazz has these utility class properties:
    * Class is final, has only one constructor that is private and
@@ -61,7 +57,6 @@ public final class UtilityClassTester {
       assertTrue("number of constructors is 1", clazz.getDeclaredConstructors().length == 1);
       final Constructor<?> constructor = clazz.getDeclaredConstructor();
       assertTrue("constructor must be private", Modifier.isPrivate(constructor.getModifiers()));
-      assertNonAccessible(constructor);
       assertInvocationException(constructor);
       for (final Method method : clazz.getMethods()) {
         if (method.getDeclaringClass().equals(clazz)) {
