@@ -21,7 +21,7 @@ public final class UtilityClassTester {
       "squid:S1166",  /* suppress "Either log or rethrow this exception" */
       "squid:S3011",  /* suppress "Changing accessibility is security sensitive" and
                          suppress "Make sure that this accessibility update is safe here."
-                         This is save because
+                         This is safe because
                          - it runs during unit tests only, and
                          - it invokes the constructor only, no write access, no i/o.
                          There is no other way to test whether a private constructor
