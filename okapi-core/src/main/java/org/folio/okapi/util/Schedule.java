@@ -142,16 +142,11 @@ public class Schedule {
    * @return time in milliseconds (always at least 1)
    */
   public long getNextEventMillis(LocalDateTime localTime) {
-    Duration duration = getNextEventDuration(localTime);
-    if (duration.isNegative()) {
-      return 1;
-    }
-    long milli = duration.getSeconds();
-    return milli < 1L ? 1L : milli * 1000L;
+    return getNextEventDuration(localTime).getSeconds() * 1000;
   }
 
   Duration getNextEventDuration(LocalDateTime localTime) {
-    int minuteNext = getNext(localTime.getMinute(), minute, MINUTE_MAX);
+    int minuteNext = getNext(localTime.getMinute() + 1, minute, MINUTE_MAX);
     int hourNext;
     if (minuteNext == Integer.MAX_VALUE) {
       minuteNext = getNext(MINUTE_MIN, minute, MINUTE_MAX);
@@ -205,7 +200,8 @@ public class Schedule {
     }
     logger.debug("minute {} hour {} day {} month {} year {} delta {}",
         minuteNext, hourNext, dayOfMonthNext, monthNext, yearNext, delta);
-    return Duration.between(localTime, nextTime.plusDays(delta));
+    // adding a second here because 0 means "stop timer".
+    return Duration.between(localTime, nextTime.plusDays(delta).plusSeconds(1));
   }
 
 }

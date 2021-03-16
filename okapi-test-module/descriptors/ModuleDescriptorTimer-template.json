@@ -37,9 +37,14 @@
       "handlers": [
         {
           "methods": [ "POST" ],
-          "pathPattern": "/testb/timer",
+          "pathPattern": "/testb/timer/5",
           "unit": "second",
           "delay": "5"
+        },
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/testb/timer/3",
+          "schedule": "*/3 * * * *"
         }
       ]
     },

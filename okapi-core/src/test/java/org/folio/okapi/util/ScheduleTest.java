@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -87,7 +86,7 @@ public class ScheduleTest {
   @Test
   void testScheduleFailsMissingSection() {
     Assertions.assertThrows(IllegalArgumentException.class, () -> {
-      Schedule schedule = new Schedule("*/15 * * *");
+      new Schedule("*/15 * * *");
     });
   }
 
@@ -96,118 +95,114 @@ public class ScheduleTest {
     Schedule schedule = new Schedule("*/15 * * * *");
     assertThat(schedule.toString()).isEqualTo("*/15 * * * *");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(1L, ChronoUnit.MINUTES));
-    assertThat(schedule.getNextEventMillis(localDateTime)).isEqualTo(60000L);
+    assertThat(schedule.getNextEventMillis(localDateTime)).isEqualTo(61000L);
 
     localDateTime = LocalDateTime.of(2020, 12, 31, 23, 45);
-    assertThat(schedule.getNextEventDuration(localDateTime).isZero());
-    assertThat(schedule.getNextEventMillis(localDateTime)).isEqualTo(1L);
+    assertThat(schedule.getNextEventMillis(localDateTime)).isEqualTo(901000L);
 
     localDateTime = LocalDateTime.of(2020, 12, 31, 23, 45, 36);
-    assertThat(schedule.getNextEventDuration(localDateTime).isZero());
-    assertThat(schedule.getNextEventMillis(localDateTime)).isEqualTo(1L);
+    assertThat(schedule.getNextEventMillis(localDateTime)).isEqualTo(865000L);
 
     localDateTime = LocalDateTime.of(2020, 12, 31, 23, 46);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(14, ChronoUnit.MINUTES));
-    assertThat(schedule.getNextEventMillis(localDateTime)).isEqualTo(840000L);
+    assertThat(schedule.getNextEventMillis(localDateTime)).isEqualTo(841000L);
   }
 
   @Test
   void testScheduleNextHour() {
     Schedule schedule = new Schedule("3 1,22 * * *");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(79L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT1H19M1S"));
   }
 
   @Test
   void testScheduleNextDay() {
     Schedule schedule = new Schedule("3 1,22 1 * *");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(79L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT1H19M1S"));
   }
 
   @Test
   void testScheduleNextDay2() {
     Schedule schedule = new Schedule("3 1,22 5 * *");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(5839L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT97H19M1S"));
   }
 
   @Test
   void testScheduleNextMonth1() {
     Schedule schedule = new Schedule("3 1,22 5 5 *");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(178639L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT2977H19M1S"));
   }
 
   @Test
   void testScheduleWeekDay1() {
     Schedule schedule = new Schedule("3 1,22 * * friday");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(79L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT1H19M1S"));
   }
 
   @Test
   void testScheduleWeekDay2() {
     Schedule schedule = new Schedule("3 1,22 * * saturday");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(1440L + 79L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT25H19M1S"));
   }
 
   @Test
   void testScheduleWeekDay3() {
     Schedule schedule = new Schedule("*/15 * * * monday,friday");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(16L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT16M1S"));
   }
 
   @Test
   void testScheduleWeekDay4() {
     Schedule schedule = new Schedule("*/15 * * * monday");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(16L + 3*1440L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT72H16M1S"));
   }
 
   @Test
   void testScheduleWeekDay5() {
     Schedule schedule = new Schedule("*/15 * 5 * monday");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(16L + 10*1440L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT240H16M1S"));
   }
 
   @Test
   void testScheduleDayOfMonth() {
     Schedule schedule = new Schedule("*/15 * 4 * *");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(16L + 3*1440L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT72H16M1S"));
   }
 
   @Test
   void testScheduleMonth1() {
     Schedule schedule = new Schedule("*/15 * * 2 *");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(16L + 31*1440L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT744H16M1S"));
   }
 
   @Test
   void testScheduleMonth2() {
     Schedule schedule = new Schedule("*/15 * * 2 *");
     LocalDateTime localDateTime = LocalDateTime.of(2021, 1, 31, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(16L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT16M1S"));
   }
 
   @Test
   void testScheduleMonthLeapYear() {
     Schedule schedule = new Schedule("*/15 * 29 * *");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 2, 26, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(16L + 2*1440L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT48H16M1S"));
   }
 
   @Test
   void testScheduleMonthNoLeapYear() {
     Schedule schedule = new Schedule("*/15 * 29 * *");
     LocalDateTime localDateTime = LocalDateTime.of(2021, 2, 26, 23, 44);
-    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.of(16L + 30*1440L, ChronoUnit.MINUTES));
+    assertThat(schedule.getNextEventDuration(localDateTime)).isEqualTo(Duration.parse("PT720H16M1S"));
   }
 
 }
