@@ -3108,7 +3108,7 @@ Examples:
 | Schedule         | Description |
 | ---------------- | ----------- |
 | `0 2 * * *     ` | every day at 2 AM |
-| `15 */2        ` | quarter past every 2nd hour |
+| `15 */2 * * *  ` | quarter past every 2nd hour |
 | `0 6,18 * * *  ` | 6 AM + 6 PM |
 | `0 0 * * sunday` | midnight between Saturday and Sunday |
 
