@@ -199,8 +199,8 @@ public class Schedule {
       delta = WEEKDAY_MAX - currentDayOfWeek + dayOfWeekNext;
     }
     if (delta > 0) {
-      minuteNext = getNext(0, minute, MINUTE_MAX);
-      hourNext = getNext(0, hour, HOUR_MAX);
+      minuteNext = getNext(MINUTE_MIN, minute, MINUTE_MAX);
+      hourNext = getNext(HOUR_MIN, hour, HOUR_MAX);
       nextTime = LocalDateTime.of(yearNext, monthNext, dayOfMonthNext, hourNext, minuteNext);
     }
     logger.debug("minute {} hour {} day {} month {} year {} delta {}",
