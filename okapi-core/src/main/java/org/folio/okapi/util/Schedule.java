@@ -1,6 +1,8 @@
 package org.folio.okapi.util;
 
+import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
@@ -9,6 +11,17 @@ import org.folio.okapi.common.OkapiLogger;
 
 public class Schedule {
   private final Logger logger = OkapiLogger.get();
+
+  private static final int MINUTE_MIN = 0;
+  private static final int MINUTE_MAX = 59;
+  private static final int HOUR_MIN = 0;
+  private static final int HOUR_MAX = 23;
+  private static final int DAY_MIN = 1;
+  private static final int DAY_MAX = 31;
+  private static final int MONTH_MIN = 1;
+  private static final int MONTH_MAX = 12;
+  private static final int WEEKDAY_MIN = 1;
+  private static final int WEEKDAY_MAX = 7;
 
   static int parseNumber(String spec, int i, int [] val) {
     if (i == spec.length()) {
@@ -98,11 +111,11 @@ public class Schedule {
       throw new IllegalArgumentException("Spec must be exactly 5 components: "
           + "minute hour day month weekday");
     }
-    parseComp(minute, components[0], 0, 59);
-    parseComp(hour, components[1], 0, 23);
-    parseComp(dayOfMonth, components[2], 1, 31);
-    parseComp(monthOfYear, components[3], 1, 12);
-    parseComp(dayOfWeek, components[4], 0, 6,
+    parseComp(minute, components[0], MINUTE_MIN, MINUTE_MAX);
+    parseComp(hour, components[1], HOUR_MIN, HOUR_MAX);
+    parseComp(dayOfMonth, components[2], DAY_MIN, DAY_MAX);
+    parseComp(monthOfYear, components[3], MONTH_MIN, MONTH_MAX);
+    parseComp(dayOfWeek, components[4], WEEKDAY_MIN, WEEKDAY_MAX,
         new String [] { "monday", "tuesday", "wednesday", "thursday",
             "friday", "saturday", "sunday"});
   }
@@ -117,7 +130,7 @@ public class Schedule {
       return r;
     }
     for (Integer value : list) {
-      if (value >= v && r > value) {
+      if (value >= v && value < r && value <= max) {
         r = value;
       }
     }
@@ -139,32 +152,61 @@ public class Schedule {
   }
 
   Duration getNextEventDuration(LocalDateTime localTime) {
-    int minuteNext = getNext(localTime.getMinute(), minute, 60);
-    int hourNext = getNext(localTime.getHour(), hour, 24);
+    int minuteNext = getNext(localTime.getMinute(), minute, MINUTE_MAX);
+    int hourNext;
     if (minuteNext == Integer.MAX_VALUE) {
-      minuteNext = getNext(0, minute, 60);
-      hourNext = getNext(localTime.getHour() + 1, hour, 24);
-    }
-    int dayOfMonthNext = getNext(localTime.getDayOfMonth(), dayOfMonth, 31);
-    if (hourNext == Integer.MAX_VALUE) {
-      hourNext = getNext(0, hour, 24);
-      dayOfMonthNext = getNext(localTime.getDayOfMonth() + 1, dayOfMonth, 31);
-    }
-    int monthNext = getNext(localTime.getMonthValue(), monthOfYear, 12);
-    if (dayOfMonthNext == Integer.MAX_VALUE) {
-      dayOfMonthNext = getNext(1, dayOfMonth, 31);
-      monthNext = getNext(localTime.getMonthValue() + 1, monthOfYear, 12);
+      minuteNext = getNext(MINUTE_MIN, minute, MINUTE_MAX);
+      hourNext = getNext(localTime.getHour() + 1, hour, HOUR_MAX);
+    } else {
+      hourNext = getNext(localTime.getHour(), hour, HOUR_MAX);
     }
     int yearNext = localTime.getYear();
-    if (monthNext == Integer.MAX_VALUE) {
-      monthNext = getNext(1, monthOfYear, 12);
-      yearNext++;
+    int daysOfMonth = LocalDate.of(yearNext, localTime.getMonthValue(), 1).lengthOfMonth();
+    int dayOfMonthNext;
+    if (hourNext == Integer.MAX_VALUE) {
+      minuteNext = getNext(MINUTE_MIN, minute, MINUTE_MAX);
+      hourNext = getNext(HOUR_MIN, hour, HOUR_MAX);
+      dayOfMonthNext = getNext(localTime.getDayOfMonth() + 1, dayOfMonth, daysOfMonth);
+    } else {
+      dayOfMonthNext = getNext(localTime.getDayOfMonth(), dayOfMonth, daysOfMonth);
     }
-    logger.debug("minute {} hour {} day {} month {} year {}",
-        minuteNext, hourNext, dayOfMonthNext, monthNext, yearNext);
+    if (dayOfMonthNext != localTime.getDayOfMonth()) {
+      minuteNext = getNext(MINUTE_MIN, minute, MINUTE_MAX);
+      hourNext = getNext(HOUR_MIN, hour, HOUR_MAX);
+    }
+    int monthNext;
+    if (dayOfMonthNext == Integer.MAX_VALUE) {
+      monthNext = getNext(localTime.getMonthValue() + 1, monthOfYear, MONTH_MAX);
+    } else {
+      monthNext = getNext(localTime.getMonthValue(), monthOfYear, MONTH_MAX);
+    }
+    if (monthNext != localTime.getMonthValue()) {
+      if (monthNext == Integer.MAX_VALUE) {
+        monthNext = getNext(MONTH_MIN, monthOfYear, MONTH_MAX);
+        yearNext++;
+      }
+      minuteNext = getNext(MINUTE_MIN, minute, MINUTE_MAX);
+      hourNext = getNext(HOUR_MIN, hour, HOUR_MAX);
+      daysOfMonth = LocalDate.of(yearNext, monthNext, 1).lengthOfMonth();
+      dayOfMonthNext = getNext(1, dayOfMonth, daysOfMonth);
+    }
     LocalDateTime nextTime = LocalDateTime.of(yearNext, monthNext, dayOfMonthNext,
         hourNext, minuteNext);
-    return Duration.between(localTime, nextTime);
+    int currentDayOfWeek = nextTime.getDayOfWeek().getValue();
+    int dayOfWeekNext = getNext(currentDayOfWeek, dayOfWeek, WEEKDAY_MAX);
+    int delta = dayOfWeekNext - currentDayOfWeek;
+    if (dayOfWeekNext == Integer.MAX_VALUE) {
+      dayOfWeekNext = getNext(WEEKDAY_MIN, dayOfWeek, WEEKDAY_MAX);
+      delta = WEEKDAY_MAX - currentDayOfWeek + dayOfWeekNext;
+    }
+    if (delta > 0) {
+      minuteNext = getNext(0, minute, MINUTE_MAX);
+      hourNext = getNext(0, hour, HOUR_MAX);
+      nextTime = LocalDateTime.of(yearNext, monthNext, dayOfMonthNext, hourNext, minuteNext);
+    }
+    logger.debug("minute {} hour {} day {} month {} year {} delta {}",
+        minuteNext, hourNext, dayOfMonthNext, monthNext, yearNext, delta);
+    return Duration.between(localTime, nextTime.plusDays(delta));
   }
 
 }
