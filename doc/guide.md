@@ -3083,6 +3083,35 @@ Note that the call made by Okapi will call auth-token to get a token
 for the tenant this module is enabled for. No user is involved in this.
 Use `modulePermissions` to grant permissions for the token.
 
+With Okapi 4.8.0, the timers can also be specified to occur at given
+times with a specification inspired by cron. This is triggered by suppying
+property `schedule`. This consists of 5 tokens, separated by whitespace.
+The tokens in order are:
+
+ * minute 0-59
+ * hour 0-23
+ * day of month 1-31 *
+ * month 1-12
+ * weekday 1-7, may be given as strings "monday", "tuesday", ..
+
+(*): depending on month and year!
+
+Each token can be:
+
+ * value: integer for match unit of given value
+ * `*`: asterisk to match any value (wildcard)
+ * `*/`step: occur at steps in the range for possible values for the unit
+ * These may be combined , (no whitespace between)
+
+Examples:
+
+| Schedule         | Description |
+| ---------------- | ----------- |
+| `0 2 * * *     ` | every day at 2 AM |
+| `15 */2        ` | quarter past every 2nd hour |
+| `0 6,18 * * *  ` | 6 AM + 6 PM |
+| `0 0 * * sunday` | midnight between Saturday and Sunday |
+
 ### Instrumentation
 
 Okapi uses Micrometer for managing metrics and reporting to backends. To enable it,
