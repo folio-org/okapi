@@ -613,10 +613,12 @@ public class TenantManager implements Liveness {
       if (delay > 0 && path != null) {
         if (seq1 == 0) {
           if (!timers.contains(key)) {
+            logger.info("start wait {} {}", seq, delay);
             timers.add(key);
             waitTimer(tenantId, md, delay, seq);
           }
         } else if (seq == seq1) {
+          logger.info("cont wait {} {}", seq, delay);
           if (discoveryManager.isLeader()) {
             fireTimer(tenant, md, re, path);
           }

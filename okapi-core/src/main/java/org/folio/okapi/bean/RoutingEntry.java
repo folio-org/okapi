@@ -1,16 +1,23 @@
 package org.folio.okapi.bean;
 
+import com.cronutils.model.Cron;
+import com.cronutils.model.CronType;
+import com.cronutils.model.definition.CronDefinition;
+import com.cronutils.model.definition.CronDefinitionBuilder;
+import com.cronutils.model.time.ExecutionTime;
+import com.cronutils.parser.CronParser;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.util.Schedule;
 
 /**
  * One entry in Okapi's routing table. Each entry contains one or more HTTP
@@ -20,7 +27,6 @@ import org.folio.okapi.util.Schedule;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RoutingEntry {
-
   private String[] methods;
   private String pathPattern;
   private String path;
@@ -31,7 +37,7 @@ public class RoutingEntry {
   private String redirectPath; // only for type='redirect'
   private String unit;
   private String delay;
-  private Schedule schedule;
+  private Cron cron;
   private long factor;
   private String[] permissionsRequired;
   private String[] permissionsDesired;
@@ -181,23 +187,36 @@ public class RoutingEntry {
   }
 
   public String getSchedule() {
-    return schedule == null ? null : schedule.toString();
-  }
-
-  public void setSchedule(String schedule) {
-    this.schedule = new Schedule(schedule);
+    return cron == null ? null : cron.asString();
   }
 
   /**
-   * get timer delay in milliseconds.
+   * Set timer schedule as cron spec.
+   * @param schedule cron specification.
+   */
+  public void setSchedule(String schedule) {
+    CronDefinition cronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX);
+    CronParser parser = new CronParser(cronDefinition);
+    this.cron = parser.parse(schedule);
+  }
+
+  /**
+   * get delay delay for routing entry.
+   * @return delay in milliseconds; 0 if there's no timer
    */
   @JsonIgnore
   public long getDelayMilliSeconds() {
     if (this.delay != null && unit != null) {
       long delayMilliSeconds = Integer.parseInt(this.delay);
       return delayMilliSeconds * factor;
-    } else if (schedule != null) {
-      return schedule.getNextEventMillis(LocalDateTime.now());
+    } else if (cron != null) {
+      ExecutionTime executionTime = ExecutionTime.forCron(cron);
+      ZonedDateTime now = ZonedDateTime.now();
+      Optional<Duration> timeToNextExecution = executionTime.timeToNextExecution(now);
+      if (timeToNextExecution.isEmpty()) {
+        return 0;
+      }
+      return timeToNextExecution.get().getSeconds() * 1000 + 1;
     } else {
       return 0;
     }

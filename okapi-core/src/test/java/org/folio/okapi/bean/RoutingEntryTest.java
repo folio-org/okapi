@@ -301,6 +301,6 @@ class RoutingEntryTest {
     Exception e = assertThrows(DecodeException.class, () ->
       Json.decodeValue("{\"schedule\":\"3 2 x * *\"}", RoutingEntry.class)
     );
-    Assertions.assertThat(e.getMessage()).contains("Expected number here: x");
+    Assertions.assertThat(e.getMessage()).contains("Invalid chars: X");
   }
 }
