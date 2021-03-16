@@ -50,7 +50,7 @@
       "type": "string"
     },
     "schedule": {
-      "description": "Timer schedule",
+      "description": "Timer schedule ala cron",
       "type": "string"
     },
     "permissionsRequired": {
