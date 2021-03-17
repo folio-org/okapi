@@ -60,7 +60,8 @@ public class ScheduleNaive implements Schedule {
     parseComp(l, spec, min, max, names, 0);
   }
 
-  static void parseComp(List<Integer> l, String spec, int min, int max, String [] names, int zeroMap) {
+  static void parseComp(List<Integer> l, String spec, int min, int max, String [] names,
+                        int zeroMap) {
     int [] val = new int[1];
     int i = 0;
     while (i < spec.length()) {
