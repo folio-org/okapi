@@ -1,10 +1,10 @@
 package org.folio.okapi.util;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 public interface Schedule {
-  Duration getNextDuration(LocalDateTime localDateTime);
+  Duration getNextDuration(ZonedDateTime zonedDateTime);
 
   void parseSpec(String spec);
 }

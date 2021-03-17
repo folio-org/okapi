@@ -17,15 +17,13 @@ public class ScheduleCronUtils implements Schedule {
   private Cron cron;
 
   @Override
-  public Duration getNextDuration(LocalDateTime localDateTime) {
+  public Duration getNextDuration(ZonedDateTime zonedDateTime) {
     if (cron == null) {
       return null;
     }
     ExecutionTime executionTime = ExecutionTime.forCron(cron);
 
-    ZonedDateTime now = ZonedDateTime.of(localDateTime, ZoneId.systemDefault());
-
-    Optional<Duration> timeToNextExecution = executionTime.timeToNextExecution(now);
+    Optional<Duration> timeToNextExecution = executionTime.timeToNextExecution(zonedDateTime);
 
     if (timeToNextExecution.isEmpty()) {
       return null;

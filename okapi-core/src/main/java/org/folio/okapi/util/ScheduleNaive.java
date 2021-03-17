@@ -3,6 +3,7 @@ package org.folio.okapi.util;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
@@ -83,17 +84,7 @@ public class ScheduleNaive implements Schedule {
           i++;
         }
         if (i != i0) {
-          boolean found = false;
-          String name = spec.substring(i0, i);
-          for (int j = 0; j < names.length; j++) {
-            if (name.equalsIgnoreCase(names[j])) {
-              addVal(l, j + min, min, max, zeroMap);
-              found = true;
-            }
-          }
-          if (!found) {
-            throw new IllegalArgumentException("Unrecognized name: " + name);
-          }
+          parseName(l, spec, min, max, names, i, i0);
         } else {
           i = parseNumber(spec, i, val);
           addVal(l, val[0], min, max, zeroMap);
@@ -103,6 +94,18 @@ public class ScheduleNaive implements Schedule {
         i++;
       }
     }
+  }
+
+  private static void parseName(List<Integer> l, String spec, int min, int max, String[] names,
+                                int i, int i0) {
+    String name = spec.substring(i0, i);
+    for (int j = 0; j < names.length; j++) {
+      if (name.equalsIgnoreCase(names[j])) {
+        addVal(l, j + min, min, max, 0);
+        return;
+      }
+    }
+    throw new IllegalArgumentException("Unrecognized name: " + name);
   }
 
   private String spec;
@@ -149,39 +152,39 @@ public class ScheduleNaive implements Schedule {
   }
 
   @Override
-  public Duration getNextDuration(LocalDateTime localTime) {
+  public Duration getNextDuration(ZonedDateTime zonedDateTime) {
     if (spec == null) {
       return null;
     }
-    int minuteNext = getNext(localTime.getMinute() + 1, minute, MINUTE_MAX);
+    int minuteNext = getNext(zonedDateTime.getMinute() + 1, minute, MINUTE_MAX);
     int hourNext;
     if (minuteNext == Integer.MAX_VALUE) {
       minuteNext = getNext(MINUTE_MIN, minute, MINUTE_MAX);
-      hourNext = getNext(localTime.getHour() + 1, hour, HOUR_MAX);
+      hourNext = getNext(zonedDateTime.getHour() + 1, hour, HOUR_MAX);
     } else {
-      hourNext = getNext(localTime.getHour(), hour, HOUR_MAX);
+      hourNext = getNext(zonedDateTime.getHour(), hour, HOUR_MAX);
     }
-    int yearNext = localTime.getYear();
-    int daysOfMonth = LocalDate.of(yearNext, localTime.getMonthValue(), 1).lengthOfMonth();
+    int yearNext = zonedDateTime.getYear();
+    int daysOfMonth = LocalDate.of(yearNext, zonedDateTime.getMonthValue(), 1).lengthOfMonth();
     int dayOfMonthNext;
     if (hourNext == Integer.MAX_VALUE) {
       minuteNext = getNext(MINUTE_MIN, minute, MINUTE_MAX);
       hourNext = getNext(HOUR_MIN, hour, HOUR_MAX);
-      dayOfMonthNext = getNext(localTime.getDayOfMonth() + 1, dayOfMonth, daysOfMonth);
+      dayOfMonthNext = getNext(zonedDateTime.getDayOfMonth() + 1, dayOfMonth, daysOfMonth);
     } else {
-      dayOfMonthNext = getNext(localTime.getDayOfMonth(), dayOfMonth, daysOfMonth);
+      dayOfMonthNext = getNext(zonedDateTime.getDayOfMonth(), dayOfMonth, daysOfMonth);
     }
-    if (dayOfMonthNext != localTime.getDayOfMonth()) {
+    if (dayOfMonthNext != zonedDateTime.getDayOfMonth()) {
       minuteNext = getNext(MINUTE_MIN, minute, MINUTE_MAX);
       hourNext = getNext(HOUR_MIN, hour, HOUR_MAX);
     }
     int monthNext;
     if (dayOfMonthNext == Integer.MAX_VALUE) {
-      monthNext = getNext(localTime.getMonthValue() + 1, monthOfYear, MONTH_MAX);
+      monthNext = getNext(zonedDateTime.getMonthValue() + 1, monthOfYear, MONTH_MAX);
     } else {
-      monthNext = getNext(localTime.getMonthValue(), monthOfYear, MONTH_MAX);
+      monthNext = getNext(zonedDateTime.getMonthValue(), monthOfYear, MONTH_MAX);
     }
-    if (monthNext != localTime.getMonthValue()) {
+    if (monthNext != zonedDateTime.getMonthValue()) {
       if (monthNext == Integer.MAX_VALUE) {
         monthNext = getNext(MONTH_MIN, monthOfYear, MONTH_MAX);
         yearNext++;
@@ -208,7 +211,8 @@ public class ScheduleNaive implements Schedule {
     logger.debug("minute {} hour {} day {} month {} year {} delta {}",
         minuteNext, hourNext, dayOfMonthNext, monthNext, yearNext, delta);
     // adding a second here because 0 means "stop timer".
-    return Duration.between(localTime, nextTime.plusDays(delta).plusSeconds(1));
+    return Duration.between(zonedDateTime,
+        ZonedDateTime.of(nextTime.plusDays(delta).plusSeconds(1), zonedDateTime.getZone()));
   }
 
   @Override

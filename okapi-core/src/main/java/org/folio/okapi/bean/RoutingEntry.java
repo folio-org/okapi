@@ -8,6 +8,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
@@ -200,7 +201,7 @@ public class RoutingEntry {
       long delayMilliSeconds = Integer.parseInt(this.delay);
       return delayMilliSeconds * factor;
     } else if (schedule != null) {
-      Duration duration = schedule.getNextDuration(LocalDateTime.now());
+      Duration duration = schedule.getNextDuration(ZonedDateTime.now());
       return duration.toSeconds() * 1000L;
     } else {
       return 0;
