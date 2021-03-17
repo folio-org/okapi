@@ -35,14 +35,14 @@ public class ScheduleTest {
   @Test
   void testParseComp4() {
     List<Integer> l = new LinkedList<>();
-    ScheduleNaive.parseComp(l, "*/15", 4, 63);
-    assertThat(l).containsExactlyInAnyOrder(4, 19, 34, 49);
+    ScheduleNaive.parseComp(l, "7,*/15", 4, 63);
+    assertThat(l).containsExactlyInAnyOrder(4, 7, 19, 34, 49);
   }
 
   @Test
   void testParseComp5() {
     List<Integer> l = new LinkedList<>();
-    ScheduleNaive.parseComp(l, "tuesday,friday", 2, 8,
+    ScheduleNaive.parseComp(l, "tuesday,friDAY", 2, 8,
         new String [] { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"});
     assertThat(l).containsExactlyInAnyOrder(3, 6);
   }
@@ -144,7 +144,7 @@ public class ScheduleTest {
   @Test
   void testScheduleWeekDay1() {
     Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("3 1,22 * * friday");
+    schedule.parseSpec("3 1,22 * * fri");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
     assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT1H19M1S"));
   }
@@ -152,7 +152,7 @@ public class ScheduleTest {
   @Test
   void testScheduleWeekDay2() {
     Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("3 1,22 * * saturday");
+    schedule.parseSpec("3 1,22 * * sat");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
     assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT25H19M1S"));
   }
@@ -160,7 +160,7 @@ public class ScheduleTest {
   @Test
   void testScheduleWeekDay3() {
     Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * * * monday,friday");
+    schedule.parseSpec("*/15 * * * mon,fri");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
     assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT16M1S"));
   }
@@ -168,7 +168,7 @@ public class ScheduleTest {
   @Test
   void testScheduleWeekDay4() {
     Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * * * monday");
+    schedule.parseSpec("*/15 * * * mon");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
     assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT72H16M1S"));
   }
@@ -176,9 +176,25 @@ public class ScheduleTest {
   @Test
   void testScheduleWeekDay5() {
     Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * 5 * monday");
+    schedule.parseSpec("*/15 * 5 * Mon");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
     assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT240H16M1S"));
+  }
+
+  @Test
+  void testScheduleWeekDay6() {
+    Schedule schedule = new ScheduleNaive();
+    schedule.parseSpec("*/15 * * * Sun");
+    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
+    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT48H16M1S"));
+  }
+
+  @Test
+  void testScheduleWeekDay7() {
+    Schedule schedule = new ScheduleNaive();
+    schedule.parseSpec("*/15 * * * 0");
+    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
+    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT48H16M1S"));
   }
 
   @Test
@@ -192,7 +208,7 @@ public class ScheduleTest {
   @Test
   void testScheduleMonth1() {
     Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * * 2 *");
+    schedule.parseSpec("*/15 * * feb *");
     LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
     assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT744H16M1S"));
   }
@@ -200,7 +216,7 @@ public class ScheduleTest {
   @Test
   void testScheduleMonth2() {
     Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * * 2 *");
+    schedule.parseSpec("*/15 * * FEB *");
     LocalDateTime localDateTime = LocalDateTime.of(2021, 1, 31, 23, 44);
     assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT16M1S"));
   }

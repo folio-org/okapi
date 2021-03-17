@@ -37,7 +37,10 @@ public class ScheduleNaive implements Schedule {
     return i;
   }
 
-  static void addVal(List<Integer> l, int val, int min, int max) {
+  static void addVal(List<Integer> l, int val, int min, int max, int zeroMap) {
+    if (val == 0) {
+      val = zeroMap; // if zeroMap is already zero, no harm done
+    }
     if (val < min) {
       throw new IllegalArgumentException("Cron-spec value "
           + val + " below minimum " + min);
@@ -54,6 +57,10 @@ public class ScheduleNaive implements Schedule {
   }
 
   static void parseComp(List<Integer> l, String spec, int min, int max, String [] names) {
+    parseComp(l, spec, min, max, names, 0);
+  }
+
+  static void parseComp(List<Integer> l, String spec, int min, int max, String [] names, int zeroMap) {
     int [] val = new int[1];
     int i = 0;
     while (i < spec.length()) {
@@ -67,20 +74,28 @@ public class ScheduleNaive implements Schedule {
           step = val[0];
         }
         for (int j = min; j <= max; j += step) {
-          l.add(j);
+          addVal(l, j, min, max, zeroMap);
         }
       } else {
-        boolean found = false;
-        for (int j = 0; j < names.length; j++) {
-          if (spec.startsWith(names[j], i)) {
-            l.add(j + min);
-            i += names[j].length();
-            found = true;
-          }
+        int i0 = i;
+        while (i < spec.length() && Character.isAlphabetic(spec.charAt(i))) {
+          i++;
         }
-        if (!found) {
+        if (i != i0) {
+          boolean found = false;
+          String name = spec.substring(i0, i);
+          for (int j = 0; j < names.length; j++) {
+            if (name.equalsIgnoreCase(names[j])) {
+              addVal(l, j + min, min, max, zeroMap);
+              found = true;
+            }
+          }
+          if (!found) {
+            throw new IllegalArgumentException("Unrecognized name: " + name);
+          }
+        } else {
           i = parseNumber(spec, i, val);
-          addVal(l, val[0], min, max);
+          addVal(l, val[0], min, max, zeroMap);
         }
       }
       if (i < spec.length() && spec.charAt(i) == ',') {
@@ -109,10 +124,14 @@ public class ScheduleNaive implements Schedule {
     parseComp(minute, components[0], MINUTE_MIN, MINUTE_MAX);
     parseComp(hour, components[1], HOUR_MIN, HOUR_MAX);
     parseComp(dayOfMonth, components[2], DAY_MIN, DAY_MAX);
-    parseComp(monthOfYear, components[3], MONTH_MIN, MONTH_MAX);
+    parseComp(monthOfYear, components[3], MONTH_MIN, MONTH_MAX,
+        new String [] {
+            "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"
+        });
     parseComp(dayOfWeek, components[4], WEEKDAY_MIN, WEEKDAY_MAX,
-        new String [] { "monday", "tuesday", "wednesday", "thursday",
-            "friday", "saturday", "sunday"});
+        new String [] {
+            "mon", "tue", "wed", "thu", "fri", "sat", "sun"
+        }, WEEKDAY_MAX); // map 0 to 7=WEEKDAY_MAX
   }
 
   static int getNext(int v, List<Integer> list, int max) {
