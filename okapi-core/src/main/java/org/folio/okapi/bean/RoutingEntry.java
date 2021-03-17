@@ -6,11 +6,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.util.Schedule;
+import org.folio.okapi.util.ScheduleNaive;
 
 /**
  * One entry in Okapi's routing table. Each entry contains one or more HTTP
@@ -185,7 +187,8 @@ public class RoutingEntry {
   }
 
   public void setSchedule(String schedule) {
-    this.schedule = new Schedule(schedule);
+    this.schedule = new ScheduleNaive();
+    this.schedule.parseSpec(schedule);
   }
 
   /**
@@ -197,7 +200,8 @@ public class RoutingEntry {
       long delayMilliSeconds = Integer.parseInt(this.delay);
       return delayMilliSeconds * factor;
     } else if (schedule != null) {
-      return schedule.getNextEventMillis(LocalDateTime.now());
+      Duration duration = schedule.getNextDuration(LocalDateTime.now());
+      return duration.toSeconds() * 1000L;
     } else {
       return 0;
     }
