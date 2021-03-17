@@ -2,10 +2,14 @@ package org.folio.okapi.util;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -60,6 +64,11 @@ public class ScheduleTest {
       ScheduleNaive.parseComp(l, "*x", 4, 63);
     });
 
+    Exception e = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+      ScheduleNaive.parseComp(l, "*/x", 4, 63);
+    });
+    assertThat(e.getMessage()).isEqualTo("Expected number here: x");
+
     Assertions.assertThrows(IllegalArgumentException.class, () -> {
       ScheduleNaive.parseComp(l, "6x", 4, 63);
     });
@@ -86,155 +95,51 @@ public class ScheduleTest {
   @Test
   void testScheduleFailsMissingSection() {
     Schedule schedule = new ScheduleNaive();
-    Assertions.assertThrows(IllegalArgumentException.class, () -> {
-      schedule.parseSpec("*/15 * * *");
-    });
+    Assertions.assertThrows(IllegalArgumentException.class, () ->
+      schedule.parseSpec("*/15 * * *")
+    );
   }
 
-  @Test
-  void testScheduleNextMinute() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * * * *");
-    assertThat(schedule.toString()).isEqualTo("*/15 * * * *");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT1M1S"));
-
-    localDateTime = LocalDateTime.of(2020, 12, 31, 23, 45);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT15M1S"));
-
-    localDateTime = LocalDateTime.of(2020, 12, 31, 23, 45, 36);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT14M25S"));
-
-    localDateTime = LocalDateTime.of(2020, 12, 31, 23, 46);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT14M1S"));
+  static Stream<Arguments> testSchedule() {
+    return Stream.of(
+        Arguments.of("*/15 * * * *", "2020-12-31T23:44", "PT1M1S", null),
+        Arguments.of("*/15 * * * *", "2020-12-31T23:45", "PT15M1S", null),
+        Arguments.of("*/15 * * * *", "2020-12-31T23:45:36", "PT14M25S", null),
+        Arguments.of("*/15 * * * *", "2020-12-31T23:46", "PT14M1S", null),
+        Arguments.of("3 1,22 * * *", "2020-12-31T23:44", "PT1H19M1S", null),
+        Arguments.of("3 1,22 1 * *", "2020-12-31T23:44", "PT1H19M1S", null),
+        Arguments.of("3 1,22 5 * *", "2020-12-31T23:44", "PT97H19M1S", null),
+        Arguments.of("3 1,22 5 3 *", "2020-12-31T23:44", "PT1513H19M1S", null),
+        Arguments.of("3 1,22 5 5 *", "2020-12-31T23:44", "PT2977H19M1S", "PT2976H19M1S"), // diff by 1 hour
+        Arguments.of("3 1,22 * * fri", "2020-12-31T23:44", "PT1H19M1S", null),
+        Arguments.of("3 1,22 * * sat", "2020-12-31T23:44", "PT25H19M1S", null),
+        Arguments.of("*/15 * * * mon,fri", "2020-12-31T23:44", "PT16M1S", null),
+        Arguments.of("*/15 * * * mon", "2020-12-31T23:44", "PT72H16M1S", null),
+        Arguments.of("*/15 * 5 * Mon", "2020-12-31T23:44", "PT240H16M1S", "PT72H16M1S"), // nasty one
+        Arguments.of("*/15 * * * Sun", "2020-12-31T23:44", "PT48H16M1S", null),
+        Arguments.of("*/15 * * * 0", "2020-12-31T23:44", "PT48H16M1S", null),
+        Arguments.of("*/15 * 4 * *", "2020-12-31T23:44", "PT72H16M1S", null),
+        Arguments.of("*/15 * * feb *", "2020-12-31T23:44", "PT744H16M1S", null),
+        Arguments.of("*/15 * * FEB *", "2021-01-31T23:44", "PT16M1S", null),
+        Arguments.of("*/15 * 29 * *", "2020-02-26T23:44", "PT48H16M1S", null),
+        Arguments.of("*/15 * 29 * *", "2021-02-26T23:44", "PT720H16M1S", "PT719H16M1S") // diff by 1 hour
+        );
   }
-
-  @Test
-  void testScheduleNextHour() {
+  @ParameterizedTest
+  @MethodSource
+  void testSchedule(String spec, String time, String duration, String cronUtilsDuration) {
     Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("3 1,22 * * *");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT1H19M1S"));
-  }
+    schedule.parseSpec(spec);
+    assertThat(schedule.toString()).isEqualTo(spec);
+    LocalDateTime localDateTime = LocalDateTime.parse(time);
+    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse(duration));
 
-  @Test
-  void testScheduleNextDay() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("3 1,22 1 * *");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT1H19M1S"));
-  }
-
-  @Test
-  void testScheduleNextDay2() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("3 1,22 5 * *");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT97H19M1S"));
-  }
-
-  @Test
-  void testScheduleNextMonth1() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("3 1,22 5 5 *");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT2977H19M1S"));
-  }
-
-  @Test
-  void testScheduleWeekDay1() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("3 1,22 * * fri");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT1H19M1S"));
-  }
-
-  @Test
-  void testScheduleWeekDay2() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("3 1,22 * * sat");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT25H19M1S"));
-  }
-
-  @Test
-  void testScheduleWeekDay3() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * * * mon,fri");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT16M1S"));
-  }
-
-  @Test
-  void testScheduleWeekDay4() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * * * mon");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT72H16M1S"));
-  }
-
-  @Test
-  void testScheduleWeekDay5() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * 5 * Mon");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT240H16M1S"));
-  }
-
-  @Test
-  void testScheduleWeekDay6() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * * * Sun");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT48H16M1S"));
-  }
-
-  @Test
-  void testScheduleWeekDay7() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * * * 0");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT48H16M1S"));
-  }
-
-  @Test
-  void testScheduleDayOfMonth() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * 4 * *");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT72H16M1S"));
-  }
-
-  @Test
-  void testScheduleMonth1() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * * feb *");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 12, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT744H16M1S"));
-  }
-
-  @Test
-  void testScheduleMonth2() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * * FEB *");
-    LocalDateTime localDateTime = LocalDateTime.of(2021, 1, 31, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT16M1S"));
-  }
-
-  @Test
-  void testScheduleMonthLeapYear() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * 29 * *");
-    LocalDateTime localDateTime = LocalDateTime.of(2020, 2, 26, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT48H16M1S"));
-  }
-
-  @Test
-  void testScheduleMonthNoLeapYear() {
-    Schedule schedule = new ScheduleNaive();
-    schedule.parseSpec("*/15 * 29 * *");
-    LocalDateTime localDateTime = LocalDateTime.of(2021, 2, 26, 23, 44);
-    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse("PT720H16M1S"));
+    schedule = new ScheduleCronUtils();
+    schedule.parseSpec(spec);
+    assertThat(schedule.toString()).isEqualTo(spec);
+    localDateTime = LocalDateTime.parse(time);
+    assertThat(schedule.getNextDuration(localDateTime)).isEqualTo(Duration.parse(
+        cronUtilsDuration != null ? cronUtilsDuration : duration));
   }
 
 }

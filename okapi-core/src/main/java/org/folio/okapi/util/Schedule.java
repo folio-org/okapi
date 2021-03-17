@@ -7,7 +7,4 @@ public interface Schedule {
   Duration getNextDuration(LocalDateTime localDateTime);
 
   void parseSpec(String spec);
-
-  String toString();
-
 }
