@@ -212,7 +212,7 @@ public class ScheduleNaive implements Schedule {
         minuteNext, hourNext, dayOfMonthNext, monthNext, yearNext, delta);
     // adding a second here because 0 means "stop timer".
     return Duration.between(zonedDateTime,
-        ZonedDateTime.of(nextTime.plusDays(delta).plusSeconds(1), zonedDateTime.getZone()));
+        ZonedDateTime.of(nextTime.plusDays(delta), zonedDateTime.getZone()));
   }
 
   @Override

@@ -7,8 +7,6 @@ import com.cronutils.model.definition.CronDefinitionBuilder;
 import com.cronutils.model.time.ExecutionTime;
 import com.cronutils.parser.CronParser;
 import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 
@@ -28,7 +26,7 @@ public class ScheduleCronUtils implements Schedule {
     if (timeToNextExecution.isEmpty()) {
       return null;
     }
-    return timeToNextExecution.get().plusSeconds(1);
+    return timeToNextExecution.get();
   }
 
   @Override

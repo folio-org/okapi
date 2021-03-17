@@ -102,27 +102,27 @@ public class ScheduleTest {
 
   static Stream<Arguments> testSchedule() {
     return Stream.of(
-        Arguments.of("*/15 * * * *", "2020-12-31T23:44", "PT1M1S", null),
-        Arguments.of("*/15 * * * *", "2020-12-31T23:45", "PT15M1S", null),
-        Arguments.of("*/15 * * * *", "2020-12-31T23:45:36", "PT14M25S", null),
-        Arguments.of("*/15 * * * *", "2020-12-31T23:46", "PT14M1S", null),
-        Arguments.of("3 1,22 * * *", "2020-12-31T23:44", "PT1H19M1S", null),
-        Arguments.of("3 1,22 1 * *", "2020-12-31T23:44", "PT1H19M1S", null),
-        Arguments.of("3 1,22 5 * *", "2020-12-31T23:44", "PT97H19M1S", null),
-        Arguments.of("3 1,22 5 3 *", "2020-12-31T23:44", "PT1513H19M1S", null),
-        Arguments.of("3 1,22 5 5 *", "2020-12-31T23:44", "PT2976H19M1S", null),
-        Arguments.of("3 1,22 * * fri", "2020-12-31T23:44", "PT1H19M1S", null),
-        Arguments.of("3 1,22 * * sat", "2020-12-31T23:44", "PT25H19M1S", null),
-        Arguments.of("*/15 * * * mon,fri", "2020-12-31T23:44", "PT16M1S", null),
-        Arguments.of("*/15 * * * mon", "2020-12-31T23:44", "PT72H16M1S", null),
-        Arguments.of("*/15 * 5 * Mon", "2020-12-31T23:44", "PT240H16M1S", "PT72H16M1S"), // nasty one
-        Arguments.of("*/15 * * * Sun", "2020-12-31T23:44", "PT48H16M1S", null),
-        Arguments.of("*/15 * * * 0", "2020-12-31T23:44", "PT48H16M1S", null),
-        Arguments.of("*/15 * 4 * *", "2020-12-31T23:44", "PT72H16M1S", null),
-        Arguments.of("*/15 * * feb *", "2020-12-31T23:44", "PT744H16M1S", null),
-        Arguments.of("*/15 * * FEB *", "2021-01-31T23:44", "PT16M1S", null),
-        Arguments.of("*/15 * 29 * *", "2020-02-26T23:44", "PT48H16M1S", null),
-        Arguments.of("*/15 * 29 * *", "2021-02-26T23:44", "PT719H16M1S", null)
+        Arguments.of("*/15 * * * *", "2020-12-31T23:44", "PT1M", null),
+        Arguments.of("*/15 * * * *", "2020-12-31T23:45", "PT15M", null),
+        Arguments.of("*/15 * * * *", "2020-12-31T23:45:36", "PT14M24S", null),
+        Arguments.of("*/15 * * * *", "2020-12-31T23:46", "PT14M", null),
+        Arguments.of("3 1,22 * * *", "2020-12-31T23:44", "PT1H19M", null),
+        Arguments.of("3 1,22 1 * *", "2020-12-31T23:44", "PT1H19M", null),
+        Arguments.of("3 1,22 5 * *", "2020-12-31T23:44", "PT97H19M", null),
+        Arguments.of("3 1,22 5 3 *", "2020-12-31T23:44", "PT1513H19M", null),
+        Arguments.of("3 1,22 5 5 *", "2020-12-31T23:44", "PT2976H19M", null),
+        Arguments.of("3 1,22 * * fri", "2020-12-31T23:44", "PT1H19M", null),
+        Arguments.of("3 1,22 * * sat", "2020-12-31T23:44", "PT25H19M", null),
+        Arguments.of("*/15 * * * mon,fri", "2020-12-31T23:44", "PT16M", null),
+        Arguments.of("*/15 * * * mon", "2020-12-31T23:44", "PT72H16M", null),
+        Arguments.of("*/15 * 5 * Mon", "2020-12-31T23:44", "PT240H16M", "PT72H16M"), // nasty one
+        Arguments.of("*/15 * * * Sun", "2020-12-31T23:44", "PT48H16M", null),
+        Arguments.of("*/15 * * * 0", "2020-12-31T23:44", "PT48H16M", null),
+        Arguments.of("*/15 * 4 * *", "2020-12-31T23:44", "PT72H16M", null),
+        Arguments.of("*/15 * * feb *", "2020-12-31T23:44", "PT744H16M", null),
+        Arguments.of("*/15 * * FEB *", "2021-01-31T23:44", "PT16M", null),
+        Arguments.of("*/15 * 29 * *", "2020-02-26T23:44", "PT48H16M", null),
+        Arguments.of("*/15 * 29 * *", "2021-02-26T23:44", "PT719H16M", null)
         );
   }
   @ParameterizedTest
