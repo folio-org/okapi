@@ -311,5 +311,7 @@ class RoutingEntryTest {
   void testTimerScheduleEmpty() {
     RoutingEntry t = new RoutingEntry();
     Assertions.assertThat(t.getDelayMilliSeconds()).isEqualTo(0L);
+    t.setSchedule(new Schedule());
+    Assertions.assertThat(t.getDelayMilliSeconds()).isEqualTo(0L);
   }
 }
