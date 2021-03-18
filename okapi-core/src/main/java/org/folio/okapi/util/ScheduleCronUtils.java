@@ -12,21 +12,14 @@ import java.util.Optional;
 
 public class ScheduleCronUtils implements Schedule {
   private String spec;  // cron-utils returns spec altered, we want to keep it was it was
-  private Cron cron;
+  private ExecutionTime executionTime;
 
   @Override
-  public Duration getNextDuration(ZonedDateTime zonedDateTime) {
-    if (cron == null) {
-      return null;
+  public Optional<Duration> getNextDuration(ZonedDateTime zonedDateTime) {
+    if (executionTime == null) {
+      return Optional.empty();
     }
-    ExecutionTime executionTime = ExecutionTime.forCron(cron);
-
-    Optional<Duration> timeToNextExecution = executionTime.timeToNextExecution(zonedDateTime);
-
-    if (timeToNextExecution.isEmpty()) {
-      return null;
-    }
-    return timeToNextExecution.get();
+    return executionTime.timeToNextExecution(zonedDateTime);
   }
 
   @Override
@@ -34,7 +27,8 @@ public class ScheduleCronUtils implements Schedule {
     this.spec = spec;
     CronDefinition cronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX);
     CronParser parser = new CronParser(cronDefinition);
-    this.cron = parser.parse(spec);
+    Cron cron = parser.parse(spec);
+    executionTime = ExecutionTime.forCron(cron);
   }
 
   @Override

@@ -4,6 +4,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import org.assertj.core.api.Assertions;
+import org.folio.okapi.util.ScheduleCronUtils;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -287,7 +288,7 @@ class RoutingEntryTest {
   }
 
   @Test
-  void testTimerSchedule() {
+  void testTimerScheduleEncoding() {
     RoutingEntry t = new RoutingEntry();
     Assertions.assertThat(t.getDelayMilliSeconds()).isEqualTo(0L);
     String cron = "3 2 * * *";
@@ -297,10 +298,20 @@ class RoutingEntryTest {
     assertEquals(encode, "{\"schedule\":\"" + cron + "\"}");
     RoutingEntry t2 = Json.decodeValue(encode, RoutingEntry.class);
     assertEquals(t2.getSchedule(), cron);
+  }
 
+  @Test
+  void testTimerScheduleBadSpecv() {
     Exception e = assertThrows(DecodeException.class, () ->
       Json.decodeValue("{\"schedule\":\"3 2 x * *\"}", RoutingEntry.class)
     );
     Assertions.assertThat(e.getMessage()).contains("Invalid chars: X");
+  }
+
+  @Test
+  void testTimerScheduleEmpty() {
+    RoutingEntry t = new RoutingEntry();
+    t.setScheduleInstance(new ScheduleCronUtils());
+    Assertions.assertThat(t.getDelayMilliSeconds()).isEqualTo(0L);
   }
 }

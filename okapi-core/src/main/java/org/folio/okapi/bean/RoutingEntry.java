@@ -10,10 +10,10 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.util.Schedule;
 import org.folio.okapi.util.ScheduleCronUtils;
-import org.folio.okapi.util.ScheduleNaive;
 
 /**
  * One entry in Okapi's routing table. Each entry contains one or more HTTP
@@ -192,6 +192,11 @@ public class RoutingEntry {
     this.schedule.parseSpec(schedule);
   }
 
+  @JsonIgnore
+  void setScheduleInstance(Schedule schedule) {
+    this.schedule = schedule;
+  }
+
   /**
    * get timer delay in milliseconds.
    */
@@ -201,8 +206,11 @@ public class RoutingEntry {
       long delayMilliSeconds = Integer.parseInt(this.delay);
       return delayMilliSeconds * factor;
     } else if (schedule != null) {
-      Duration duration = schedule.getNextDuration(ZonedDateTime.now());
-      long sec = duration.toSeconds();
+      Optional<Duration> duration = schedule.getNextDuration(ZonedDateTime.now());
+      if (duration.isEmpty()) {
+        return 0;
+      }
+      long sec = duration.get().toSeconds();
       return (sec + 1) * 1000;
     } else {
       return 0;
