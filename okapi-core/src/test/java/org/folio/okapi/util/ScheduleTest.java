@@ -5,6 +5,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.stream.Stream;
 
@@ -32,7 +34,7 @@ public class ScheduleTest {
         Arguments.of("3 1,22 1 * *", "2020-12-31T23:44", "PT1H19M"),
         Arguments.of("3 1,22 5 * *", "2020-12-31T23:44", "PT97H19M"),
         Arguments.of("3 1,22 5 3 *", "2020-12-31T23:44", "PT1513H19M"),
-        Arguments.of("3 1,22 5 5 *", "2020-12-31T23:44", "PT2976H19M"),
+        Arguments.of("3 1,22 5 5 *", "2020-12-31T23:44", "PT2977H19M"),
         Arguments.of("3 1,22 * * fri", "2020-12-31T23:44", "PT1H19M"),
         Arguments.of("3 1,22 * * sat", "2020-12-31T23:44", "PT25H19M"),
         Arguments.of("*/15 * * * mon,fri", "2020-12-31T23:44", "PT16M"),
@@ -45,13 +47,13 @@ public class ScheduleTest {
         Arguments.of("*/15 * * feb *", "2020-12-31T23:44", "PT744H16M"),
         Arguments.of("*/15 * * FEB *", "2021-01-31T23:44", "PT16M"),
         Arguments.of("*/15 * 29 * *", "2020-02-26T23:44", "PT48H16M"),
-        Arguments.of("*/15 * 29 * *", "2021-02-26T23:44", "PT719H16M")
+        Arguments.of("*/15 * 29 * *", "2021-02-26T23:44", "PT720H16M")
         );
   }
   @ParameterizedTest
   @MethodSource
   void testSchedule(String spec, String time, String duration) {
-    ZonedDateTime parse = ZonedDateTime.parse(time + "+01:00[Europe/Paris]");
+    ZonedDateTime parse = ZonedDateTime.of(LocalDateTime.parse(time), ZoneOffset.UTC);
     Schedule schedule = new ScheduleCronUtils();
     schedule.parseSpec(spec);
     assertThat(schedule.toString()).isEqualTo(spec);

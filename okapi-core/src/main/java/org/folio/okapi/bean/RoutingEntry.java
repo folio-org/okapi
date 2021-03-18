@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
@@ -34,7 +35,7 @@ public class RoutingEntry {
   private String redirectPath; // only for type='redirect'
   private String unit;
   private String delay;
-  private Schedule schedule;
+  private final Schedule schedule = new ScheduleCronUtils();
   private long factor;
   private String[] permissionsRequired;
   private String[] permissionsDesired;
@@ -184,17 +185,11 @@ public class RoutingEntry {
   }
 
   public String getSchedule() {
-    return schedule == null ? null : schedule.toString();
+    return schedule.toString();
   }
 
   public void setSchedule(String schedule) {
-    this.schedule = new ScheduleCronUtils();
     this.schedule.parseSpec(schedule);
-  }
-
-  @JsonIgnore
-  void setScheduleInstance(Schedule schedule) {
-    this.schedule = schedule;
   }
 
   /**
@@ -205,16 +200,13 @@ public class RoutingEntry {
     if (this.delay != null && unit != null) {
       long delayMilliSeconds = Integer.parseInt(this.delay);
       return delayMilliSeconds * factor;
-    } else if (schedule != null) {
-      Optional<Duration> duration = schedule.getNextDuration(ZonedDateTime.now());
-      if (duration.isEmpty()) {
-        return 0;
-      }
-      long sec = duration.get().toSeconds();
-      return (sec + 1) * 1000;
-    } else {
+    }
+    Optional<Duration> duration = schedule.getNextDuration(ZonedDateTime.now(Clock.systemUTC()));
+    if (duration.isEmpty()) {
       return 0;
     }
+    long sec = duration.get().toSeconds();
+    return (sec + 1) * 1000;
   }
 
   public String getLevel() {

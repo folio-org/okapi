@@ -3090,18 +3090,11 @@ The tokens in order are:
 
  * minute 0-59
  * hour 0-23
- * day of month 1-31 *
- * month 1-12
- * weekday 1-7, may be given as strings "monday", "tuesday", ..
+ * day of month 1-31, doesn't execute in months without that day
+ * month 1-12, 1=jan, 2=feb, 3=mar, .., 12=dec
+ * weekday 0-7, where 0=sun, 1=mon, 2=tue, .., 6=sat, 7=sun
 
-(*): depending on month and year!
-
-Each token can be:
-
- * value: integer for match unit of given value
- * `*`: asterisk to match any value (wildcard)
- * `*/`step: occur at steps in the range for possible values for the unit
- * These may be combined , (no whitespace between)
+Time is in UTC. Month and weekday names are case insensitive.
 
 Examples:
 
@@ -3110,7 +3103,10 @@ Examples:
 | `0 2 * * *     ` | every day at 2 AM |
 | `15 */2 * * *  ` | quarter past every 2nd hour |
 | `0 6,18 * * *  ` | 6 AM + 6 PM |
-| `0 0 * * sunday` | midnight between Saturday and Sunday |
+| `0 0 * * sun`    | midnight between Saturday and Sunday |
+
+See [crontab man page](https://www.unix.com/man-page/linux/5/crontab/)
+for more information.
 
 ### Instrumentation
 
