@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.util.Schedule;
+import org.folio.okapi.util.ScheduleCronUtils;
 import org.folio.okapi.util.ScheduleNaive;
 
 /**
@@ -187,7 +188,7 @@ public class RoutingEntry {
   }
 
   public void setSchedule(String schedule) {
-    this.schedule = new ScheduleNaive();
+    this.schedule = new ScheduleCronUtils();
     this.schedule.parseSpec(schedule);
   }
 
@@ -201,7 +202,8 @@ public class RoutingEntry {
       return delayMilliSeconds * factor;
     } else if (schedule != null) {
       Duration duration = schedule.getNextDuration(ZonedDateTime.now());
-      return duration.toSeconds() * 1000L;
+      long sec = duration.toSeconds();
+      return (sec + 1) * 1000;
     } else {
       return 0;
     }

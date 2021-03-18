@@ -102,6 +102,9 @@ public class ScheduleTest {
 
   static Stream<Arguments> testSchedule() {
     return Stream.of(
+        Arguments.of("*/15 * * * *", "2020-12-31T23:44:59", "PT1S", null),
+        Arguments.of("*/15 * * * *", "2020-12-31T23:45", "PT15M", null),
+        Arguments.of("*/15 * * * *", "2020-12-31T23:45:59", "PT14M1S", null),
         Arguments.of("*/15 * * * *", "2020-12-31T23:44", "PT1M", null),
         Arguments.of("*/15 * * * *", "2020-12-31T23:45", "PT15M", null),
         Arguments.of("*/15 * * * *", "2020-12-31T23:45:36", "PT14M24S", null),
@@ -115,7 +118,8 @@ public class ScheduleTest {
         Arguments.of("3 1,22 * * sat", "2020-12-31T23:44", "PT25H19M", null),
         Arguments.of("*/15 * * * mon,fri", "2020-12-31T23:44", "PT16M", null),
         Arguments.of("*/15 * * * mon", "2020-12-31T23:44", "PT72H16M", null),
-        Arguments.of("*/15 * 5 * Mon", "2020-12-31T23:44", "PT240H16M", "PT72H16M"), // nasty one
+        Arguments.of("*/15 * 1 * Mon", "2020-12-31T23:44", "PT72H16M", "PT16M"), // diff
+        Arguments.of("*/15 * 5 * Mon", "2020-12-31T23:44", "PT240H16M", "PT72H16M"), // diff
         Arguments.of("*/15 * * * Sun", "2020-12-31T23:44", "PT48H16M", null),
         Arguments.of("*/15 * * * 0", "2020-12-31T23:44", "PT48H16M", null),
         Arguments.of("*/15 * 4 * *", "2020-12-31T23:44", "PT72H16M", null),
