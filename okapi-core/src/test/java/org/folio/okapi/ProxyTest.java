@@ -2818,6 +2818,12 @@ public class ProxyTest {
       + "      \"unit\" : \"millisecond\"," + LS
       + "      \"delay\" : \"30\"," + LS
       + "      \"permissionsRequired\" : [ ]" + LS
+      + "   }, {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"path\" : \"/timercall/5\"," + LS
+      + "      \"schedule\" : {" + LS
+      + "         \"cron\" : \"1 1 1 1 *\"" + LS
+      + "      }" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS

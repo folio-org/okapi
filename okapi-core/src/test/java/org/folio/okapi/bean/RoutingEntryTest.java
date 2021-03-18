@@ -288,21 +288,21 @@ class RoutingEntryTest {
 
   @Test
   void testTimerScheduleEncoding() {
-    RoutingEntry t = new RoutingEntry();
-    Assertions.assertThat(t.getDelayMilliSeconds()).isEqualTo(0L);
+    Schedule bean = new Schedule();
+    Assertions.assertThat(bean.getDelayMilliSeconds()).isEqualTo(0L);
     String cron = "3 2 * * *";
-    t.setSchedule(cron);
-    Assertions.assertThat(t.getDelayMilliSeconds()).isGreaterThan(0L);
-    String encode = Json.encode(t);
-    assertEquals(encode, "{\"schedule\":\"" + cron + "\"}");
-    RoutingEntry t2 = Json.decodeValue(encode, RoutingEntry.class);
-    assertEquals(t2.getSchedule(), cron);
+    bean.setCron(cron);
+    Assertions.assertThat(bean.getDelayMilliSeconds()).isGreaterThan(0L);
+    String encode = Json.encode(bean);
+    assertEquals(encode, "{\"cron\":\"" + cron + "\"}");
+    Schedule bean2 = Json.decodeValue(encode, Schedule.class);
+    assertEquals(bean2.getCron(), cron);
   }
 
   @Test
   void testTimerScheduleBadSpecv() {
     Assertions.assertThatThrownBy(() ->
-      Json.decodeValue("{\"schedule\":\"3 2 x * *\"}", RoutingEntry.class))
+      Json.decodeValue("{\"cron\":\"3 2 x * *\"}", Schedule.class))
     .isInstanceOf(DecodeException.class)
     .hasMessageContaining("Invalid chars: X");
   }

@@ -6,15 +6,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.util.Schedule;
-import org.folio.okapi.util.ScheduleCronUtils;
 
 /**
  * One entry in Okapi's routing table. Each entry contains one or more HTTP
@@ -35,7 +29,7 @@ public class RoutingEntry {
   private String redirectPath; // only for type='redirect'
   private String unit;
   private String delay;
-  private final Schedule schedule = new ScheduleCronUtils();
+  private Schedule schedule;
   private long factor;
   private String[] permissionsRequired;
   private String[] permissionsDesired;
@@ -184,12 +178,12 @@ public class RoutingEntry {
     this.delay = delay;
   }
 
-  public String getSchedule() {
-    return schedule.toString();
+  public Schedule getSchedule() {
+    return schedule;
   }
 
-  public void setSchedule(String schedule) {
-    this.schedule.parseSpec(schedule);
+  public void setSchedule(Schedule schedule) {
+    this.schedule = schedule;
   }
 
   /**
@@ -201,12 +195,10 @@ public class RoutingEntry {
       long delayMilliSeconds = Integer.parseInt(this.delay);
       return delayMilliSeconds * factor;
     }
-    Optional<Duration> duration = schedule.getNextDuration(ZonedDateTime.now(Clock.systemUTC()));
-    if (duration.isEmpty()) {
-      return 0;
+    if (schedule != null) {
+      return schedule.getDelayMilliSeconds();
     }
-    long sec = duration.get().toSeconds();
-    return (sec + 1) * 1000;
+    return 0;
   }
 
   public String getLevel() {

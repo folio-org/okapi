@@ -44,12 +44,16 @@
         {
           "methods": [ "POST" ],
           "pathPattern": "/testb/timer/1",
-          "schedule": "*/1 * * * *"
+          "schedule": {
+            "cron":"*/1 * * * *"
+          }
         },
         {
           "methods": [ "POST" ],
           "pathPattern": "/testb/timer/3",
-          "schedule": "*/3 * * * *"
+          "schedule": {
+            "cron":"*/3 * * * *"
+          }
         }
       ]
     },

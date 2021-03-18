@@ -3084,8 +3084,28 @@ for the tenant this module is enabled for. No user is involved in this.
 Use `modulePermissions` to grant permissions for the token.
 
 With Okapi 4.8.0, the timers can also be specified to occur at given
-times with a specification inspired by cron. This is triggered by suppying
-property `schedule`. This consists of 5 tokens, separated by whitespace.
+times. This is triggered by suppying a `schedule` object. This object
+only supports one property `cron` with a string value that is a crontab
+entry. For example:
+
+```
+    {
+      "id": "_timer",
+      "version": "1.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/testb/1",
+          "schedule": {
+            "cron": "0 6,18 * * *"
+          }
+        }
+      ]
+    }
+```
+
+The cron value consists of 5 tokens, separated by whitespace.
 The tokens in order are:
 
  * minute 0-59

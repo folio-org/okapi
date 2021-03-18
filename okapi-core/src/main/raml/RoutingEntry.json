@@ -50,8 +50,14 @@
       "type": "string"
     },
     "schedule": {
-      "description": "Timer schedule ala cron",
-      "type": "string"
+      "description": "Timer schedule using cron-utils",
+      "type": "object",
+      "properties": {
+         "cron": {
+         "description": "crontab specification",
+         "type": "string"
+        }
+      }
     },
     "permissionsRequired": {
       "description": "Required permissions for this entry",
