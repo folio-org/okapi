@@ -11,20 +11,22 @@ import org.folio.okapi.util.ScheduleCronUtils;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Schedule {
 
-  private final org.folio.okapi.util.Schedule schedule = new ScheduleCronUtils();
+  private final org.folio.okapi.util.Schedule scheduleCronUtils = new ScheduleCronUtils();
 
   public void setCron(String cron) {
-    this.schedule.parseSpec(cron);
+    this.scheduleCronUtils.parseSpec(cron);
   }
 
   public String getCron() {
-    return schedule.toString();
+    return scheduleCronUtils.toString();
   }
 
   @JsonIgnore
   long getDelayMilliSeconds() {
     // UTC for now, but we can add other timezone property later
-    Optional<Duration> duration = schedule.getNextDuration(ZonedDateTime.now(Clock.systemUTC()));
+    Optional<Duration> duration = scheduleCronUtils.getNextDuration(
+        ZonedDateTime.now(Clock.systemUTC())
+    );
     if (duration.isEmpty()) {
       return 0;
     }
