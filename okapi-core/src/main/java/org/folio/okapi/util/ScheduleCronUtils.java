@@ -11,7 +11,7 @@ import java.time.ZonedDateTime;
 import java.util.Optional;
 
 public class ScheduleCronUtils implements Schedule {
-  private String spec;  // cron-utils returns spec altered, we want to keep it was it was
+  private String spec;  // cron-utils returns spec altered, we want to keep it was
   private ExecutionTime executionTime;
 
   @Override
