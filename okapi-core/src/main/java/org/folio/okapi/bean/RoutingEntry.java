@@ -29,6 +29,7 @@ public class RoutingEntry {
   private String redirectPath; // only for type='redirect'
   private String unit;
   private String delay;
+  private Schedule schedule;
   private long factor;
   private String[] permissionsRequired;
   private String[] permissionsDesired;
@@ -177,6 +178,14 @@ public class RoutingEntry {
     this.delay = delay;
   }
 
+  public Schedule getSchedule() {
+    return schedule;
+  }
+
+  public void setSchedule(Schedule schedule) {
+    this.schedule = schedule;
+  }
+
   /**
    * get timer delay in milliseconds.
    */
@@ -185,9 +194,11 @@ public class RoutingEntry {
     if (this.delay != null && unit != null) {
       long delayMilliSeconds = Integer.parseInt(this.delay);
       return delayMilliSeconds * factor;
-    } else {
-      return 0;
     }
+    if (schedule != null) {
+      return schedule.getDelayMilliSeconds();
+    }
+    return 0;
   }
 
   public String getLevel() {

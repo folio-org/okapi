@@ -49,6 +49,16 @@
       "description": "Delay between calls",
       "type": "string"
     },
+    "schedule": {
+      "description": "Timer schedule using cron-utils",
+      "type": "object",
+      "properties": {
+         "cron": {
+         "description": "crontab specification",
+         "type": "string"
+        }
+      }
+    },
     "permissionsRequired": {
       "description": "Required permissions for this entry",
       "type": ["array", "null"],
