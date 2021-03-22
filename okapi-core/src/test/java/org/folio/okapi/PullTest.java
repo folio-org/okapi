@@ -35,6 +35,7 @@ public class PullTest {
   private final int port2 = 9230; // where we pull
   private final int port3 = 9232; // other non-proxy server
   private final int port4 = 9233; // non-existing server!
+  private final int port5 = 9234; // server returning bad MDs
 
   private static RamlDefinition api;
 
@@ -47,20 +48,34 @@ public class PullTest {
   public void setUp(TestContext context) {
     logger.debug("staring PullTest");
     vertx = Vertx.vertx();
-    DeploymentOptions opt1 = new DeploymentOptions()
-      .setConfig(new JsonObject().put("port", Integer.toString(port1))
-      );
-    DeploymentOptions opt2 = new DeploymentOptions()
-        .setConfig(new JsonObject().put("port", Integer.toString(port2))
-        );
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
 
-    vertx.deployVerticle(MainVerticle.class, opt1)
-      .compose(x -> vertx.deployVerticle(MainVerticle.class, opt2))
-      .compose(x -> vertx.createHttpServer(so)
-          .requestHandler(Router.router(vertx))
-          .listen(port3))
-      .onComplete(context.asyncAssertSuccess());
+    Router router = Router.router(vertx);
+    router.get("/_/proxy/modules").handler(ctx -> {
+      ctx.response().setStatusCode(200);
+      ctx.response().putHeader("Content-Type", "application/json");
+      JsonArray ar = new JsonArray()
+          .add(new JsonObject().put("id", "module-1.0.0").put("new_thing", "new_value"));
+      ctx.response().end(ar.encode());
+    });
+    router.get("/_/version").handler(ctx -> {
+      ctx.response().setStatusCode(200);
+      ctx.response().putHeader("Content-Type", "text/plain");
+      ctx.response().end("4.4.0");
+    });
+    vertx.deployVerticle(MainVerticle.class, new DeploymentOptions()
+        .setConfig(new JsonObject().put("port", Integer.toString(port1))
+        ))
+        .compose(x -> vertx.deployVerticle(MainVerticle.class, new DeploymentOptions()
+            .setConfig(new JsonObject().put("port", Integer.toString(port2))
+            )))
+        .compose(x -> vertx.createHttpServer(so)
+            .requestHandler(Router.router(vertx))
+            .listen(port3))
+        .compose(x -> vertx.createHttpServer(so)
+            .requestHandler(router)
+            .listen(port5))
+        .onComplete(context.asyncAssertSuccess());
   }
 
   @After
@@ -546,6 +561,27 @@ public class PullTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+  }
+
+  @Test
+  public void testBadMds() {
+    RestAssuredClient c;
+
+    // server returning MDs that we don't know about
+    final String doc = "{" + LS
+        + "\"urls\" : [" + LS
+        + "  \"http://localhost:" + port5 + "\"" + LS
+        + "  ]" + LS
+        + "}";
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
+        .header("Content-Type", "application/json")
+        .body(doc).post("/_/proxy/pull/modules").then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
   }
 
 }
