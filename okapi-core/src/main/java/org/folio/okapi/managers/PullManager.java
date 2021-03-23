@@ -7,6 +7,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -99,7 +101,7 @@ public class PullManager {
     return promise.future();
   }
 
-  private Future<ModuleDescriptor[]> getList(String urlBase,
+  private Future<List<ModuleDescriptor>> getList(String urlBase,
                                              Collection<ModuleDescriptor> skipList) {
     String url = urlBase;
     if (!url.endsWith("/")) {
@@ -111,7 +113,7 @@ public class PullManager {
     for (ModuleDescriptor md : skipList) {
       idList[i++] = md.getId();
     }
-    Promise<ModuleDescriptor[]> promise = Promise.promise();
+    Promise<List<ModuleDescriptor>> promise = Promise.promise();
     httpClient.request(
         new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
         .onFailure(res -> promise.fail(res.getMessage()))
@@ -127,9 +129,23 @@ public class PullManager {
                     promise.fail(new OkapiError(ErrorType.USER, body.toString()));
                     return;
                   }
-                  ModuleDescriptor[] ml = Json.decodeValue(body.toString(),
-                      ModuleDescriptor[].class);
-                  promise.complete(ml);
+                  try {
+                    List<ModuleDescriptor> ml = new LinkedList<>();
+                    JsonArray objects = body.toJsonArray();
+                    for (int pos = 0; pos < objects.size(); pos++) {
+                      JsonObject mdObj = objects.getJsonObject(pos);
+                      try {
+                        ml.add(mdObj.mapTo(ModuleDescriptor.class));
+                      } catch (Exception e) {
+                        String id = mdObj.getString("id");
+                        logger.warn("Skip module {}: {}", id, e.getMessage(), e);
+                      }
+                    }
+                    promise.complete(ml);
+                  } catch (Exception e) {
+                    logger.error(e.getMessage(), e);
+                    promise.fail(e);
+                  }
                 });
                 response.exceptionHandler(x -> promise.fail(x.getMessage()));
               });
@@ -153,7 +169,7 @@ public class PullManager {
         }
       }
       logger.info("pull: {} MDs to insert", mustAddList.size());
-      return moduleManager.createList(mustAddList, true, true,true)
+      return moduleManager.createList(mustAddList, true, true,true, true)
           .map(briefList);
     });
   }
