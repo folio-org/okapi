@@ -82,10 +82,11 @@ public class ModuleManager {
    * @param check whether to check dependencies
    * @param preRelease whether to allow pre-releasee
    * @param npmSnapshot whether to allow npm-snapshot
+   * @param removeIfMissingDep skip modules where dependency check fails
    * @return future
    */
   public Future<Void> createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
-                                 boolean npmSnapshot) {
+                                 boolean npmSnapshot, boolean removeIfMissingDep) {
     return getModulesWithFilter(preRelease, npmSnapshot, null).compose(ares -> {
       Map<String, ModuleDescriptor> tempList = new HashMap<>();
       for (ModuleDescriptor md : ares) {
@@ -108,7 +109,8 @@ public class ModuleManager {
         }
       }
       if (check) {
-        String res = DepResolution.checkDependencies(tempList.values(), newList);
+        String res = DepResolution.checkDependencies(tempList.values(), newList,
+            removeIfMissingDep);
         if (!res.isEmpty()) {
           return Future.failedFuture(new OkapiError(ErrorType.USER, res));
         }

@@ -164,7 +164,7 @@ public class PullManager {
         }
       }
       logger.info("pull: {} MDs to insert", mustAddList.size());
-      return moduleManager.createList(mustAddList, true, true,true)
+      return moduleManager.createList(mustAddList, true, true,true, true)
           .map(briefList);
     });
   }
