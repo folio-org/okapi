@@ -135,7 +135,7 @@ public class PullManager {
                     JsonObject mdObj = objects.getJsonObject(pos);
                     try {
                       ml.add(mdObj.mapTo(ModuleDescriptor.class));
-                    } catch (IllegalArgumentException e) {
+                    } catch (Exception e) {
                       String id = mdObj.getString("id");
                       logger.warn("Skip module {}: {}", id, e.getMessage(), e);
                     }
