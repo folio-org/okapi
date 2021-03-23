@@ -35,6 +35,8 @@ public class PullTest {
   private final int port2 = 9230; // where we pull
   private final int port3 = 9232; // other non-proxy server
   private final int port4 = 9233; // non-existing server!
+  private final int port5 = 9234; // server returning bad MDs
+  private JsonArray port5response = null; // array response for server on port5
 
   private static RamlDefinition api;
 
@@ -47,20 +49,32 @@ public class PullTest {
   public void setUp(TestContext context) {
     logger.debug("staring PullTest");
     vertx = Vertx.vertx();
-    DeploymentOptions opt1 = new DeploymentOptions()
-      .setConfig(new JsonObject().put("port", Integer.toString(port1))
-      );
-    DeploymentOptions opt2 = new DeploymentOptions()
-        .setConfig(new JsonObject().put("port", Integer.toString(port2))
-        );
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
 
-    vertx.deployVerticle(MainVerticle.class, opt1)
-      .compose(x -> vertx.deployVerticle(MainVerticle.class, opt2))
-      .compose(x -> vertx.createHttpServer(so)
-          .requestHandler(Router.router(vertx))
-          .listen(port3))
-      .onComplete(context.asyncAssertSuccess());
+    Router router = Router.router(vertx);
+    router.get("/_/proxy/modules").handler(ctx -> {
+      ctx.response().setStatusCode(200);
+      ctx.response().putHeader("Content-Type", "application/json");
+      ctx.response().end(port5response.encode());
+    });
+    router.get("/_/version").handler(ctx -> {
+      ctx.response().setStatusCode(200);
+      ctx.response().putHeader("Content-Type", "text/plain");
+      ctx.response().end("4.4.0");
+    });
+    vertx.deployVerticle(MainVerticle.class, new DeploymentOptions()
+        .setConfig(new JsonObject().put("port", Integer.toString(port1))
+        ))
+        .compose(x -> vertx.deployVerticle(MainVerticle.class, new DeploymentOptions()
+            .setConfig(new JsonObject().put("port", Integer.toString(port2))
+            )))
+        .compose(x -> vertx.createHttpServer(so)
+            .requestHandler(Router.router(vertx))
+            .listen(port3))
+        .compose(x -> vertx.createHttpServer(so)
+            .requestHandler(router)
+            .listen(port5))
+        .onComplete(context.asyncAssertSuccess());
   }
 
   @After
@@ -87,7 +101,6 @@ public class PullTest {
       .header("Content-Type", "application/json")
       .body("{ bad json").post("/_/proxy/pull/modules")
       .then().statusCode(400).log().ifValidationFails();
-
   }
 
   @Test
@@ -546,6 +559,180 @@ public class PullTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+  }
+
+  @Test
+  public void testBadMds() {
+    RestAssuredClient c;
+
+    // server returning MDs that we don't know about
+    final String doc = "{" + LS
+        + "\"urls\" : [" + LS
+        + "  \"http://localhost:" + port5 + "\"" + LS
+        + "  ]" + LS
+        + "}";
+
+    port5response = new JsonArray()
+        .add(new JsonObject().put("id", "module-1.0.0").put("new_thing", "new_value"));
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
+        .header("Content-Type", "application/json")
+        .body(doc).post("/_/proxy/pull/modules").then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+  }
+
+  @Test
+  public void testMdsNoObject() {
+    RestAssuredClient c;
+
+    // server returning MDs that we don't know about
+    final String doc = "{" + LS
+        + "\"urls\" : [" + LS
+        + "  \"http://localhost:" + port5 + "\"" + LS
+        + "  ]" + LS
+        + "}";
+
+    port5response = new JsonArray().add("someting");
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
+        .header("Content-Type", "application/json")
+        .body(doc).post("/_/proxy/pull/modules").then().statusCode(500).log().ifValidationFails();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+  }
+
+  @Test
+  public void testPermissionAdditionalProperty() {
+    RestAssuredClient c;
+
+    final String doc = "{" + LS
+        + "\"urls\" : [" + LS
+        + "  \"http://localhost:" + port5 + "\"" + LS
+        + "  ]" + LS
+        + "}";
+
+    port5response = new JsonArray()
+        .add(new JsonObject()
+            .put("id", "mod-a-1.0.0")
+            .put("provides", new JsonArray()
+                .add(new JsonObject()
+                    .put("id", "int-a")
+                    .put("version", "1.0")
+                    .put("handlers", new JsonArray()
+                        .add(new JsonObject()
+                            .put("methods", new JsonArray().add("GET"))
+                            .put("pathPattern", "/testa")
+                            .put("permissionsRequired", new JsonArray().add("testa.get"))
+                        )
+                    )
+                )
+            )
+            .put("requires", new JsonArray())
+            .put("permissionSets", new JsonArray()
+                .add(new JsonObject()
+                    .put("permissionName", "testa.get")
+                    .put("permissionBoolean", true)
+                )
+            )
+        )
+        .add(new JsonObject()
+            .put("id", "mod-b-1.0.0")
+            .put("provides", new JsonArray()
+                .add(new JsonObject()
+                    .put("id", "int-b")
+                    .put("version", "1.0")
+                    .put("handlers", new JsonArray()
+                        .add(new JsonObject()
+                            .put("methods", new JsonArray().add("GET"))
+                            .put("pathPattern", "/testb")
+                            .put("permissionsRequired", new JsonArray().add("testb.get"))
+                        )
+                    )
+                )
+            )
+            .put("requires", new JsonArray()
+                .add(new JsonObject()
+                    .put("id", "int-a")
+                    .put("version", "1.0")
+                ))
+            .put("permissionSets", new JsonArray()
+                .add(new JsonObject()
+                    .put("permissionName", "testb.get")
+                )
+            )
+        )
+        .add(new JsonObject()
+            .put("id", "mod-c-1.0.0")
+            .put("provides", new JsonArray()
+                .add(new JsonObject()
+                    .put("id", "int-c")
+                    .put("version", "1.0")
+                    .put("handlers", new JsonArray()
+                        .add(new JsonObject()
+                            .put("methods", new JsonArray().add("GET"))
+                            .put("pathPattern", "/testc")
+                            .put("permissionsRequired", new JsonArray().add("testc.get"))
+                        )
+                    )
+                )
+            )
+            .put("requires", new JsonArray()
+                .add(new JsonObject()
+                    .put("id", "int-b")
+                    .put("version", "1.0")
+                ))
+            .put("permissionSets", new JsonArray()
+                .add(new JsonObject()
+                    .put("permissionName", "testc.get")
+                )
+            )
+        )
+        .add(new JsonObject()
+            .put("id", "mod-d-1.0.0")
+            .put("provides", new JsonArray()
+                .add(new JsonObject()
+                    .put("id", "int-d")
+                    .put("version", "1.0")
+                    .put("handlers", new JsonArray()
+                        .add(new JsonObject()
+                            .put("methods", new JsonArray().add("GET"))
+                            .put("pathPattern", "/testd")
+                            .put("permissionsRequired", new JsonArray().add("testd.get"))
+                        )
+                    )
+                )
+            )
+            .put("requires", new JsonArray())
+            .put("permissionSets", new JsonArray()
+                .add(new JsonObject()
+                    .put("permissionName", "testd.get")
+                )
+            )
+        );
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
+        .header("Content-Type", "application/json")
+        .body(doc).post("/_/proxy/pull/modules").then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
+        .get("/_/proxy/modules").then().statusCode(200)
+        .body("$", hasSize(2))
+        .body("[0].id", is("mod-d-1.0.0"))
+        .body("[1].id", is("okapi-0.0.0"));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
   }
 
 }

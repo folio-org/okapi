@@ -896,7 +896,7 @@ public class InternalModule {
           return Future.failedFuture(new OkapiError(ErrorType.USER, validerr));
         }
       }
-      return moduleManager.createList(list, check, preRelease, npmSnapshot);
+      return moduleManager.createList(list, check, preRelease, npmSnapshot, false);
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
