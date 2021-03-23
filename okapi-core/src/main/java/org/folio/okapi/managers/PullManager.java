@@ -129,18 +129,23 @@ public class PullManager {
                     promise.fail(new OkapiError(ErrorType.USER, body.toString()));
                     return;
                   }
-                  List<ModuleDescriptor> ml = new LinkedList<>();
-                  JsonArray objects = body.toJsonArray();
-                  for (int pos = 0; pos < objects.size(); pos++) {
-                    JsonObject mdObj = objects.getJsonObject(pos);
-                    try {
-                      ml.add(mdObj.mapTo(ModuleDescriptor.class));
-                    } catch (Exception e) {
-                      String id = mdObj.getString("id");
-                      logger.warn("Skip module {}: {}", id, e.getMessage(), e);
+                  try {
+                    List<ModuleDescriptor> ml = new LinkedList<>();
+                    JsonArray objects = body.toJsonArray();
+                    for (int pos = 0; pos < objects.size(); pos++) {
+                      JsonObject mdObj = objects.getJsonObject(pos);
+                      try {
+                        ml.add(mdObj.mapTo(ModuleDescriptor.class));
+                      } catch (Exception e) {
+                        String id = mdObj.getString("id");
+                        logger.warn("Skip module {}: {}", id, e.getMessage(), e);
+                      }
                     }
+                    promise.complete(ml);
+                  } catch (Exception e) {
+                    logger.error(e.getMessage(), e);
+                    promise.fail(e);
                   }
-                  promise.complete(ml);
                 });
                 response.exceptionHandler(x -> promise.fail(x.getMessage()));
               });

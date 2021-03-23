@@ -585,6 +585,28 @@ public class PullTest {
   }
 
   @Test
+  public void testMdsNoObject() {
+    RestAssuredClient c;
+
+    // server returning MDs that we don't know about
+    final String doc = "{" + LS
+        + "\"urls\" : [" + LS
+        + "  \"http://localhost:" + port5 + "\"" + LS
+        + "  ]" + LS
+        + "}";
+
+    port5response = new JsonArray().add("someting");
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
+        .header("Content-Type", "application/json")
+        .body(doc).post("/_/proxy/pull/modules").then().statusCode(500).log().ifValidationFails();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+  }
+
+  @Test
   public void testPermissionAdditionalProperty() {
     RestAssuredClient c;
 
