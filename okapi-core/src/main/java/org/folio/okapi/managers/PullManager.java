@@ -133,10 +133,10 @@ public class PullManager {
                   JsonArray objects = body.toJsonArray();
                   for (int pos = 0; pos < objects.size(); pos++) {
                     JsonObject mdObj = objects.getJsonObject(pos);
-                    String id = mdObj.getString("id");
                     try {
                       ml.add(mdObj.mapTo(ModuleDescriptor.class));
                     } catch (IllegalArgumentException e) {
+                      String id = mdObj.getString("id");
                       logger.warn("Skip module {}: {}", id, e.getMessage(), e);
                     }
                   }
