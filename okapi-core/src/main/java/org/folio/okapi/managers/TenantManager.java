@@ -10,6 +10,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -143,6 +144,10 @@ public class TenantManager implements Liveness {
       }
       return tenantStore.updateDescriptor(td).compose(res -> tenants.add(id, t));
     });
+  }
+
+  Future<Collection<String>> allTenants() {
+    return tenants.getKeys();
   }
 
   Future<List<TenantDescriptor>> list() {

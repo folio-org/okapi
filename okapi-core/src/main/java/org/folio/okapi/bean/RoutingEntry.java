@@ -506,6 +506,10 @@ public class RoutingEntry {
     return err;
   }
 
+  public RoutingEntry clone() {
+    return Json.decodeValue(Json.encode(this), RoutingEntry.class);
+  }
+
   /**
    * Validate filters of routing entry.
    * May log warnings via ProxyContext.warn.
