@@ -20,8 +20,8 @@ import org.folio.okapi.util.LockedTypedMap2;
 
 public class TimerManager {
 
-  private final String TIMER_ENTRY_SEP = "_";
   private final Logger logger = OkapiLogger.get();
+  private static final String TIMER_ENTRY_SEP = "_";
   private static final String MAP_NAME = "timersMap";
   private final LockedTypedMap2<TimerDescriptor> tenantTimers
       = new LockedTypedMap2<>(TimerDescriptor.class);
