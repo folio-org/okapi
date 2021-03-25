@@ -342,12 +342,13 @@ public class MainVerticle extends AbstractVerticle {
     return discoveryManager.restartModules();
   }
 
-
   private Future<Void> startTimers() {
-    if (tenantManager == null) {
-      return Future.succeededFuture();
-    }
-    return tenantManager.startTimers(discoveryManager, okapiVersion);
-    // TODO: return timerManager.init(vertx, tenantManager, discoveryManager, proxyService);
+    return tenantManager.prepareModules(discoveryManager, okapiVersion)
+        .compose(x -> {
+          if (timerManager == null) {
+            return Future.succeededFuture();
+          }
+          return timerManager.init(vertx, tenantManager, discoveryManager, proxyService);
+        });
   }
 }

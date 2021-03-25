@@ -50,6 +50,7 @@ public class TimerManager {
     this.tenantManager = tenantManager;
     this.discoveryManager = discoveryManager;
     this.proxyService = proxyService;
+    tenantManager.setTenantChange(this::tenantChange);
     return tenantTimers.init(vertx, MAP_NAME, local)
         .compose(x ->
             tenantManager.allTenants().compose(list -> {
@@ -62,6 +63,10 @@ public class TimerManager {
               return future;
             })
         );
+  }
+
+  private void tenantChange(String tenantId) {
+    tenantManager.get(tenantId).onSuccess(tenant -> startTimers(tenant));
   }
 
   private Future<Void> startTimers(Tenant tenant) {

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InstallJob;
 import org.folio.okapi.bean.InterfaceDescriptor;
@@ -70,6 +71,7 @@ public class TenantManager implements Liveness {
   private final boolean local;
   private static final int TENANT_INIT_DELAY = 300; // initial wait in ms
   private static final int TENANT_INIT_INCREASE = 1250;  // increase factor (/ 1000)
+  private Consumer<String> tenantChangeConsumer;
 
   /**
    * Construct Tenant Manager.
@@ -492,19 +494,20 @@ public class TenantManager implements Liveness {
         });
   }
 
+
   /**
-   * start timers for all tenants.
+   * prepare module cache and upgrade Okapi.
    * @param discoveryManager discovery manager
    * @return async result
    */
-  public Future<Void> startTimers(DiscoveryManager discoveryManager, String okapiVersion) {
+  public Future<Void> prepareModules(DiscoveryManager discoveryManager, String okapiVersion) {
     final ModuleDescriptor md = InternalModule.moduleDescriptor(okapiVersion);
     this.discoveryManager = discoveryManager;
     return tenants.getKeys().compose(res -> {
-      for (String tenantId : res) {
-        reloadEnabledModules(tenantId).onComplete(x -> handleTimer(tenantId));
-      }
       Future<Void> future = Future.succeededFuture();
+      for (String tenantId : res) {
+        future = future.compose(x -> reloadEnabledModules(tenantId));
+      }
       for (String tenantId : res) {
         future = future.compose(x -> upgradeOkapiModule(tenantId, md));
       }
@@ -555,8 +558,16 @@ public class TenantManager implements Liveness {
     EventBus eb = vertx.eventBus();
     eb.consumer(EVENT_NAME, res -> {
       String tenantId = (String) res.body();
-      reloadEnabledModules(tenantId).onComplete(x -> handleTimer(tenantId));
+      reloadEnabledModules(tenantId).onSuccess(x -> {
+        if (tenantChangeConsumer != null) {
+          tenantChangeConsumer.accept(tenantId);
+        }
+      });
     });
+  }
+
+  void setTenantChange(Consumer<String> consumer) {
+    tenantChangeConsumer = consumer;
   }
 
   private void stopTimer(String tenantId, String moduleId, int seq) {
