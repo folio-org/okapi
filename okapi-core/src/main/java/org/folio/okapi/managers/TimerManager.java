@@ -162,14 +162,31 @@ public class TimerManager {
     return Future.succeededFuture();
   }
 
-  public Future<TimerDescriptor> getTimer(String id, String timerId) {
-    return tenantTimers.getNotFound(id, timerId);
+  /**
+   * timer get.
+   * @param tenantID tenant identifier
+   * @param timerId timer identifier
+   * @return timer descriptor
+   */
+  public Future<TimerDescriptor> getTimer(String tenantID, String timerId) {
+    return tenantTimers.getNotFound(tenantID, timerId);
   }
 
+  /**
+   * timer list.
+   * @param tenantId tenant identifier
+   * @return timer descriptors for the tenant
+   */
   public Future<List<TimerDescriptor>> listTimers(String tenantId) {
     return tenantTimers.get(tenantId).map(x -> x != null ? x : Collections.EMPTY_LIST);
   }
 
+  /**
+   * timer PATCH.
+   * @param tenantId tenant identifier
+   * @param timerDescriptor timer desecriptor
+   * @return
+   */
   public Future<Void> patchTimer(String tenantId, TimerDescriptor timerDescriptor) {
     return tenantTimers.getNotFound(tenantId, timerDescriptor.getId()).compose(existing -> {
       RoutingEntry patchEntry = timerDescriptor.getRoutingEntry();
