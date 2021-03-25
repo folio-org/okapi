@@ -14,7 +14,6 @@ import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TimerDescriptor;
-import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.LockedTypedMap2;
 
@@ -22,11 +21,8 @@ public class TimerManager {
 
   private final Logger logger = OkapiLogger.get();
   private static final String MAP_NAME = "timersMap";
-  private final Messages messages = Messages.getInstance();
   private final LockedTypedMap2<TimerDescriptor> tenantTimers
       = new LockedTypedMap2<>(TimerDescriptor.class);
-
-  private final Set<String> timersMem = new HashSet<>();
 
   private final boolean local;
   private final Set<String> timers = new HashSet<>();
@@ -40,7 +36,7 @@ public class TimerManager {
   }
 
   /**
-   * Initialize timner manager.
+   * Initialize timer manager.
    * @param vertx Vert.x handle
    * @return future result
    */
@@ -58,7 +54,7 @@ public class TimerManager {
               for (String id : list) {
                 future = future
                     .compose(y -> tenantManager.get(id))
-                    .compose(tenant -> startTimers(tenant));
+                    .compose(this::startTimers);
               }
               return future;
             })
@@ -66,7 +62,7 @@ public class TimerManager {
   }
 
   private void tenantChange(String tenantId) {
-    tenantManager.get(tenantId).onSuccess(tenant -> startTimers(tenant));
+    tenantManager.get(tenantId).onSuccess(this::startTimers);
   }
 
   private Future<Void> startTimers(Tenant tenant) {
@@ -93,7 +89,7 @@ public class TimerManager {
                       RoutingEntry existingEntry = timerDescriptor.getRoutingEntry();
                       if (existingEntry.getStaticPath().equals(newEntry.getStaticPath())) {
                         // path is the same, so allow existing entries to pop over
-                        // TODI: this should only be done if timers were changed by the timer API.
+                        // TODO: this should only be done if timers were changed by the timer API.
                         newEntry.setUnit(existingEntry.getUnit());
                         newEntry.setDelay(existingEntry.getDelay());
                         newEntry.setSchedule(existingEntry.getSchedule());
@@ -153,9 +149,7 @@ public class TimerManager {
               });
             })
         )
-        .onFailure(cause -> {
-          logger.warn("handleTimer {}", cause.getMessage(), cause);
-        });
+        .onFailure(cause -> logger.warn("handleTimer {}", cause.getMessage(), cause));
   }
 
   private Future<Void> waitTimer(String tenantId, TimerDescriptor timerDescriptor, String moduleKey,

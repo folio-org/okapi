@@ -343,7 +343,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startTimers() {
-    return tenantManager.prepareModules(discoveryManager, okapiVersion)
+    return tenantManager.prepareModules(okapiVersion)
         .compose(x -> {
           if (timerManager == null) {
             return Future.succeededFuture();

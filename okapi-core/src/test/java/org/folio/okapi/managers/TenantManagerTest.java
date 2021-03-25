@@ -264,16 +264,6 @@ public class TenantManagerTest extends TestBase {
   }
 
   @Test
-  public void handleTimerForNonexistingTenant(TestContext context) {
-    TenantManager tenantManager = new TenantManager( null, new TenantStoreNull(), true);
-    tenantManager.getTimers().add("tenantId_moduleId_0");
-    tenantManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(done -> {
-      tenantManager.handleTimer("tenantId", "moduleId", 0);
-      Assert.assertEquals(0, tenantManager.getTimers().size());
-    }));
-  }
-
-  @Test
   public void testTenantInterfacesNoSystem(TestContext context) {
     ModuleDescriptor md = new ModuleDescriptor();
     JsonObject obj = new JsonObject();

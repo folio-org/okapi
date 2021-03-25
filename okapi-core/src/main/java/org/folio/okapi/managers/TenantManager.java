@@ -56,13 +56,11 @@ public class TenantManager implements Liveness {
   private static final Logger logger = OkapiLogger.get();
   private final ModuleManager moduleManager;
   private ProxyService proxyService = null;
-  private DiscoveryManager discoveryManager;
   private final TenantStore tenantStore;
   private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
   private static final String MAP_NAME = "tenants";
   private final LockedTypedMap2<InstallJob> jobs = new LockedTypedMap2<>(InstallJob.class);
   private static final String EVENT_NAME = "timer";
-  private final Set<String> timers = new HashSet<>();
   private static final Messages messages = Messages.getInstance();
   private Vertx vertx;
   private final Map<String, ModuleCache> enabledModulesCache = new HashMap<>();
@@ -494,15 +492,12 @@ public class TenantManager implements Liveness {
         });
   }
 
-
   /**
    * prepare module cache and upgrade Okapi.
-   * @param discoveryManager discovery manager
    * @return async result
    */
-  public Future<Void> prepareModules(DiscoveryManager discoveryManager, String okapiVersion) {
+  public Future<Void> prepareModules(String okapiVersion) {
     final ModuleDescriptor md = InternalModule.moduleDescriptor(okapiVersion);
-    this.discoveryManager = discoveryManager;
     return tenants.getKeys().compose(res -> {
       Future<Void> future = Future.succeededFuture();
       for (String tenantId : res) {
@@ -511,7 +506,7 @@ public class TenantManager implements Liveness {
       for (String tenantId : res) {
         future = future.compose(x -> upgradeOkapiModule(tenantId, md));
       }
-      consumeTimers();
+      consumeTenantChange();
       return future;
     });
   }
@@ -547,14 +542,7 @@ public class TenantManager implements Liveness {
     });
   }
 
-  /**
-   * For unit testing.
-   */
-  Set<String> getTimers() {
-    return timers;
-  }
-
-  private void consumeTimers() {
+  private void consumeTenantChange() {
     EventBus eb = vertx.eventBus();
     eb.consumer(EVENT_NAME, res -> {
       String tenantId = (String) res.body();
@@ -568,102 +556,6 @@ public class TenantManager implements Liveness {
 
   void setTenantChange(Consumer<String> consumer) {
     tenantChangeConsumer = consumer;
-  }
-
-  private void stopTimer(String tenantId, String moduleId, int seq) {
-    logger.info("remove timer for module {} for tenant {}", moduleId, tenantId);
-    final String key = tenantId + "_" + moduleId + "_" + seq;
-    timers.remove(key);
-  }
-
-  private void handleTimer(String tenantId) {
-    handleTimer(tenantId, null, 0);
-  }
-
-  void handleTimer(String tenantId, String moduleId, int seq1) {
-    logger.info("handleTimer tenant {} module {} seq1 {}", tenantId, moduleId, seq1);
-    tenants.getNotFound(tenantId).onFailure(cause ->
-        stopTimer(tenantId, moduleId, seq1)
-    ).onSuccess(tenant ->
-        getEnabledModules(tenant).onFailure(cause ->
-            stopTimer(tenantId, moduleId, seq1)
-        ).onSuccess(mdList -> {
-          try {
-            handleTimer(tenant, mdList, moduleId, seq1);
-          } catch (Exception ex) {
-            logger.warn("handleTimer exception {}", ex.getMessage(), ex);
-          }
-        })
-    );
-  }
-
-  private void handleTimer(Tenant tenant, List<ModuleDescriptor> mdList,
-                           String moduleId, int seq1) {
-    int noTimers = 0;
-    final String tenantId = tenant.getId();
-    for (ModuleDescriptor md : mdList) {
-      if (moduleId == null || moduleId.equals(md.getId())) {
-        InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
-        if (timerInt != null) {
-          List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
-          noTimers += handleTimer(tenant, md, routingEntries, seq1);
-        }
-      }
-    }
-    if (noTimers == 0) {
-      // module no longer enabled for tenant
-      stopTimer(tenantId, moduleId, seq1);
-    }
-    logger.info("handleTimer done no {}", noTimers);
-  }
-
-  private int handleTimer(Tenant tenant, ModuleDescriptor md,
-                          List<RoutingEntry> routingEntries, int seq1) {
-    int i = 0;
-    final String tenantId = tenant.getId();
-    for (RoutingEntry re : routingEntries) {
-      final int seq = ++i;
-      final String key = tenantId + "_" + md.getId() + "_" + seq;
-      final long delay = re.getDelayMilliSeconds();
-      final String path = re.getStaticPath();
-      if (delay > 0 && path != null) {
-        if (seq1 == 0) {
-          logger.info("start seq={} delay={}", seq, delay);
-          if (!timers.contains(key)) {
-            timers.add(key);
-            waitTimer(tenantId, md, delay, seq);
-          }
-        } else if (seq == seq1) {
-          logger.info("cont seq={} delay={}", seq, delay);
-          if (discoveryManager.isLeader()) {
-            fireTimer(tenant, md, re, path);
-          }
-          waitTimer(tenantId, md, delay, seq);
-          return 1;
-        }
-      }
-    }
-    return 0;
-  }
-
-  private void waitTimer(String tenantId, ModuleDescriptor md, long delay, int seq) {
-    vertx.setTimer(delay, res
-        -> handleTimer(tenantId, md.getId(), seq));
-  }
-
-  private void fireTimer(Tenant tenant, ModuleDescriptor md, RoutingEntry re, String path) {
-    String tenantId = tenant.getId();
-    HttpMethod httpMethod = re.getDefaultMethod(HttpMethod.POST);
-    ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
-    MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-    logger.info("timer call start module {} for tenant {}", md.getId(), tenantId);
-    proxyService.callSystemInterface(headers, tenant, inst, "").onFailure(cause ->
-        logger.info("timer call failed to module {} for tenant {} : {}",
-            md.getId(), tenantId, cause.getMessage())
-    ).onSuccess(res ->
-        logger.info("timer call succeeded to module {} for tenant {}",
-            md.getId(), tenantId)
-    );
   }
 
   private Permission[] stripPermissionReplaces(Permission[] perms) {
