@@ -2873,6 +2873,17 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/plain")
+      .body("Okapi").post("/timercall/100")
+      .then().statusCode(200);
+
+    // 10 msecond period and approx 100 total wait time.. 1 tick per call..
+    context.assertTrue(timerDelaySum >= 103 && timerDelaySum <= 130, "Got " + timerDelaySum);
+    logger.info("timerDelaySum=" + timerDelaySum);
+
     c = api.createRestAssured3();
     c.given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module#0")
@@ -2887,17 +2898,6 @@ public class ProxyTest {
         .then().statusCode(404);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-
-    given()
-      .header("X-Okapi-Tenant", okapiTenant)
-      .header("Content-Type", "text/plain")
-      .header("Accept", "text/plain")
-      .body("Okapi").post("/timercall/100")
-      .then().statusCode(200);
-
-    // 10 msecond period and approx 100 total wait time.. 1 tick per call..
-    context.assertTrue(timerDelaySum >= 103 && timerDelaySum <= 130, "Got " + timerDelaySum);
-    logger.info("timerDelaySum=" + timerDelaySum);
 
     // disable and enable (quickly)
     c = api.createRestAssured3();
