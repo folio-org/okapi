@@ -9,6 +9,8 @@ types:
   ModuleList: !include ModuleList.json
   InterfaceDescriptor: !include InterfaceDescriptor.json
   InterfaceList: !include InterfaceList.json
+  TimerDescriptor: !include TimerDescriptor.json
+  TimerDescriptorList: !include TimerDescriptorList.json
   InstallJob: !include InstallJob.json
   InstallJobList: !include InstallJobList.json
   TenantDescriptor: !include TenantDescriptor.json
@@ -1171,6 +1173,69 @@ types:
               body:
                 application/json:
                   type: TenantModuleDescriptorList
+            400:
+              description: Client Error
+              body:
+                text/plain:
+            404:
+              description: Not Found
+              body:
+                text/plain:
+            500:
+              description: Server Error
+              body:
+                text/plain:
+    /timers:
+      get:
+        description: Get all timers for tenant
+        responses:
+          200:
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+            body:
+              application/json:
+                type: TimerDescriptorList
+          400:
+            description: Client Error
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server Error
+            body:
+              text/plain:
+      patch:
+        description: patch timer
+        responses:
+          204:
+            description: Patch OK
+          400:
+            description: Client Error
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server Error
+            body:
+              text/plain:
+      /{timer_id}:
+        get:
+          description: get timer
+          responses:
+            200:
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
+              body:
+                application/json:
+                  type: TimerDescriptor
             400:
               description: Client Error
               body:

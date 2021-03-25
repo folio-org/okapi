@@ -3,7 +3,6 @@ package org.folio.okapi.managers;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
@@ -15,6 +14,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.Timer;
 import java.util.UUID;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
@@ -25,6 +25,7 @@ import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
+import org.folio.okapi.bean.TimerDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
@@ -58,6 +59,7 @@ public class InternalModule {
   private final String okapiVersion;
   private static final String INTERFACE_VERSION = "1.9";
   private final Messages messages = Messages.getInstance();
+  private TimerManager timerManager;
 
   /**
    * Construct internal module.
@@ -80,6 +82,11 @@ public class InternalModule {
     this.pullManager = pullManager;
     this.okapiVersion = okapiVersion;
     logger.info("InternalModule starting okapiversion={}", okapiVersion);
+  }
+
+  public InternalModule withTimerManager(TimerManager timerManager) {
+    this.timerManager = timerManager;
+    return this;
   }
 
   /**
@@ -328,6 +335,24 @@ public class InternalModule {
         + "    \"methods\" :  [ \"GET\" ],"
         + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/interfaces/{interfaceId}\","
         + "    \"permissionsRequired\" : [  \"okapi.proxy.tenants.interfaces.get\" ], "
+        + "    \"permissionsRequiredTenant\" : [ ], "
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"GET\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/timers\","
+        + "    \"permissionsRequired\" : [  \"okapi.proxy.tenants.timers.list\" ], "
+        + "    \"permissionsRequiredTenant\" : [ ], "
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"GET\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/timers/{timerId}\","
+        + "    \"permissionsRequired\" : [  \"okapi.proxy.tenants.timers.get\" ], "
+        + "    \"permissionsRequiredTenant\" : [ ], "
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"PATCH\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/timers/{timerId}\","
+        + "    \"permissionsRequired\" : [  \"okapi.proxy.tenants.timers.patch\" ], "
         + "    \"permissionsRequiredTenant\" : [ ], "
         + "    \"type\" : \"internal\" "
         + "   },"
@@ -883,6 +908,23 @@ public class InternalModule {
     });
   }
 
+  private Future<String> getTimer(String tenantId, String timerId) {
+    return timerManager.getTimer(tenantId, timerId).map(res -> Json.encodePrettily(res));
+  }
+
+  private Future<String> listTimers(String tenantId) {
+    return timerManager.listTimers(tenantId).map(list -> Json.encodePrettily(list));
+  }
+
+  private Future<String> patchTimer(String tenantId, String body) {
+    try {
+      final TimerDescriptor timerDescriptor = Json.decodeValue(body, TimerDescriptor.class);
+      return timerManager.patchTimer(tenantId, timerDescriptor).map(res -> "");
+    } catch (DecodeException ex) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
+    }
+  }
+
   private Future<Void> createModules(ProxyContext pc, List<ModuleDescriptor> list) {
     try {
       MultiMap params = pc.getCtx().request().params();
@@ -1249,6 +1291,17 @@ public class InternalModule {
         // /_/proxy/tenants/:id/interfaces/:int
         if (n == 7 && m.equals(HttpMethod.GET) && segments[5].equals("interfaces")) {
           return listModulesFromInterface(pc, decodedSegs[4], decodedSegs[6]);
+        }
+
+        // /_/proxy/tenants/:id/timers ...
+        if (n >= 6 && segments[5].equals("timers")) {
+          if (m.equals(HttpMethod.GET) && n == 6) {
+            return listTimers(decodedSegs[4]);
+          } else if (m.equals(HttpMethod.PATCH) && n == 6) {
+            return patchTimer(decodedSegs[4], req);
+          } else if (m.equals(HttpMethod.GET) && n == 7) {
+            return getTimer(decodedSegs[4], decodedSegs[6]);
+          }
         }
       } // /_/proxy/tenants
 

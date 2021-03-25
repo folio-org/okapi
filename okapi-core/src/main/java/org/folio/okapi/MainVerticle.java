@@ -167,11 +167,12 @@ public class MainVerticle extends AbstractVerticle {
       PullManager pullManager = new PullManager(vertx, moduleManager);
       InternalModule internalModule = new InternalModule(moduleManager,
           tenantManager, deploymentManager, discoveryManager,
-          envManager, pullManager,okapiVersion);
+          envManager, pullManager, okapiVersion);
       proxyService = new ProxyService(vertx, tenantManager, discoveryManager, internalModule,
           okapiUrl, config);
       tenantManager.setProxyService(proxyService);
       timerManager = new TimerManager(false);
+      internalModule.withTimerManager(timerManager);
     } else { // not really proxying, except to /_/deployment
       moduleManager = new ModuleManager(null, true);
       tenantManager = new TenantManager(moduleManager, new TenantStoreNull(), true);

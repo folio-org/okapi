@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -85,6 +86,7 @@ public class TimerManager {
                     RoutingEntry newEntry = re.clone(); // do not mess with entries part of Modules
                     if (timerDescriptor == null) {
                       timerDescriptor = new TimerDescriptor();
+                      timerDescriptor.setId(productKey);
                     } else {
                       RoutingEntry existingEntry = timerDescriptor.getRoutingEntry();
                       if (existingEntry.getStaticPath().equals(newEntry.getStaticPath())) {
@@ -160,4 +162,23 @@ public class TimerManager {
     return Future.succeededFuture();
   }
 
+  public Future<TimerDescriptor> getTimer(String id, String timerId) {
+    return tenantTimers.getNotFound(id, timerId);
+  }
+
+  public Future<List<TimerDescriptor>> listTimers(String tenantId) {
+    return tenantTimers.get(tenantId).map(x -> x != null ? x : Collections.EMPTY_LIST);
+  }
+
+  public Future<Void> patchTimer(String tenantId, TimerDescriptor timerDescriptor) {
+    return tenantTimers.getNotFound(tenantId, timerDescriptor.getId()).compose(existing -> {
+      RoutingEntry patchEntry = timerDescriptor.getRoutingEntry();
+      RoutingEntry existingEntry = existing.getRoutingEntry();
+      existingEntry.setSchedule(patchEntry.getSchedule());
+      existingEntry.setDelay(patchEntry.getDelay());
+      existingEntry.setUnit(patchEntry.getUnit());
+      // TODO: notify about change
+      return tenantTimers.put(tenantId, timerDescriptor.getId(), existing);
+    });
+  }
 }
