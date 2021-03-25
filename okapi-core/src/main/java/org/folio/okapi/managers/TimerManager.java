@@ -20,6 +20,7 @@ import org.folio.okapi.util.LockedTypedMap2;
 
 public class TimerManager {
 
+  private final String TIMER_ENTRY_SEP = "_";
   private final Logger logger = OkapiLogger.get();
   private static final String MAP_NAME = "timersMap";
   private final LockedTypedMap2<TimerDescriptor> tenantTimers
@@ -76,8 +77,8 @@ public class TimerManager {
           List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
           int seq = 0;
           for (RoutingEntry re : routingEntries) {
-            String moduleKey = md.getId() + "#" + seq;
-            String productKey = md.getProduct() + '#' + seq;
+            String moduleKey = seq + TIMER_ENTRY_SEP + md.getId();
+            String productKey = seq + TIMER_ENTRY_SEP + md.getProduct();
             if (!timers.contains(moduleKey)) {
               timers.add(moduleKey);
               future = future
@@ -136,7 +137,7 @@ public class TimerManager {
                 return Future.succeededFuture();
               }
               return tenantManager.getEnabledModules(tenant).compose(list -> {
-                String moduleId = moduleKey.substring(0, moduleKey.indexOf('#'));
+                String moduleId = moduleKey.substring(moduleKey.indexOf(TIMER_ENTRY_SEP) + 1);
                 for (ModuleDescriptor md : list) {
                   if (moduleId.equals(md.getId())) {
                     if (discoveryManager.isLeader()) {

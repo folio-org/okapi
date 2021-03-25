@@ -2865,14 +2865,6 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
-        .get("/_/proxy/tenants/" + okapiTenant + "/timers")
-        .then().statusCode(200)
-        .body("$", hasSize(3));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
-
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("Content-Type", "text/plain")
@@ -2881,14 +2873,22 @@ public class ProxyTest {
       .then().statusCode(200);
 
     // 10 msecond period and approx 100 total wait time.. 1 tick per call..
-    context.assertTrue(timerDelaySum >= 103 && timerDelaySum <= 130, "Got " + timerDelaySum);
     logger.info("timerDelaySum=" + timerDelaySum);
+    context.assertTrue(timerDelaySum >= 103 && timerDelaySum <= 130, "Got " + timerDelaySum);
 
     c = api.createRestAssured3();
     c.given()
-        .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module#0")
+        .get("/_/proxy/tenants/" + okapiTenant + "/timers")
         .then().statusCode(200)
-        .body("id", is("timer-module#0"));
+        .body("$", hasSize(3));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/tenants/" + okapiTenant + "/timers/0_timer-module")
+        .then().statusCode(200)
+        .body("id", is("0_timer-module"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
