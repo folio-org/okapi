@@ -147,15 +147,29 @@ public final class DepResolution {
    * Test required dependencies for a set of modules against an existing set.
    * @param available existing set of modules
    * @param testList modules whose dependencies we want to check
+   * @param removeIfMissingDep remove from testList if dependency check fails
    * @return empty string if all OK; error message otherwise
    */
   public static String checkDependencies(Collection<ModuleDescriptor> available,
-                                         Collection<ModuleDescriptor> testList) {
+                                         Collection<ModuleDescriptor> testList,
+                                         boolean removeIfMissingDep) {
     Map<String, List<InterfaceDescriptor>> ints = getProvidedInterfaces(available);
     List<String> list = new LinkedList<>();
-    for (ModuleDescriptor md : testList) {
+
+    Iterator<ModuleDescriptor> iterator = testList.iterator();
+    while (iterator.hasNext()) {
+      ModuleDescriptor md = iterator.next();
       List<String> res = checkDependenciesInts(md, available, ints);
-      list.addAll(res);
+      if (!res.isEmpty()) {
+        if (removeIfMissingDep) {
+          available.remove(md);
+          ints = getProvidedInterfaces(available);
+          iterator.remove();
+          iterator = testList.iterator();
+        } else {
+          list.addAll(res);
+        }
+      }
     }
     if (list.isEmpty()) {
       return "";
@@ -171,7 +185,7 @@ public final class DepResolution {
    */
   public static String checkAllDependencies(Map<String, ModuleDescriptor> available) {
     Collection<ModuleDescriptor> testList = available.values();
-    return checkDependencies(testList, testList);
+    return checkDependencies(testList, testList, false);
   }
 
   /**

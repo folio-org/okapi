@@ -666,14 +666,14 @@ public class DepResolutionTest {
 
     Collection<ModuleDescriptor> testList = new TreeSet<>();
     testList.add(mdD);
-    Assert.assertEquals("", DepResolution.checkDependencies(available.values(), testList));
+    Assert.assertEquals("", DepResolution.checkDependencies(available.values(), testList, false));
 
     available.put(mdE.getId(), mdE);
 
     testList = new TreeSet<>();
     testList.add(mdB);
     Assert.assertEquals("Incompatible version for module moduleB-1.0.0 interface int. Need 1.0. Have 2.0/moduleC-1.0.0 3.0/moduleE-1.0.0",
-        DepResolution.checkDependencies(available.values(), testList));
+        DepResolution.checkDependencies(available.values(), testList, false));
 
     Assert.assertEquals("", DepResolution.checkAllDependencies(map(mdC, mdD)));
   }
