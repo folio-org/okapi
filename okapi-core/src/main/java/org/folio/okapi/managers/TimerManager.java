@@ -179,7 +179,7 @@ public class TimerManager {
    * @return timer descriptors for the tenant
    */
   public Future<List<TimerDescriptor>> listTimers(String tenantId) {
-    return tenantTimers.get(tenantId).map(x -> x != null ? x : Collections.EMPTY_LIST);
+    return tenantTimers.get(tenantId).map(x -> x != null ? x : Collections.emptyList());
   }
 
   /**
