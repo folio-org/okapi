@@ -15,5 +15,6 @@
       "type": "object",
       "$ref":"RoutingEntry.json"
     }
-  }
+  },
+  "required" : ["id"]
 }

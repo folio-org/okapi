@@ -2878,6 +2878,13 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     c.given()
+        .get("/_/proxy/tenants/" + okapiTenant + "/timers/foo")
+        .then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers")
         .then().statusCode(200)
         .body("$", hasSize(3));
@@ -2892,10 +2899,61 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
+    JsonObject patchObj = new JsonObject()
+        .put("id", "0_timer-module")
+        .put("routingEntry", new JsonObject()
+            .put("unit", "millisecond")
+            .put("delay", "2")
+        );
     c = api.createRestAssured3();
     c.given()
-        .get("/_/proxy/tenants/" + okapiTenant + "/timers/foo")
-        .then().statusCode(404);
+        .header("Content-Type", "application/json")
+        .body(patchObj.encode())
+        .patch("/_/proxy/tenants/" + okapiTenant + "/timers")
+            .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/tenants/" + okapiTenant + "/timers/0_timer-module")
+        .then().statusCode(200)
+        .body("routingEntry.delay", is("2"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .header("Content-Type", "text/plain")
+        .header("Accept", "text/plain")
+        .body("Okapi").post("/timercall/10")
+        .then().statusCode(200);
+
+    // disable the timer
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject()
+            .put("id", "0_timer-module")
+            .put("routingEntry", new JsonObject()
+                .put("unit", "millisecond")
+                .put("delay", "0")).encode())
+        .patch("/_/proxy/tenants/" + okapiTenant + "/timers")
+        .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // enable it again
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject()
+            .put("id", "0_timer-module")
+            .put("routingEntry", new JsonObject()
+                .put("unit", "millisecond")
+                .put("delay", "2")).encode())
+        .patch("/_/proxy/tenants/" + okapiTenant + "/timers")
+        .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 

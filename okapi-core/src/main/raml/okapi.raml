@@ -1210,9 +1210,15 @@ types:
               text/plain:
       patch:
         description: patch timer
+        body:
+          application/json:
+            type: TimerDescriptor
         responses:
           204:
             description: Patch OK
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
           400:
             description: Client Error
             body:
