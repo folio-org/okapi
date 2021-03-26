@@ -2883,6 +2883,11 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
+    // not even part of RAML / MD
+    given()
+        .get("/_/proxy/tenants/" + okapiTenant + "/timers/a/b/c")
+        .then().statusCode(404);
+
     c = api.createRestAssured3();
     c.given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers")
@@ -2899,6 +2904,18 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
+    given()
+        .header("Content-Type", "application/json")
+        .body("{ bad")
+        .patch("/_/proxy/tenants/" + okapiTenant + "/timers")
+        .then().statusCode(400);
+
+    given()
+        .header("Content-Type", "application/json")
+        .body("{ bad")
+        .patch("/_/proxy/tenants/" + okapiTenant + "/timers/extra")
+        .then().statusCode(404);
+
     JsonObject patchObj = new JsonObject()
         .put("id", "0_timer-module")
         .put("routingEntry", new JsonObject()
@@ -2911,6 +2928,16 @@ public class ProxyTest {
         .body(patchObj.encode())
         .patch("/_/proxy/tenants/" + okapiTenant + "/timers")
             .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // patch same data again
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(patchObj.encode())
+        .patch("/_/proxy/tenants/" + okapiTenant + "/timers")
+        .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
