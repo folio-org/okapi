@@ -4,6 +4,7 @@ This is the guide and reference to Okapi: a gateway for
 managing and running microservices.
 
 <!-- Regenerate this as needed by running `make guide-toc.md` and including its output here -->
+
 * [Introduction](#introduction)
 * [Architecture](#architecture)
     * [Okapi's own Web Services](#okapis-own-web-services)
@@ -46,6 +47,7 @@ managing and running microservices.
     * [Deployment](#deployment)
     * [Docker](#docker)
     * [System Interfaces](#system-interfaces)
+    * [Timer management](#timer-management)
     * [Instrumentation](#instrumentation)
 * [Module Reference](#module-reference)
     * [Life cycle of a module](#life-cycle-of-a-module)
@@ -3127,6 +3129,17 @@ Examples:
 
 See [crontab man page](https://www.unix.com/man-page/linux/5/crontab/)
 for more information.
+
+### Timer management
+
+Okapi 4.8.0 provides service calls managing the time configuration for
+routing entries that provides the `_timer` interface. This allows
+inspecting the timer entries and modifying them - including disabling
+a timer.
+
+These services all have the prefix
+`/_/proxy/tenants/{tenant}/timers`.
+Consult the RAML for details.
 
 ### Instrumentation
 
