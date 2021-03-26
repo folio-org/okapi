@@ -115,15 +115,12 @@ public class TimerManager {
 
   private void handleTimer(String tenantId, TimerDescriptor timerDescriptor) {
     final String timerId = timerDescriptor.getId();
-    logger.info("handleTimer: id={}", timerId);
     tenantManager.get(tenantId)
         .compose(tenant -> tenantTimers.get(tenantId, timerId)
             .compose(currentDescriptor -> {
               if (!isSimilar(timerDescriptor, currentDescriptor)) {
-                logger.info("handleTimer: id={} changed / gone", timerId);
                 return Future.succeededFuture();
               }
-              logger.info("handleTimer: id={} same key", timerId);
               return tenantManager.getEnabledModules(tenant).compose(list -> {
                 String product = timerId.substring(timerId.indexOf(TIMER_ENTRY_SEP) + 1);
                 for (ModuleDescriptor md : list) {
@@ -135,7 +132,6 @@ public class TimerManager {
                   }
                 }
                 // timer stopping...
-                logger.info("handleTimer: id={} stopping", timerId);
                 return Future.succeededFuture();
               });
             })
@@ -147,7 +143,6 @@ public class TimerManager {
   private Future<Void> waitTimer(String tenantId, TimerDescriptor timerDescriptor) {
     RoutingEntry routingEntry = timerDescriptor.getRoutingEntry();
     final long delay = routingEntry.getDelayMilliSeconds();
-    logger.info("waitTimer tenantId={} delay={}", tenantId, delay);
     if (delay > 0) {
       vertx.setTimer(delay, res -> handleTimer(tenantId, timerDescriptor));
     }
@@ -189,8 +184,6 @@ public class TimerManager {
   public Future<Void> patchTimer(String tenantId, TimerDescriptor timerDescriptor) {
     return tenantTimers.getNotFound(tenantId, timerDescriptor.getId())
         .compose(existing -> {
-          logger.info("patch timer.. existing value {}", Json.encode(existing));
-
           RoutingEntry patchEntry = timerDescriptor.getRoutingEntry();
           RoutingEntry existingEntry = existing.getRoutingEntry();
 
@@ -201,10 +194,8 @@ public class TimerManager {
           patchEntry.setModulePermissions(existingEntry.getModulePermissions());
 
           if (isSimilar(existing, timerDescriptor)) {
-            logger.info("patch timer.. same value");
             return Future.succeededFuture();
           }
-          logger.info("patch timer.. new value {}", Json.encode(timerDescriptor));
           return tenantTimers.put(tenantId, timerDescriptor.getId(), timerDescriptor)
               .compose(x -> waitTimer(tenantId, timerDescriptor));
         });

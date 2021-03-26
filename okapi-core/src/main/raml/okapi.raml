@@ -1187,7 +1187,7 @@ types:
                 text/plain:
     /timers:
       get:
-        description: Get all timers for tenant
+        description: Get timers for tenant.
         responses:
           200:
             headers:
@@ -1209,7 +1209,9 @@ types:
             body:
               text/plain:
       patch:
-        description: patch timer
+        description: patch timer. Both routingEntry and id must be given.
+          The routingEntry.unit, routingEntry.delay and routingEntry.schedule
+          determines the new schedule for the timer.
         body:
           application/json:
             type: TimerDescriptor
@@ -1233,7 +1235,7 @@ types:
               text/plain:
       /{timer_id}:
         get:
-          description: get timer
+          description: get timer with id given.
           responses:
             200:
               headers:
