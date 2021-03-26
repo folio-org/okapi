@@ -3141,6 +3141,35 @@ These services all have the prefix
 `/_/proxy/tenants/{tenant}/timers`.
 Consult the RAML for details.
 
+As an example of using timers, consider the okapi-test-module. It has
+a routing entry with timers. See the template
+[module descriptor](../okapi-test-module/descriptors/ModuleDescriptorTimer-template.json).
+When okapi-test-module is "installed", the target directory should have a "final"
+module descriptor `ModuleDescriptorTimer.json`.
+
+Start okapi in a separate teminal and then enable it:
+
+```
+cd okapi-test-module/target
+curl -d'{"id":"testlib"}' http://localhost:9130/_/proxy/tenants
+curl -d@ModuleDescriptorTimer.json http://localhost:9130/_/proxy/modules
+curl -d'[{"id":"test-timer","action":"enable"}]' \
+   http://localhost:9130/_/proxy/tenants/testlib/install?deploy=true
+```
+
+The module should now be running. It has 3 timers. List them with:
+
+```
+curl http://localhost:9130/_/proxy/tenants/testlib/timers
+```
+
+The first entry fires a timer every 20 seconds. Disable it with:
+
+```
+curl -XPATCH -d'{"id":"0_test-timer","routingEntry":{"delay":"0"}}' \
+    http://localhost:9130/_/proxy/tenants/testlib/timers
+```
+
 ### Instrumentation
 
 Okapi uses Micrometer for managing metrics and reporting to backends. To enable it,
