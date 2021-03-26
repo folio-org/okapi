@@ -184,16 +184,17 @@ public class TimerManager {
   public Future<Void> patchTimer(String tenantId, TimerDescriptor timerDescriptor) {
     return tenantTimers.getNotFound(tenantId, timerDescriptor.getId())
         .compose(existing -> {
+          String existingJson = Json.encode(existing);
+
           RoutingEntry patchEntry = timerDescriptor.getRoutingEntry();
           RoutingEntry existingEntry = existing.getRoutingEntry();
+          timerDescriptor.setRoutingEntry(existingEntry);
+          existingEntry.setUnit(patchEntry.getUnit());
+          existingEntry.setDelay(patchEntry.getDelay());
+          existingEntry.setSchedule(patchEntry.getSchedule());
 
-          patchEntry.setPathPattern(existingEntry.getPathPattern());
-          patchEntry.setPath(existingEntry.getPath());
-          patchEntry.setMethods(existingEntry.getMethods());
-          patchEntry.setPermissionsRequired(existingEntry.getPermissionsRequired());
-          patchEntry.setModulePermissions(existingEntry.getModulePermissions());
-
-          if (isSimilar(existing, timerDescriptor)) {
+          String newJson = Json.encode(timerDescriptor);
+          if (existingJson.equals(newJson)) {
             return Future.succeededFuture();
           }
           return tenantTimers.put(tenantId, timerDescriptor.getId(), timerDescriptor)
