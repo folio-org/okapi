@@ -184,7 +184,7 @@ public class TimerManager {
   public Future<Void> patchTimer(String tenantId, TimerDescriptor timerDescriptor) {
     return tenantTimers.getNotFound(tenantId, timerDescriptor.getId())
         .compose(existing -> {
-          String existingJson = Json.encode(existing);
+          final String existingJson = Json.encode(existing);
 
           RoutingEntry patchEntry = timerDescriptor.getRoutingEntry();
           RoutingEntry existingEntry = existing.getRoutingEntry();
