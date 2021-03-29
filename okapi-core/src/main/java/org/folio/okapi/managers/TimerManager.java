@@ -95,9 +95,21 @@ public class TimerManager {
             future = future
                 .compose(y -> tenantTimers.get(tenantId, timerId))
                 .compose(existing -> {
+                  // existing patched timer descriptor takes precedence over
+                  // updated module
+                  if (existing != null && existing.isModified()) {
+                    // see if timers already going for this one.
+                    if (timerRunning.contains(timerId)) {
+                      return Future.succeededFuture();
+                    }
+                    timerRunning.add(timerId);
+                    return waitTimer(tenantId, existing);
+                  }
+                  // new timer descriptor for module's routing entry
                   TimerDescriptor newTimerDescriptor = new TimerDescriptor();
                   newTimerDescriptor.setId(timerId);
                   newTimerDescriptor.setRoutingEntry(re);
+                  // if it's the same and running, do nothing (timers already ongoing)
                   if (timerRunning.contains(timerId) && isSimilar(existing, newTimerDescriptor)) {
                     return Future.succeededFuture();
                   }
@@ -126,7 +138,8 @@ public class TimerManager {
     HttpMethod httpMethod = routingEntry.getDefaultMethod(HttpMethod.POST);
     ModuleInstance inst = new ModuleInstance(md, routingEntry, path, httpMethod, true);
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-    logger.info("timer call start module {} for tenant {}", md.getId(), tenantId);
+    logger.info("timer {} call start module {} for tenant {}",
+        timerDescriptor.getId(), md.getId(), tenantId);
     proxyService.callSystemInterface(headers, tenant, inst, "")
         .onFailure(cause ->
             logger.info("timer call failed to module {} for tenant {} : {}",
@@ -146,6 +159,7 @@ public class TimerManager {
    * @param timerDescriptor descriptor that this handling
    */
   private void handleTimer(String tenantId, TimerDescriptor timerDescriptor) {
+    logger.info("timer {} handle for tenant {}", timerDescriptor.getId(), tenantId);
     final String timerId = timerDescriptor.getId();
     tenantManager.get(tenantId)
         .compose(tenant -> tenantTimers.get(tenantId, timerId)
@@ -236,6 +250,7 @@ public class TimerManager {
           RoutingEntry patchEntry = timerDescriptor.getRoutingEntry();
           RoutingEntry existingEntry = existing.getRoutingEntry();
           timerDescriptor.setRoutingEntry(existingEntry);
+          timerDescriptor.setModified(true);
           existingEntry.setUnit(patchEntry.getUnit());
           existingEntry.setDelay(patchEntry.getDelay());
           existingEntry.setSchedule(patchEntry.getSchedule());
@@ -246,8 +261,8 @@ public class TimerManager {
           if (existingJson.equals(newJson)) {
             return Future.succeededFuture();
           }
-          // announce to shard map, then publish so that all instances of Okapi
-          // will get a new timer rolloing
+          // announce to shared map, then publish so that all instances of Okapi
+          // will get a new timer rolling
           // the existing timer will notice that its timerDescriptor's routing entry is
           // obsolete and terminate
           return tenantTimers.put(tenantId, timerDescriptor.getId(), timerDescriptor)

@@ -7,8 +7,12 @@
   "additionalProperties" : false,
   "properties": {
     "id": {
-      "description": "Timer ID",
+      "description": "Timer identifier",
       "type": "string"
+    },
+    "modified": {
+      "description": "Whether modified",
+      "type": "boolean"
     },
     "routingEntry": {
       "description": "Routing entry",

@@ -8,6 +8,8 @@ public class TimerDescriptor {
 
   private RoutingEntry routingEntry;
 
+  private boolean modified;
+
   public String getId() {
     return id;
   }
@@ -24,4 +26,11 @@ public class TimerDescriptor {
     this.routingEntry = routingEntry;
   }
 
+  public boolean isModified() {
+    return modified;
+  }
+
+  public void setModified(boolean modified) {
+    this.modified = modified;
+  }
 }
