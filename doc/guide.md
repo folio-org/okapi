@@ -3166,7 +3166,7 @@ curl http://localhost:9130/_/proxy/tenants/testlib/timers
 The first entry fires a timer every 20 seconds. Disable it with:
 
 ```
-curl -XPATCH -d'{"id":"0_test-timer","routingEntry":{"delay":"0"}}' \
+curl -XPATCH -d'{"id":"test-timer_0","routingEntry":{"delay":"0"}}' \
     http://localhost:9130/_/proxy/tenants/testlib/timers
 ```
 
@@ -3174,7 +3174,7 @@ Alternative call with timer ID in path:
 
 ```
 curl -XPATCH -d'{"delay":"0"}' \
-    http://localhost:9130/_/proxy/tenants/testlib/timers/0_test-timer
+    http://localhost:9130/_/proxy/tenants/testlib/timers/test-timer_0
 ```
 
 ### Instrumentation

@@ -2898,9 +2898,10 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     c.given()
-        .get("/_/proxy/tenants/" + okapiTenant + "/timers/0_timer-module")
+        .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(200)
-        .body("id", is("0_timer-module"));
+        .body("id", is("timer-module_0"))
+        .body("modified", is(false));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
@@ -2921,7 +2922,7 @@ public class ProxyTest {
                 .put("delay", "2");
 
     JsonObject patchObj = new JsonObject()
-        .put("id", "0_timer-module")
+        .put("id", "timer-module_0")
         .put("routingEntry", routingEntry);
 
     c = api.createRestAssured3();
@@ -2938,14 +2939,14 @@ public class ProxyTest {
     c.given()
         .header("Content-Type", "application/json")
         .body(routingEntry.encode())
-        .patch("/_/proxy/tenants/" + okapiTenant + "/timers/0_timer-module")
+        .patch("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
     c = api.createRestAssured3();
     c.given()
-        .get("/_/proxy/tenants/" + okapiTenant + "/timers/0_timer-module")
+        .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(200)
         .body("routingEntry.delay", is("2"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -2963,7 +2964,7 @@ public class ProxyTest {
     c.given()
         .header("Content-Type", "application/json")
         .body(new JsonObject()
-            .put("id", "0_timer-module")
+            .put("id", "timer-module_0")
             .put("routingEntry", new JsonObject()
                 .put("unit", "millisecond")
                 .put("delay", "0")).encode())
@@ -2977,7 +2978,7 @@ public class ProxyTest {
     c.given()
         .header("Content-Type", "application/json")
         .body(new JsonObject()
-            .put("id", "0_timer-module")
+            .put("id", "timer-module_0")
             .put("routingEntry", new JsonObject()
                 .put("unit", "millisecond")
                 .put("delay", "2")).encode())

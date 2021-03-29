@@ -91,7 +91,7 @@ public class TimerManager {
           List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
           int seq = 0;
           for (RoutingEntry re : routingEntries) {
-            String timerId = seq + TIMER_ENTRY_SEP + md.getProduct();
+            String timerId = md.getProduct() + TIMER_ENTRY_SEP + seq;
             future = future
                 .compose(y -> tenantTimers.get(tenantId, timerId))
                 .compose(existing -> {
@@ -172,7 +172,7 @@ public class TimerManager {
               // find module for this timer.. If module is not found, it was disabled
               // in the meantime and timer is stopped.
               return tenantManager.getEnabledModules(tenant).compose(list -> {
-                String product = timerId.substring(timerId.indexOf(TIMER_ENTRY_SEP) + 1);
+                String product = timerId.substring(0, timerId.indexOf(TIMER_ENTRY_SEP));
                 for (ModuleDescriptor md : list) {
                   if (product.equals(md.getProduct())) {
                     if (discoveryManager.isLeader()) {
