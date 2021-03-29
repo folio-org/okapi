@@ -3170,6 +3170,13 @@ curl -XPATCH -d'{"id":"0_test-timer","routingEntry":{"delay":"0"}}' \
     http://localhost:9130/_/proxy/tenants/testlib/timers
 ```
 
+Alternative call with timer ID in path:
+
+```
+curl -XPATCH -d'{"delay":"0"}' \
+    http://localhost:9130/_/proxy/tenants/testlib/timers/0_test-timer
+```
+
 ### Instrumentation
 
 Okapi uses Micrometer for managing metrics and reporting to backends. To enable it,
