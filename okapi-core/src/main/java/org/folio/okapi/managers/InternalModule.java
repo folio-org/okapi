@@ -22,6 +22,7 @@ import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
+import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
@@ -354,6 +355,12 @@ public class InternalModule {
         + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/timers/{timerId}\","
         + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.timers.get\" ], "
         + "    \"permissionsRequiredTenant\" : [  ], "
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"PATCH\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/timers/{timerId}\","
+        + "    \"permissionsRequired\" : [  \"okapi.proxy.tenants.timers.patch\" ], "
+        + "    \"permissionsRequiredTenant\" : [ \"okapi.proxy.self.timers.patch\" ], "
         + "    \"type\" : \"internal\" "
         + "   },"
         + "   {" // proxy, health
@@ -938,6 +945,18 @@ public class InternalModule {
     }
   }
 
+  private Future<String> patchTimer(String tenantId, String timerId, String body) {
+    try {
+      final RoutingEntry routingEntry = Json.decodeValue(body, RoutingEntry.class);
+      final TimerDescriptor timerDescriptor = new TimerDescriptor();
+      timerDescriptor.setId(timerId);
+      timerDescriptor.setRoutingEntry(routingEntry);
+      return timerManager.patchTimer(tenantId, timerDescriptor).map(res -> "");
+    } catch (DecodeException ex) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
+    }
+  }
+
   private Future<Void> createModules(ProxyContext pc, List<ModuleDescriptor> list) {
     try {
       MultiMap params = pc.getCtx().request().params();
@@ -1314,6 +1333,8 @@ public class InternalModule {
             return patchTimer(decodedSegs[4], req);
           } else if (m.equals(HttpMethod.GET) && n == 7) {
             return getTimer(decodedSegs[4], decodedSegs[6]);
+          } else if (m.equals(HttpMethod.PATCH) && n == 7) {
+            return patchTimer(decodedSegs[4], decodedSegs[6], req);
           }
         }
       } // /_/proxy/tenants

@@ -2914,14 +2914,16 @@ public class ProxyTest {
         .header("Content-Type", "application/json")
         .body("{ bad")
         .patch("/_/proxy/tenants/" + okapiTenant + "/timers/extra")
-        .then().statusCode(404);
+        .then().statusCode(400);
+
+    JsonObject routingEntry = new JsonObject()
+                .put("unit", "millisecond")
+                .put("delay", "2");
 
     JsonObject patchObj = new JsonObject()
         .put("id", "0_timer-module")
-        .put("routingEntry", new JsonObject()
-            .put("unit", "millisecond")
-            .put("delay", "2")
-        );
+        .put("routingEntry", routingEntry);
+
     c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
@@ -2935,8 +2937,8 @@ public class ProxyTest {
     c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
-        .body(patchObj.encode())
-        .patch("/_/proxy/tenants/" + okapiTenant + "/timers")
+        .body(routingEntry.encode())
+        .patch("/_/proxy/tenants/" + okapiTenant + "/timers/0_timer-module")
         .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());

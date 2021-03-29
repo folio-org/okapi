@@ -9,6 +9,7 @@ types:
   ModuleList: !include ModuleList.json
   InterfaceDescriptor: !include InterfaceDescriptor.json
   InterfaceList: !include InterfaceList.json
+  RoutingEntry: !include RoutingEntry.json
   TimerDescriptor: !include TimerDescriptor.json
   TimerDescriptorList: !include TimerDescriptorList.json
   InstallJob: !include InstallJob.json
@@ -1244,6 +1245,30 @@ types:
               body:
                 application/json:
                   type: TimerDescriptor
+            400:
+              description: Client Error
+              body:
+                text/plain:
+            404:
+              description: Not Found
+              body:
+                text/plain:
+            500:
+              description: Server Error
+              body:
+                text/plain:
+        patch:
+          description: patch timer with routing entry as body. The unit, delay
+            and schedule determines the new schedule for the timer.
+          body:
+            application/json:
+              type: RoutingEntry
+          responses:
+            204:
+              description: Patch OK
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
             400:
               description: Client Error
               body:
