@@ -2839,7 +2839,7 @@ public class ProxyTest {
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
     c = api.createRestAssured3();
-    given()
+    c.given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
@@ -2865,16 +2865,14 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    given()
-      .header("X-Okapi-Tenant", okapiTenant)
-      .header("Content-Type", "text/plain")
-      .header("Accept", "text/plain")
-      .body("Okapi").post("/timercall/100")
-      .then().statusCode(200);
+    try {
+      TimeUnit.MILLISECONDS.sleep(100);
+    } catch (InterruptedException ex) {
+    }
 
-    // 10 msecond period and approx 100 total wait time.. 1 tick per call..
+    // n in timerDelaySum. 10 ms wait in between
     logger.info("timerDelaySum=" + timerDelaySum);
-    context.assertTrue(timerDelaySum >= 103 && timerDelaySum <= 130, "Got " + timerDelaySum);
+    context.assertTrue(timerDelaySum >= 3 && timerDelaySum <= 30, "Got " + timerDelaySum);
 
     c = api.createRestAssured3();
     c.given()
@@ -2964,14 +2962,20 @@ public class ProxyTest {
     c.given()
         .header("Content-Type", "application/json")
         .body(new JsonObject()
-            .put("id", "timer-module_0")
-            .put("routingEntry", new JsonObject()
-                .put("unit", "millisecond")
-                .put("delay", "0")).encode())
-        .patch("/_/proxy/tenants/" + okapiTenant + "/timers")
+            .put("unit", "millisecond")
+            .put("delay", "0").encode())
+        .patch("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
+
+    timerDelaySum = 0;
+    try {
+      TimeUnit.MILLISECONDS.sleep(20);
+    } catch (InterruptedException ex) {
+    }
+    logger.info("timerDelaySum=" + timerDelaySum);
+    context.assertEquals(0, timerDelaySum);
 
     // enable it again
     c = api.createRestAssured3();
@@ -3042,13 +3046,6 @@ public class ProxyTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails();
 
-    given()
-      .header("X-Okapi-Tenant", okapiTenant)
-      .header("Content-Type", "text/plain")
-      .header("Accept", "text/plain")
-      .body("Okapi").post("/timercall/100")
-      .then().statusCode(404).log().ifValidationFails();
-
     try {
       TimeUnit.MILLISECONDS.sleep(100);
     } catch (InterruptedException ex) {
@@ -3066,12 +3063,10 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    given()
-      .header("X-Okapi-Tenant", okapiTenant)
-      .header("Content-Type", "text/plain")
-      .header("Accept", "text/plain")
-      .body("Okapi").post("/timercall/100")
-      .then().statusCode(200).log().ifValidationFails();
+    try {
+      TimeUnit.MILLISECONDS.sleep(100);
+    } catch (InterruptedException ex) {
+    }
 
     // disable and remove tenant as well
     c = api.createRestAssured3();
@@ -3091,10 +3086,52 @@ public class ProxyTest {
       .then().statusCode(204);
 
     try {
-      TimeUnit.MILLISECONDS.sleep(100);
+      TimeUnit.MILLISECONDS.sleep(40);
     } catch (InterruptedException ex) {
     }
 
+    timerDelaySum = 0;
+    // add tenant 2nd time
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(docTenantRoskilde).post("/_/proxy/tenants")
+        .then().statusCode(201)
+        .body(equalTo(docTenantRoskilde));
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("["
+            + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}"
+            + "]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+        .then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    try {
+      TimeUnit.MILLISECONDS.sleep(50);
+    } catch (InterruptedException ex) {
+    }
+    logger.info("timerDelaySum=" + timerDelaySum);
+    context.assertTrue(timerDelaySum > 0, timerDelaySum + " > 0");
+
+    // disable and remove tenant as well
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("["
+            + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"disable\"}"
+            + "]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+        .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    given()
+        .header("Content-Type", "application/json")
+        .delete("/_/proxy/tenants/roskilde")
+        .then().statusCode(204);
   }
 
   @Test
