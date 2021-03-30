@@ -16,7 +16,6 @@ import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
-import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TimerDescriptor;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.LockedTypedMap2;
@@ -59,9 +58,7 @@ public class TimerManager {
             tenantManager.allTenants().compose(list -> {
               Future<Void> future = Future.succeededFuture();
               for (String id : list) {
-                future = future
-                    .compose(y -> tenantManager.get(id))
-                    .compose(this::startTimers);
+                future = future.compose(y -> startTimers(id));
               }
               return future;
             })
@@ -73,17 +70,16 @@ public class TimerManager {
    * @param tenantId tenant identifier
    */
   private void tenantChange(String tenantId) {
-    tenantManager.get(tenantId).onSuccess(this::startTimers);
+    startTimers(tenantId);
   }
 
   /**
    * enable timers for enabled modules for a tenant.
-   * @param tenant Tenant
+   * @param tenantId Tenant identifier
    * @return async result
    */
-  private Future<Void> startTimers(Tenant tenant) {
-    String tenantId = tenant.getId();
-    return tenantManager.getEnabledModules(tenant).compose(mdList -> {
+  private Future<Void> startTimers(String tenantId) {
+    return tenantManager.getEnabledModules(tenantId).compose(mdList -> {
       Future<Void> future = Future.succeededFuture();
       for (ModuleDescriptor md : mdList) {
         InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
@@ -127,26 +123,37 @@ public class TimerManager {
 
   /**
    * Fire a timer - invoke module.
-   * @param tenant tenant identifier
+   * @param tenantId tenant identifier
    * @param md module descriptor of module to invoke
    * @param timerDescriptor timer descriptor in use
    */
-  private void fireTimer(Tenant tenant, ModuleDescriptor md, TimerDescriptor timerDescriptor) {
+  private void fireTimer(String tenantId, ModuleDescriptor md, TimerDescriptor timerDescriptor) {
     RoutingEntry routingEntry = timerDescriptor.getRoutingEntry();
     String path = routingEntry.getStaticPath();
-    String tenantId = tenant.getId();
     HttpMethod httpMethod = routingEntry.getDefaultMethod(HttpMethod.POST);
     ModuleInstance inst = new ModuleInstance(md, routingEntry, path, httpMethod, true);
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     logger.info("timer {} call start module {} for tenant {}",
         timerDescriptor.getId(), md.getId(), tenantId);
-    proxyService.callSystemInterface(headers, tenant, inst, "")
+    proxyService.callSystemInterface(headers, tenantId, inst, "")
         .onFailure(cause ->
             logger.info("timer call failed to module {} for tenant {} : {}",
                 md.getId(), tenantId, cause.getMessage()))
         .onSuccess(res ->
             logger.info("timer call succeeded to module {} for tenant {}",
                 md.getId(), tenantId));
+  }
+
+  Future<ModuleDescriptor> getModuleForTimer(String tenantId, String timerId) {
+    return tenantManager.getEnabledModules(tenantId).compose(list -> {
+      String product = timerId.substring(0, timerId.indexOf(TIMER_ENTRY_SEP));
+      for (ModuleDescriptor md : list) {
+        if (product.equals(md.getProduct())) {
+          return Future.succeededFuture(md);
+        }
+      }
+      return Future.succeededFuture(null);
+    });
   }
 
   /**
@@ -161,33 +168,27 @@ public class TimerManager {
   private void handleTimer(String tenantId, TimerDescriptor timerDescriptor) {
     logger.info("timer {} handle for tenant {}", timerDescriptor.getId(), tenantId);
     final String timerId = timerDescriptor.getId();
-    tenantManager.get(tenantId)
-        .compose(tenant -> tenantTimers.get(tenantId, timerId)
-            .compose(currentDescriptor -> {
-              // if value has changed, then stop ..
-              if (!isSimilar(timerDescriptor, currentDescriptor)) {
-                return Future.succeededFuture();
-              }
-              // this timer is latest and current .. do the work..
-              // find module for this timer.. If module is not found, it was disabled
-              // in the meantime and timer is stopped.
-              return tenantManager.getEnabledModules(tenant).compose(list -> {
-                String product = timerId.substring(0, timerId.indexOf(TIMER_ENTRY_SEP));
-                for (ModuleDescriptor md : list) {
-                  if (product.equals(md.getProduct())) {
-                    if (discoveryManager.isLeader()) {
-                      // only fire timer in one instance (of the Okapi cluster)
-                      fireTimer(tenant, md, currentDescriptor);
-                    }
-                    // roll on.. wait and redo..
-                    return waitTimer(tenantId, timerDescriptor);
-                  }
-                }
-                // no module enabled that has this timer entry.. stop this timer..
-                return Future.succeededFuture();
-              });
-            })
-        )
+    tenantTimers.get(tenantId, timerId)
+        .compose(currentDescriptor -> {
+          // if value has changed, then stop ..
+          if (!isSimilar(timerDescriptor, currentDescriptor)) {
+            return Future.succeededFuture();
+          }
+          // this timer is latest and current .. do the work..
+          // find module for this timer.. If module is not found, it was disabled
+          // in the meantime and timer is stopped.
+          return getModuleForTimer(tenantId, timerId).compose(md -> {
+            if (md == null) {
+              return Future.succeededFuture();
+            }
+            if (discoveryManager.isLeader()) {
+              // only fire timer in one instance (of the Okapi cluster)
+              fireTimer(tenantId, md, currentDescriptor);
+            }
+            // roll on.. wait and redo..
+            return waitTimer(tenantId, timerDescriptor);
+          });
+        })
         .onFailure(cause -> logger.warn("handleTimer id={} {}", timerId,
             cause.getMessage(), cause));
   }
@@ -246,9 +247,21 @@ public class TimerManager {
     return tenantTimers.getNotFound(tenantId, timerDescriptor.getId())
         .compose(existing -> {
           final String existingJson = Json.encode(existing);
+          final String timerId = timerDescriptor.getId();
 
           RoutingEntry patchEntry = timerDescriptor.getRoutingEntry();
           RoutingEntry existingEntry = existing.getRoutingEntry();
+
+          if (patchEntry.getDelay() == null && patchEntry.getUnit() == null
+              && patchEntry.getSchedule() == null) {
+            return tenantTimers.remove(tenantId, timerId).compose(deleted -> {
+              JsonObject o = new JsonObject();
+              o.put("tenantId", tenantId);
+              EventBus eb = vertx.eventBus();
+              eb.publish(EVENT_NAME, o.encode());
+              return Future.succeededFuture();
+            });
+          }
           timerDescriptor.setRoutingEntry(existingEntry);
           timerDescriptor.setModified(true);
           existingEntry.setUnit(patchEntry.getUnit());
@@ -283,9 +296,15 @@ public class TimerManager {
     EventBus eb = vertx.eventBus();
     eb.consumer(EVENT_NAME, res -> {
       JsonObject o = new JsonObject((String) res.body());
+      String tenantId = o.getString("tenantId");
+      String timerDescriptorVal = o.getString("timerDescriptor");
+      if (timerDescriptorVal == null) {
+        startTimers(tenantId);
+        return;
+      }
       TimerDescriptor timerDescriptor =
-          Json.decodeValue(o.getString("timerDescriptor"), TimerDescriptor.class);
-      waitTimer(o.getString("tenantId"), timerDescriptor);
+          Json.decodeValue(timerDescriptorVal, TimerDescriptor.class);
+      waitTimer(tenantId, timerDescriptor);
     });
   }
 }

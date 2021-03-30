@@ -301,13 +301,13 @@ public class TenantManager implements Liveness {
   private void waitTenantInit(Tenant tenant, ModuleInstance getInstance,
                               ModuleInstance deleteInstance, ProxyContext pc,
                               Promise<Void> promise, long waitMs) {
-    proxyService.callSystemInterface(tenant, getInstance, "", pc)
+    proxyService.callSystemInterface(tenant.getId(), getInstance, "", pc)
         .onFailure(promise::fail)
         .onSuccess(cli -> {
           JsonObject obj = new JsonObject(cli.getResponsebody());
           Boolean complete = obj.getBoolean("complete");
           if (Boolean.TRUE.equals(complete)) {
-            proxyService.callSystemInterface(tenant, deleteInstance, "", pc)
+            proxyService.callSystemInterface(tenant.getId(), deleteInstance, "", pc)
                 .onFailure(promise::fail)
                 .onSuccess(x -> {
                   String error = obj.getString("error");
@@ -370,7 +370,7 @@ public class TenantManager implements Liveness {
           ModuleInstance postInstance = instances.get(0);
           String req = HttpMethod.DELETE.equals(postInstance.getMethod())
               ? "" : jo.encodePrettily();
-          return proxyService.callSystemInterface(tenant, postInstance, req, pc)
+          return proxyService.callSystemInterface(tenant.getId(), postInstance, req, pc)
               .compose(cres -> {
                 pc.passOkapiTraceHeaders(cres);
                 String location = cres.getRespHeaders().get("Location");
@@ -626,7 +626,7 @@ public class TenantManager implements Liveness {
       return proxyService.doCallSystemInterface(headersIn, tenant.getId(), null,
           permInst, null, pljson).mapEmpty();
     }
-    return proxyService.callSystemInterface(tenant, permInst, pljson, pc).compose(cres -> {
+    return proxyService.callSystemInterface(tenant.getId(), permInst, pljson, pc).compose(cres -> {
       pc.passOkapiTraceHeaders(cres);
       return Future.succeededFuture();
     });
@@ -823,20 +823,18 @@ public class TenantManager implements Liveness {
   Future<List<ModuleDescriptor>> listModulesFromInterface(
       String tenantId, String interfaceName, String interfaceType) {
 
-    return tenants.getNotFound(tenantId).compose(tenant -> {
-      List<ModuleDescriptor> mdList = new LinkedList<>();
-      return getEnabledModules(tenant).compose(modlist -> {
-        for (ModuleDescriptor md : modlist) {
-          for (InterfaceDescriptor provide : md.getProvidesList()) {
-            if (interfaceName.equals(provide.getId())
-                && (interfaceType == null || provide.isType(interfaceType))) {
-              mdList.add(md);
-              break;
-            }
+    List<ModuleDescriptor> mdList = new LinkedList<>();
+    return getEnabledModules(tenantId).compose(modlist -> {
+      for (ModuleDescriptor md : modlist) {
+        for (InterfaceDescriptor provide : md.getProvidesList()) {
+          if (interfaceName.equals(provide.getId())
+              && (interfaceType == null || provide.isType(interfaceType))) {
+            mdList.add(md);
+            break;
           }
         }
-        return Future.succeededFuture(mdList);
-      });
+      }
+      return Future.succeededFuture(mdList);
     });
   }
 
@@ -1161,6 +1159,16 @@ public class TenantManager implements Liveness {
       return Future.succeededFuture(new ModuleCache(new LinkedList<>()));
     }
     return Future.succeededFuture(enabledModulesCache.get(tenant.getId()));
+  }
+
+  /**
+   * Return modules enabled for tenant.
+   * @param tenantId tenant identifier.
+   * @return list of modules
+   */
+  public Future<List<ModuleDescriptor>> getEnabledModules(String tenantId) {
+    return tenants.getNotFound(tenantId)
+        .compose(tenant -> getEnabledModules(tenant));
   }
 
   /**

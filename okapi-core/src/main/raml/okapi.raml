@@ -1212,7 +1212,9 @@ types:
       patch:
         description: patch timer. Both routingEntry and id must be given.
           The routingEntry.unit, routingEntry.delay and routingEntry.schedule
-          determines the new schedule for the timer.
+          determines the new schedule for the timer. Using delay=0 disables
+          a timer. Omitting delay, unit and schedule reverts timer back to
+          initial values from module.
         body:
           application/json:
             type: TimerDescriptor
@@ -1259,7 +1261,9 @@ types:
                 text/plain:
         patch:
           description: patch timer with routing entry as body. The unit, delay
-            and schedule determines the new schedule for the timer.
+            and schedule determines the new schedule for the timer. Using delay=0
+            disables a timer. Omitting delay, unit and schedule reverts timer back
+            to initial values from module.
           body:
             application/json:
               type: RoutingEntry

@@ -3010,6 +3010,28 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // reset timer
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("{}")
+        .patch("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
+        .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // see that values are back to that of module
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
+        .then().statusCode(200)
+        .body("id", is("timer-module_0"))
+        .body("routingEntry.unit", is("millisecond"))
+        .body("routingEntry.delay", is("10"))
+        .body("modified", is(false));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
     // disable for some time...
     c = api.createRestAssured3();
     c.given()
