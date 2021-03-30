@@ -78,6 +78,7 @@ public class ProxyTest {
   private MultiMap postHandlerHeaders;
   private static RamlDefinition api;
   private int timerDelaySum = 0;
+  private int timerDelayStatus = 200;
   private int timerTenantInitStatus = 200;
   private int timerTenantPermissionsStatus = 200;
   private HttpServer listenTimer;
@@ -262,7 +263,7 @@ public class ProxyTest {
             long delay = Long.parseLong(p.substring(11)); // assume /timercall/[0-9]+
             timerDelaySum += delay;
             vertx.setTimer(delay, x -> {
-              response.setStatusCode(200);
+              response.setStatusCode(timerDelayStatus);
               response.end();
             });
           } else if (p.startsWith("/regularcall")) {
@@ -3091,6 +3092,7 @@ public class ProxyTest {
     }
 
     timerDelaySum = 0;
+    timerDelayStatus = 400;
     // add tenant 2nd time
     c = api.createRestAssured3();
     c.given()
@@ -3132,6 +3134,7 @@ public class ProxyTest {
         .header("Content-Type", "application/json")
         .delete("/_/proxy/tenants/roskilde")
         .then().statusCode(204);
+    timerDelayStatus = 200;
   }
 
   @Test
