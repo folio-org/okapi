@@ -153,7 +153,7 @@ public class TimerManager {
         }
       }
       return Future.succeededFuture(null);
-    });
+    }).recover(cause -> Future.succeededFuture(null));
   }
 
   /**
@@ -179,6 +179,7 @@ public class TimerManager {
           // in the meantime and timer is stopped.
           return getModuleForTimer(tenantId, timerId).compose(md -> {
             if (md == null) {
+              timerRunning.remove(timerId);
               return Future.succeededFuture();
             }
             if (discoveryManager.isLeader()) {
@@ -205,6 +206,7 @@ public class TimerManager {
   private Future<Void> waitTimer(String tenantId, TimerDescriptor timerDescriptor) {
     RoutingEntry routingEntry = timerDescriptor.getRoutingEntry();
     final long delay = routingEntry.getDelayMilliSeconds();
+    logger.info("waitTimer {} delay {} for tenant {}", timerDescriptor.getId(), delay, tenantId);
     if (delay > 0) {
       vertx.setTimer(delay, res -> handleTimer(tenantId, timerDescriptor));
     }
