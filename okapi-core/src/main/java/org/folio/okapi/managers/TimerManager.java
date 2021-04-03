@@ -93,12 +93,13 @@ public class TimerManager {
                 .compose(existing -> {
                   // existing patched timer descriptor takes precedence over
                   // updated module
+                  final String runId = tenantId + "_" + timerId;
                   if (existing != null && existing.isModified()) {
                     // see if timers already going for this one.
-                    if (timerRunning.contains(timerId)) {
+                    if (timerRunning.contains(runId)) {
                       return Future.succeededFuture();
                     }
-                    timerRunning.add(timerId);
+                    timerRunning.add(runId);
                     return waitTimer(tenantId, existing);
                   }
                   // new timer descriptor for module's routing entry
@@ -106,10 +107,10 @@ public class TimerManager {
                   newTimerDescriptor.setId(timerId);
                   newTimerDescriptor.setRoutingEntry(re);
                   // if it's the same and running, do nothing (timers already ongoing)
-                  if (timerRunning.contains(timerId) && isSimilar(existing, newTimerDescriptor)) {
+                  if (timerRunning.contains(runId) && isSimilar(existing, newTimerDescriptor)) {
                     return Future.succeededFuture();
                   }
-                  timerRunning.add(timerId);
+                  timerRunning.add(runId);
                   return tenantTimers.put(tenantId, timerId, newTimerDescriptor)
                       .compose(x -> waitTimer(tenantId, newTimerDescriptor));
                 });
@@ -179,7 +180,8 @@ public class TimerManager {
           // in the meantime and timer is stopped.
           return getModuleForTimer(tenantId, timerId).compose(md -> {
             if (md == null) {
-              timerRunning.remove(timerId);
+              final String runId = tenantId + "_" + timerId;
+              timerRunning.remove(runId);
               return Future.succeededFuture();
             }
             if (discoveryManager.isLeader()) {
@@ -252,42 +254,58 @@ public class TimerManager {
           final String timerId = timerDescriptor.getId();
 
           RoutingEntry patchEntry = timerDescriptor.getRoutingEntry();
-          RoutingEntry existingEntry = existing.getRoutingEntry();
-
+          Future<TimerDescriptor> future;
           if (patchEntry.getDelay() == null && patchEntry.getUnit() == null
               && patchEntry.getSchedule() == null) {
-            return tenantTimers.remove(tenantId, timerId).compose(deleted -> {
-              JsonObject o = new JsonObject();
-              o.put("tenantId", tenantId);
-              EventBus eb = vertx.eventBus();
-              eb.publish(EVENT_NAME, o.encode());
-              return Future.succeededFuture();
+            // reset to original value of module descriptor
+            future = tenantManager.getEnabledModules(tenantId).compose(mdList -> {
+              timerDescriptor.setModified(false);
+              for (ModuleDescriptor md : mdList) {
+                InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
+                if (timerInt != null) {
+                  List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
+                  int seq = 0;
+                  for (RoutingEntry re : routingEntries) {
+                    String gotTimerId = md.getProduct() + TIMER_ENTRY_SEP + seq;
+                    if (gotTimerId.equals(timerId)) {
+                      timerDescriptor.setRoutingEntry(re);
+                      return Future.succeededFuture(timerDescriptor);
+                    }
+                    seq++;
+                  }
+                }
+              }
+              return Future.succeededFuture(timerDescriptor);
             });
+          } else {
+            RoutingEntry existingEntry = existing.getRoutingEntry();
+            timerDescriptor.setRoutingEntry(existingEntry);
+            timerDescriptor.setModified(true);
+            existingEntry.setUnit(patchEntry.getUnit());
+            existingEntry.setDelay(patchEntry.getDelay());
+            existingEntry.setSchedule(patchEntry.getSchedule());
+            future = Future.succeededFuture(timerDescriptor);
           }
-          timerDescriptor.setRoutingEntry(existingEntry);
-          timerDescriptor.setModified(true);
-          existingEntry.setUnit(patchEntry.getUnit());
-          existingEntry.setDelay(patchEntry.getDelay());
-          existingEntry.setSchedule(patchEntry.getSchedule());
-
-          // if the patch is a no-op, be sure to do nothing
-          // if not there could be TWO timers for same "timer"
-          String newJson = Json.encode(timerDescriptor);
-          if (existingJson.equals(newJson)) {
-            return Future.succeededFuture();
-          }
-          // announce to shared map, then publish so that all instances of Okapi
-          // will get a new timer rolling
-          // the existing timer will notice that its timerDescriptor's routing entry is
-          // obsolete and terminate
-          return tenantTimers.put(tenantId, timerDescriptor.getId(), timerDescriptor)
-              .onSuccess(x -> {
-                JsonObject o = new JsonObject();
-                o.put("tenantId", tenantId);
-                o.put("timerDescriptor", Json.encode(timerDescriptor));
-                EventBus eb = vertx.eventBus();
-                eb.publish(EVENT_NAME, o.encode());
-              });
+          return future.compose(newDescriptor -> {
+            // if the patch is a no-op, be sure to do nothing
+            // if not there could be TWO timers for same "timer"
+            String newJson = Json.encode(newDescriptor);
+            if (existingJson.equals(newJson)) {
+              return Future.succeededFuture();
+            }
+            // announce to shared map, then publish so that all instances of Okapi
+            // will get a new timer rolling
+            // the existing timer will notice that its timerDescriptor's routing entry is
+            // obsolete and terminate
+            return tenantTimers.put(tenantId, newDescriptor.getId(), newDescriptor)
+                .onSuccess(x -> {
+                  JsonObject o = new JsonObject();
+                  o.put("tenantId", tenantId);
+                  o.put("timerDescriptor", Json.encode(newDescriptor));
+                  EventBus eb = vertx.eventBus();
+                  eb.publish(EVENT_NAME, o.encode());
+                });
+          });
         });
   }
 
@@ -300,12 +318,7 @@ public class TimerManager {
       JsonObject o = new JsonObject((String) res.body());
       String tenantId = o.getString("tenantId");
       String timerDescriptorVal = o.getString("timerDescriptor");
-      if (timerDescriptorVal == null) {
-        startTimers(tenantId);
-        return;
-      }
-      TimerDescriptor timerDescriptor =
-          Json.decodeValue(timerDescriptorVal, TimerDescriptor.class);
+      TimerDescriptor timerDescriptor = Json.decodeValue(timerDescriptorVal, TimerDescriptor.class);
       waitTimer(tenantId, timerDescriptor);
     });
   }
