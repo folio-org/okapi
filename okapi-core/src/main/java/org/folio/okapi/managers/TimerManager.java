@@ -8,9 +8,9 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -28,7 +28,7 @@ public class TimerManager {
   private static final String EVENT_NAME = "org.folio.okapi.timer.event";
   private final LockedTypedMap2<TimerDescriptor> tenantTimers
       = new LockedTypedMap2<>(TimerDescriptor.class);
-  private final Set<String> timerRunning = new HashSet<>();
+  private final Map<String,Long> timerRunning = new HashMap<>();
 
   private final boolean local;
   private TenantManager tenantManager;
@@ -96,21 +96,18 @@ public class TimerManager {
                   final String runId = tenantId + "_" + timerId;
                   if (existing != null && existing.isModified()) {
                     // see if timers already going for this one.
-                    if (timerRunning.contains(runId)) {
+                    if (timerRunning.containsKey(runId)) {
                       return Future.succeededFuture();
                     }
-                    timerRunning.add(runId);
                     return waitTimer(tenantId, existing);
                   }
                   // new timer descriptor for module's routing entry
                   TimerDescriptor newTimerDescriptor = new TimerDescriptor();
                   newTimerDescriptor.setId(timerId);
                   newTimerDescriptor.setRoutingEntry(re);
-                  // if it's the same and running, do nothing (timers already ongoing)
-                  if (timerRunning.contains(runId) && isSimilar(existing, newTimerDescriptor)) {
+                  if (timerRunning.containsKey(runId)) {
                     return Future.succeededFuture();
                   }
-                  timerRunning.add(runId);
                   return tenantTimers.put(tenantId, timerId, newTimerDescriptor)
                       .compose(x -> waitTimer(tenantId, newTimerDescriptor));
                 });
@@ -171,10 +168,6 @@ public class TimerManager {
     final String timerId = timerDescriptor.getId();
     tenantTimers.get(tenantId, timerId)
         .compose(currentDescriptor -> {
-          // if value has changed, then stop ..
-          if (!isSimilar(timerDescriptor, currentDescriptor)) {
-            return Future.succeededFuture();
-          }
           // this timer is latest and current .. do the work..
           // find module for this timer.. If module is not found, it was disabled
           // in the meantime and timer is stopped.
@@ -208,9 +201,12 @@ public class TimerManager {
   private Future<Void> waitTimer(String tenantId, TimerDescriptor timerDescriptor) {
     RoutingEntry routingEntry = timerDescriptor.getRoutingEntry();
     final long delay = routingEntry.getDelayMilliSeconds();
+    final String runId = tenantId + "_" + timerDescriptor.getId();
     logger.info("waitTimer {} delay {} for tenant {}", timerDescriptor.getId(), delay, tenantId);
     if (delay > 0) {
-      vertx.setTimer(delay, res -> handleTimer(tenantId, timerDescriptor));
+      timerRunning.put(runId, vertx.setTimer(delay, res -> handleTimer(tenantId, timerDescriptor)));
+    } else {
+      timerRunning.remove(runId);
     }
     return Future.succeededFuture();
   }
@@ -232,13 +228,6 @@ public class TimerManager {
    */
   public Future<List<TimerDescriptor>> listTimers(String tenantId) {
     return tenantTimers.get(tenantId).map(x -> x != null ? x : Collections.emptyList());
-  }
-
-  private static boolean isSimilar(TimerDescriptor a, TimerDescriptor b) {
-    if (a == null) {
-      return false;
-    }
-    return Json.encode(a).equals(Json.encode(b));
   }
 
   /**
@@ -319,6 +308,8 @@ public class TimerManager {
       String tenantId = o.getString("tenantId");
       String timerDescriptorVal = o.getString("timerDescriptor");
       TimerDescriptor timerDescriptor = Json.decodeValue(timerDescriptorVal, TimerDescriptor.class);
+      final String runId = tenantId + "_" + timerDescriptor.getId();
+      vertx.cancelTimer(timerRunning.get(runId));
       waitTimer(tenantId, timerDescriptor);
     });
   }
