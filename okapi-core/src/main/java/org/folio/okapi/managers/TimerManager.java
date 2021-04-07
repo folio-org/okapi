@@ -106,7 +106,7 @@ public class TimerManager {
                   newTimerDescriptor.setId(timerId);
                   newTimerDescriptor.setRoutingEntry(re);
                   if (timerRunning.containsKey(runId)) {
-                    return Future.succeededFuture();
+                    vertx.cancelTimer(timerRunning.get(runId));
                   }
                   return tenantTimers.put(tenantId, timerId, newTimerDescriptor)
                       .compose(x -> waitTimer(tenantId, newTimerDescriptor));

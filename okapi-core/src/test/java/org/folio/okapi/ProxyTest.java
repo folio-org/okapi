@@ -2803,10 +2803,12 @@ public class ProxyTest {
       + "  \"requires\" : [ ]" + LS
       + "}";
 
+    JsonObject docTimer_1_0_0_obj = new JsonObject(docTimer_1_0_0);
+
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
-      .body(docTimer_1_0_0).post("/_/proxy/modules").then().statusCode(201);
+      .body(docTimer_1_0_0_obj.encode()).post("/_/proxy/modules").then().statusCode(201);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -2822,6 +2824,28 @@ public class ProxyTest {
       .then().statusCode(201);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    JsonObject docTimer_1_0_1_obj = docTimer_1_0_0_obj.copy();
+    docTimer_1_0_1_obj.put("id", "timer-module-1.0.1");
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(docTimer_1_0_1_obj.encode()).post("/_/proxy/modules").then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    final String nodeDoc2 = "{" + LS
+        + "  \"instId\" : \"localhost2-" + Integer.toString(portTimer) + "\"," + LS
+        + "  \"srvcId\" : \"timer-module-1.0.1\"," + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+        + "}";
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+        .body(nodeDoc2).post("/_/discovery/modules")
+        .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
 
     final String okapiTenant = "roskilde";
 
@@ -2943,6 +2967,19 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("["
+            + " {\"id\" : \"timer-module-1.0.1\", \"action\" : \"enable\"}"
+            + "]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+        .then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+
     c = api.createRestAssured3();
     c.given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
@@ -2997,7 +3034,7 @@ public class ProxyTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("["
-        + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"disable\"}"
+        + " {\"id\" : \"timer-module-1.0.1\", \"action\" : \"disable\"}"
         + "]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200);
@@ -3117,6 +3154,7 @@ public class ProxyTest {
     }
     logger.info("timerDelaySum=" + timerDelaySum);
     context.assertTrue(timerDelaySum > 0, timerDelaySum + " > 0");
+
 
     // disable and remove tenant as well
     c = api.createRestAssured3();
