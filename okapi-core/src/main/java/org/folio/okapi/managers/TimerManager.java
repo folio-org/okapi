@@ -343,7 +343,7 @@ public class TimerManager {
                 .onSuccess(x -> {
                   JsonObject o = new JsonObject();
                   o.put("tenantId", tenantId);
-                  o.put("timerDescriptor", Json.encode(newDescriptor));
+                  o.put("timerDescriptor", newJson);
                   EventBus eb = vertx.eventBus();
                   eb.publish(EVENT_NAME, o.encode());
                 }));
