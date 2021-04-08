@@ -2965,6 +2965,14 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/tenants/" + "badtenant" + "/timers/timer-module_0")
+        .then().statusCode(404)
+        .body(containsString("badtenant"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
     given()
         .header("Content-Type", "application/json")
         .body("{ bad")

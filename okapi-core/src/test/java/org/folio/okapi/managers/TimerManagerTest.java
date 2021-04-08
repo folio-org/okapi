@@ -37,4 +37,4 @@ class TimerManagerTest {
     Assertions.assertThat(TimerManager.isPatchReset(routingEntry)).isFalse();
   }
 
-  }
+}

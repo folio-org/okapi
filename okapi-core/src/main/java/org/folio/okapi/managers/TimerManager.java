@@ -7,8 +7,10 @@ import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.logging.log4j.Logger;
@@ -19,7 +21,7 @@ import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.TimerDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.util.LockedTypedMap2;
+import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.OkapiError;
 
 public class TimerManager {
@@ -28,8 +30,7 @@ public class TimerManager {
   private static final String TIMER_ENTRY_SEP = "_";
   private static final String MAP_NAME = "org.folio.okapi.timer.map";
   private static final String EVENT_NAME = "org.folio.okapi.timer.event";
-  private final LockedTypedMap2<TimerDescriptor> tenantTimers
-      = new LockedTypedMap2<>(TimerDescriptor.class);
+  private final Map<String,LockedTypedMap1<TimerDescriptor>> tenantTimers = new HashMap<>();
   private final Map<String,Long> timerRunning = new HashMap<>();
 
   private final boolean local;
@@ -55,16 +56,13 @@ public class TimerManager {
     this.proxyService = proxyService;
     consumePatchTimer();
     tenantManager.setTenantChange(this::tenantChange);
-    return tenantTimers.init(vertx, MAP_NAME, local)
-        .compose(x ->
-            tenantManager.allTenants().compose(list -> {
-              Future<Void> future = Future.succeededFuture();
-              for (String id : list) {
-                future = future.compose(y -> startTimers(id));
-              }
-              return future;
-            })
-        );
+    return tenantManager.allTenants().compose(list -> {
+      Future<Void> future = Future.succeededFuture();
+      for (String id : list) {
+        future = future.compose(y -> startTimers(id));
+      }
+      return future;
+    });
   }
 
   /**
@@ -82,7 +80,13 @@ public class TimerManager {
    */
   private Future<Void> startTimers(String tenantId) {
     return tenantManager.getEnabledModules(tenantId).compose(mdList -> {
+
       Future<Void> future = Future.succeededFuture();
+      if (!tenantTimers.containsKey(tenantId)) {
+        LockedTypedMap1<TimerDescriptor> timerMap = new LockedTypedMap1<>(TimerDescriptor.class);
+        tenantTimers.put(tenantId, timerMap);
+        future = future.compose(x -> timerMap.init(vertx, MAP_NAME + "." + tenantId, local));
+      }
       for (ModuleDescriptor md : mdList) {
         InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
         if (timerInt != null) {
@@ -91,7 +95,7 @@ public class TimerManager {
           for (RoutingEntry re : routingEntries) {
             String timerId = md.getProduct() + TIMER_ENTRY_SEP + seq;
             future = future
-                .compose(y -> tenantTimers.get(tenantId, timerId))
+                .compose(y -> tenantTimers.get(tenantId).get(timerId))
                 .compose(existing -> {
                   // existing patched timer descriptor takes precedence over
                   // updated module
@@ -113,7 +117,7 @@ public class TimerManager {
                       return Future.succeededFuture();
                     }
                   }
-                  return tenantTimers.put(tenantId, timerId, newTimerDescriptor)
+                  return tenantTimers.get(tenantId).put(timerId, newTimerDescriptor)
                       .compose(x -> waitTimer(tenantId, newTimerDescriptor));
                 });
             seq++;
@@ -171,7 +175,7 @@ public class TimerManager {
   private void handleTimer(String tenantId, TimerDescriptor timerDescriptor) {
     logger.info("timer {} handle for tenant {}", timerDescriptor.getId(), tenantId);
     final String timerId = timerDescriptor.getId();
-    tenantTimers.get(tenantId, timerId)
+    tenantTimers.get(tenantId).get(timerId)
         .compose(currentDescriptor -> {
           // this timer is latest and current .. do the work..
           // find module for this timer.. If module is not found, it was disabled
@@ -218,12 +222,16 @@ public class TimerManager {
 
   /**
    * get timer descriptor.
-   * @param tenantID tenant identifier
+   * @param tenantId tenant identifier
    * @param timerId timer identifier
    * @return timer descriptor
    */
-  public Future<TimerDescriptor> getTimer(String tenantID, String timerId) {
-    return tenantTimers.getNotFound(tenantID, timerId);
+  public Future<TimerDescriptor> getTimer(String tenantId, String timerId) {
+    LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
+    if (timerMap == null) {
+      return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, tenantId));
+    }
+    return timerMap.getNotFound(timerId);
   }
 
   /**
@@ -231,8 +239,12 @@ public class TimerManager {
    * @param tenantId tenant identifier
    * @return timer descriptors for the tenant
    */
-  public Future<List<TimerDescriptor>> listTimers(String tenantId) {
-    return tenantTimers.get(tenantId).map(x -> x != null ? x : Collections.emptyList());
+  public Future<Collection<TimerDescriptor>> listTimers(String tenantId) {
+    LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
+    if (timerMap == null) {
+      return Future.succeededFuture(Collections.emptyList());
+    }
+    return timerMap.getAll().map(LinkedHashMap::values);
   }
 
   static boolean isSimilar(TimerDescriptor a, TimerDescriptor b) {
@@ -254,7 +266,7 @@ public class TimerManager {
    * @return future
    */
   public Future<Void> patchTimer(String tenantId, TimerDescriptor timerDescriptor) {
-    return tenantTimers.getNotFound(tenantId, timerDescriptor.getId())
+    return getTimer(tenantId, timerDescriptor.getId())
         .compose(existing -> {
           final String existingJson = Json.encode(existing);
           final String timerId = timerDescriptor.getId();
@@ -302,7 +314,7 @@ public class TimerManager {
             // will get a new timer rolling
             // the existing timer will notice that its timerDescriptor's routing entry is
             // obsolete and terminate
-            return tenantTimers.put(tenantId, newDescriptor.getId(), newDescriptor)
+            return tenantTimers.get(tenantId).put(newDescriptor.getId(), newDescriptor)
                 .onSuccess(x -> {
                   JsonObject o = new JsonObject();
                   o.put("tenantId", tenantId);

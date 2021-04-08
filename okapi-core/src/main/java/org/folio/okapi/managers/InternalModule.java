@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.Timer;
 import java.util.UUID;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
@@ -354,7 +353,7 @@ public class InternalModule {
         + "    \"methods\" :  [ \"GET\" ],"
         + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/timers/{timerId}\","
         + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.timers.get\" ], "
-        + "    \"permissionsRequiredTenant\" : [  ], "
+        + "    \"permissionsRequiredTenant\" : [ ], "
         + "    \"type\" : \"internal\" "
         + "   }, {"
         + "    \"methods\" :  [ \"PATCH\" ],"
@@ -933,7 +932,7 @@ public class InternalModule {
   }
 
   private Future<String> listTimers(String tenantId) {
-    return timerManager.listTimers(tenantId).map(list -> Json.encodePrettily(list));
+    return timerManager.listTimers(tenantId).map(Json::encodePrettily);
   }
 
   private Future<String> patchTimer(String tenantId, String body) {
