@@ -17,8 +17,10 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.TimerDescriptor;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.LockedTypedMap2;
+import org.folio.okapi.util.OkapiError;
 
 public class TimerManager {
 
@@ -107,6 +109,9 @@ public class TimerManager {
                   newTimerDescriptor.setRoutingEntry(re);
                   if (timerRunning.containsKey(runId)) {
                     vertx.cancelTimer(timerRunning.get(runId));
+                    if (isSimilar(existing, newTimerDescriptor)) {
+                      return Future.succeededFuture();
+                    }
                   }
                   return tenantTimers.put(tenantId, timerId, newTimerDescriptor)
                       .compose(x -> waitTimer(tenantId, newTimerDescriptor));
@@ -230,6 +235,18 @@ public class TimerManager {
     return tenantTimers.get(tenantId).map(x -> x != null ? x : Collections.emptyList());
   }
 
+  private static boolean isSimilar(TimerDescriptor a, TimerDescriptor b) {
+    if (a == null) {
+      return false;
+    }
+    return Json.encode(a).equals(Json.encode(b));
+  }
+
+  static boolean isPatchReset(RoutingEntry patchEntry) {
+    return patchEntry.getDelay() == null && patchEntry.getUnit() == null
+        && patchEntry.getSchedule() == null;
+  }
+
   /**
    * timer PATCH.
    * @param tenantId tenant identifier
@@ -244,8 +261,7 @@ public class TimerManager {
 
           RoutingEntry patchEntry = timerDescriptor.getRoutingEntry();
           Future<TimerDescriptor> future;
-          if (patchEntry.getDelay() == null && patchEntry.getUnit() == null
-              && patchEntry.getSchedule() == null) {
+          if (isPatchReset(patchEntry)) {
             // reset to original value of module descriptor
             future = tenantManager.getEnabledModules(tenantId).compose(mdList -> {
               timerDescriptor.setModified(false);
@@ -264,7 +280,7 @@ public class TimerManager {
                   }
                 }
               }
-              return Future.succeededFuture(timerDescriptor);
+              return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, timerId));
             });
           } else {
             RoutingEntry existingEntry = existing.getRoutingEntry();

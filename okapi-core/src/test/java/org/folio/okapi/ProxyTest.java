@@ -2827,6 +2827,8 @@ public class ProxyTest {
 
     JsonObject docTimer_1_0_1_obj = docTimer_1_0_0_obj.copy();
     docTimer_1_0_1_obj.put("id", "timer-module-1.0.1");
+    docTimer_1_0_1_obj.getJsonArray("provides").getJsonObject(1).getJsonArray("handlers").getJsonObject(1).put("delay", "20");
+
     c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
@@ -2967,7 +2969,6 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
-
     c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
@@ -2979,12 +2980,21 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
-
     c = api.createRestAssured3();
     c.given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(200)
-        .body("routingEntry.delay", is("2"));
+        .body("routingEntry.delay", is("2"))
+        .body("modified", is(true));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_1")
+        .then().statusCode(200)
+        .body("routingEntry.delay", is("20"))
+        .body("modified", is(false));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
@@ -3062,6 +3072,16 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
+    // reset timer for other timer
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("{}")
+        .patch("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_1")
+        .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
     // see that values are back to that of module
     c = api.createRestAssured3();
     c.given()
@@ -3088,6 +3108,39 @@ public class ProxyTest {
       TimeUnit.MILLISECONDS.sleep(100);
     } catch (InterruptedException ex) {
     }
+
+    // check that timer is still present.. but it should not be running
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
+        .then().statusCode(200)
+        .body("id", is("timer-module_0"))
+        .body("routingEntry.unit", is("millisecond"))
+        .body("routingEntry.delay", is("10"))
+        .body("modified", is(false));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // try to reset a timer for module that's gone
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("{}")
+        .patch("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_1")
+        .then().statusCode(404).body(containsString("timer-module_1"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_1")
+        .then().statusCode(200)
+        .body("id", is("timer-module_1"))
+        .body("routingEntry.unit", is("millisecond"))
+        .body("routingEntry.delay", is("30"))
+        .body("modified", is(false));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
 
     // enable again
     c = api.createRestAssured3();
@@ -3154,7 +3207,6 @@ public class ProxyTest {
     }
     logger.info("timerDelaySum=" + timerDelaySum);
     context.assertTrue(timerDelaySum > 0, timerDelaySum + " > 0");
-
 
     // disable and remove tenant as well
     c = api.createRestAssured3();
