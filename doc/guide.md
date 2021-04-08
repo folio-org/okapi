@@ -3141,6 +3141,18 @@ These services all have the prefix
 `/_/proxy/tenants/{tenant}/timers`.
 Consult the RAML for details.
 
+When a module is upgraded and a timer is un-modified, it will change to
+new value in new module descriptor (existing behavior since timers
+were introduced).
+
+When a module is upgraded and a timer is modified, the timer will
+stay in its current "modified" state.
+
+Timers are saved to permanent storage when modified (with HTTP PATCH).
+
+If a module is disabled and later enabled, the modified timer value will
+kick in again.
+
 As an example of using timers, consider the okapi-test-module. It has
 a routing entry with timers. See the template
 [module descriptor](../okapi-test-module/descriptors/ModuleDescriptorTimer-template.json).
