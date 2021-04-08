@@ -8,11 +8,9 @@ import org.folio.okapi.service.TimerStore;
 
 public class TimerStoreMongo implements TimerStore {
   private static final String COLLECTION = "okapi.timers";
-  private final MongoClient cli;
   private final MongoUtil<TimerDescriptor> util;
 
   public TimerStoreMongo(MongoClient cli) {
-    this.cli = cli;
     this.util = new MongoUtil<>(COLLECTION, cli);
   }
 
