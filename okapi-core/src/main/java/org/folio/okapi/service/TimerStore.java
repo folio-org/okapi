@@ -8,7 +8,7 @@ public interface TimerStore {
 
   Future<Void> init(boolean reset);
 
-  Future<List<TimerDescriptor>> getAll(String tenantId);
+  Future<List<TimerDescriptor>> getAll();
 
-  Future<Void> put(String tenantId, TimerDescriptor timerDescriptor);
+  Future<Void> put(TimerDescriptor timerDescriptor);
 }

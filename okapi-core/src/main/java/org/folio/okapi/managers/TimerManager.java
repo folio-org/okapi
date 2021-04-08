@@ -96,11 +96,16 @@ public class TimerManager {
       final LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
       if (load) {
         future = future.compose(x ->
-            timerStore.getAll(tenantId).compose(list -> {
+            timerStore.getAll().compose(list -> {
                   List<Future<Void>> futures = new LinkedList<>();
+                  int prefixLen = tenantId.length() + 1;
                   for (TimerDescriptor timerDescriptor : list) {
-                    if (timerDescriptor.isModified()) {
-                      futures.add(timerMap.put(timerDescriptor.getId(), timerDescriptor));
+                    String tenantTimerId = timerDescriptor.getId();
+                    if (tenantTimerId.startsWith(tenantId + ".")) {
+                      timerDescriptor.setId(tenantTimerId.substring(prefixLen));
+                      if (timerDescriptor.isModified()) {
+                        futures.add(timerMap.put(timerDescriptor.getId(), timerDescriptor));
+                      }
                     }
                   }
                   return GenericCompositeFuture.all(futures).mapEmpty();
@@ -329,11 +334,11 @@ public class TimerManager {
             if (existingJson.equals(newJson)) {
               return Future.succeededFuture();
             }
-            // announce to shared map, then publish so that all instances of Okapi
-            // will get a new timer rolling
-            // the existing timer will notice that its timerDescriptor's routing entry is
-            // obsolete and terminate
-            return timerStore.put(tenantId, newDescriptor)
+            TimerDescriptor newDescriptorStorage = new JsonObject(newJson)
+                .mapTo(TimerDescriptor.class);
+            String newId = tenantId + "." + newDescriptor.getId();
+            newDescriptorStorage.setId(newId);
+            return timerStore.put(newDescriptorStorage)
                 .compose(y -> tenantTimers.get(tenantId).put(newDescriptor.getId(), newDescriptor)
                 .onSuccess(x -> {
                   JsonObject o = new JsonObject();

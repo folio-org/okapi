@@ -13,12 +13,12 @@ public class TimerStoreNull implements TimerStore {
   }
 
   @Override
-  public Future<List<TimerDescriptor>> getAll(String tenantId) {
+  public Future<List<TimerDescriptor>> getAll() {
     return Future.succeededFuture(Collections.emptyList());
   }
 
   @Override
-  public Future<Void> put(String tenantId, TimerDescriptor timerDescriptor) {
+  public Future<Void> put(TimerDescriptor timerDescriptor) {
     return Future.succeededFuture();
   }
 }
