@@ -1,0 +1,14 @@
+package org.folio.okapi.service;
+
+import io.vertx.core.Future;
+import java.util.List;
+import org.folio.okapi.bean.TimerDescriptor;
+
+public interface TimerStore {
+
+  Future<Void> init(boolean reset);
+
+  Future<List<TimerDescriptor>> getAll(String tenantId);
+
+  Future<Void> put(String tenantId, TimerDescriptor timerDescriptor);
+}

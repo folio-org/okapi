@@ -2639,14 +2639,33 @@ public class ModuleTest {
         .then().statusCode(200);
 
     // create & enable sample-module also for testlib
-    final String docSampleModule = "{" + LS
-        + "  \"id\" : \"sample-module-1.0.0\"," + LS
-        + "  \"provides\" : [ ]," + LS
-        + "  \"requires\" : [ ]" + LS
-        + "}";
+    JsonObject docSampleModule1 = new JsonObject()
+        .put("id", "sample-module-1.0.0")
+        .put("requires", new JsonArray())
+        .put("provides", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "_timer")
+                .put("version", "1.0")
+                .put("interfaceType", "system")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/foo")
+                        .put("unit", "second")
+                        .put("delay", "20")
+                    )
+                )
+            )
+        );
+
+    given()
+        .get("/_/proxy/tenants/testlib/timers")
+        .then().statusCode(200)
+        .body("$", hasSize(0));
+
     given()
         .header("Content-Type", "application/json")
-        .body(docSampleModule)
+        .body(docSampleModule1.encode())
         .post("/_/proxy/modules")
         .then().statusCode(201);
 
@@ -2660,6 +2679,30 @@ public class ModuleTest {
         .header("Content-Type", "application/json")
         .get("/_/proxy/tenants/testlib/modules/sample-module-1.0.0")
         .then().statusCode(200);
+
+    given()
+        .get("/_/proxy/tenants/testlib/timers")
+        .then().statusCode(200)
+        .body("$", hasSize(1));
+
+    JsonObject routingEntry = new JsonObject()
+        .put("unit", "second")
+        .put("delay", "19");
+
+    JsonObject patchObj = new JsonObject()
+        .put("id", "sample-module_0")
+        .put("routingEntry", routingEntry);
+
+    given()
+        .header("Content-Type", "application/json")
+        .body(patchObj.encode())
+        .patch("/_/proxy/tenants/testlib/timers")
+        .then().statusCode(204);
+
+    given()
+        .get("/_/proxy/tenants/testlib/timers")
+        .then().statusCode(200)
+        .body("$", hasSize(1));
 
     // nookapi tenant does not have okapi enabled
     given()
@@ -2739,6 +2782,18 @@ public class ModuleTest {
           .statusCode(200)
           .body("$", hasSize(1))
           .body("[0].moduleId", is("okapi-3.0.0"));
+    }
+
+    if ("postgres".equals(conf.getString("storage"))) {
+      // only for storage=postgres are timers persistent
+      given()
+          .get("/_/proxy/tenants/testlib/timers")
+          .then().statusCode(200)
+          .body("$", hasSize(1))
+          .body("[0].id", is("sample-module_0"))
+          .body("[0].routingEntry.delay", is("19"))
+          .body("[0].routingEntry.unit", is("second"))
+          .body("[0].modified", is(true));
     }
 
     given()

@@ -171,7 +171,7 @@ public class MainVerticle extends AbstractVerticle {
       proxyService = new ProxyService(vertx, tenantManager, discoveryManager, internalModule,
           okapiUrl, config);
       tenantManager.setProxyService(proxyService);
-      timerManager = new TimerManager(false);
+      timerManager = new TimerManager(storage.getTimerStore(), false);
       internalModule.withTimerManager(timerManager);
     } else { // not really proxying, except to /_/deployment
       moduleManager = new ModuleManager(null, true);

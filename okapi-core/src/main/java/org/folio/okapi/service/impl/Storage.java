@@ -10,6 +10,7 @@ import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.service.EnvStore;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TenantStore;
+import org.folio.okapi.service.TimerStore;
 
 public class Storage {
 
@@ -19,6 +20,7 @@ public class Storage {
   private final TenantStore tenantStore;
   private final DeploymentStore deploymentStore;
   private final EnvStore envStore;
+  private final TimerStore timerStore;
 
   public enum InitMode {
     NORMAL, // normal operation
@@ -44,12 +46,14 @@ public class Storage {
         tenantStore = new TenantStoreMongo(mongo.getClient());
         deploymentStore = new DeploymentStoreMongo(mongo.getClient());
         envStore = new EnvStoreMongo(mongo.getClient());
+        timerStore = new TimerStoreNull();
         break;
       case "inmemory":
         moduleStore = null;
         tenantStore = new TenantStoreNull();
         deploymentStore = new DeploymentStoreNull();
         envStore = new EnvStoreNull();
+        timerStore = new TimerStoreNull();
         break;
       case "postgres":
         postgres = new PostgresHandle(vertx, config);
@@ -57,6 +61,7 @@ public class Storage {
         tenantStore = new TenantStorePostgres(postgres);
         deploymentStore = new DeploymentStorePostgres(postgres);
         envStore = new EnvStorePostgres(postgres);
+        timerStore = new TimerStorePostgres(postgres);
         break;
       default:
         logger.fatal("Unknown storage type '{}'", type);
@@ -90,6 +95,7 @@ public class Storage {
         .compose(res -> envStore.init(reset))
         .compose(res -> deploymentStore.init(reset))
         .compose(res -> tenantStore.init(reset))
+        .compose(res -> timerStore.init(reset))
         .compose(res -> {
           if (moduleStore == null) {
             return Future.succeededFuture();
@@ -114,4 +120,7 @@ public class Storage {
     return envStore;
   }
 
+  public TimerStore getTimerStore() {
+    return timerStore;
+  }
 }
