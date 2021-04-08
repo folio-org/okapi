@@ -24,6 +24,11 @@ public class OkapiToken {
     payloadWithoutValidation = this.getPayloadWithoutValidation();
   }
 
+  @Override
+  public String toString() {
+    return token;
+  }
+
   private JsonObject getPayloadWithoutValidation() {
     if (token == null) {
       return null;

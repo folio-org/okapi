@@ -18,7 +18,9 @@ import java.util.HashMap;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -33,6 +35,9 @@ public class OkapiClientTest {
   private static final String BAD_URL = "http://" + LOCALHOST + ":" + BAD_PORT;
   private final Logger logger = OkapiLogger.get();
   private HttpServer server;
+
+  @Rule
+  public Timeout timeoutRule = Timeout.seconds(5);
 
   private void myStreamHandle1(RoutingContext ctx) {
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
@@ -87,7 +92,6 @@ public class OkapiClientTest {
   public void setUp(TestContext context) {
     logger.debug("setUp");
     vertx = Vertx.vertx();
-    Async async = context.async();
 
     Router router = Router.router(vertx);
     router.get("/test1").handler(this::myStreamHandle1);
@@ -99,21 +103,17 @@ public class OkapiClientTest {
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     server = vertx.createHttpServer(so)
       .requestHandler(router)
-      .listen(
-        PORT,
-        result -> {
-          if (result.failed()) {
-            context.fail(result.cause());
-          }
-          async.complete();
-        }
-      );
+      .listen(PORT, context.asyncAssertSuccess());
   }
 
   @After
   public void tearDown(TestContext context) {
-    Async async = context.async();
-    vertx.close(x -> async.complete());
+    vertx.close(context.asyncAssertSuccess());
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void testNullUrl(TestContext context) {
+    new OkapiClient(URL, vertx, null).setOkapiUrl(null);
   }
 
   @Test
@@ -128,6 +128,24 @@ public class OkapiClientTest {
       context.assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
     });
+  }
+
+  @Test
+  public void testHeaders(TestContext context) {
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put("a", "1");
+    headers.put("b", "");
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+    context.assertEquals("1", cli.getHeaders().get("a"));
+    context.assertNull(cli.getHeaders().get("b"));
+    HashMap<String, String> headers2 = new HashMap<>();
+    headers2.put("c", "2");
+    headers2.put("d", "");
+    cli.setHeaders(headers2);
+    context.assertNull(cli.getHeaders().get("a"));
+    context.assertNull(cli.getHeaders().get("b"));
+    context.assertEquals("2", cli.getHeaders().get("c"));
+    context.assertNull(cli.getHeaders().get("d"));
   }
 
   @Test
@@ -148,6 +166,17 @@ public class OkapiClientTest {
     });
   }
 
+  private OkapiToken token(String tenant) {
+    JsonObject o = new JsonObject();
+    o.put("tenant", tenant);
+    o.put("foo", "bar");
+    String s = o.encodePrettily();
+    byte[] encodedBytes = Base64.getEncoder().encode(s.getBytes());
+    String e = new String(encodedBytes);
+    String tokenStr = "method." + e + ".trail";
+    return new OkapiToken(tokenStr);
+  }
+
   @Test
   public void test1(TestContext context) {
     final String tenant = "test-lib";
@@ -162,14 +191,8 @@ public class OkapiClientTest {
     cli.disableInfoLog();
     cli.enableInfoLog();
 
-    JsonObject o = new JsonObject();
-    o.put("tenant", tenant);
-    o.put("foo", "bar");
-    String s = o.encodePrettily();
-    byte[] encodedBytes = Base64.getEncoder().encode(s.getBytes());
-    String e = new String(encodedBytes);
-    String tokenStr = "method." + e + ".trail";
-    OkapiToken t = new OkapiToken(tokenStr);
+    OkapiToken t = token(tenant);
+    String tokenStr = t.toString();
     context.assertEquals("test-lib", t.getTenantWithoutValidation());
 
     cli.setOkapiToken(tokenStr);
@@ -254,6 +277,39 @@ public class OkapiClientTest {
       async.await();
     }
     cli.close();
+  }
+
+  @Test
+  public void testPost(TestContext context) {
+    new OkapiClient(URL, vertx, null)
+        .post("/test1", "foo")
+        .onComplete(context.asyncAssertSuccess(s -> context.assertEquals("foo", s)));
+  }
+
+  @Test
+  public void testGet(TestContext context) {
+    OkapiClient cli = new OkapiClient(URL, vertx, null);
+    cli.setOkapiToken(token("ten").toString());
+    cli.get("/test1")
+        .onComplete(context.asyncAssertSuccess(s -> context.assertEquals("hello ten", s)));
+  }
+
+  @Test
+  public void testDelete(TestContext context) {
+    OkapiClient cli = new OkapiClient(URL, vertx, null);
+    cli.delete("/test5")
+        .onComplete(context.asyncAssertFailure());
+    cli.delete("/test1")
+        .onComplete(context.asyncAssertSuccess(s -> context.assertNull(s)));
+  }
+
+  @Test
+  public void testHead(TestContext context) {
+    OkapiClient cli = new OkapiClient(URL, vertx, null);
+    cli.head("/test5")
+        .onComplete(context.asyncAssertFailure());
+    cli.head("/test1")
+        .onComplete(context.asyncAssertSuccess(s -> context.assertNull(s)));
   }
 
   @Test
