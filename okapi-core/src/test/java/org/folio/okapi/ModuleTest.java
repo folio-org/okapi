@@ -2784,8 +2784,7 @@ public class ModuleTest {
           .body("[0].moduleId", is("okapi-3.0.0"));
     }
 
-    if ("postgres".equals(conf.getString("storage"))) {
-      // only for storage=postgres are timers persistent
+    if (foundStatus == 200) {
       given()
           .get("/_/proxy/tenants/testlib/timers")
           .then().statusCode(200)

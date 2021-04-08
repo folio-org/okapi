@@ -3,36 +3,31 @@ package org.folio.okapi.service.impl;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.mongo.MongoClient;
 import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.bean.TimerDescriptor;
 import org.folio.okapi.service.TimerStore;
 
-public class TimerStorePostgres implements TimerStore {
-  private static final String TABLE = "timers";
-  private static final String JSON_COLUMN = "json";
-  private static final String ID_SELECT = JSON_COLUMN + "->>'id' = $1";
-  private static final String ID_INDEX = JSON_COLUMN + "->'id'";
-  private final PostgresTable<TimerDescriptor> pgTable;
+public class TimerStoreMongo implements TimerStore {
+  private static final String COLLECTION = "okapi.timers";
+  private final MongoClient cli;
+  private final MongoUtil<TimerDescriptor> util;
 
-  /**
-   * TimerStore Postgres constructor.
-   * @param pg handle for postgres
-   */
-  public TimerStorePostgres(PostgresHandle pg) {
-    this.pgTable = new PostgresTable<>(pg, TABLE, JSON_COLUMN, ID_INDEX, ID_SELECT,
-        "timers_tenant_timer_id");
+  public TimerStoreMongo(MongoClient cli) {
+    this.cli = cli;
+    this.util = new MongoUtil<>(COLLECTION, cli);
   }
 
   @Override
   public Future<Void> init(boolean reset) {
-    return pgTable.init(reset);
+    return util.init(reset);
   }
 
   @Override
   public Future<List<TimerDescriptor>> getAll(String tenantId) {
     int prefixLen = tenantId.length() + 1;
-    return pgTable.getAll(TimerDescriptor.class).compose(x -> {
+    return util.getAll(TimerDescriptor.class).compose(x -> {
       List<TimerDescriptor> res = new LinkedList<>();
       for (TimerDescriptor timerDescriptor : x) {
         String tenantTimerId = timerDescriptor.getId();
@@ -52,6 +47,6 @@ public class TimerStorePostgres implements TimerStore {
     TimerDescriptor timerDescriptor1 = new JsonObject(encoded).mapTo(TimerDescriptor.class);
     String newId = tenantId + "." + timerDescriptor.getId();
     timerDescriptor1.setId(newId);
-    return pgTable.update(timerDescriptor1);
+    return util.add(timerDescriptor1, newId);
   }
 }

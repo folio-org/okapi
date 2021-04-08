@@ -46,7 +46,7 @@ public class Storage {
         tenantStore = new TenantStoreMongo(mongo.getClient());
         deploymentStore = new DeploymentStoreMongo(mongo.getClient());
         envStore = new EnvStoreMongo(mongo.getClient());
-        timerStore = new TimerStoreNull();
+        timerStore = new TimerStoreMongo(mongo.getClient());
         break;
       case "inmemory":
         moduleStore = null;
