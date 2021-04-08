@@ -2752,6 +2752,40 @@ public class ProxyTest {
   public void testTimer(TestContext context) {
     RestAssuredClient c;
 
+    final String docA_1_0_0 = "{" + LS
+        + "  \"id\" : \"a-module-1.0.0\"," + LS
+        + "  \"name\" : \"a module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"aint\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/acall\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(docA_1_0_0).post("/_/proxy/modules").then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    String nodeDoc = "{" + LS
+        + "  \"instId\" : \"localhost-a" + Integer.toString(portTimer) + "\"," + LS
+        + "  \"srvcId\" : \"a-module-1.0.0\"," + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+        + "}";
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+        .body(nodeDoc).post("/_/discovery/modules")
+        .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
     final String docTimer_1_0_0 = "{" + LS
       + "  \"id\" : \"timer-module-1.0.0\"," + LS
       + "  \"name\" : \"timer module\"," + LS
@@ -2812,7 +2846,7 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    final String nodeDoc1 = "{" + LS
+    nodeDoc = "{" + LS
       + "  \"instId\" : \"localhost-" + Integer.toString(portTimer) + "\"," + LS
       + "  \"srvcId\" : \"timer-module-1.0.0\"," + LS
       + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
@@ -2820,7 +2854,7 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     c.given().header("Content-Type", "application/json")
-      .body(nodeDoc1).post("/_/discovery/modules")
+      .body(nodeDoc).post("/_/discovery/modules")
       .then().statusCode(201);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -2836,7 +2870,7 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
-    final String nodeDoc2 = "{" + LS
+    nodeDoc = "{" + LS
         + "  \"instId\" : \"localhost2-" + Integer.toString(portTimer) + "\"," + LS
         + "  \"srvcId\" : \"timer-module-1.0.1\"," + LS
         + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
@@ -2844,7 +2878,7 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     c.given().header("Content-Type", "application/json")
-        .body(nodeDoc2).post("/_/discovery/modules")
+        .body(nodeDoc).post("/_/discovery/modules")
         .then().statusCode(201);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
@@ -2885,6 +2919,7 @@ public class ProxyTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("["
+        + " {\"id\" : \"a-module-1.0.0\", \"action\" : \"enable\"},"
         + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}"
         + "]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
