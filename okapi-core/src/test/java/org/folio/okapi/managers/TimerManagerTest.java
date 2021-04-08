@@ -6,7 +6,7 @@ import org.folio.okapi.bean.Schedule;
 import org.folio.okapi.bean.TimerDescriptor;
 import org.junit.jupiter.api.Test;
 
-public class TimerManagerTest {
+class TimerManagerTest {
 
   @Test
   void testIsSimilar() {
