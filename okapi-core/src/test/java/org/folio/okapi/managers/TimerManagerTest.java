@@ -29,11 +29,11 @@ class TimerManagerTest {
     Assertions.assertThat(TimerManager.isPatchReset(routingEntry)).isTrue();
     routingEntry.setPathPattern("/path");
     Assertions.assertThat(TimerManager.isPatchReset(routingEntry)).isTrue();
-    routingEntry.setDelay("10");
+    routingEntry.setSchedule(new Schedule());
     Assertions.assertThat(TimerManager.isPatchReset(routingEntry)).isFalse();
     routingEntry.setUnit("second");
     Assertions.assertThat(TimerManager.isPatchReset(routingEntry)).isFalse();
-    routingEntry.setSchedule(new Schedule());
+    routingEntry.setDelay("10");
     Assertions.assertThat(TimerManager.isPatchReset(routingEntry)).isFalse();
   }
 
