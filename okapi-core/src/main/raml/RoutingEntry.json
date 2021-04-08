@@ -46,7 +46,7 @@
       "type": "string"
     },
     "delay": {
-      "description": "Delay between calls",
+      "description": "Delay between calls; a value of zero disables timer",
       "type": "string"
     },
     "schedule": {

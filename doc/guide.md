@@ -4,6 +4,7 @@ This is the guide and reference to Okapi: a gateway for
 managing and running microservices.
 
 <!-- Regenerate this as needed by running `make guide-toc.md` and including its output here -->
+
 * [Introduction](#introduction)
 * [Architecture](#architecture)
     * [Okapi's own Web Services](#okapis-own-web-services)
@@ -46,6 +47,7 @@ managing and running microservices.
     * [Deployment](#deployment)
     * [Docker](#docker)
     * [System Interfaces](#system-interfaces)
+    * [Timer management](#timer-management)
     * [Instrumentation](#instrumentation)
 * [Module Reference](#module-reference)
     * [Life cycle of a module](#life-cycle-of-a-module)
@@ -3127,6 +3129,65 @@ Examples:
 
 See [crontab man page](https://www.unix.com/man-page/linux/5/crontab/)
 for more information.
+
+### Timer management
+
+Okapi 4.8.0 provides service calls managing the time configuration for
+routing entries that provides the `_timer` interface. This allows
+inspecting the timer entries and modifying them - including disabling
+a timer.
+
+These services all have the prefix
+`/_/proxy/tenants/{tenant}/timers`.
+Consult the RAML for details.
+
+When a module is upgraded and a timer is un-modified, it will change to
+new value in new module descriptor (existing behavior since timers
+were introduced).
+
+When a module is upgraded and a timer is modified, the timer will
+stay in its current "modified" state.
+
+Timers are saved to permanent storage when modified (with HTTP PATCH).
+
+If a module is disabled and later enabled, the modified timer value will
+kick in again.
+
+As an example of using timers, consider the okapi-test-module. It has
+a routing entry with timers. See the template
+[module descriptor](../okapi-test-module/descriptors/ModuleDescriptorTimer-template.json).
+When okapi-test-module is "installed", the target directory should have a "final"
+module descriptor `ModuleDescriptorTimer.json`.
+
+Start okapi in a separate teminal and then enable it:
+
+```
+cd okapi-test-module/target
+curl -d'{"id":"testlib"}' http://localhost:9130/_/proxy/tenants
+curl -d@ModuleDescriptorTimer.json http://localhost:9130/_/proxy/modules
+curl -d'[{"id":"test-timer","action":"enable"}]' \
+   http://localhost:9130/_/proxy/tenants/testlib/install?deploy=true
+```
+
+The module should now be running. It has 3 timers. List them with:
+
+```
+curl http://localhost:9130/_/proxy/tenants/testlib/timers
+```
+
+The first entry fires a timer every 20 seconds. Disable it with:
+
+```
+curl -XPATCH -d'{"id":"test-timer_0","routingEntry":{"delay":"0"}}' \
+    http://localhost:9130/_/proxy/tenants/testlib/timers
+```
+
+Alternative call with timer ID in path:
+
+```
+curl -XPATCH -d'{"delay":"0"}' \
+    http://localhost:9130/_/proxy/tenants/testlib/timers/test-timer_0
+```
 
 ### Instrumentation
 
