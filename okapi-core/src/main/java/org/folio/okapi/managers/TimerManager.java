@@ -235,7 +235,7 @@ public class TimerManager {
     return tenantTimers.get(tenantId).map(x -> x != null ? x : Collections.emptyList());
   }
 
-  private static boolean isSimilar(TimerDescriptor a, TimerDescriptor b) {
+  static boolean isSimilar(TimerDescriptor a, TimerDescriptor b) {
     if (a == null) {
       return false;
     }
