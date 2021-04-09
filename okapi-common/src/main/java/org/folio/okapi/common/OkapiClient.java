@@ -1,19 +1,22 @@
 package org.folio.okapi.common;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 
 /**
@@ -45,10 +48,34 @@ public class OkapiClient {
   /**
    * Constructor from a vert.x ctx. That ctx contains all the headers we need.
    *
+   * <p>Using {@link #OkapiClient(HttpClient, RoutingContext)} or
+   * {@link #OkapiClient(WebClient, RoutingContext)} is preferred
+   * to re-use a Verticle's client allowing for pooling and pipe-lining.
+   *
    * @param ctx routing context (using some headers from it)
    */
   public OkapiClient(RoutingContext ctx) {
-    init(ctx.vertx(), ctx.vertx().createHttpClient());
+    this(ctx.vertx().createHttpClient(), ctx);
+  }
+
+  /**
+   * Constructor from a vert.x ctx. That ctx contains all the headers we need.
+   *
+   * @param httpClient the client to re-use for pooling and pipe-lining
+   * @param ctx routing context (using some headers from it)
+   */
+  public OkapiClient(HttpClient httpClient, RoutingContext ctx) {
+    this(WebClient.wrap(httpClient), ctx);
+  }
+
+  /**
+   * Constructor from a vert.x ctx. That ctx contains all the headers we need.
+   *
+   * @param webClient the client to re-use for pooling and pipe-lining
+   * @param ctx routing context (using some headers from it)
+   */
+  public OkapiClient(WebClient webClient, RoutingContext ctx) {
+    init(ctx.vertx(), webClient);
     this.okapiUrl = OkapiStringUtil.trimTrailingSlashes(
         OkapiStringUtil.removeLogCharacters(ctx.request().getHeader(XOkapiHeaders.URL)));
     for (String hdr : ctx.request().headers().names()) {
@@ -64,7 +91,8 @@ public class OkapiClient {
   }
 
   /**
-   * specify HTTP headers.
+   * Specify HTTP headers.
+   *
    * @param headers headers; a value of empty removes the header
    */
   public void setHeaders(Map<String, String> headers) {
@@ -84,7 +112,15 @@ public class OkapiClient {
   }
 
   /**
+   * Returns a read only view of the headers.
+   */
+  public Map<String, String> getHeaders() {
+    return Collections.unmodifiableMap(headers);
+  }
+
+  /**
    * Specify OKAPI-URL for the client to use.
+   *
    * @param okapiUrl URL string (such as http://localhost:1234)
    */
   public void setOkapiUrl(String okapiUrl) {
@@ -96,6 +132,10 @@ public class OkapiClient {
 
   /**
    * Explicit constructor.
+   *
+   * <p>Using {@link #OkapiClient(HttpClient, String, Vertx, Map)} or
+   * {@link #OkapiClient(WebClient, String, Vertx, Map)} is preferred
+   * to re-use a Verticle's client allowing for pooling and pipe-lining.
    *
    * @param okapiUrl OKAPI URL
    * @param vertx Vert.x handle
@@ -115,16 +155,29 @@ public class OkapiClient {
    */
   public OkapiClient(HttpClient httpClient, String okapiUrl,
                      Vertx vertx, Map<String, String> headers) {
-    init(vertx, httpClient);
+    this(WebClient.wrap(httpClient), okapiUrl, vertx, headers);
+  }
+
+  /**
+   * Explicit constructor.
+   *
+   * @param webClient client to use
+   * @param okapiUrl OKAPI URL
+   * @param vertx Vert.x handle
+   * @param headers may be null
+   */
+  public OkapiClient(WebClient webClient, String okapiUrl,
+                     Vertx vertx, Map<String, String> headers) {
+    init(vertx, webClient);
     setOkapiUrl(okapiUrl);
     setHeaders(headers);
   }
 
-  private void init(Vertx vertx, HttpClient httpClient) {
+  private void init(Vertx vertx, WebClient webClient) {
     this.vertx = vertx;
     this.retryClosedCount = 0;
     this.retryClosedWait = 0;
-    this.webClient = WebClient.wrap(httpClient);
+    this.webClient = webClient;
     this.headers = new HashMap<>();
     respHeaders = null;
     reqId = "";
@@ -163,6 +216,18 @@ public class OkapiClient {
 
   /**
    * Send HTTP request.
+   *
+   * @param method HTTP method
+   * @param path URI path
+   * @param data request data (null or "" for empty)
+   */
+  public Future<String> request(HttpMethod method, String path, String data) {
+    return request(method, path, Buffer.buffer(data == null ? "" : data));
+  }
+
+  /**
+   * Send HTTP request.
+   *
    * @param method HTTP method
    * @param path URI path
    * @param data request data (null or "" for empty)
@@ -176,91 +241,103 @@ public class OkapiClient {
 
   /**
    * Send HTTP request.
+   *
    * @param method HTTP method
    * @param path URI path
-   * @param data request data
-   * @param fut future with response as string is successful
+   * @param data request data (null or "" for empty)
+   * @param fut future with response as string if successful
    */
   public void request(HttpMethod method, String path, Buffer data,
                       Handler<ExtendedAsyncResult<String>> fut) {
 
-    if (this.okapiUrl == null) {
-      fut.handle(new Failure<>(ErrorType.INTERNAL, "OkapiClient: No OkapiUrl specified"));
-      return;
-    }
-    request1(method, path, data, res -> {
-      if (res.failed() && res.getType() == ErrorType.ANY) {
-        if (retryClosedCount > 0) {
-          retryClosedCount--;
-          vertx.setTimer(retryClosedWait, res1
-              -> request(method, path, data, fut));
-        } else {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        }
-      } else {
-        fut.handle(res);
-      }
-    });
+    request(method, path, data)
+        .onComplete(result -> fut.handle(ExtendedAsyncResult.from(result)));
   }
 
-  private void request1(HttpMethod method, String path, Buffer data,
-                        Handler<ExtendedAsyncResult<String>> fut) {
+  /**
+   * Send HTTP request.
+   *
+   * @param method HTTP method
+   * @param path URI path
+   * @param data request data
+   */
+  public Future<String> request(HttpMethod method, String path, Buffer data) {
+    if (this.okapiUrl == null) {
+      return Future.failedFuture(
+          new ErrorTypeException(ErrorType.INTERNAL, "OkapiClient: No OkapiUrl specified"));
+    }
+    return Future.future(promise -> request1(method, path, data, promise));
+  }
 
+  private void request1(HttpMethod method, String path, Buffer data, Promise<String> promise) {
+    request2(method, path, data)
+        .onSuccess(s -> promise.tryComplete(s))
+        .onFailure(e -> {
+          if (e.getCause() == null) {
+            promise.tryFail(e);
+            return;
+          }
+          if (retryClosedCount <= 0) {
+            promise.tryFail(new ErrorTypeException(ErrorType.INTERNAL, e.getCause()));
+            return;
+          }
+          retryClosedCount--;
+          vertx.setTimer(retryClosedWait, x -> request1(method, path, data, promise));
+        });
+  }
+
+  private Future<String> request2(HttpMethod method, String path, Buffer data) {
     String url = this.okapiUrl + path;
-    String tenant = "-";
-    if (headers.containsKey(XOkapiHeaders.TENANT)) {
-      tenant = headers.get(XOkapiHeaders.TENANT);
-    }
+    String tenant = headers.getOrDefault(XOkapiHeaders.TENANT, "-");
     respHeaders = null;
-    String logReqMsg = reqId + " REQ " + "okapiClient " + tenant + " "
-        + method.toString() + " " + url;
-    if (logInfo) {
-      logger.info(logReqMsg);
-    } else {
-      logger.debug(logReqMsg);
-    }
-    long t1 = System.nanoTime();
+    logger.log(logInfo ? Level.INFO : Level.DEBUG,
+        () -> reqId + " REQ okapiClient " + tenant + " " + method.toString() + " " + url);
+    long t1 = logger.isInfoEnabled() ? System.nanoTime() : 0;
     HttpRequest<Buffer> bufferHttpRequest = webClient.requestAbs(method, url);
     bufferHttpRequest.headers().addAll(headers);
-    bufferHttpRequest.sendBuffer(data, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.ANY, res.cause()));
-        return;
-      }
-      HttpResponse<Buffer> response = res.result();
-      statusCode = response.statusCode();
-      long ns = System.nanoTime() - t1;
-      String logResMsg = reqId
-          + " RES " + statusCode + " " + ns / 1000 + "us "
-          + "okapiClient " + url;
-      if (logInfo) {
-        logger.info(logResMsg);
-      } else {
-        logger.debug(logResMsg);
-      }
-      responsebody = response.bodyAsString();
-      respHeaders = response.headers();
-      if (statusCode >= 200 && statusCode <= 299) {
-        fut.handle(new Success<>(responsebody));
-      } else {
-        ErrorType errorType;
-        if (statusCode == 404) {
-          errorType = ErrorType.NOT_FOUND;
-        } else if (statusCode == 403) {
-          errorType = ErrorType.FORBIDDEN;
-        } else if (statusCode >= 500) {
-          errorType = ErrorType.INTERNAL;
-        } else {
-          errorType = ErrorType.USER;
-        }
-        fut.handle(new Failure<>(errorType, statusCode + ": " + responsebody));
-      }
-    });
+    return bufferHttpRequest.sendBuffer(data)
+        .recover(e -> {
+          return Future.failedFuture(new ErrorTypeException(ErrorType.ANY, e));
+        }).compose(response -> {
+          statusCode = response.statusCode();
+          if (logger.isInfoEnabled()) {
+            long ns = System.nanoTime() - t1;
+            String logResMsg = reqId
+                + " RES " + statusCode + " " + ns / 1000 + "us "
+                + "okapiClient " + url;
+            logger.log(logInfo ? Level.INFO : Level.DEBUG, logResMsg);
+          }
+          responsebody = response.bodyAsString();
+          respHeaders = response.headers();
+          if (statusCode >= 200 && statusCode <= 299) {
+            return Future.succeededFuture(responsebody);
+          }
+          ErrorType errorType;
+          if (statusCode == 404) {
+            errorType = ErrorType.NOT_FOUND;
+          } else if (statusCode == 403) {
+            errorType = ErrorType.FORBIDDEN;
+          } else if (statusCode >= 500) {
+            errorType = ErrorType.INTERNAL;
+          } else {
+            errorType = ErrorType.USER;
+          }
+          Exception e = new ErrorTypeException(errorType, statusCode + ": " + responsebody);
+          return Future.failedFuture(e);
+        });
+  }
+
+  public Future<String> post(String path, String data) {
+    return request(HttpMethod.POST, path, data);
   }
 
   public void post(String path, String data,
-                   Handler<ExtendedAsyncResult<String>> fut) {
+      Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.POST, path, data, fut);
+  }
+
+  public Future<String> get(String path) {
+    return request(HttpMethod.GET, path, Buffer.buffer());
   }
 
   public void get(String path,
@@ -268,13 +345,21 @@ public class OkapiClient {
     request(HttpMethod.GET, path, "", fut);
   }
 
+  public Future<String> delete(String path) {
+    return request(HttpMethod.DELETE, path, Buffer.buffer());
+  }
+
   public void delete(String path,
                      Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.DELETE, path, "", fut);
   }
 
+  public Future<String> head(String path) {
+    return request(HttpMethod.HEAD, path, Buffer.buffer());
+  }
+
   public void head(String path,
-                   Handler<ExtendedAsyncResult<String>> fut) {
+      Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.HEAD, path, "", fut);
   }
 
@@ -284,8 +369,6 @@ public class OkapiClient {
 
   /**
    * Get the response headers. May be null
-   *
-   * @return
    */
   public MultiMap getRespHeaders() {
     return respHeaders;
@@ -294,8 +377,6 @@ public class OkapiClient {
   /**
    * Get the response body. Same string as returned in the callback from
    * request().
-   *
-   * @return
    */
   public String getResponsebody() {
     return responsebody;
@@ -336,7 +417,10 @@ public class OkapiClient {
   }
 
   /**
-   * Close HTTP connection for client.
+   * Close HTTP connection for client. This closes the {@link WebClient} and the
+   * {@link HttpClient}. A Verticle should create a single WebClient or HttpClient
+   * and reuse it for all request to allow for pooling and pipe-lining, and should only
+   * close it when the Verticle shuts down.
    */
   public void close() {
     if (webClient != null) {
