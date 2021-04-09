@@ -9,4 +9,23 @@ import io.vertx.core.AsyncResult;
 public interface ExtendedAsyncResult<T> extends AsyncResult<T> {
 
   ErrorType getType();
+
+  /**
+   * Create an ExtendedAsyncResult from the AsyncResult.
+   */
+  public static <T> ExtendedAsyncResult<T> from(AsyncResult<T> asyncResult) {
+    if (asyncResult instanceof ExtendedAsyncResult) {
+      return (ExtendedAsyncResult<T>) asyncResult;
+    }
+    if (asyncResult.succeeded()) {
+      return new Success<T>(asyncResult.result());
+    }
+    Throwable cause = asyncResult.cause();
+    if (cause instanceof ErrorTypeException) {
+      ErrorType errorType = ((ErrorTypeException) cause).getErrorType();
+      Throwable causeCause = cause.getCause();
+      return new Failure<T>(errorType, causeCause != null ? causeCause : cause);
+    }
+    return new Failure<T>(ErrorType.ANY, cause);
+  }
 }
