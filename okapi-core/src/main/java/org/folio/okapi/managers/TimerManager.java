@@ -107,10 +107,10 @@ public class TimerManager {
             return Future.succeededFuture();
           }
           final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
-          if (timerRunning.containsKey(runId)) {
-            vertx.cancelTimer(timerRunning.get(runId));
-            timerRunning.remove(runId);
-          }
+          Long id = timerRunning.remove(runId);
+          if (id != null) {
+            vertx.cancelTimer(id);
+           }
           timerMap.remove(timerId);
           return timerStore.delete(runId).mapEmpty();
         }));
