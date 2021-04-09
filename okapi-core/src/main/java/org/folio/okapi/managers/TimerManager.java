@@ -210,8 +210,8 @@ public class TimerManager {
 
   Future<ModuleDescriptor> getModuleForTimer(String tenantId, String timerId) {
     return tenantManager.getEnabledModules(tenantId)
-        .compose(list -> getModuleForTimer(list, timerId)
-        ).recover(cause -> Future.succeededFuture(null));
+        .compose(list -> getModuleForTimer(list, timerId))
+        .recover(cause -> Future.succeededFuture(null));
   }
 
   Future<ModuleDescriptor> getModuleForTimer(List<ModuleDescriptor> list, String timerId) {
