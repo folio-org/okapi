@@ -36,6 +36,7 @@ import org.folio.okapi.managers.ModuleManager;
 import org.folio.okapi.managers.ProxyService;
 import org.folio.okapi.managers.PullManager;
 import org.folio.okapi.managers.TenantManager;
+import org.folio.okapi.managers.TimerManager;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.service.impl.Storage;
@@ -53,6 +54,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private ModuleManager moduleManager;
   private TenantManager tenantManager;
+  private TimerManager timerManager;
   private EnvManager envManager;
   private ProxyService proxyService;
   private DeploymentManager deploymentManager;
@@ -165,10 +167,12 @@ public class MainVerticle extends AbstractVerticle {
       PullManager pullManager = new PullManager(vertx, moduleManager);
       InternalModule internalModule = new InternalModule(moduleManager,
           tenantManager, deploymentManager, discoveryManager,
-          envManager, pullManager,okapiVersion);
+          envManager, pullManager, okapiVersion);
       proxyService = new ProxyService(vertx, tenantManager, discoveryManager, internalModule,
           okapiUrl, config);
       tenantManager.setProxyService(proxyService);
+      timerManager = new TimerManager(storage.getTimerStore(), false);
+      internalModule.withTimerManager(timerManager);
     } else { // not really proxying, except to /_/deployment
       moduleManager = new ModuleManager(null, true);
       tenantManager = new TenantManager(moduleManager, new TenantStoreNull(), true);
@@ -210,6 +214,7 @@ public class MainVerticle extends AbstractVerticle {
       fut = fut.compose(x -> startDeployment());
       fut = fut.compose(x -> startListening());
       fut = fut.compose(x -> startRedeploy());
+      fut = fut.compose(x -> startTimers());
       fut = fut.compose(x -> healthManager.init(vertx, Collections.singletonList(tenantManager)));
     }
     fut.onComplete(x -> {
@@ -337,8 +342,16 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startRedeploy() {
-    return discoveryManager.restartModules()
-        .compose(res -> tenantManager.startTimers(discoveryManager, okapiVersion));
+    return discoveryManager.restartModules();
   }
 
+  private Future<Void> startTimers() {
+    return tenantManager.prepareModules(okapiVersion)
+        .compose(x -> {
+          if (timerManager == null) {
+            return Future.succeededFuture();
+          }
+          return timerManager.init(vertx, tenantManager, discoveryManager, proxyService);
+        });
+  }
 }

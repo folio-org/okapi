@@ -1,17 +1,13 @@
 package org.folio.okapi.managers;
 
-import com.github.dockerjava.api.model.Link;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-
 import java.util.LinkedList;
 import java.util.List;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -26,7 +22,6 @@ import org.folio.okapi.util.LockedTypedMap1Faulty;
 import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.TestBase;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -261,16 +256,6 @@ public class TenantManagerTest extends TestBase {
       });
       async.await();
     }
-  }
-
-  @Test
-  public void handleTimerForNonexistingTenant(TestContext context) {
-    TenantManager tenantManager = new TenantManager( null, new TenantStoreNull(), true);
-    tenantManager.getTimers().add("tenantId_moduleId_0");
-    tenantManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(done -> {
-      tenantManager.handleTimer("tenantId", "moduleId", 0);
-      Assert.assertEquals(0, tenantManager.getTimers().size());
-    }));
   }
 
   @Test

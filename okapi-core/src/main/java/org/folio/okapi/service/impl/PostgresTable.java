@@ -21,7 +21,6 @@ class PostgresTable<T> {
   PostgresTable(PostgresHandle pg, String table, String jsonColumn,
                 String idIndex, String idSelect, String indexName) {
 
-
     this.pg = pg;
     this.table = table;
     this.jsonColumn = jsonColumn;

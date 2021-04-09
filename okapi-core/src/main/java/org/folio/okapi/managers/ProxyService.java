@@ -1107,26 +1107,25 @@ public class ProxyService {
    * are working as the right tenant, and if not so, change identity to the
    * correct one.
    *
-   * @param tenant to make the request for
+   * @param tenantId tenant identifier to make the request for
    * @param inst carries the moduleDescriptor, RoutingEntry, and getPath to be called
    * @param request body to send in the request
    * @param pc ProxyContext for logging, and returning resp headers
    * @return future with the OkapiClient that contains the body, headers
    */
-  public Future<OkapiClient> callSystemInterface(Tenant tenant, ModuleInstance inst,
+  public Future<OkapiClient> callSystemInterface(String tenantId, ModuleInstance inst,
                                                  String request, ProxyContext pc) {
 
     MultiMap headersIn = pc.getCtx().request().headers();
-    return callSystemInterface(headersIn, tenant, inst, request);
+    return callSystemInterface(headersIn, tenantId, inst, request);
   }
 
-  Future<OkapiClient> callSystemInterface(MultiMap headersIn, Tenant tenant,
+  Future<OkapiClient> callSystemInterface(MultiMap headersIn, String tenantId,
                                           ModuleInstance inst, String request) {
 
     if (!headersIn.contains(XOkapiHeaders.URL)) {
       headersIn.set(XOkapiHeaders.URL, okapiUrl);
     }
-    String tenantId = tenant.getId(); // the tenant we are about to enable
     // Check if the actual tenant has auth enabled. If yes, get a token for it.
     // If we have auth for current (super)tenant is irrelevant here!
     logger.debug("callSystemInterface: Checking if {} has auth", tenantId);
@@ -1134,7 +1133,7 @@ public class ProxyService {
     if (!enableSystemAuth) {
       return doCallSystemInterface(headersIn, tenantId, null, inst, null, request);
     }
-    return tenantManager.getEnabledModules(tenant).compose(enabledModules -> {
+    return tenantManager.getEnabledModules(tenantId).compose(enabledModules -> {
       for (ModuleDescriptor md : enabledModules) {
         RoutingEntry[] filters = md.getFilters();
         if (filters != null) {

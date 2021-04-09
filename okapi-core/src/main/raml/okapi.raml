@@ -9,6 +9,9 @@ types:
   ModuleList: !include ModuleList.json
   InterfaceDescriptor: !include InterfaceDescriptor.json
   InterfaceList: !include InterfaceList.json
+  RoutingEntry: !include RoutingEntry.json
+  TimerDescriptor: !include TimerDescriptor.json
+  TimerDescriptorList: !include TimerDescriptorList.json
   InstallJob: !include InstallJob.json
   InstallJobList: !include InstallJobList.json
   TenantDescriptor: !include TenantDescriptor.json
@@ -1171,6 +1174,105 @@ types:
               body:
                 application/json:
                   type: TenantModuleDescriptorList
+            400:
+              description: Client Error
+              body:
+                text/plain:
+            404:
+              description: Not Found
+              body:
+                text/plain:
+            500:
+              description: Server Error
+              body:
+                text/plain:
+    /timers:
+      get:
+        description: Get timers for tenant.
+        responses:
+          200:
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+            body:
+              application/json:
+                type: TimerDescriptorList
+          400:
+            description: Client Error
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server Error
+            body:
+              text/plain:
+      patch:
+        description: patch timer. Both routingEntry and id must be given.
+          The routingEntry.unit, routingEntry.delay and routingEntry.schedule
+          determines the new schedule for the timer. Using delay=0 disables
+          a timer. Omitting delay, unit and schedule reverts timer back to
+          initial values from module.
+        body:
+          application/json:
+            type: TimerDescriptor
+        responses:
+          204:
+            description: Patch OK
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+          400:
+            description: Client Error
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server Error
+            body:
+              text/plain:
+      /{timer_id}:
+        get:
+          description: get timer with id given.
+          responses:
+            200:
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
+              body:
+                application/json:
+                  type: TimerDescriptor
+            400:
+              description: Client Error
+              body:
+                text/plain:
+            404:
+              description: Not Found
+              body:
+                text/plain:
+            500:
+              description: Server Error
+              body:
+                text/plain:
+        patch:
+          description: patch timer with routing entry as body. The unit, delay
+            and schedule determines the new schedule for the timer. Using delay=0
+            disables a timer. Omitting delay, unit and schedule reverts timer back
+            to initial values from module.
+          body:
+            application/json:
+              type: RoutingEntry
+          responses:
+            204:
+              description: Patch OK
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
             400:
               description: Client Error
               body:

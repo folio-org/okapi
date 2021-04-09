@@ -274,7 +274,6 @@ public class RoutingEntry {
 
   public void setPath(String path) {
     this.path = path;
-    this.pathPattern = null;
   }
 
   public String getPathPattern() {
@@ -312,7 +311,6 @@ public class RoutingEntry {
    * @throws DecodeException if pattern is invalid.
    */
   public void setPathPattern(String pathPattern) {
-    this.path = null;
     this.pathPattern = pathPattern;
     int i = 0;
     while (i < pathPattern.length()) {
