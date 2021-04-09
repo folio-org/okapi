@@ -102,18 +102,16 @@ public class TimerManager {
     return timerMap.getAll().compose(list -> {
       List<Future<Void>> futures = new LinkedList<>();
       for (String timerId : list.keySet()) {
-        futures.add(getModuleForTimer(mdList, timerId).compose(md -> {
-          if (md != null) {
-            return Future.succeededFuture();
-          }
+        ModuleDescriptor md = getModuleForTimer(mdList, timerId);
+        if (md == null) {
           final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
           Long id = timerRunning.remove(runId);
           if (id != null) {
             vertx.cancelTimer(id);
           }
           timerMap.remove(timerId);
-          return timerStore.delete(runId).mapEmpty();
-        }));
+          futures.add(timerStore.delete(runId).mapEmpty());
+        }
       }
       return GenericCompositeFuture.all(futures).mapEmpty();
     });
@@ -210,11 +208,11 @@ public class TimerManager {
 
   Future<ModuleDescriptor> getModuleForTimer(String tenantId, String timerId) {
     return tenantManager.getEnabledModules(tenantId)
-        .compose(list -> getModuleForTimer(list, timerId))
+        .map(list -> getModuleForTimer(list, timerId))
         .recover(cause -> Future.succeededFuture(null));
   }
 
-  Future<ModuleDescriptor> getModuleForTimer(List<ModuleDescriptor> list, String timerId) {
+  ModuleDescriptor getModuleForTimer(List<ModuleDescriptor> list, String timerId) {
     String product = timerId.substring(0, timerId.indexOf(TIMER_ENTRY_SEP));
     int seq = Integer.parseInt(timerId.substring(timerId.indexOf(TIMER_ENTRY_SEP) + 1));
     for (ModuleDescriptor md : list) {
@@ -223,12 +221,12 @@ public class TimerManager {
         if (timerInt != null) {
           List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
           if (seq < routingEntries.size()) {
-            return Future.succeededFuture(md);
+            return md;
           }
         }
       }
     }
-    return Future.succeededFuture(null);
+    return null;
   }
 
   /**
