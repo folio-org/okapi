@@ -78,6 +78,87 @@ public class TimerManager {
     startTimers(tenantId, false);
   }
 
+  private Future<Void> loadFromStorage(String tenantId) {
+    final LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
+    return timerStore.getAll().compose(list -> {
+          List<Future<Void>> futures = new LinkedList<>();
+          String prefix = tenantId + TIMER_ENTRY_SEP;
+          for (TimerDescriptor timerDescriptor : list) {
+            String tenantTimerId = timerDescriptor.getId();
+            if (tenantTimerId.startsWith(prefix)) {
+              timerDescriptor.setId(tenantTimerId.substring(prefix.length()));
+              if (timerDescriptor.isModified()) {
+                futures.add(timerMap.put(timerDescriptor.getId(), timerDescriptor));
+              }
+            }
+          }
+          return GenericCompositeFuture.all(futures).mapEmpty();
+        }
+    );
+  }
+
+  private Future<Void> removeStale(String tenantId, List<ModuleDescriptor> mdList) {
+    final LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
+    return timerMap.getAll().compose(list -> {
+      List<Future<Void>> futures = new LinkedList<>();
+      for (String timerId : list.keySet()) {
+        ModuleDescriptor md = getModuleForTimer(mdList, timerId);
+        if (md == null) {
+          final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
+          Long id = timerRunning.remove(runId);
+          if (id != null) {
+            vertx.cancelTimer(id);
+          }
+          timerMap.remove(timerId);
+          futures.add(timerStore.delete(runId).mapEmpty());
+        }
+      }
+      return GenericCompositeFuture.all(futures).mapEmpty();
+    });
+  }
+
+  private Future<Void> handleNew(String tenantId, List<ModuleDescriptor> mdList) {
+    final LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
+    Future<Void> future = Future.succeededFuture();
+    for (ModuleDescriptor md : mdList) {
+      InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
+      if (timerInt != null) {
+        List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
+        int seq = 0;
+        for (RoutingEntry re : routingEntries) {
+          String timerId = md.getProduct() + TIMER_ENTRY_SEP + seq;
+          future = future
+              .compose(y -> timerMap.get(timerId))
+              .compose(existing -> {
+                // patched timer descriptor takes precedence over updated module
+                final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
+                if (existing != null && existing.isModified()) {
+                  // see if timers already going for this one.
+                  if (timerRunning.containsKey(runId)) {
+                    return Future.succeededFuture();
+                  }
+                  return waitTimer(tenantId, existing);
+                }
+                // non-patched timer descriptor for module's routing entry
+                TimerDescriptor newTimerDescriptor = new TimerDescriptor();
+                newTimerDescriptor.setId(timerId);
+                newTimerDescriptor.setRoutingEntry(re);
+                if (timerRunning.containsKey(runId)) {
+                  vertx.cancelTimer(timerRunning.get(runId));
+                  if (isSimilar(existing, newTimerDescriptor)) {
+                    return Future.succeededFuture();
+                  }
+                }
+                return timerMap.put(timerId, newTimerDescriptor)
+                    .compose(x -> waitTimer(tenantId, newTimerDescriptor));
+              });
+          seq++;
+        }
+      }
+    }
+    return future;
+  }
+
   /**
    * enable timers for enabled modules for a tenant.
    * @param tenantId Tenant identifier
@@ -93,64 +174,12 @@ public class TimerManager {
         tenantTimers.put(tenantId, timerMap);
         future = future.compose(x -> timerMap.init(vertx, MAP_NAME + "." + tenantId, local));
       }
-      final LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
       if (load) {
-        future = future.compose(x ->
-            timerStore.getAll().compose(list -> {
-                  List<Future<Void>> futures = new LinkedList<>();
-                  int prefixLen = tenantId.length() + 1;
-                  for (TimerDescriptor timerDescriptor : list) {
-                    String tenantTimerId = timerDescriptor.getId();
-                    if (tenantTimerId.startsWith(tenantId + ".")) {
-                      timerDescriptor.setId(tenantTimerId.substring(prefixLen));
-                      if (timerDescriptor.isModified()) {
-                        futures.add(timerMap.put(timerDescriptor.getId(), timerDescriptor));
-                      }
-                    }
-                  }
-                  return GenericCompositeFuture.all(futures).mapEmpty();
-                }
-            )
-        );
+        future = future.compose(x -> loadFromStorage(tenantId));
       }
-      for (ModuleDescriptor md : mdList) {
-        InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
-        if (timerInt != null) {
-          List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
-          int seq = 0;
-          for (RoutingEntry re : routingEntries) {
-            String timerId = md.getProduct() + TIMER_ENTRY_SEP + seq;
-            future = future
-                .compose(y -> timerMap.get(timerId))
-                .compose(existing -> {
-                  // existing patched timer descriptor takes precedence over
-                  // updated module
-                  final String runId = tenantId + "_" + timerId;
-                  if (existing != null && existing.isModified()) {
-                    // see if timers already going for this one.
-                    if (timerRunning.containsKey(runId)) {
-                      return Future.succeededFuture();
-                    }
-                    return waitTimer(tenantId, existing);
-                  }
-                  // new timer descriptor for module's routing entry
-                  TimerDescriptor newTimerDescriptor = new TimerDescriptor();
-                  newTimerDescriptor.setId(timerId);
-                  newTimerDescriptor.setRoutingEntry(re);
-                  if (timerRunning.containsKey(runId)) {
-                    vertx.cancelTimer(timerRunning.get(runId));
-                    if (isSimilar(existing, newTimerDescriptor)) {
-                      return Future.succeededFuture();
-                    }
-                  }
-                  return timerMap.put(timerId, newTimerDescriptor)
-                      .compose(x -> waitTimer(tenantId, newTimerDescriptor));
-                });
-            seq++;
-          }
-        }
-      }
-      return future;
+      return future
+          .compose(x -> removeStale(tenantId, mdList))
+          .compose(x -> handleNew(tenantId, mdList));
     });
   }
 
@@ -178,23 +207,33 @@ public class TimerManager {
   }
 
   Future<ModuleDescriptor> getModuleForTimer(String tenantId, String timerId) {
-    return tenantManager.getEnabledModules(tenantId).compose(list -> {
-      String product = timerId.substring(0, timerId.indexOf(TIMER_ENTRY_SEP));
-      for (ModuleDescriptor md : list) {
-        if (product.equals(md.getProduct())) {
-          return Future.succeededFuture(md);
+    return tenantManager.getEnabledModules(tenantId)
+        .map(list -> getModuleForTimer(list, timerId))
+        .recover(cause -> Future.succeededFuture(null));
+  }
+
+  ModuleDescriptor getModuleForTimer(List<ModuleDescriptor> list, String timerId) {
+    String product = timerId.substring(0, timerId.indexOf(TIMER_ENTRY_SEP));
+    int seq = Integer.parseInt(timerId.substring(timerId.indexOf(TIMER_ENTRY_SEP) + 1));
+    for (ModuleDescriptor md : list) {
+      if (product.equals(md.getProduct())) {
+        InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
+        if (timerInt != null) {
+          List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
+          if (seq < routingEntries.size()) {
+            return md;
+          }
         }
       }
-      return Future.succeededFuture(null);
-    }).recover(cause -> Future.succeededFuture(null));
+    }
+    return null;
   }
 
   /**
    * Handle a timer timer.
    *
    * <p>This method is called for each timer in each tenant and for each instance in
-   * the Okapi cluster. We have no way of stopping a timer.. So in fact this call
-   * may result in nothing.. because the timer descriptor is obsolete (patch or module update)
+   * the Okapi cluster.
    * @param tenantId tenant identifier
    * @param timerDescriptor descriptor that this handling
    */
@@ -208,7 +247,7 @@ public class TimerManager {
           // in the meantime and timer is stopped.
           return getModuleForTimer(tenantId, timerId).compose(md -> {
             if (md == null) {
-              final String runId = tenantId + "_" + timerId;
+              final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
               timerRunning.remove(runId);
               return Future.succeededFuture();
             }
@@ -236,7 +275,7 @@ public class TimerManager {
   private Future<Void> waitTimer(String tenantId, TimerDescriptor timerDescriptor) {
     RoutingEntry routingEntry = timerDescriptor.getRoutingEntry();
     final long delay = routingEntry.getDelayMilliSeconds();
-    final String runId = tenantId + "_" + timerDescriptor.getId();
+    final String runId = tenantId + TIMER_ENTRY_SEP + timerDescriptor.getId();
     logger.info("waitTimer {} delay {} for tenant {}", timerDescriptor.getId(), delay, tenantId);
     if (delay > 0) {
       timerRunning.put(runId, vertx.setTimer(delay, res -> handleTimer(tenantId, timerDescriptor)));
@@ -336,7 +375,7 @@ public class TimerManager {
             }
             TimerDescriptor newDescriptorStorage = new JsonObject(newJson)
                 .mapTo(TimerDescriptor.class);
-            String newId = tenantId + "." + newDescriptor.getId();
+            String newId = tenantId + TIMER_ENTRY_SEP + newDescriptor.getId();
             newDescriptorStorage.setId(newId);
             return timerStore.put(newDescriptorStorage)
                 .compose(y -> tenantTimers.get(tenantId).put(newDescriptor.getId(), newDescriptor)
@@ -361,7 +400,7 @@ public class TimerManager {
       String tenantId = o.getString("tenantId");
       String timerDescriptorVal = o.getString("timerDescriptor");
       TimerDescriptor timerDescriptor = Json.decodeValue(timerDescriptorVal, TimerDescriptor.class);
-      final String runId = tenantId + "_" + timerDescriptor.getId();
+      final String runId = tenantId + TIMER_ENTRY_SEP + timerDescriptor.getId();
       vertx.cancelTimer(timerRunning.get(runId));
       waitTimer(tenantId, timerDescriptor);
     });

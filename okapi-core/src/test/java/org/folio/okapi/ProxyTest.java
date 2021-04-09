@@ -3152,15 +3152,11 @@ public class ProxyTest {
     } catch (InterruptedException ex) {
     }
 
-    // check that timer is still present.. but it should not be running
+    // check that timer gone
     c = api.createRestAssured3();
     c.given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
-        .then().statusCode(200)
-        .body("id", is("timer-module_0"))
-        .body("routingEntry.unit", is("millisecond"))
-        .body("routingEntry.delay", is("10"))
-        .body("modified", is(false));
+        .then().statusCode(404);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
@@ -3171,17 +3167,6 @@ public class ProxyTest {
         .body("{}")
         .patch("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_1")
         .then().statusCode(404).body(containsString("timer-module_1"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
-
-    c = api.createRestAssured3();
-    c.given()
-        .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_1")
-        .then().statusCode(200)
-        .body("id", is("timer-module_1"))
-        .body("routingEntry.unit", is("millisecond"))
-        .body("routingEntry.delay", is("30"))
-        .body("modified", is(false));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 

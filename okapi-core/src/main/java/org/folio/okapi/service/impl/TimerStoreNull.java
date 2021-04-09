@@ -21,4 +21,9 @@ public class TimerStoreNull implements TimerStore {
   public Future<Void> put(TimerDescriptor timerDescriptor) {
     return Future.succeededFuture();
   }
+
+  @Override
+  public Future<Boolean> delete(String id) {
+    return Future.succeededFuture(Boolean.TRUE);
+  }
 }

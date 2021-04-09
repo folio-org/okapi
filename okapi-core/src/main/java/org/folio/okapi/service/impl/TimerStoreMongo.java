@@ -28,4 +28,9 @@ public class TimerStoreMongo implements TimerStore {
   public Future<Void> put(TimerDescriptor timerDescriptor) {
     return util.add(timerDescriptor, timerDescriptor.getId());
   }
+
+  @Override
+  public Future<Boolean> delete(String id) {
+    return util.delete(id);
+  }
 }
