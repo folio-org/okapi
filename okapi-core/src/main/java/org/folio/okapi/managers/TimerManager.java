@@ -83,8 +83,8 @@ public class TimerManager {
     return timerStore.getAll().compose(list -> {
           List<Future<Void>> futures = new LinkedList<>();
           String prefix = tenantId + TIMER_ENTRY_SEP;
-           for (TimerDescriptor timerDescriptor : list) {
-             String tenantTimerId = timerDescriptor.getId();
+          for (TimerDescriptor timerDescriptor : list) {
+            String tenantTimerId = timerDescriptor.getId();
             if (tenantTimerId.startsWith(prefix)) {
               timerDescriptor.setId(tenantTimerId.substring(prefix.length()));
               if (timerDescriptor.isModified()) {
@@ -110,7 +110,7 @@ public class TimerManager {
           Long id = timerRunning.remove(runId);
           if (id != null) {
             vertx.cancelTimer(id);
-           }
+          }
           timerMap.remove(timerId);
           return timerStore.delete(runId).mapEmpty();
         }));
