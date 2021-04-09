@@ -11,4 +11,6 @@ public interface TimerStore {
   Future<List<TimerDescriptor>> getAll();
 
   Future<Void> put(TimerDescriptor timerDescriptor);
+
+  Future<Boolean> delete(String id);
 }
