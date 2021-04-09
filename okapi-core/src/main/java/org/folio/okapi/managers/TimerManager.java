@@ -82,11 +82,11 @@ public class TimerManager {
     final LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
     return timerStore.getAll().compose(list -> {
           List<Future<Void>> futures = new LinkedList<>();
-          int prefixLen = tenantId.length() + 1;
-          for (TimerDescriptor timerDescriptor : list) {
-            String tenantTimerId = timerDescriptor.getId();
-            if (tenantTimerId.startsWith(tenantId + "_")) {
-              timerDescriptor.setId(tenantTimerId.substring(prefixLen));
+          String prefix = tenantId + TIMER_ENTRY_SEP;
+           for (TimerDescriptor timerDescriptor : list) {
+             String tenantTimerId = timerDescriptor.getId();
+            if (tenantTimerId.startsWith(prefix)) {
+              timerDescriptor.setId(tenantTimerId.substring(prefix.length()));
               if (timerDescriptor.isModified()) {
                 futures.add(timerMap.put(timerDescriptor.getId(), timerDescriptor));
               }
