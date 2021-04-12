@@ -3065,7 +3065,7 @@ public class ProxyTest {
     } catch (InterruptedException ex) {
     }
     Assertions.assertThat(timerDelaySum.containsKey(0)).isFalse();
-    Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(1);
+    Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(0);
     Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2);
 
     // enable it again
