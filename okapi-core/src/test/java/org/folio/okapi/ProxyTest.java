@@ -37,11 +37,15 @@ import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.Logger;
+import org.assertj.core.api.Assertions;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
@@ -77,7 +81,7 @@ public class ProxyTest {
   private Buffer postBuffer;
   private MultiMap postHandlerHeaders;
   private static RamlDefinition api;
-  private int timerDelaySum = 0;
+  private Map<Integer, Integer> timerDelaySum = new HashMap<>();
   private int timerDelayStatus = 200;
   private int timerTenantInitStatus = 200;
   private int timerTenantPermissionsStatus = 200;
@@ -260,12 +264,13 @@ public class ProxyTest {
             response.setStatusCode(timerTenantPermissionsStatus);
             response.end("timer permissions response");
           } else if (p.startsWith("/timercall/")) {
-            long delay = Long.parseLong(p.substring(11)); // assume /timercall/[0-9]+
-            timerDelaySum += delay;
-            vertx.setTimer(delay, x -> {
-              response.setStatusCode(timerDelayStatus);
-              response.end();
-            });
+            int id = Integer.parseInt(p.substring(11)); // assume /timercall/[0-9]+
+            Integer val = timerDelaySum.putIfAbsent(id, 1);
+            if (val != null) {
+              timerDelaySum.put(id, val + 1);
+            }
+            response.setStatusCode(timerDelayStatus);
+            response.end();
           } else if (p.startsWith("/regularcall")) {
             response.end(extractSubFromToken(ctx));
           } else if (p.startsWith("/corscall")) {
@@ -2678,7 +2683,6 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", "supertenant").post("/authn/login")
       .then().statusCode(200).extract().header("X-Okapi-Token");
 
-    c = api.createRestAssured3();
     given()
       .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "application/json")
@@ -2748,140 +2752,130 @@ public class ProxyTest {
       .then().statusCode(204).log().ifValidationFails();
   }
 
+  void addAndDeploy(JsonObject moduleObj, String moduleName, int port) {
+    RestAssuredClient c;
+    moduleObj.put("id", moduleName);
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(moduleObj.encode()).post("/_/proxy/modules").then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    final JsonObject deployObj = new JsonObject()
+        .put("instId", UUID.randomUUID().toString())
+        .put("srvcId", moduleName)
+        .put("url", "http://localhost:" + port);
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+        .body(deployObj.encode()).post("/_/discovery/modules")
+        .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+  }
+
   @Test
   public void testTimer(TestContext context) {
     RestAssuredClient c;
 
-    final String docA_1_0_0 = "{" + LS
-        + "  \"id\" : \"a-module-1.0.0\"," + LS
-        + "  \"name\" : \"a module\"," + LS
-        + "  \"provides\" : [ {" + LS
-        + "    \"id\" : \"aint\"," + LS
-        + "    \"version\" : \"1.0\"," + LS
-        + "    \"handlers\" : [ {" + LS
-        + "      \"methods\" : [ \"POST\" ]," + LS
-        + "      \"pathPattern\" : \"/acall\"," + LS
-        + "      \"permissionsRequired\" : [ ]" + LS
-        + "    } ]" + LS
-        + "  } ]," + LS
-        + "  \"requires\" : [ ]" + LS
-        + "}";
-    c = api.createRestAssured3();
-    c.given()
-        .header("Content-Type", "application/json")
-        .body(docA_1_0_0).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
+    JsonObject docA_obj = new JsonObject()
+        .put("provides", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "aint")
+                .put("version", "1.0")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/acall")
+                        .put("permissionsRequired", new JsonArray()
+                        )
+                    )
+                )
+            )
+        )
+        .put("requires", new JsonArray());
 
-    String nodeDoc = "{" + LS
-        + "  \"instId\" : \"localhost-a" + Integer.toString(portTimer) + "\"," + LS
-        + "  \"srvcId\" : \"a-module-1.0.0\"," + LS
-        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
-        + "}";
+    addAndDeploy(docA_obj, "a-module-1.0.0", portTimer);
 
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
-        .body(nodeDoc).post("/_/discovery/modules")
-        .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
+    JsonObject docTimer_1_0_0_obj = new JsonObject()
+        .put("provides", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "_tenant")
+                .put("version", "1.1")
+                .put("interfaceType", "system")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/_/tenant/disable")
+                        .put("permissionsRequired", new JsonArray()
+                        )
+                    )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST").add("DELETE"))
+                        .put("pathPattern", "/_/tenant")
+                        .put("permissionsRequired", new JsonArray()
+                        )
+                    )))
+            .add(new JsonObject()
+                .put("id", "_timer")
+                .put("version", "1.0")
+                .put("interfaceType", "system")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/timercall/0")
+                        .put("unit", "millisecond")
+                        .put("delay", "10")
+                        .put("permissionsRequired", new JsonArray()
+                        )
+                    )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/timercall/1")
+                        .put("unit", "millisecond")
+                        .put("delay", "5")
+                        .put("permissionsRequired", new JsonArray()
+                        )
+                    )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/timercall/2")
+                        .put("unit", "millisecond")
+                        .put("delay", "5")
+                        .put("permissionsRequired", new JsonArray()
+                        )
+                    )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/timercall/3")
+                        .put("schedule", new JsonObject().put("cron", "1 1 1 1 *"))
+                        .put("permissionsRequired", new JsonArray()
+                        )
+                    )))
+            .add(new JsonObject()
+                .put("id", "myint")
+                .put("version", "1.0")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/timercall/{id}")
+                        .put("permissionsRequired", new JsonArray()
+                        )
+                    )
+                )
+            )
+        )
+        .put("requires", new JsonArray());
 
-    final String docTimer_1_0_0 = "{" + LS
-      + "  \"id\" : \"timer-module-1.0.0\"," + LS
-      + "  \"name\" : \"timer module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.1\"," + LS
-      + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
-      + "      \"permissionsRequired\" : [ ]" + LS
-      + "    }, {" + LS
-      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"," + LS
-      + "      \"permissionsRequired\" : [ ]" + LS
-      + "    } ]" + LS
-      + "  }, {" + LS
-      + "    \"id\" : \"_timer\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/timercall/1\"," + LS
-      + "      \"unit\" : \"millisecond\"," + LS
-      + "      \"delay\" : \"10\"," + LS
-      + "      \"permissionsRequired\" : [ ]" + LS
-      + "   }, {" + LS
-      + "      \"methods\" : [ \"GET\" ]," + LS
-      + "      \"path\" : \"/timercall/3\"," + LS
-      + "      \"unit\" : \"millisecond\"," + LS
-      + "      \"delay\" : \"30\"," + LS
-      + "      \"permissionsRequired\" : [ ]" + LS
-      + "   }, {" + LS
-      + "      \"methods\" : [ \"GET\" ]," + LS
-      + "      \"path\" : \"/timercall/5\"," + LS
-      + "      \"schedule\" : {" + LS
-      + "         \"cron\" : \"1 1 1 1 *\"" + LS
-      + "      }" + LS
-      + "    } ]" + LS
-      + "  }, {" + LS
-      + "    \"id\" : \"myint\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
-      + "      \"permissionsRequired\" : [ ]" + LS
-      + "    } ]" + LS
-      + "  } ]," + LS
-      + "  \"requires\" : [ ]" + LS
-      + "}";
-
-    JsonObject docTimer_1_0_0_obj = new JsonObject(docTimer_1_0_0);
-
-    c = api.createRestAssured3();
-    c.given()
-      .header("Content-Type", "application/json")
-      .body(docTimer_1_0_0_obj.encode()).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
-    nodeDoc = "{" + LS
-      + "  \"instId\" : \"localhost-" + Integer.toString(portTimer) + "\"," + LS
-      + "  \"srvcId\" : \"timer-module-1.0.0\"," + LS
-      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
-      + "}";
-
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
-      .body(nodeDoc).post("/_/discovery/modules")
-      .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+    addAndDeploy(docTimer_1_0_0_obj, "timer-module-1.0.0", portTimer);
 
     JsonObject docTimer_1_0_1_obj = docTimer_1_0_0_obj.copy();
-    docTimer_1_0_1_obj.put("id", "timer-module-1.0.1");
-    docTimer_1_0_1_obj.getJsonArray("provides").getJsonObject(1).getJsonArray("handlers").getJsonObject(1).put("delay", "20");
+    docTimer_1_0_1_obj.getJsonArray("provides")
+        .getJsonObject(1).getJsonArray("handlers").getJsonObject(1).put("delay", "20");
 
-    c = api.createRestAssured3();
-    c.given()
-        .header("Content-Type", "application/json")
-        .body(docTimer_1_0_1_obj.encode()).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
-
-    nodeDoc = "{" + LS
-        + "  \"instId\" : \"localhost2-" + Integer.toString(portTimer) + "\"," + LS
-        + "  \"srvcId\" : \"timer-module-1.0.1\"," + LS
-        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
-        + "}";
-
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
-        .body(nodeDoc).post("/_/discovery/modules")
-        .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
+    addAndDeploy(docTimer_1_0_1_obj, "timer-module-1.0.1", portTimer);
 
     final String okapiTenant = "roskilde";
 
@@ -2895,9 +2889,7 @@ public class ProxyTest {
 
     // add tenant
     final String docTenantRoskilde = "{" + LS
-      + "  \"id\" : \"" + okapiTenant + "\"," + LS
-      + "  \"name\" : \"" + okapiTenant + "\"," + LS
-      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"" + LS
       + "}";
     c = api.createRestAssured3();
     c.given()
@@ -2914,7 +2906,6 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
-    timerDelaySum = 0;
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
@@ -2928,13 +2919,12 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
 
     try {
-      TimeUnit.MILLISECONDS.sleep(100);
+      TimeUnit.MILLISECONDS.sleep(50);
     } catch (InterruptedException ex) {
     }
-
-    // n in timerDelaySum. 10 ms wait in between
-    logger.info("timerDelaySum=" + timerDelaySum);
-    context.assertTrue(timerDelaySum >= 3 && timerDelaySum <= 30, "Got " + timerDelaySum);
+    Assertions.assertThat(timerDelaySum.get(0)).isGreaterThan(1);
+    Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(2);
+    Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2);
 
     c = api.createRestAssured3();
     c.given()
@@ -2952,7 +2942,7 @@ public class ProxyTest {
     c.given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers")
         .then().statusCode(200)
-        .body("$", hasSize(3));
+        .body("$", hasSize(4));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
@@ -3041,6 +3031,15 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_2")
+        .then().statusCode(200)
+        .body("routingEntry.delay", is("5"))
+        .body("modified", is(false));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
     given()
         .header("X-Okapi-Tenant", okapiTenant)
         .header("Content-Type", "text/plain")
@@ -3060,13 +3059,14 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
-    timerDelaySum = 0;
+    timerDelaySum.clear();
     try {
-      TimeUnit.MILLISECONDS.sleep(20);
+      TimeUnit.MILLISECONDS.sleep(50);
     } catch (InterruptedException ex) {
     }
-    logger.info("timerDelaySum=" + timerDelaySum);
-    context.assertEquals(0, timerDelaySum);
+    Assertions.assertThat(timerDelaySum.containsKey(0)).isFalse();
+    Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(0);
+    Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2);
 
     // enable it again
     c = api.createRestAssured3();
@@ -3209,7 +3209,7 @@ public class ProxyTest {
     } catch (InterruptedException ex) {
     }
 
-    timerDelaySum = 0;
+    timerDelaySum.clear();
     timerDelayStatus = 400;
     // add tenant 2nd time
     c = api.createRestAssured3();
@@ -3233,8 +3233,9 @@ public class ProxyTest {
       TimeUnit.MILLISECONDS.sleep(50);
     } catch (InterruptedException ex) {
     }
-    logger.info("timerDelaySum=" + timerDelaySum);
-    context.assertTrue(timerDelaySum > 0, timerDelaySum + " > 0");
+    Assertions.assertThat(timerDelaySum.get(0)).isGreaterThan(1);
+    Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(1);
+    Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2);
 
     // disable and remove tenant as well
     c = api.createRestAssured3();
