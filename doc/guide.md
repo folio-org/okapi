@@ -3153,8 +3153,8 @@ stay in its current "modified" state.
 
 Timers are saved to permanent storage when modified (with HTTP PATCH).
 
-If a module is disabled and later enabled, the modified timer value will
-kick in again.
+If a module is disabled or the timers disappear in new definitions,
+timers are removed from persistent storage.
 
 As an example of using timers, consider the okapi-test-module. It has
 a routing entry with timers. See the template

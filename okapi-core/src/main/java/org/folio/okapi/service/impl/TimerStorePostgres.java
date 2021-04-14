@@ -35,4 +35,9 @@ public class TimerStorePostgres implements TimerStore {
   public Future<Void> put(TimerDescriptor timerDescriptor) {
     return pgTable.update(timerDescriptor);
   }
+
+  @Override
+  public Future<Boolean> delete(String id) {
+    return pgTable.delete(id).mapEmpty();
+  }
 }

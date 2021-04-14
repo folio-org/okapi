@@ -2654,6 +2654,12 @@ public class ModuleTest {
                         .put("unit", "second")
                         .put("delay", "20")
                     )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/bar")
+                        .put("unit", "second")
+                        .put("delay", "60")
+                    )
                 )
             )
         );
@@ -2683,21 +2689,59 @@ public class ModuleTest {
     given()
         .get("/_/proxy/tenants/testlib/timers")
         .then().statusCode(200)
-        .body("$", hasSize(1));
+        .body("$", hasSize(2));
 
     JsonObject routingEntry = new JsonObject()
         .put("unit", "second")
         .put("delay", "19");
 
-    JsonObject patchObj = new JsonObject()
-        .put("id", "sample-module_0")
-        .put("routingEntry", routingEntry);
+    given()
+        .header("Content-Type", "application/json")
+        .body(routingEntry.encode())
+        .patch("/_/proxy/tenants/testlib/timers/sample-module_0") // patch foo
+        .then().statusCode(204);
 
     given()
         .header("Content-Type", "application/json")
-        .body(patchObj.encode())
-        .patch("/_/proxy/tenants/testlib/timers")
+        .body(routingEntry.encode())
+        .patch("/_/proxy/tenants/testlib/timers/sample-module_1") // patch bar
         .then().statusCode(204);
+
+    given()
+        .get("/_/proxy/tenants/testlib/timers")
+        .then().statusCode(200)
+        .body("$", hasSize(2));
+
+    JsonObject docSampleModule2 = new JsonObject()
+        .put("id", "sample-module-1.0.1")
+        .put("requires", new JsonArray())
+        .put("provides", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "_timer")
+                .put("version", "1.0")
+                .put("interfaceType", "system")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/foo")
+                        .put("unit", "second")
+                        .put("delay", "20")
+                    )
+                )
+            )
+        );
+
+    given()
+        .header("Content-Type", "application/json")
+        .body(docSampleModule2.encode())
+        .post("/_/proxy/modules")
+        .then().statusCode(201);
+
+    given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("id", "sample-module-1.0.1").encode())
+        .post("/_/proxy/tenants/testlib/modules/sample-module-1.0.0")
+        .then().statusCode(201);
 
     given()
         .get("/_/proxy/tenants/testlib/timers")
@@ -2744,7 +2788,7 @@ public class ModuleTest {
           .body("$", hasSize(3))
           .body("[0].moduleId", is("header-1"))
           .body("[1].moduleId", is("okapi-0.0.0"))
-          .body("[2].moduleId", is("sample-module-1.0.0"));
+          .body("[2].moduleId", is("sample-module-1.0.1"));
     }
 
     conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
