@@ -36,9 +36,9 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
-import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
@@ -565,15 +565,6 @@ public class ProxyService {
                     stream.resume();
                     return; // ctx already set up
                   }
-                  // check delegate CORS and reroute if necessary
-                  if (CorsHelper.checkCorsDelegate(ctx, l)) {
-                    // HTTP code 100 is chosen purely as metrics tag placeholder
-                    MetricsHelper.recordHttpServerProcessingTime(pc.getSample(), pc.getTenant(),
-                        100, pc.getCtx().request().method().name(), pc.getHandlerModuleInstance());
-                    stream.resume();
-                    ctx.reroute(ctx.request().path());
-                    return;
-                  }
 
                   pc.setModList(l);
 
@@ -752,7 +743,7 @@ public class ProxyService {
     }
     clientRequest.headers().setAll(ctx.request().headers());
     clientRequest.headers().remove("Content-Length");
-    final String phase = mi.getRoutingEntry().getPhase();
+    final String phase = mi == null ? "" : mi.getRoutingEntry().getPhase();
     if (!XOkapiHeaders.FILTER_AUTH.equals(phase)) {
       clientRequest.headers().remove(XOkapiHeaders.ADDITIONAL_TOKEN);
     }
@@ -1313,13 +1304,36 @@ public class ProxyService {
         .replaceFirst("^/_/invoke/tenant/([^/ ]+)/.*$", "$1");
     String newPath = origPath
         .replaceFirst("^/_/invoke/tenant/[^/ ]+(/.*$)", "$1");
-    if (qry != null && !qry.isEmpty()) {
-      // vert.x 3.5 clears the parameters on reroute, so we pass them in ctx
-      ctx.data().put(REDIRECTQUERY, qry);
+
+    // delegate CORS for preflight request
+    if (HttpMethod.OPTIONS.equals(ctx.request().method())
+        && ctx.data().containsKey(CorsHelper.DELEGATE_CORS)) {
+      ModuleInstance mi = (ModuleInstance) ctx.data().get(CorsHelper.DELEGATE_CORS_MODULE_INSTANCE);
+      resolveUrls(Arrays.asList(mi));
+      RequestOptions requestOptions = new RequestOptions().setMethod(ctx.request().method())
+          .setAbsoluteURI(mi.getUrl() + newPath);
+      httpClient.request(requestOptions)
+          .compose(clientRequest -> {
+            copyHeaders(clientRequest, ctx, null);
+            clientRequest.end();
+            return clientRequest.response();
+          })
+          .onSuccess(res -> {
+            ctx.response().setStatusCode(res.statusCode());
+            ctx.response().headers().addAll(res.headers());
+            sanitizeAuthHeaders(ctx.response().headers());
+            ctx.response().end();
+          })
+          .onFailure(cause -> HttpResponse.responseError(ctx, 500, cause.getMessage()));
+    } else {
+      if (qry != null && !qry.isEmpty()) {
+        // vert.x 3.5 clears the parameters on reroute, so we pass them in ctx
+        ctx.data().put(REDIRECTQUERY, qry);
+      }
+      ctx.request().headers().add(XOkapiHeaders.TENANT, tid);
+      logger.debug("redirectProxy: '{}' '{}'", tid, newPath);
+      ctx.reroute(newPath);
     }
-    ctx.request().headers().add(XOkapiHeaders.TENANT, tid);
-    logger.debug("redirectProxy: '{}' '{}'", tid, newPath);
-    ctx.reroute(newPath);
   }
 
   public Future<Void> autoDeploy(ModuleDescriptor md) {
