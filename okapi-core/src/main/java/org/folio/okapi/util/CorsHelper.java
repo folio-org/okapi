@@ -33,10 +33,9 @@ public class CorsHelper {
   public static void addCorsHandler(Router router, final TenantManager tenantManager) {
 
     // set delegate CORS for special cases
-    router.routeWithRegex("^/_/invoke/tenant/[^/ ]+/.*").handler(ctx -> {
-      String origPath = ctx.request().path();
-      String tenantId = origPath.replaceFirst("^/_/invoke/tenant/([^/ ]+)/.*$", "$1");
-      String newPath = origPath.replaceFirst("^/_/invoke/tenant/[^/ ]+(/.*$)", "$1");
+    router.routeWithRegex("^/_/invoke/tenant/([^/ ]+)(/.*)").handler(ctx -> {
+      String tenantId = ctx.pathParam("param0");
+      String newPath = ctx.pathParam("param1");
       String meth = ctx.request().getHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD);
       HttpMethod method = meth != null ? HttpMethod.valueOf(meth) : ctx.request().method();
       String moduleId = ctx.request().getHeader(XOkapiHeaders.MODULE_ID);
