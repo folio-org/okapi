@@ -1312,20 +1312,19 @@ public class ProxyService {
       resolveUrls(Arrays.asList(mi));
       RequestOptions requestOptions = new RequestOptions().setMethod(ctx.request().method())
           .setAbsoluteURI(mi.getUrl() + newPath);
-      Future<HttpClientRequest> fut = httpClient.request(requestOptions);
-      fut.onFailure(cause -> HttpResponse.responseError(ctx, 500, cause.getMessage()));
-      fut.onSuccess(clientRequest -> {
-        copyHeaders(clientRequest, ctx, null);
-        clientRequest.end();
-        clientRequest.response()
-            .onFailure(cause -> HttpResponse.responseError(ctx, 500, cause.getMessage()))
-            .onSuccess(res -> {
-              ctx.response().setStatusCode(res.statusCode());
-              ctx.response().headers().addAll(res.headers());
-              sanitizeAuthHeaders(ctx.response().headers());
-              ctx.response().end();
-            });
-      });
+      httpClient.request(requestOptions)
+          .compose(clientRequest -> {
+            copyHeaders(clientRequest, ctx, null);
+            clientRequest.end();
+            return clientRequest.response();
+          })
+          .onSuccess(res -> {
+            ctx.response().setStatusCode(res.statusCode());
+            ctx.response().headers().addAll(res.headers());
+            sanitizeAuthHeaders(ctx.response().headers());
+            ctx.response().end();
+          })
+          .onFailure(cause -> HttpResponse.responseError(ctx, 500, cause.getMessage()));
     } else {
       if (qry != null && !qry.isEmpty()) {
         // vert.x 3.5 clears the parameters on reroute, so we pass them in ctx
