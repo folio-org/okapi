@@ -283,6 +283,11 @@ public class ProxyTest {
     } else if (HttpMethod.GET.equals(request.method())) {
       response.setStatusCode(200);
       response.end("");
+    } else if (HttpMethod.OPTIONS.equals(request.method()) && p.startsWith("/corscall")) {
+      response.putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "localhost");
+      response.putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "POST");
+      response.setStatusCode(204);
+      response.end();
     } else {
       response.setStatusCode(404);
       response.end("Unsupported method");
@@ -3911,6 +3916,18 @@ public class ProxyTest {
 
     RestAssuredClient c = api.createRestAssured3();
 
+    // no CORS delegate preflight
+    c.given()
+      .header(HttpHeaders.ORIGIN.toString(), "http://localhost")
+      .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD.toString(), HttpMethod.POST.name())
+      .options("/_/invoke/tenant/" + tenant + "/regularcall")
+      .then()
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), "*")
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS.toString(), notNullValue())
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS.toString(), notNullValue())
+      .statusCode(204)
+      .log().ifValidationFails();
+
     // no CORS delegate
     c.given()
       .header("Content-Type", "application/json")
@@ -3921,6 +3938,18 @@ public class ProxyTest {
       .then()
       .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS.toString(), notNullValue())
       .statusCode(200)
+      .log().ifValidationFails();
+
+    // with CORS delegate preflight
+    c.given()
+      .header(HttpHeaders.ORIGIN.toString(), "http://localhost")
+      .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD.toString(), HttpMethod.POST.name())
+      .options("/_/invoke/tenant/" + tenant + "/corscall")
+      .then()
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), "localhost")
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS.toString(), nullValue())
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS.toString(), "POST")
+      .statusCode(204)
       .log().ifValidationFails();
 
     // with CORS delegate
