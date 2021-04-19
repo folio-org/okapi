@@ -36,6 +36,7 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
+import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.HttpResponse;
@@ -550,41 +551,34 @@ public class ProxyService {
           stream.resume();
           pc.responseError(400, messages.getMessage("10106", tenantId));
         })
-        .onSuccess(tenant ->
-            tenantManager.getModuleCache(tenant)
-                .onFailure(cause -> {
-                  stream.resume();
-                  pc.responseError(OkapiError.getType(cause), cause);
-                })
-                .onSuccess(cache -> {
-                  final Timer.Sample sample = MetricsHelper.getTimerSample();
-                  List<ModuleInstance> l = getModulesForRequest(pc, cache);
-                  MetricsHelper.recordCodeExecutionTime(sample,
-                      "ProxyService.getModulesForRequest");
-                  if (l == null) {
-                    stream.resume();
-                    return; // ctx already set up
-                  }
+        .onSuccess(tenant -> {
+          final Timer.Sample sample = MetricsHelper.getTimerSample();
+          List<ModuleInstance> l = getModulesForRequest(pc, tenantManager.getModuleCache(tenant));
+          MetricsHelper.recordCodeExecutionTime(sample,
+              "ProxyService.getModulesForRequest");
+          if (l == null) {
+            stream.resume();
+            return; // ctx already set up
+          }
 
-                  pc.setModList(l);
+          pc.setModList(l);
 
-                  pc.logRequest(ctx, tenantId);
+          pc.logRequest(ctx, tenantId);
 
-                  headers.set(XOkapiHeaders.URL, okapiUrl);
-                  headers.remove(XOkapiHeaders.MODULE_ID);
-                  headers.set(XOkapiHeaders.REQUEST_IP, ctx.request().remoteAddress().host());
-                  headers.set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + System.currentTimeMillis());
-                  headers.set(XOkapiHeaders.REQUEST_METHOD, ctx.request().method().name());
+          headers.set(XOkapiHeaders.URL, okapiUrl);
+          headers.remove(XOkapiHeaders.MODULE_ID);
+          headers.set(XOkapiHeaders.REQUEST_IP, ctx.request().remoteAddress().host());
+          headers.set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + System.currentTimeMillis());
+          headers.set(XOkapiHeaders.REQUEST_METHOD, ctx.request().method().name());
 
-                  resolveUrls(l).onFailure(cause -> {
-                    stream.resume();
-                    pc.responseError(OkapiError.getType(cause), cause);
-                  }).onSuccess(res -> {
-                    List<HttpClientRequest> clientRequest = new LinkedList<>();
-                    proxyR(l.iterator(), pc, stream, null, clientRequest);
-                  });
-                })
-        );
+          resolveUrls(l).onFailure(cause -> {
+            stream.resume();
+            pc.responseError(OkapiError.getType(cause), cause);
+          }).onSuccess(res -> {
+            List<HttpClientRequest> clientRequest = new LinkedList<>();
+            proxyR(l.iterator(), pc, stream, null, clientRequest);
+          });
+        });
   }
 
   private static void clientsEnd(Buffer bcontent, List<HttpClientRequest> clientRequestList) {
@@ -1121,22 +1115,21 @@ public class ProxyService {
     if (!enableSystemAuth) {
       return doCallSystemInterface(headersIn, tenantId, null, inst, null, request);
     }
-    return tenantManager.getEnabledModules(tenant).compose(enabledModules -> {
-      for (ModuleDescriptor md : enabledModules) {
-        RoutingEntry[] filters = md.getFilters();
-        if (filters != null) {
-          for (RoutingEntry filt : filters) {
-            if (XOkapiHeaders.FILTER_AUTH.equals(filt.getPhase())) {
-              logger.debug("callSystemInterface: Found auth filter in {}", md.getId());
-              return authForSystemInterface(md, filt, tenantId, inst, request, headersIn);
-            }
+    List<ModuleDescriptor> enabledModules = tenantManager.getEnabledModules(tenant);
+    for (ModuleDescriptor md : enabledModules) {
+      RoutingEntry[] filters = md.getFilters();
+      if (filters != null) {
+        for (RoutingEntry filt : filters) {
+          if (XOkapiHeaders.FILTER_AUTH.equals(filt.getPhase())) {
+            logger.debug("callSystemInterface: Found auth filter in {}", md.getId());
+            return authForSystemInterface(md, filt, tenantId, inst, request, headersIn);
           }
         }
       }
-      logger.debug("callSystemInterface: No auth for {} calling with "
-          + "tenant header only", tenantId);
-      return doCallSystemInterface(headersIn, tenantId, null, inst, null, request);
-    });
+    }
+    logger.debug("callSystemInterface: No auth for {} calling with "
+        + "tenant header only", tenantId);
+    return doCallSystemInterface(headersIn, tenantId, null, inst, null, request);
   }
 
   /**
