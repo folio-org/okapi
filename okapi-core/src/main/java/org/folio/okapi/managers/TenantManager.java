@@ -227,35 +227,34 @@ public class TenantManager implements Liveness {
   Future<Void> enableAndDisableCheck(Tenant tenant, ModuleDescriptor modFrom,
                                      ModuleDescriptor modTo) {
 
-    return getEnabledModules(tenant).compose(modlist -> {
-      HashMap<String, ModuleDescriptor> mods = new HashMap<>(modlist.size());
-      for (ModuleDescriptor md : modlist) {
-        mods.put(md.getId(), md);
-      }
-      if (modTo == null) {
-        String deps = DepResolution.checkAllDependencies(mods);
-        if (!deps.isEmpty()) {
-          return Future.succeededFuture(); // failures even before we remove a module
-        }
-      }
-      if (modFrom != null) {
-        mods.remove(modFrom.getId());
-      }
-      if (modTo != null) {
-        ModuleDescriptor already = mods.get(modTo.getId());
-        if (already != null) {
-          return Future.failedFuture(new OkapiError(ErrorType.USER,
-              "Module " + modTo.getId() + " already provided"));
-        }
-        mods.put(modTo.getId(), modTo);
-      }
-      String conflicts = DepResolution.checkAllConflicts(mods);
+    List<ModuleDescriptor> modlist = getEnabledModules(tenant);
+    HashMap<String, ModuleDescriptor> mods = new HashMap<>(modlist.size());
+    for (ModuleDescriptor md : modlist) {
+      mods.put(md.getId(), md);
+    }
+    if (modTo == null) {
       String deps = DepResolution.checkAllDependencies(mods);
-      if (!conflicts.isEmpty() || !deps.isEmpty()) {
-        return Future.failedFuture(new OkapiError(ErrorType.USER, conflicts + " " + deps));
+      if (!deps.isEmpty()) {
+        return Future.succeededFuture(); // failures even before we remove a module
       }
-      return Future.succeededFuture();
-    });
+    }
+    if (modFrom != null) {
+      mods.remove(modFrom.getId());
+    }
+    if (modTo != null) {
+      ModuleDescriptor already = mods.get(modTo.getId());
+      if (already != null) {
+        return Future.failedFuture(new OkapiError(ErrorType.USER,
+            "Module " + modTo.getId() + " already provided"));
+      }
+      mods.put(modTo.getId(), modTo);
+    }
+    String conflicts = DepResolution.checkAllConflicts(mods);
+    String deps = DepResolution.checkAllDependencies(mods);
+    if (!conflicts.isEmpty() || !deps.isEmpty()) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, conflicts + " " + deps));
+    }
+    return Future.succeededFuture();
   }
 
   Future<String> enableAndDisableModule(
@@ -415,12 +414,11 @@ public class TenantManager implements Liveness {
     if (mdTo != null && mdTo.getSystemInterface("_tenantPermissions") != null) {
       return Future.succeededFuture();
     }
-    return findSystemInterface(tenant, "_tenantPermissions").compose(md -> {
-      if (md == null || !options.checkInvoke(md.getId())) {
-        return Future.succeededFuture();
-      }
-      return invokePermissionsForModule(tenant, mdFrom, mdTo, md, pc);
-    });
+    ModuleDescriptor md = findSystemInterface(tenant, "_tenantPermissions");
+    if (md == null || !options.checkInvoke(md.getId())) {
+      return Future.succeededFuture();
+    }
+    return invokePermissionsForModule(tenant, mdFrom, mdTo, md, pc);
   }
 
   /**
@@ -775,49 +773,45 @@ public class TenantManager implements Liveness {
    *
    * @param tenant tenant to check for
    * @param interfaceName system interface to search for
-   * @return future with ModuleDescriptor result (== null for not found)
+   * @return found ModuleDescriptor result or null for not found
    */
 
-  private Future<ModuleDescriptor> findSystemInterface(Tenant tenant, String interfaceName) {
-    return getEnabledModules(tenant).compose(res -> {
-      for (ModuleDescriptor md : res) {
-        if (md.getSystemInterface(interfaceName) != null) {
-          return Future.succeededFuture(md);
-        }
+  private ModuleDescriptor findSystemInterface(Tenant tenant, String interfaceName) {
+    for (ModuleDescriptor md : getEnabledModules(tenant)) {
+      if (md.getSystemInterface(interfaceName) != null) {
+        return md;
       }
-      return Future.succeededFuture(null);
-    });
+    }
+    return null;
   }
 
   Future<List<InterfaceDescriptor>> listInterfaces(String tenantId, boolean full,
                                                    String interfaceType) {
     return tenants.getNotFound(tenantId)
-        .compose(tres -> listInterfaces(tres, full, interfaceType));
+        .map(tres -> listInterfaces(tres, full, interfaceType));
   }
 
-  private Future<List<InterfaceDescriptor>> listInterfaces(Tenant tenant, boolean full,
+  private List<InterfaceDescriptor> listInterfaces(Tenant tenant, boolean full,
                                                            String interfaceType) {
-    return getEnabledModules(tenant).compose(modlist -> {
-      List<InterfaceDescriptor> intList = new LinkedList<>();
-      Set<String> ids = new HashSet<>();
-      for (ModuleDescriptor md : modlist) {
-        for (InterfaceDescriptor provide : md.getProvidesList()) {
-          if (interfaceType == null || provide.isType(interfaceType)) {
-            if (full) {
-              intList.add(provide);
-            } else {
-              if (ids.add(provide.getId())) {
-                InterfaceDescriptor tmp = new InterfaceDescriptor();
-                tmp.setId(provide.getId());
-                tmp.setVersion(provide.getVersion());
-                intList.add(tmp);
-              }
+    List<InterfaceDescriptor> intList = new LinkedList<>();
+    Set<String> ids = new HashSet<>();
+    for (ModuleDescriptor md : getEnabledModules(tenant)) {
+      for (InterfaceDescriptor provide : md.getProvidesList()) {
+        if (interfaceType == null || provide.isType(interfaceType)) {
+          if (full) {
+            intList.add(provide);
+          } else {
+            if (ids.add(provide.getId())) {
+              InterfaceDescriptor tmp = new InterfaceDescriptor();
+              tmp.setId(provide.getId());
+              tmp.setVersion(provide.getVersion());
+              intList.add(tmp);
             }
           }
         }
       }
-      return Future.succeededFuture(intList);
-    });
+    }
+    return intList;
   }
 
   Future<List<ModuleDescriptor>> listModulesFromInterface(
@@ -1151,33 +1145,33 @@ public class TenantManager implements Liveness {
 
   /**
    * Get module cache for tenant.
-   * @param tenant Tenant
-   * @return Module Cache
    */
-  public Future<ModuleCache> getModuleCache(Tenant tenant) {
+  public ModuleCache getModuleCache(Tenant tenant) {
     if (!enabledModulesCache.containsKey(tenant.getId())) {
-      return Future.succeededFuture(new ModuleCache(new LinkedList<>()));
+      return new ModuleCache(new LinkedList<>());
     }
-    return Future.succeededFuture(enabledModulesCache.get(tenant.getId()));
+    return enabledModulesCache.get(tenant.getId());
   }
 
   /**
    * Return modules enabled for tenant.
+   *
    * @param tenantId tenant identifier.
    * @return list of modules
    */
   public Future<List<ModuleDescriptor>> getEnabledModules(String tenantId) {
     return tenants.getNotFound(tenantId)
-        .compose(tenant -> getEnabledModules(tenant));
+        .map(tenant -> getEnabledModules(tenant));
   }
 
   /**
    * Return modules enabled for tenant.
+   *
    * @param tenant Tenant
    * @return list of modules
    */
-  public Future<List<ModuleDescriptor>> getEnabledModules(Tenant tenant) {
-    return getModuleCache(tenant).map(ModuleCache::getModules);
+  public List<ModuleDescriptor> getEnabledModules(Tenant tenant) {
+    return getModuleCache(tenant).getModules();
   }
 
   private Future<Void> reloadEnabledModules(String tenantId) {

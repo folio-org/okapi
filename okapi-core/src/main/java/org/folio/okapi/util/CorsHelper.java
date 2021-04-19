@@ -42,19 +42,16 @@ public class CorsHelper {
       tenantManager.get(tenantId)
           .onFailure(cause -> HttpResponse.responseError(ctx, 400, cause.getMessage()))
           .onSuccess(tenant -> {
-            tenantManager.getModuleCache(tenant)
-                .onFailure(cause -> HttpResponse.responseError(ctx, 500, cause.getMessage()))
-                .onSuccess(moduleCache -> {
-                  List<ModuleInstance> list = moduleCache.lookup(newPath, method, moduleId);
-                  for (ModuleInstance mi : list) {
-                    if (mi.isHandler() && mi.getRoutingEntry().isDelegateCors()) {
-                      ctx.data().put(DELEGATE_CORS, true);
-                      ctx.data().put(DELEGATE_CORS_MODULE_INSTANCE, mi);
-                      break;
-                    }
-                  }
-                  ctx.next();
-                });
+            ModuleCache moduleCache = tenantManager.getModuleCache(tenant);
+            List<ModuleInstance> list = moduleCache.lookup(newPath, method, moduleId);
+            for (ModuleInstance mi : list) {
+              if (mi.isHandler() && mi.getRoutingEntry().isDelegateCors()) {
+                ctx.data().put(DELEGATE_CORS, true);
+                ctx.data().put(DELEGATE_CORS_MODULE_INSTANCE, mi);
+                break;
+              }
+            }
+            ctx.next();
           });
     });
 

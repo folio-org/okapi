@@ -550,41 +550,34 @@ public class ProxyService {
           stream.resume();
           pc.responseError(400, messages.getMessage("10106", tenantId));
         })
-        .onSuccess(tenant ->
-            tenantManager.getModuleCache(tenant)
-                .onFailure(cause -> {
-                  stream.resume();
-                  pc.responseError(OkapiError.getType(cause), cause);
-                })
-                .onSuccess(cache -> {
-                  final Timer.Sample sample = MetricsHelper.getTimerSample();
-                  List<ModuleInstance> l = getModulesForRequest(pc, cache);
-                  MetricsHelper.recordCodeExecutionTime(sample,
-                      "ProxyService.getModulesForRequest");
-                  if (l == null) {
-                    stream.resume();
-                    return; // ctx already set up
-                  }
+        .onSuccess(tenant -> {
+          final Timer.Sample sample = MetricsHelper.getTimerSample();
+          List<ModuleInstance> l = getModulesForRequest(pc, tenantManager.getModuleCache(tenant));
+          MetricsHelper.recordCodeExecutionTime(sample,
+              "ProxyService.getModulesForRequest");
+          if (l == null) {
+            stream.resume();
+            return; // ctx already set up
+          }
 
-                  pc.setModList(l);
+          pc.setModList(l);
 
-                  pc.logRequest(ctx, tenantId);
+          pc.logRequest(ctx, tenantId);
 
-                  headers.set(XOkapiHeaders.URL, okapiUrl);
-                  headers.remove(XOkapiHeaders.MODULE_ID);
-                  headers.set(XOkapiHeaders.REQUEST_IP, ctx.request().remoteAddress().host());
-                  headers.set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + System.currentTimeMillis());
-                  headers.set(XOkapiHeaders.REQUEST_METHOD, ctx.request().method().name());
+          headers.set(XOkapiHeaders.URL, okapiUrl);
+          headers.remove(XOkapiHeaders.MODULE_ID);
+          headers.set(XOkapiHeaders.REQUEST_IP, ctx.request().remoteAddress().host());
+          headers.set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + System.currentTimeMillis());
+          headers.set(XOkapiHeaders.REQUEST_METHOD, ctx.request().method().name());
 
-                  resolveUrls(l).onFailure(cause -> {
-                    stream.resume();
-                    pc.responseError(OkapiError.getType(cause), cause);
-                  }).onSuccess(res -> {
-                    List<HttpClientRequest> clientRequest = new LinkedList<>();
-                    proxyR(l.iterator(), pc, stream, null, clientRequest);
-                  });
-                })
-        );
+          resolveUrls(l).onFailure(cause -> {
+            stream.resume();
+            pc.responseError(OkapiError.getType(cause), cause);
+          }).onSuccess(res -> {
+            List<HttpClientRequest> clientRequest = new LinkedList<>();
+            proxyR(l.iterator(), pc, stream, null, clientRequest);
+          });
+        });
   }
 
   private static void clientsEnd(Buffer bcontent, List<HttpClientRequest> clientRequestList) {
