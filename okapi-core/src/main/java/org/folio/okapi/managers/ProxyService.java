@@ -36,9 +36,9 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
-import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
@@ -550,50 +550,34 @@ public class ProxyService {
           stream.resume();
           pc.responseError(400, messages.getMessage("10106", tenantId));
         })
-        .onSuccess(tenant ->
-            tenantManager.getModuleCache(tenant)
-                .onFailure(cause -> {
-                  stream.resume();
-                  pc.responseError(OkapiError.getType(cause), cause);
-                })
-                .onSuccess(cache -> {
-                  final Timer.Sample sample = MetricsHelper.getTimerSample();
-                  List<ModuleInstance> l = getModulesForRequest(pc, cache);
-                  MetricsHelper.recordCodeExecutionTime(sample,
-                      "ProxyService.getModulesForRequest");
-                  if (l == null) {
-                    stream.resume();
-                    return; // ctx already set up
-                  }
-                  // check delegate CORS and reroute if necessary
-                  if (CorsHelper.checkCorsDelegate(ctx, l)) {
-                    // HTTP code 100 is chosen purely as metrics tag placeholder
-                    MetricsHelper.recordHttpServerProcessingTime(pc.getSample(), pc.getTenant(),
-                        100, pc.getCtx().request().method().name(), pc.getHandlerModuleInstance());
-                    stream.resume();
-                    ctx.reroute(ctx.request().path());
-                    return;
-                  }
+        .onSuccess(tenant -> {
+          final Timer.Sample sample = MetricsHelper.getTimerSample();
+          List<ModuleInstance> l = getModulesForRequest(pc, tenantManager.getModuleCache(tenant));
+          MetricsHelper.recordCodeExecutionTime(sample,
+              "ProxyService.getModulesForRequest");
+          if (l == null) {
+            stream.resume();
+            return; // ctx already set up
+          }
 
-                  pc.setModList(l);
+          pc.setModList(l);
 
-                  pc.logRequest(ctx, tenantId);
+          pc.logRequest(ctx, tenantId);
 
-                  headers.set(XOkapiHeaders.URL, okapiUrl);
-                  headers.remove(XOkapiHeaders.MODULE_ID);
-                  headers.set(XOkapiHeaders.REQUEST_IP, ctx.request().remoteAddress().host());
-                  headers.set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + System.currentTimeMillis());
-                  headers.set(XOkapiHeaders.REQUEST_METHOD, ctx.request().method().name());
+          headers.set(XOkapiHeaders.URL, okapiUrl);
+          headers.remove(XOkapiHeaders.MODULE_ID);
+          headers.set(XOkapiHeaders.REQUEST_IP, ctx.request().remoteAddress().host());
+          headers.set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + System.currentTimeMillis());
+          headers.set(XOkapiHeaders.REQUEST_METHOD, ctx.request().method().name());
 
-                  resolveUrls(l).onFailure(cause -> {
-                    stream.resume();
-                    pc.responseError(OkapiError.getType(cause), cause);
-                  }).onSuccess(res -> {
-                    List<HttpClientRequest> clientRequest = new LinkedList<>();
-                    proxyR(l.iterator(), pc, stream, null, clientRequest);
-                  });
-                })
-        );
+          resolveUrls(l).onFailure(cause -> {
+            stream.resume();
+            pc.responseError(OkapiError.getType(cause), cause);
+          }).onSuccess(res -> {
+            List<HttpClientRequest> clientRequest = new LinkedList<>();
+            proxyR(l.iterator(), pc, stream, null, clientRequest);
+          });
+        });
   }
 
   private static void clientsEnd(Buffer bcontent, List<HttpClientRequest> clientRequestList) {
@@ -752,7 +736,7 @@ public class ProxyService {
     }
     clientRequest.headers().setAll(ctx.request().headers());
     clientRequest.headers().remove("Content-Length");
-    final String phase = mi.getRoutingEntry().getPhase();
+    final String phase = mi == null ? "" : mi.getRoutingEntry().getPhase();
     if (!XOkapiHeaders.FILTER_AUTH.equals(phase)) {
       clientRequest.headers().remove(XOkapiHeaders.ADDITIONAL_TOKEN);
     }
@@ -1313,13 +1297,36 @@ public class ProxyService {
         .replaceFirst("^/_/invoke/tenant/([^/ ]+)/.*$", "$1");
     String newPath = origPath
         .replaceFirst("^/_/invoke/tenant/[^/ ]+(/.*$)", "$1");
-    if (qry != null && !qry.isEmpty()) {
-      // vert.x 3.5 clears the parameters on reroute, so we pass them in ctx
-      ctx.data().put(REDIRECTQUERY, qry);
+
+    // delegate CORS for preflight request
+    if (HttpMethod.OPTIONS.equals(ctx.request().method())
+        && ctx.data().containsKey(CorsHelper.DELEGATE_CORS)) {
+      ModuleInstance mi = (ModuleInstance) ctx.data().get(CorsHelper.DELEGATE_CORS_MODULE_INSTANCE);
+      resolveUrls(Arrays.asList(mi));
+      RequestOptions requestOptions = new RequestOptions().setMethod(ctx.request().method())
+          .setAbsoluteURI(mi.getUrl() + newPath);
+      httpClient.request(requestOptions)
+          .compose(clientRequest -> {
+            copyHeaders(clientRequest, ctx, null);
+            clientRequest.end();
+            return clientRequest.response();
+          })
+          .onSuccess(res -> {
+            ctx.response().setStatusCode(res.statusCode());
+            ctx.response().headers().addAll(res.headers());
+            sanitizeAuthHeaders(ctx.response().headers());
+            ctx.response().end();
+          })
+          .onFailure(cause -> HttpResponse.responseError(ctx, 500, cause.getMessage()));
+    } else {
+      if (qry != null && !qry.isEmpty()) {
+        // vert.x 3.5 clears the parameters on reroute, so we pass them in ctx
+        ctx.data().put(REDIRECTQUERY, qry);
+      }
+      ctx.request().headers().add(XOkapiHeaders.TENANT, tid);
+      logger.debug("redirectProxy: '{}' '{}'", tid, newPath);
+      ctx.reroute(newPath);
     }
-    ctx.request().headers().add(XOkapiHeaders.TENANT, tid);
-    logger.debug("redirectProxy: '{}' '{}'", tid, newPath);
-    ctx.reroute(newPath);
   }
 
   public Future<Void> autoDeploy(ModuleDescriptor md) {
