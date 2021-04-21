@@ -1588,6 +1588,9 @@ curl -w '\n' -X POST -D - \
 ```
 The module responds with the same JSON, but prepends "Hello" to the string.
 
+The [https://github.com/MikeTaylor/okapi-curl](https://github.com/MikeTaylor/okapi-curl)
+shell script simplifies the login and adding the header lines.
+
 
 ### Example 3: Upgrading, versions, environment, and the `_tenant` interface
 
