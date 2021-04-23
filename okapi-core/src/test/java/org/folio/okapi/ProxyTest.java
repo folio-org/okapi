@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.Assertions;
+import org.awaitility.Awaitility;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
@@ -265,10 +266,7 @@ public class ProxyTest {
             response.end("timer permissions response");
           } else if (p.startsWith("/timercall/")) {
             int id = Integer.parseInt(p.substring(11)); // assume /timercall/[0-9]+
-            Integer val = timerDelaySum.putIfAbsent(id, 1);
-            if (val != null) {
-              timerDelaySum.put(id, val + 1);
-            }
+            timerDelaySum.merge(id, 1, (x, y) -> x + y);
             response.setStatusCode(timerDelayStatus);
             response.end();
           } else if (p.startsWith("/regularcall")) {
@@ -2923,13 +2921,12 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    try {
-      TimeUnit.MILLISECONDS.sleep(50);
-    } catch (InterruptedException ex) {
-    }
-    Assertions.assertThat(timerDelaySum.get(0)).isGreaterThan(1);
-    Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(2);
-    Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2);
+    Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
+        () -> Assertions.assertThat(timerDelaySum.get(0)).isGreaterThan(1));
+    Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
+        () -> Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(2));
+    Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
+        () -> Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2));
 
     c = api.createRestAssured3();
     c.given()
@@ -3065,13 +3062,12 @@ public class ProxyTest {
         c.getLastReport().isEmpty());
 
     timerDelaySum.clear();
-    try {
-      TimeUnit.MILLISECONDS.sleep(50);
-    } catch (InterruptedException ex) {
-    }
+
+    Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
+        () -> Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(0));
+    Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
+        () -> Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2));
     Assertions.assertThat(timerDelaySum.containsKey(0)).isFalse();
-    Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(0);
-    Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2);
 
     // enable it again
     c = api.createRestAssured3();
