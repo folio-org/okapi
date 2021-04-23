@@ -389,12 +389,13 @@ public class RoutingEntry {
   /**
    * Match uri against routing entry with tenant.
    * Method is NOT considered.
-   * @param uri acutal path
+   *
+   * @param uri actual path
    * @param tenant current tenant
-   * @return true if tenant matches tenantId in pathPattern; false otherwise
+   * @return true if uri matches pathPattern after replacing {tenantId} by tenant; false otherwise
    */
   public boolean matchUriTenant(String uri, String tenant) {
-    if (pathPattern == null || !pathPattern.contains("{tenantId}")) {
+    if (pathPattern == null) {
       return false;
     }
     String replacedPattern = pathPattern.replace("{tenantId}", tenant);
