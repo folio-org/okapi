@@ -81,7 +81,7 @@
       }
     },
     "permissionsRequiredTenant": {
-      "description": "Required permissions when tenant matches pathPattern",
+      "description": "Required permissions that replace permissionsRequired when the user is authenticated and either the tenant matches each {tenantId} in pathPattern or pathPattern doesn't contain {tenantId}",
       "type": "array",
       "items": {
         "type": "string"

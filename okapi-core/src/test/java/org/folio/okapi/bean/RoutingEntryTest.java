@@ -1,12 +1,16 @@
 package org.folio.okapi.bean;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.is;
+
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class RoutingEntryTest {
   @Test
@@ -255,35 +259,30 @@ class RoutingEntryTest {
     assertEquals(HttpMethod.POST, t.getDefaultMethod(HttpMethod.PUT));
   }
 
-  @Test
-  void testMatchUriTenant() {
-    RoutingEntry t = new RoutingEntry();
-    String[] methods = new String[1];
-    methods[0] = "GET";
-    t.setMethods(methods);
+  @ParameterizedTest
+  @CsvSource({
+    "      , /y/b, false",  // null pattern
+    "/{x}/b, /y/b, true",
+    "/{tenantId}/b,            /testlib/b,    false",
+    "/{tenantId}/b,            /diku/b,       true",
+    "/{tenantId}/b/{tenantId}, /diku/b/other, false",
+    "/{tenantId}/b/{tenantId}, /diku/b/diku,  true",
+    "/{tenantId}/b/{moduleId}, /diku/b/other, true",
+  })
+  void testMatchUriTenant(String pattern, String uri, boolean expected) {
+    RoutingEntry routingEntry = new RoutingEntry();
+    if (pattern != null) {
+      routingEntry.setPathPattern(pattern);
+    }
+    assertThat(routingEntry.matchUriTenant(uri, "diku"), is(expected));
+  }
 
+  @Test
+  void testPermissionsRequiredTenant() {
+    RoutingEntry t = new RoutingEntry();
     assertNull(t.getPermissionsRequiredTenant());
     t.setPermissionsRequiredTenant(new String[0]);
     assertNotNull(t.getPermissionsRequiredTenant());
-
-    assertFalse(t.matchUriTenant("/y/b", "diku"));
-
-    t.setPathPattern("/{x}/b");
-
-    assertFalse(t.matchUriTenant("/y/b", "diku"));
-
-    assertFalse(t.matchUriTenant("/y/b", "diku"));
-
-    t.setPathPattern("/{tenantId}/b");
-    assertFalse(t.matchUriTenant("/testlib/b", "diku"));
-    assertTrue(t.matchUriTenant("/diku/b", "diku"));
-
-    t.setPathPattern("/{tenantId}/b/{tenantId}");
-    assertFalse(t.matchUriTenant("/diku/b/other", "diku"));
-    assertTrue(t.matchUriTenant("/diku/b/diku", "diku"));
-
-    t.setPathPattern("/{tenantId}/b/{moduleId}");
-    assertTrue(t.matchUriTenant("/diku/b/other", "diku"));
   }
 
   @Test

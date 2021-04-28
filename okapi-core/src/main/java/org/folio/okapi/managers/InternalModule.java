@@ -401,6 +401,7 @@ public class InternalModule {
         + "    \"methods\" :  [ \"GET\" ],"
         + "    \"pathPattern\" : \"/_/version\","
         + "    \"permissionsRequired\" : [ \"okapi.version.get\" ], "
+        + "    \"permissionsRequiredTenant\" : [ ], "
         + "    \"type\" : \"internal\" "
         + "   } ]"
         + " } ],"

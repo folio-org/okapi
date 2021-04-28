@@ -357,6 +357,20 @@ public class MultiTenantTest {
         .get("/_/proxy/tenants/" + tenant1 + "/modules")
         .then().statusCode(403).log().ifValidationFails();
 
+    // GET /_/version without token fails
+    given()
+        .header("Content-Type", "application/json")
+        .header("X-Okapi-Tenant", tenant2)
+        .get("/_/version")
+        .then().statusCode(401).log().ifValidationFails();
+
+    // GET /_/version with token succeeds: "permissionsRequiredTenant": []
+    given()
+        .header("Content-Type", "application/json")
+        .header("X-Okapi-Token", okapiTokenTenant2)
+        .get("/_/version")
+        .then().statusCode(200).log().ifValidationFails();
+
     // undeploy sample-module-1.2.0
     given()
       .header("Content-Type", "application/json")
