@@ -388,7 +388,10 @@ public class RoutingEntry {
 
   /**
    * Match uri against routing entry with tenant.
-   * Method is NOT considered.
+   *
+   * <p>It also matches if pathPattern matches uri but pathPattern doesn't contain {tenantId}.
+   *
+   * <p>Method is NOT considered.
    *
    * @param uri actual path
    * @param tenant current tenant
