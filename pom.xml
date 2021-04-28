@@ -294,7 +294,7 @@
     <repository>
       <id>indexdata</id>
       <name>Index Data</name>
-      <url>http://maven.indexdata.com/</url>
+      <url>https://maven.indexdata.com/</url>
     </repository>
   </repositories>
 
