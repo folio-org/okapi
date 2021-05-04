@@ -68,7 +68,10 @@ public class ScheduleTest {
         Arguments.of("UTC"),
         Arguments.of("GMT-04:00"),
         Arguments.of("CET"),
-        Arguments.of("America/New_York")
+        Arguments.of("America/New_York"),
+        Arguments.of("Europe/Copenhagen"),
+        Arguments.of("Atlantic/Faroe"),
+        Arguments.of("Asia/Shanghai")
     );
   }
 

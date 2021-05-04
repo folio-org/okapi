@@ -3136,6 +3136,14 @@ Examples:
 See [crontab man page](https://www.unix.com/man-page/linux/5/crontab/)
 for more information.
 
+The zone value is that of Java's
+[ZoneId](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/ZoneId.html)
+class. Examples
+ * `UTC`
+ * `GMT-04:00`
+ * `GMT+02:00`
+ * `America/New_York` - from [TZDB](https://www.iana.org/time-zones).
+
 ### Timer management
 
 Okapi 4.8.0 provides service calls managing the time configuration for
