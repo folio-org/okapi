@@ -58,7 +58,7 @@
            "description": "crontab specification",
            "type": "string"
          },
-	 "zone": {
+         "zone": {
            "description": "time zone (UTC is the default)",
            "type": "string"
 	 }
