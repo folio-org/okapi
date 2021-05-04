@@ -10,11 +10,15 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 
-public class ScheduleCronUtils implements Schedule {
+public class ScheduleCronUtils {
   private String spec;  // cron-utils returns spec altered, we want to keep it was
   private ExecutionTime executionTime;
 
-  @Override
+  /**
+   * Provide nearest time for next execution.
+   * @param zonedDateTime zone
+   * @return duration.
+   */
   public Optional<Duration> getNextDuration(ZonedDateTime zonedDateTime) {
     if (executionTime == null) {
       return Optional.empty();
@@ -22,7 +26,10 @@ public class ScheduleCronUtils implements Schedule {
     return executionTime.timeToNextExecution(zonedDateTime);
   }
 
-  @Override
+  /**
+   * Parse cron specification.
+   * @param spec specification string.
+   */
   public void parseSpec(String spec) {
     this.spec = spec;
     CronDefinition cronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX);
@@ -31,7 +38,6 @@ public class ScheduleCronUtils implements Schedule {
     executionTime = ExecutionTime.forCron(cron);
   }
 
-  @Override
   public String toString() {
     return spec;
   }
