@@ -3103,7 +3103,8 @@ entry. For example:
           "methods": [ "POST" ],
           "pathPattern": "/testb/1",
           "schedule": {
-            "cron": "0 6,18 * * *"
+            "cron": "0 6,18 * * *",
+            "zone": "CET"
           }
         }
       ]
@@ -3119,7 +3120,9 @@ The tokens in order are:
  * month 1-12, 1=jan, 2=feb, 3=mar, .., 12=dec
  * weekday 0-7, where 0=sun, 1=mon, 2=tue, .., 6=sat, 7=sun
 
-Time is in UTC. Month and weekday names are case insensitive.
+Time is in UTC by default if `zone`is omitted, but in the example above
+time is given in CET (Central European Time).
+Month and weekday names are case insensitive.
 
 Examples:
 
@@ -3132,6 +3135,14 @@ Examples:
 
 See [crontab man page](https://www.unix.com/man-page/linux/5/crontab/)
 for more information.
+
+The zone value is that of Java's
+[ZoneId](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/ZoneId.html)
+class. Examples
+ * `UTC`
+ * `GMT-04:00`
+ * `GMT+02:00`
+ * `America/New_York` - from [TZDB](https://www.iana.org/time-zones).
 
 ### Timer management
 

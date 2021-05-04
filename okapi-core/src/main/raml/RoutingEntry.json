@@ -52,11 +52,16 @@
     "schedule": {
       "description": "Timer schedule using cron-utils",
       "type": "object",
+      "additionalProperties": false,
       "properties": {
          "cron": {
-         "description": "crontab specification",
-         "type": "string"
-        }
+           "description": "crontab specification",
+           "type": "string"
+         },
+         "zone": {
+           "description": "time zone (UTC is the default); See https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/ZoneId.html",
+           "type": "string"
+	 }
       }
     },
     "permissionsRequired": {

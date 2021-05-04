@@ -1,11 +1,13 @@
 package org.folio.okapi.util;
 
+import org.folio.okapi.bean.Schedule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.stream.Stream;
@@ -16,7 +18,7 @@ public class ScheduleTest {
 
   @Test
   void testEmpty() {
-    Schedule schedule = new ScheduleCronUtils();
+    ScheduleCronUtils schedule = new ScheduleCronUtils();
     ZonedDateTime parse = ZonedDateTime.parse("2020-12-31T23:44:59+01:00[Europe/Paris]");
     assertThat(schedule.getNextDuration(parse)).isEmpty();
   }
@@ -48,16 +50,44 @@ public class ScheduleTest {
         Arguments.of("*/15 * * FEB *", "2021-01-31T23:44", "PT16M"),
         Arguments.of("*/15 * 29 * *", "2020-02-26T23:44", "PT48H16M"),
         Arguments.of("*/15 * 29 * *", "2021-02-26T23:44", "PT720H16M")
-        );
+    );
   }
+
   @ParameterizedTest
   @MethodSource
   void testSchedule(String spec, String time, String duration) {
     ZonedDateTime parse = ZonedDateTime.of(LocalDateTime.parse(time), ZoneOffset.UTC);
-    Schedule schedule = new ScheduleCronUtils();
+    ScheduleCronUtils schedule = new ScheduleCronUtils();
     schedule.parseSpec(spec);
     assertThat(schedule.toString()).isEqualTo(spec);
     assertThat(schedule.getNextDuration(parse).get()).isEqualTo(Duration.parse(duration));
   }
 
+  static Stream<Arguments> testZone() {
+    return Stream.of(
+        Arguments.of("UTC"),
+        Arguments.of("GMT-04:00"),
+        Arguments.of("CET"),
+        Arguments.of("America/New_York"),
+        Arguments.of("Europe/Copenhagen"),
+        Arguments.of("Atlantic/Faroe"),
+        Arguments.of("Asia/Shanghai")
+    );
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void testZone(String s) {
+    Schedule schedule = new Schedule();
+    schedule.setZone(s);
+    assertThat(schedule.getZone()).isEqualTo(s);
+    schedule.setCron("0 2 * * *");
+    assertThat(schedule.getDelayMilliSeconds()).isGreaterThan(0);
+  }
+
+  @Test
+  void testNoCron() {
+    Schedule schedule = new Schedule();
+    assertThat(schedule.getDelayMilliSeconds()).isEqualTo(0);
+  }
 }
