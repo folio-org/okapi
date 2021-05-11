@@ -1,3 +1,29 @@
+## 4.8.0 2021-05-11
+
+Features / improvements:
+
+ * [OKAPI-969](https://issues.folio.org/browse/OKAPI-969) API for Okapi timer task management
+ * [OKAPI-998](https://issues.folio.org/browse/OKAPI-998) Extend ProxyService#proxyClientFailure error message
+ * [OKAPI-917](https://issues.folio.org/browse/OKAPI-917) Okapi version discovery without permissions
+ * [OKAPI-996](https://issues.folio.org/browse/OKAPI-996) Include module ID in some deployment error messages
+ * [OKAPI-999](https://issues.folio.org/browse/OKAPI-999) okapi-testing with UtilityClassTester
+ * [OKAPI-1000](https://issues.folio.org/browse/OKAPI-1000) schedule facility (ala cron)
+ * [OKAPI-1004](https://issues.folio.org/browse/OKAPI-1004) OkapiClient futurisation for Vert.x 4
+ * [OKAPI-1013](https://issues.folio.org/browse/OKAPI-1013) Configurable time zone for timers
+
+Fixes:
+
+ * [OKAPI-876](https://issues.folio.org/browse/OKAPI-876) CORS delegation doesn't work with preflight/OPTIONS requests
+ * [OKAPI-991](https://issues.folio.org/browse/OKAPI-991) Fix `deploy_waitIterations` (was `deploy.waitIterations`)
+ * [OKAPI-992](https://issues.folio.org/browse/OKAPI-992) Okapi discovery times out after 5 minutes
+ * [OKAPI-1001](https://issues.folio.org/browse/OKAPI-1001) Pull: ignore module descriptors with unsupported features
+ * [OKAPI-1009](https://issues.folio.org/browse/OKAPI-1009) Spurious ProxyTest.testTimer failure
+
+Other:
+
+ * [OKAPI-960](https://issues.folio.org/browse/OKAPI-960) Add personal data disclosure form
+ * Upgrade to Vert.x 4.0.3
+
 ## 4.7.0 2021-02-26
 
 This release includes improvements for communication with the
@@ -246,7 +272,7 @@ Some performance improvements in various areas.
 ## 2.33.0 2019-09-26
  * [OKAPI-763](https://issues.folio.org/browse/OKAPI-763) Prevent X-Okapi-Token from being returned in some cases
    where they are simply returned by mistake. This is a workaround
-   for modules that echo headers (RMB-478)
+   for modules that echo headers ([RMB-478](https://issues.folio.org/browse/RMB-478))
  * [OKAPI-764](https://issues.folio.org/browse/OKAPI-764) Prevent internal auth headers from being returnd by Okapi
    most notably X-Okapi-Module-Tokens
 
