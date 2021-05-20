@@ -6,7 +6,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
 import java.util.List;
 import org.folio.okapi.bean.ModuleInstance;
-import org.folio.okapi.common.HttpResponse;
+import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.managers.TenantManager;
 
@@ -39,20 +39,17 @@ public class CorsHelper {
       String meth = ctx.request().getHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD);
       HttpMethod method = meth != null ? HttpMethod.valueOf(meth) : ctx.request().method();
       String moduleId = ctx.request().getHeader(XOkapiHeaders.MODULE_ID);
-      tenantManager.get(tenantId)
-          .onFailure(cause -> HttpResponse.responseError(ctx, 400, cause.getMessage()))
-          .onSuccess(tenant -> {
-            ModuleCache moduleCache = tenantManager.getModuleCache(tenant);
-            List<ModuleInstance> list = moduleCache.lookup(newPath, method, moduleId);
-            for (ModuleInstance mi : list) {
-              if (mi.isHandler() && mi.getRoutingEntry().isDelegateCors()) {
-                ctx.data().put(DELEGATE_CORS, true);
-                ctx.data().put(DELEGATE_CORS_MODULE_INSTANCE, mi);
-                break;
-              }
-            }
-            ctx.next();
-          });
+      Tenant t = new Tenant();
+      t.getDescriptor().setId(tenantId);
+      List<ModuleInstance> list = tenantManager.getModuleCache(t).lookup(newPath, method, moduleId);
+      for (ModuleInstance mi : list) {
+        if (mi.isHandler() && mi.getRoutingEntry().isDelegateCors()) {
+          ctx.data().put(DELEGATE_CORS, true);
+          ctx.data().put(DELEGATE_CORS_MODULE_INSTANCE, mi);
+          break;
+        }
+      }
+      ctx.next();
     });
 
     // check delegate CORS
