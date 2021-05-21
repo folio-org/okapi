@@ -1,5 +1,6 @@
 package org.folio.okapi.service.impl;
 
+import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -28,14 +29,14 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class MongoUtilTest {
-  
+
   public class MongoClientDeleteResult0Hits extends MongoClientDeleteResult {
     @Override
     public long getRemovedCount() {
       return 0;
     }
   }
-  
+
   class FakeMongoClient implements MongoClient {
 
     @Override
@@ -254,6 +255,11 @@ public class MongoUtilTest {
     }
 
     @Override
+    public ReadStream<ChangeStreamDocument<JsonObject>> watch(String s, JsonArray jsonArray, boolean b, int i) {
+      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
     public Future<String> save(String string, JsonObject jo) {
       throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
@@ -466,9 +472,9 @@ public class MongoUtilTest {
     public Future<Void> close() {
       throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-    
+
   }
-  
+
   @Test
   public void testDelete(TestContext context) {
     MongoClient cli = new FakeMongoClient();
