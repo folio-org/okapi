@@ -1301,23 +1301,28 @@ public class ProxyService {
     // delegate CORS for preflight request
     if (HttpMethod.OPTIONS.equals(ctx.request().method())
         && ctx.data().containsKey(CorsHelper.DELEGATE_CORS)) {
+      ctx.data().remove(CorsHelper.DELEGATE_CORS);
       ModuleInstance mi = (ModuleInstance) ctx.data().get(CorsHelper.DELEGATE_CORS_MODULE_INSTANCE);
-      resolveUrls(Arrays.asList(mi));
-      RequestOptions requestOptions = new RequestOptions().setMethod(ctx.request().method())
-          .setAbsoluteURI(mi.getUrl() + newPath);
-      httpClient.request(requestOptions)
-          .compose(clientRequest -> {
-            copyHeaders(clientRequest, ctx, null);
-            clientRequest.end();
-            return clientRequest.response();
-          })
-          .onSuccess(res -> {
-            ctx.response().setStatusCode(res.statusCode());
-            ctx.response().headers().addAll(res.headers());
-            sanitizeAuthHeaders(ctx.response().headers());
-            ctx.response().end();
-          })
-          .onFailure(cause -> HttpResponse.responseError(ctx, 500, cause.getMessage()));
+      ctx.data().remove(CorsHelper.DELEGATE_CORS_MODULE_INSTANCE);
+      resolveUrls(Arrays.asList(mi)).compose(unused -> {
+        RequestOptions requestOptions = new RequestOptions().setMethod(ctx.request().method())
+            .setAbsoluteURI(mi.getUrl() + newPath);
+        return httpClient.request(requestOptions)
+            .compose(clientRequest -> {
+              copyHeaders(clientRequest, ctx, null);
+              clientRequest.putHeader(XOkapiHeaders.TENANT, tid);
+              clientRequest.end();
+              return clientRequest.response();
+            })
+            .onSuccess(res -> {
+              ctx.response().setStatusCode(res.statusCode());
+              ctx.response().headers().addAll(res.headers());
+              sanitizeAuthHeaders(ctx.response().headers());
+              ctx.response().end();
+            })
+            .onFailure(cause -> HttpResponse.responseError(ctx, 500, cause.getMessage()))
+            .mapEmpty();
+      });
     } else {
       if (qry != null && !qry.isEmpty()) {
         // vert.x 3.5 clears the parameters on reroute, so we pass them in ctx
