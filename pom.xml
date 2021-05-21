@@ -31,22 +31,10 @@
 
   <dependencyManagement>
     <dependencies>
-      <!--
-        Overwrite 4.1.52.FINAL (from vertx-stack-depchain 4.0.2)
-        that contains a temp file vulnerability (CVE-2021-21290)
-        https://github.com/netty/netty/security/advisories/GHSA-5mcr-gq6c-3hq2
-      -->
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-bom</artifactId>
-        <version>4.1.60.Final</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.0.3</version> <!-- also update depending versions below! -->
+        <version>4.1.0.CR1</version> <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
