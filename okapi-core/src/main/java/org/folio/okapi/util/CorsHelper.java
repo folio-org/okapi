@@ -39,9 +39,7 @@ public class CorsHelper {
       String meth = ctx.request().getHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD);
       HttpMethod method = meth != null ? HttpMethod.valueOf(meth) : ctx.request().method();
       String moduleId = ctx.request().getHeader(XOkapiHeaders.MODULE_ID);
-      Tenant t = new Tenant();
-      t.getDescriptor().setId(tenantId);
-      List<ModuleInstance> list = tenantManager.getModuleCache(t).lookup(newPath, method, moduleId);
+      List<ModuleInstance> list = tenantManager.getModuleCache(tenantId).lookup(newPath, method, moduleId);
       for (ModuleInstance mi : list) {
         if (mi.isHandler() && mi.getRoutingEntry().isDelegateCors()) {
           ctx.data().put(DELEGATE_CORS, true);

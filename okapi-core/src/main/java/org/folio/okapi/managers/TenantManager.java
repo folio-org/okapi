@@ -1146,11 +1146,18 @@ public class TenantManager implements Liveness {
   /**
    * Get module cache for tenant.
    */
-  public ModuleCache getModuleCache(Tenant tenant) {
-    if (!enabledModulesCache.containsKey(tenant.getId())) {
+  public ModuleCache getModuleCache(String tenantId) {
+    if (!enabledModulesCache.containsKey(tenantId)) {
       return new ModuleCache(new LinkedList<>());
     }
-    return enabledModulesCache.get(tenant.getId());
+    return enabledModulesCache.get(tenantId);
+  }
+
+  /**
+   * Get module cache for tenant.
+   */
+  public ModuleCache getModuleCache(Tenant tenant) {
+    return getModuleCache(tenant.getId());
   }
 
   /**
