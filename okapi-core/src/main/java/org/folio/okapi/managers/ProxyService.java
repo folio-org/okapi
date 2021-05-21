@@ -552,7 +552,8 @@ public class ProxyService {
         })
         .onSuccess(tenant -> {
           final Timer.Sample sample = MetricsHelper.getTimerSample();
-          List<ModuleInstance> l = getModulesForRequest(pc, tenantManager.getModuleCache(tenant));
+          List<ModuleInstance> l = getModulesForRequest(pc,
+              tenantManager.getModuleCache(tenant.getId()));
           MetricsHelper.recordCodeExecutionTime(sample,
               "ProxyService.getModulesForRequest");
           if (l == null) {

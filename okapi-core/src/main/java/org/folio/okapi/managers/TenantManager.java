@@ -1154,13 +1154,6 @@ public class TenantManager implements Liveness {
   }
 
   /**
-   * Get module cache for tenant.
-   */
-  public ModuleCache getModuleCache(Tenant tenant) {
-    return getModuleCache(tenant.getId());
-  }
-
-  /**
    * Return modules enabled for tenant.
    *
    * @param tenantId tenant identifier.
@@ -1178,7 +1171,7 @@ public class TenantManager implements Liveness {
    * @return list of modules
    */
   public List<ModuleDescriptor> getEnabledModules(Tenant tenant) {
-    return getModuleCache(tenant).getModules();
+    return getModuleCache(tenant.getId()).getModules();
   }
 
   private Future<Void> reloadEnabledModules(String tenantId) {
