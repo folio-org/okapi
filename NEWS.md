@@ -1,3 +1,10 @@
+## 4.7.3 2021-05-22
+
+ * [OKAPI-1016](https://issues.folio.org/browse/OKAPI-1016) Support delegate preflight request
+ * [OKAPI-1015](https://issues.folio.org/browse/OKAPI-1015) /saml/login call time out
+ * [OKAPI-1001](https://issues.folio.org/browse/OKAPI-1001) Pull: ignore module descriptors with unsupported features
+ * [OKAPI-876](https://issues.folio.org/browse/OKAPI-876) CORS delegation doesn't work with preflight/OPTIONS requests
+
 ## 4.7.2 2021-03-08
 
  * [OKAPI-996](https://issues.folio.org/browse/OKAPI-996) Reload permissions immediately on enable (not upgrade)
@@ -17,7 +24,7 @@ permissions module. It also includes a setting for controlling
 how long Okapi waits for deployment readiness.
 
 New features:
- * [OKAPI-985](https://issues.folio.org/browse/OKAPI-985) PoC refresh last strategy for _tenantPemissions
+ * [OKAPI-985](https://issues.folio.org/browse/OKAPI-985) PoC refresh last strategy for `_tenantPemissions`
  * [OKAPI-982](https://issues.folio.org/browse/OKAPI-982) Inform mod-permissions when module is disabled
  * [OKAPI-990](https://issues.folio.org/browse/OKAPI-990) Config deploy.waitIterations for Docker deployment
 
@@ -39,7 +46,7 @@ Other:
 
 New features:
 
- * [OKAPI-947](https://issues.folio.org/browse/OKAPI-947) Implement static permission migration. Okapi uses new _tenantPermissions interface 2.0 if that's provided (by mod-permissions).
+ * [OKAPI-947](https://issues.folio.org/browse/OKAPI-947) Implement static permission migration. Okapi uses new `_tenantPermissions` interface 2.0 if that's provided (by mod-permissions).
 
 Other:
 
@@ -258,7 +265,7 @@ Some performance improvements in various areas.
 ## 2.33.0 2019-09-26
  * [OKAPI-763](https://issues.folio.org/browse/OKAPI-763) Prevent X-Okapi-Token from being returned in some cases
    where they are simply returned by mistake. This is a workaround
-   for modules that echo headers (RMB-478)
+   for modules that echo headers ([RMB-478](https://issues.folio.org/browse/RMB-478))
  * [OKAPI-764](https://issues.folio.org/browse/OKAPI-764) Prevent internal auth headers from being returnd by Okapi
    most notably X-Okapi-Module-Tokens
 
@@ -275,7 +282,7 @@ Some performance improvements in various areas.
 
 ## 2.31.0 2019-08-07
 
- * [OKAPI-751](https://issues.folio.org/browse/OKAPI-751) If multiple _timer interfaces are declared in the
+ * [OKAPI-751](https://issues.folio.org/browse/OKAPI-751) If multiple `_timer` interfaces are declared in the
    ModuleDescriptor only the first one works
  * [OKAPI-750](https://issues.folio.org/browse/OKAPI-750) Deleting MD from Okapi causes Vert.x warnings
  * [OKAPI-748](https://issues.folio.org/browse/OKAPI-748) Omitting action for install results in null pointer exception
@@ -343,7 +350,7 @@ Some performance improvements in various areas.
 
  * [OKAPI-661](https://issues.folio.org/browse/OKAPI-661) ModuleDescriptor replaces facility (renaming a module)
  * [OKAPI-697](https://issues.folio.org/browse/OKAPI-697) Fix POST ModuleDescriptor check=true too strict
- * [OKAPI-696](https://issues.folio.org/browse/OKAPI-696) npmSnapshot flag for /_/proxy/modules POST
+ * [OKAPI-696](https://issues.folio.org/browse/OKAPI-696) npmSnapshot flag for `/_/proxy/modules` POST
 
 ## 2.23.0 2019-01-21
 
@@ -374,7 +381,7 @@ Some performance improvements in various areas.
  * [OKAPI-682](https://issues.folio.org/browse/OKAPI-682) Tenant init parameters
  * [OKAPI-665](https://issues.folio.org/browse/OKAPI-665) Report conflict when multiple modules provides
    compatible interface
- * [OKAPI-614](https://issues.folio.org/browse/OKAPI-614) Response to /_/proxy/tenants/{tenant_id}/install
+ * [OKAPI-614](https://issues.folio.org/browse/OKAPI-614) Response to `/_/proxy/tenants/{tenant_id}/install`
 
 ## 2.19.0 2018-11-09
 
@@ -515,11 +522,11 @@ Some performance improvements in various areas.
  * [OKAPI-442](https://issues.folio.org/browse/OKAPI-442) Mechanism to disable dependency checks during module descriptor
    registration
  * [OKAPI-551](https://issues.folio.org/browse/OKAPI-551) Fix documentation about chunked
- * [OKAPI-552](https://issues.folio.org/browse/OKAPI-552) POST _/deployment/modules returns 500 error with invalid
+ * [OKAPI-552](https://issues.folio.org/browse/OKAPI-552) POST `_/deployment/modules` returns 500 error with invalid
    descriptor
  * [OKAPI-553](https://issues.folio.org/browse/OKAPI-553) Consider to use 400 over 500 when /env payload has missing
    required field
- * [OKAPI-554](https://issues.folio.org/browse/OKAPI-554) POST _/deployment/modules returns 500 error when all ports
+ * [OKAPI-554](https://issues.folio.org/browse/OKAPI-554) POST `_/deployment/modules` returns 500 error when all ports
    are in use
  * [OKAPI-555](https://issues.folio.org/browse/OKAPI-555) Fix Version service should return 0.0.0 when unknown
  * [OKAPI-556](https://issues.folio.org/browse/OKAPI-556) Add OkapiClient.setHeaders
