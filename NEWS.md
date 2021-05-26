@@ -1,10 +1,15 @@
-## 4.8.1 2021-05-22
+## 4.8.2 2021-05-26
 
 This update has fixes to get mod-login-saml working.
 
  * [OKAPI-1015](https://issues.folio.org/browse/OKAPI-1015) /saml/login timeout
  * [OKAPI-1016](https://issues.folio.org/browse/OKAPI-1016) Support delegate preflight request
  * [OKAPI-1017](https://issues.folio.org/browse/OKAPI-1017) Update to Vert.x 4.1.0.CR1
+
+## 4.8.1 2021-05-22
+
+No changes since 4.8.0. Release did not include desired changes.
+
 
 ## 4.8.0 2021-05-11
 
