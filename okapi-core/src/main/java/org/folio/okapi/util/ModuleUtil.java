@@ -64,12 +64,15 @@ public final class ModuleUtil {
     } else {
       if (interfaces != null) {
         for (InterfaceDescriptor pi : interfaces) {
-          String[] kv = interfaceStr.split("=");
-          List<String> gotScope = pi.getScopeArray();
-          if (pi.getId().equals(kv[0])
-              && (kv.length != 2 || pi.getVersion().equals(kv[1]))
-              && (scope == null || gotScope.contains(scope))) {
-            return true;
+          String[] interfaceList = interfaceStr.split(",");
+          for (String interfacePair : interfaceList) {
+            String[] kv = interfacePair.split("=");
+            List<String> gotScope = pi.getScopeArray();
+            if (pi.getId().equals(kv[0])
+                && (kv.length != 2 || pi.getVersion().equals(kv[1]))
+                && (scope == null || gotScope.contains(scope))) {
+              return true;
+            }
           }
         }
       }
