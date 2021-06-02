@@ -72,6 +72,11 @@ Ubuntu 20.04 LTS (Focal Fossa):
     wget -q -O - https://repository.folio.org/packages/debian/folio-apt-archive-key.asc | sudo apt-key add -
     sudo add-apt-repository "deb https://repository.folio.org/packages/ubuntu/ focal/"
 
+## okapi-curl-env
+
+[okapi-curl-env](https://github.com/folio-org/folio-tools/tree/master/okapi-curl-env) is a shell script
+that wraps the curl command line with some sugar to make it easier to interact with Okapi.
+
 ## Documentation
 
 * [Okapi Guide and Reference](doc/guide.md)
