@@ -92,6 +92,14 @@ class ModuleUtilTest {
   }
 
   @Test
+  void testFilterRequireNotifyOrPermissions() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("require", "notify,permissions");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res.size()).isEqualTo(5);
+  }
+
+  @Test
   void testFilterProvideCodex() {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("provide", "codex");
