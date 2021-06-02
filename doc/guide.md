@@ -744,8 +744,6 @@ The shell script [okapi-curl-env](https://github.com/folio-org/folio-tools/tree/
 wraps the curl command line with some sugar to make it easier to interact with Okapi;
 however, this guide directly uses curl to show the details that okapi-curl-env hides.
 
-https://github.com/folio-org/folio-tools/tree/master/okapi-curl-env
-
 The exact definition of the services is in the RAML files listed in
 the [Reference](#web-service) section.
 
