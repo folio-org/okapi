@@ -33,6 +33,9 @@ managing and running microservices.
     * [Securing Okapi](#securing-okapi)
     * [Module Descriptor Sharing](#module-descriptor-sharing)
     * [Install modules per tenant](#install-modules-per-tenant)
+    * [install parameter preRelease](#install-parameter-prerelease)
+    * [install parameter tenantParameters](#install-parameter-tenantparameters)
+    * [install parameter invoke](#install-parameter-invoke)
     * [Upgrading modules per tenant](#upgrading-modules-per-tenant)
     * [Auto-deployment](#auto-deployment)
     * [Install jobs and asynchronous operations](#install-jobs-and-asynchronous-operations)
@@ -2614,10 +2617,14 @@ resulting, module IDs.
 If a module is upgraded from an older version, the `from` property
 contains the old module ID.
 
+### install parameter preRelease
+
 By default all modules are considered for install - whether
 pre-releases or not. For Okapi 1.11.0, it is possible to add filter
 `preRelease` which takes a boolean value. If false, the install will
 only consider modules without pre-release information.
+
+### install parameter tenantParameters
 
 Okapi 2.20.0 and later allows parameter `tenantParameters` to be
 passed to modules when enabled or upgraded for a tenant if the
@@ -2627,6 +2634,12 @@ pairs separated by comma with key and value separated by equal sign
 (`=`). It is a single argument as far as URI is concerned so be sure
 to encode comma as `%2C` and equal as `%3D`.  See [Tenant
 Interface](#tenant-interface) for more information.
+
+Note that Okapi does not validate tenant parameters. They are passed
+verbatim to modules. At this time (June 2021), some modules honor the
+keys `loadSample` and `loadReference`.
+
+### install parameter invoke
 
 For all calls that enables/disables modules for a tenant, it is possible
 to completely skip invoking module via HTTP by using query parameter
@@ -2663,9 +2676,13 @@ launchDescriptor property.
 ### Install jobs and asynchronous operations
 
 For Okapi 4.2.0 and later, the install operation can be asynchronous.
-The asynchronous operation is enabled by URI parameter 'async=true'.
+The asynchronous operation is enabled by parameter `async=true`.
 As for the "synchronous" operation, the dependency check is performed
 first and install/upgrade will return 400 HTTP error upon failure.
+
+The install async operation is not related to `_tenant` interface v2.
+The former is between client and Okapi, the latter is between Okapi
+and a module.
 
 Following that, the install operation will create an install "job" on the
 server side and return HTTP status 201 along with a location of the newly
