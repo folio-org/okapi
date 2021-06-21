@@ -120,14 +120,17 @@ public class ModuleManager {
   }
 
   private Future<Void> createList2(List<ModuleDescriptor> list) {
+    Future<Void> storeFuture = Future.succeededFuture();
+    if (moduleStore != null) {
+      storeFuture = moduleStore.insert(list);
+    }
     List<Future<Void>> futures = new LinkedList<>();
     for (ModuleDescriptor md : list) {
-      if (moduleStore != null) {
-        futures.add(moduleStore.insert(md));
-      }
       futures.add(modules.add(md.getId(), md));
     }
-    return GenericCompositeFuture.all(futures).mapEmpty();
+    return storeFuture
+        .compose(x -> GenericCompositeFuture.all(futures))
+        .mapEmpty();
   }
 
   /**

@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -2979,5 +2980,41 @@ public class ModuleTest {
     given().delete(locInternal).then().statusCode(204);
     given().delete(locTenant).then().statusCode(204);
     checkDbIsEmpty("testSystemInterfaces done", context);
+  }
+
+  @Test
+  public void testPullModules(TestContext context) {
+    vertx
+        .createHttpServer()
+        .requestHandler(request -> {
+          if (request.path().equals("/_/version")) {
+            request.response().setStatusCode(200).end("registry 4.5.6");
+            return;
+          }
+          request.response().setStatusCode(200).end(
+              "[      {\"id\":\"foo-1.2.3\", \"name\":\"foo\"}, "
+                  + " {\"id\":\"bar-4.5.6\", \"name\":\"bar\"} ]");
+        })
+        .listen(0)
+        .compose(registry -> vertx.executeBlocking(promise -> {
+          given()
+              .header("Content-Type", "application/json")
+              .body("{ \"urls\" : [ \"http://localhost:" + registry.actualPort() + "\" ] }")
+              .post("/_/proxy/pull/modules")
+          .then().log().ifValidationFails()
+              .statusCode(200)
+              .body("$", hasSize(2));
+
+          given()
+              .header("Content-Type", "application/json")
+              .body("{ \"urls\" : [ \"http://localhost:" + registry.actualPort() + "\" ] }")
+              .post("/_/proxy/pull/modules")
+          .then().log().ifValidationFails()
+              .statusCode(200)
+              .body("$", hasSize(0));
+
+          promise.complete();
+        }))
+        .onComplete(context.asyncAssertSuccess());
   }
 }

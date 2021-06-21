@@ -2,8 +2,10 @@ package org.folio.okapi.service.impl;
 
 import io.vertx.core.Future;
 import io.vertx.ext.mongo.MongoClient;
+import java.util.ArrayList;
 import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.service.ModuleStore;
 
 /**
@@ -27,6 +29,11 @@ public class ModuleStoreMongo implements ModuleStore {
   @Override
   public Future<Void> insert(ModuleDescriptor md) {
     return util.insert(md, md.getId());
+  }
+
+  @Override
+  public Future<Void> insert(List<ModuleDescriptor> mds) {
+    return util.insertBatch(mds);
   }
 
   @Override
