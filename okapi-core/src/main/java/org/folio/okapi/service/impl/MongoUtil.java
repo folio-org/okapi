@@ -3,8 +3,10 @@ package org.folio.okapi.service.impl;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.mongo.BulkOperation;
 import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.mongo.UpdateOptions;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -52,6 +54,19 @@ class MongoUtil<T> {
     JsonObject document = new JsonObject(s);
     encode(document, id);
     return cli.insert(collection, document).mapEmpty();
+  }
+
+  public Future<Void> insertBatch(List<T> mds) {
+    if (mds.isEmpty()) {
+      return Future.succeededFuture();
+    }
+    List<BulkOperation> bulkOperations = new ArrayList<>(mds.size());
+    for (T md : mds) {
+      JsonObject document = JsonObject.mapFrom(md);
+      encode(document, document.getString("id"));
+      bulkOperations.add(BulkOperation.createInsert(document));
+    }
+    return cli.bulkWrite(collection, bulkOperations).mapEmpty();
   }
 
   public Future<List<T>> getAll(Class<T> clazz) {

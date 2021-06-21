@@ -28,6 +28,11 @@ public class ModuleStorePostgres implements ModuleStore {
   }
 
   @Override
+  public Future<Void> insert(List<ModuleDescriptor> mds) {
+    return pgTable.insertBatch(mds);
+  }
+
+  @Override
   public Future<List<ModuleDescriptor>> getAll() {
     return pgTable.getAll(ModuleDescriptor.class);
   }

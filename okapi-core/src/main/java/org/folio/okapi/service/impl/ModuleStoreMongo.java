@@ -30,6 +30,11 @@ public class ModuleStoreMongo implements ModuleStore {
   }
 
   @Override
+  public Future<Void> insert(List<ModuleDescriptor> mds) {
+    return util.insertBatch(mds);
+  }
+
+  @Override
   public Future<List<ModuleDescriptor>> getAll() {
     return util.getAll(ModuleDescriptor.class);
   }

@@ -52,12 +52,20 @@ class PostgresTable<T> {
   Future<Void> insert(T dd) {
     PostgresQuery q = pg.getQuery();
     final String sql = "INSERT INTO " + table + "(" + jsonColumn + ") VALUES ($1::JSONB)";
-    String s = Json.encode(dd);
-    JsonObject doc = new JsonObject(s);
-    return q.query(sql, Tuple.of(doc)).compose(res -> {
-      q.close();
+    return q.query(sql, Tuple.of(JsonObject.mapFrom(dd))).<Void>mapEmpty()
+        .onSuccess(res -> q.close());
+  }
+
+  Future<Void> insertBatch(List<T> dds) {
+    if (dds.isEmpty()) {
       return Future.succeededFuture();
-    });
+    }
+    PostgresQuery q = pg.getQuery();
+    final String sql = "INSERT INTO " + table + "(" + jsonColumn + ") VALUES ($1::JSONB)";
+    final List<Tuple> tuples = new ArrayList<>(dds.size());
+    dds.forEach(dd -> tuples.add(Tuple.of(JsonObject.mapFrom(dd))));
+    return q.query(sql, tuples).<Void>mapEmpty()
+        .onSuccess(res -> q.close());
   }
 
   Future<Void> update(T md) {
@@ -66,10 +74,8 @@ class PostgresTable<T> {
         + " ON CONFLICT ((" + idIndex + ")) DO UPDATE SET " + jsonColumn + "= $1::JSONB";
     String s = Json.encode(md);
     JsonObject doc = new JsonObject(s);
-    return q.query(sql, Tuple.of(doc)).compose(res -> {
-      q.close();
-      return Future.succeededFuture();
-    });
+    return q.query(sql, Tuple.of(doc)).<Void>mapEmpty()
+        .onSuccess(res -> q.close());
   }
 
   Future<Boolean> delete(String id) {
