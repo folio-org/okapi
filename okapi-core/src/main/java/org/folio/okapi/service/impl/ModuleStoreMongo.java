@@ -2,10 +2,8 @@ package org.folio.okapi.service.impl;
 
 import io.vertx.core.Future;
 import io.vertx.ext.mongo.MongoClient;
-import java.util.ArrayList;
 import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.service.ModuleStore;
 
 /**
