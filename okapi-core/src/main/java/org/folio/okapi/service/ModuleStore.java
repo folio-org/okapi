@@ -10,8 +10,6 @@ public interface ModuleStore {
 
   Future<List<ModuleDescriptor>> getAll();
 
-  Future<Void> insert(ModuleDescriptor md);
-
   Future<Void> insert(List<ModuleDescriptor> mds);
 
   Future<Void> init(boolean reset);

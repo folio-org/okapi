@@ -20,6 +20,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.LockedTypedMap1;
+import org.folio.okapi.util.ModuleUtil;
 import org.folio.okapi.util.OkapiError;
 
 /**
@@ -57,9 +58,6 @@ public class ModuleManager {
    * @return future result
    */
   private Future<Void> loadModules() {
-    if (moduleStore == null) {
-      return Future.succeededFuture();
-    }
     return modules.size().compose(kres -> {
       if (kres > 0) {
         logger.debug("Not loading modules, looks like someone already did");
@@ -83,10 +81,12 @@ public class ModuleManager {
    * @param preRelease whether to allow pre-releasee
    * @param npmSnapshot whether to allow npm-snapshot
    * @param removeIfMissingDep skip modules where dependency check fails
+   * @param deleteObsolete if true: delete obsolete modules
    * @return future
    */
   public Future<Void> createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
-                                 boolean npmSnapshot, boolean removeIfMissingDep) {
+                                 boolean npmSnapshot, boolean removeIfMissingDep,
+                                 boolean deleteObsolete) {
     return getModulesWithFilter(preRelease, npmSnapshot, null).compose(ares -> {
       Map<String, ModuleDescriptor> tempList = new HashMap<>();
       for (ModuleDescriptor md : ares) {
@@ -115,15 +115,31 @@ public class ModuleManager {
           return Future.failedFuture(new OkapiError(ErrorType.USER, res));
         }
       }
-      return createList2(newList);
+      return createList2(newList).compose(x -> {
+        if (deleteObsolete) {
+          return deleteObsolete();
+        } else {
+          return Future.succeededFuture();
+        }
+      });
     });
   }
 
+  Future<Void> deleteObsolete() {
+    return modules.getAll()
+        .compose(ares -> {
+          List<ModuleDescriptor> newList = new LinkedList<>(ares.values());
+          Future<Void> future = Future.succeededFuture();
+          for (ModuleDescriptor md: ModuleUtil.getObsolete(newList)) {
+            future = future.compose(x -> moduleStore.delete(md.getId()).mapEmpty());
+            future = future.compose(x -> modules.remove(md.getId()).mapEmpty());
+          }
+          return future;
+        });
+  }
+
   private Future<Void> createList2(List<ModuleDescriptor> list) {
-    Future<Void> storeFuture = Future.succeededFuture();
-    if (moduleStore != null) {
-      storeFuture = moduleStore.insert(list);
-    }
+    Future<Void> storeFuture = moduleStore.insert(list);
     List<Future<Void>> futures = new LinkedList<>();
     for (ModuleDescriptor md : list) {
       futures.add(modules.add(md.getId(), md));
@@ -142,13 +158,7 @@ public class ModuleManager {
   public Future<Void> delete(String id) {
     return modules.getAll()
         .compose(ares -> deleteCheckDep(id, ares))
-        .compose(res -> {
-          if (moduleStore == null) {
-            return Future.succeededFuture();
-          } else {
-            return moduleStore.delete(id).mapEmpty();
-          }
-        })
+        .compose(res -> moduleStore.delete(id).mapEmpty())
         .compose(res -> deleteInternal(id).mapEmpty());
   }
 

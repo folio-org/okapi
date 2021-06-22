@@ -154,4 +154,39 @@ class ModuleUtilTest {
     list.add(md);
     assertThat(ModuleUtil.moduleList(list)).isEqualTo("foo-1.0.0, bar-2.0.0");
   }
+
+  @Test
+  void testGetObsolete1() {
+    assertThat(modulesList.size()).isEqualTo(104);
+    List<ModuleDescriptor> obsolete = ModuleUtil.getObsolete(modulesList);
+    assertThat(obsolete.isEmpty()).isTrue();
+  }
+
+  @Test
+  void testGetObsolete2() {
+    String ids[] = new String [] {
+        "mod-a-0.9.0-SNAPSHOT.3",
+        "mod-a-1.0.0-SNAPSHOT.4",
+        "mod-a-1.0.0",
+        "mod-b-1.0.0-SNAPSHOT.1",
+        "mod-a-1.1.0-SNAPSHOT.5",
+        "mod-a-0.8.0-SNAPSHOT.1",
+        "mod-a-0.8.0-SNAPSHOT.2",
+        "mod-a-0.8.0",
+    };
+    List<ModuleDescriptor> mds = new LinkedList<>();
+    for (int i = 0; i < ids.length; i++) {
+      ModuleDescriptor md = new ModuleDescriptor();
+      md.setId(ids[i]);
+      mds.add(md);
+    }
+    assertThat(mds.size()).isEqualTo(8);
+    List<ModuleDescriptor> obsolete = ModuleUtil.getObsolete(mds);
+    assertThat(obsolete.size()).isEqualTo(4);
+    assertThat(obsolete.get(0).getId()).isEqualTo("mod-a-1.0.0-SNAPSHOT.4");
+    assertThat(obsolete.get(1).getId()).isEqualTo("mod-a-0.9.0-SNAPSHOT.3");
+    assertThat(obsolete.get(2).getId()).isEqualTo("mod-a-0.8.0-SNAPSHOT.2");
+    assertThat(obsolete.get(3).getId()).isEqualTo("mod-a-0.8.0-SNAPSHOT.1");
+  }
+
 }
