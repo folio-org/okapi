@@ -163,7 +163,7 @@ class ModuleUtilTest {
   }
 
   @Test
-  void testGetObsolete2() {
+  void testGetObsoleteBackend() {
     String ids[] = new String [] {
         "mod-a-0.9.0-SNAPSHOT.3",
         "mod-a-1.0.0-SNAPSHOT.4",
@@ -188,5 +188,30 @@ class ModuleUtilTest {
     assertThat(obsolete.get(2).getId()).isEqualTo("mod-a-0.8.0-SNAPSHOT.2");
     assertThat(obsolete.get(3).getId()).isEqualTo("mod-a-0.8.0-SNAPSHOT.1");
   }
+
+  @Test
+  void testGetObsoleteUI() {
+    String ids[] = new String [] {
+        "a-2.3.100078",
+        "a-2.3.100079",
+        "a-2.3.0",
+        "a-2.4.0",
+        "a-2.4.10000104",
+        "a-2.4.10000105",
+        "a-2.4.10000106",
+    };
+    List<ModuleDescriptor> mds = new LinkedList<>();
+    for (int i = 0; i < ids.length; i++) {
+      ModuleDescriptor md = new ModuleDescriptor();
+      md.setId(ids[i]);
+      mds.add(md);
+    }
+    assertThat(mds.size()).isEqualTo(7);
+    List<ModuleDescriptor> obsolete = ModuleUtil.getObsolete(mds);
+    assertThat(obsolete.size()).isEqualTo(2);
+    assertThat(obsolete.get(0).getId()).isEqualTo("a-2.3.100079");
+    assertThat(obsolete.get(1).getId()).isEqualTo("a-2.3.100078");
+  }
+
 
 }
