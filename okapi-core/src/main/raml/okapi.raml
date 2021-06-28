@@ -1040,8 +1040,9 @@ types:
                 text/plain:
     /upgrade:
       post:
-        description: Check if newer modules exist, and upgrade for tenant.
-          The response is a list of modules that should be enabled, disabled
+        description: Upgrade each module to the latest version. The upgrade is
+          rejected if it would violate the interface dependencies of the modules.
+          The response is a list of modules that have been enabled, disabled
           or upgraded to perform the upgrade.
         queryParameters:
           async:
