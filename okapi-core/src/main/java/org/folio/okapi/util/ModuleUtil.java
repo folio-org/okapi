@@ -5,6 +5,7 @@ import io.vertx.core.json.DecodeException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -167,4 +168,37 @@ public final class ModuleUtil {
     }
     return str.toString();
   }
+
+  /**
+   * Return list of obsolete modules.
+   *
+   * <p>A module is considered obsolete if it's a snapshot *and* there is a higher
+   * non-snapshot version.
+   * @param mdl list of modules to consider
+   * @return list of obsolete modules.
+   */
+  public static List<ModuleDescriptor> getObsolete(List<ModuleDescriptor> mdl) {
+    mdl.sort(Collections.reverseOrder());
+    Iterator<ModuleDescriptor> it = mdl.listIterator();
+    List<ModuleDescriptor> obsoleteList = new LinkedList<>();
+    String product = "";
+    boolean removeSnapshotMode = false;
+    while (it.hasNext()) {
+      ModuleDescriptor md = it.next();
+      ModuleId id = new ModuleId(md.getId());
+      if (!product.equals(id.getProduct())) {
+        product = id.getProduct();
+        removeSnapshotMode = false;
+      }
+      if (id.hasPreRelease() || id.hasNpmSnapshot()) {
+        if (removeSnapshotMode) {
+          obsoleteList.add(md);
+        }
+      } else {
+        removeSnapshotMode = true;
+      }
+    }
+    return obsoleteList;
+  }
+
 }

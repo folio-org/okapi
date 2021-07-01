@@ -49,7 +49,7 @@ public class Storage {
         timerStore = new TimerStoreMongo(mongo.getClient());
         break;
       case "inmemory":
-        moduleStore = null;
+        moduleStore = new ModuleStoreNull();
         tenantStore = new TenantStoreNull();
         deploymentStore = new DeploymentStoreNull();
         envStore = new EnvStoreNull();
@@ -96,12 +96,7 @@ public class Storage {
         .compose(res -> deploymentStore.init(reset))
         .compose(res -> tenantStore.init(reset))
         .compose(res -> timerStore.init(reset))
-        .compose(res -> {
-          if (moduleStore == null) {
-            return Future.succeededFuture();
-          }
-          return moduleStore.init(reset);
-        });
+        .compose(res -> moduleStore.init(reset));
   }
 
   public ModuleStore getModuleStore() {

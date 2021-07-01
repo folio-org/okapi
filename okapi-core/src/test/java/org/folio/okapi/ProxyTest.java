@@ -4538,6 +4538,35 @@ public class ProxyTest {
   }
 
   @Test
+  public void testObsoleteModules(TestContext context) {
+    RestAssuredClient c;
+
+    ModuleDescriptor mdA = new ModuleDescriptor();
+    mdA.setId("moduleA-1.0.0-SNAPSHOT.1");
+
+    List<ModuleDescriptor> modules = new LinkedList<>();
+    modules.add(mdA);
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules?deleteObsolete=true")
+        .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    mdA.setId("moduleA-1.0.0");
+    modules = new LinkedList<>();
+    modules.add(mdA);
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules?deleteObsolete=true")
+        .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+  }
+
+  @Test
   public void testImportModules(TestContext context) {
     RestAssuredClient c;
 
