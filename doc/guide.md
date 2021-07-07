@@ -743,6 +743,10 @@ These examples show how to use Okapi from the command line, using the `curl`
 http client. You should be able to copy and paste the commands to your
 command line from this document.
 
+The shell script [okapi-curl-env](https://github.com/folio-org/folio-tools/tree/master/okapi-curl-env)
+wraps the curl command line with some sugar to make it easier to interact with Okapi;
+however, this guide directly uses curl to show the details that okapi-curl-env hides.
+
 The exact definition of the services is in the RAML files listed in
 the [Reference](#web-service) section.
 
@@ -1591,8 +1595,8 @@ curl -w '\n' -X POST -D - \
 ```
 The module responds with the same JSON, but prepends "Hello" to the string.
 
-The [https://github.com/MikeTaylor/okapi-curl](https://github.com/MikeTaylor/okapi-curl)
-shell script simplifies the login and adding the header lines.
+The [okapi-curl-env](https://github.com/folio-org/folio-tools/tree/master/okapi-curl-env)
+shell script simplifies the login and adds the header lines.
 
 
 ### Example 3: Upgrading, versions, environment, and the `_tenant` interface
