@@ -4,6 +4,7 @@ import static org.mockito.Mockito.*;
 
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.assertj.core.api.WithAssertions;
@@ -14,6 +15,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+@Timeout(5)
 @ExtendWith(VertxExtension.class)
 @ExtendWith(MockitoExtension.class)
 class InternalModuleTest implements WithAssertions {
@@ -25,7 +27,8 @@ class InternalModuleTest implements WithAssertions {
     when(proxyContext.getCtx().request().method()).thenReturn(httpMethod);
     when(proxyContext.getCtx().normalizedPath()).thenReturn(path);
     InternalModule internalModule = new InternalModule(
-        null, mock(TenantManager.class), null, null, null, null, "1.2.3");
+        mock(ModuleManager.class), mock(TenantManager.class), null,
+        mock(DiscoveryManager.class), null, mock(PullManager.class), "1.2.3");
     return internalModule.internalService(body, proxyContext);
   }
 
@@ -69,4 +72,34 @@ class InternalModuleTest implements WithAssertions {
         }));
   }
 
+  /**
+   * Check that invalid JSON in body is ignored.
+   */
+  @ParameterizedTest
+  @CsvSource({
+    "GET,  /_/proxy/health",
+    "GET,  /_/version",
+  })
+  void ignoreBody(HttpMethod httpMethod, String path, VertxTestContext vtc) {
+    internalService(httpMethod, path, "}").onComplete(vtc.succeedingThenComplete());;
+  }
+
+  /**
+   * Check that invalid JSON in body is caught.
+   */
+  @ParameterizedTest
+  @CsvSource({
+    "POST, /_/proxy/import/modules",
+    "GET,  /_/proxy/modules",
+    "POST, /_/proxy/modules",
+    "POST, /_/proxy/pull/modules",
+    "POST, /_/discovery/modules",
+    "POST, /_/env",
+  })
+  void invalidJson(HttpMethod httpMethod, String path, VertxTestContext vtc) {
+    internalService(httpMethod, path, "}").onComplete(vtc.failing(cause -> {
+      assertThat(cause).hasMessageContaining("Failed to decode");
+      vtc.completeNow();
+    }));
+  }
 }

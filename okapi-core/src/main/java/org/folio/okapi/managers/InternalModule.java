@@ -1010,28 +1010,33 @@ public class InternalModule {
   }
 
   private Future<String> listModules(ProxyContext pc, String body) {
-    String [] skipModules = new String [0];
-    if (!body.isEmpty()) {
-      skipModules = Json.decodeValue(body, skipModules.getClass());
-    }
-    return moduleManager.getModulesWithFilter(true, true, Arrays.asList(skipModules))
-        .compose(mdl -> {
-          try {
-            MultiMap params = pc.getCtx().request().params();
-            final boolean dot = ModuleUtil.getParamBoolean(params, "dot", false);
-            mdl = ModuleUtil.filter(params, mdl, dot, true);
-            String s;
-            if (dot) {
-              s = GraphDot.report(mdl);
-              pc.getCtx().response().putHeader("Content-Type", "text/plain");
-            } else {
-              s = Json.encodePrettily(mdl);
+    try {
+      String [] skipModules = new String [0];
+      if (!body.isEmpty()) {
+        skipModules = Json.decodeValue(body, skipModules.getClass());
+      }
+      return moduleManager.getModulesWithFilter(true, true, Arrays.asList(skipModules))
+          .compose(mdl -> {
+            try {
+              MultiMap params = pc.getCtx().request().params();
+              final boolean dot = ModuleUtil.getParamBoolean(params, "dot", false);
+              mdl = ModuleUtil.filter(params, mdl, dot, true);
+              String s;
+              if (dot) {
+                s = GraphDot.report(mdl);
+                pc.getCtx().response().putHeader("Content-Type", "text/plain");
+              } else {
+                s = Json.encodePrettily(mdl);
+              }
+              return Future.succeededFuture(s);
+            } catch (DecodeException ex) {
+              return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
             }
-            return Future.succeededFuture(s);
-          } catch (DecodeException ex) {
-            return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
-          }
-        });
+          });
+    } catch (Throwable t) {
+      logger.error(t.getMessage(), t);
+      return Future.failedFuture(t);
+    }
   }
 
   private Future<String> deleteModule(String id) {
