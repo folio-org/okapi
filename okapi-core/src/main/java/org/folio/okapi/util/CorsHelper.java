@@ -6,7 +6,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
 import java.util.List;
 import org.folio.okapi.bean.ModuleInstance;
-import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.managers.TenantManager;
 
@@ -21,6 +20,7 @@ public class CorsHelper {
 
   public static final String DELEGATE_CORS = "delegate-CORS";
   public static final String DELEGATE_CORS_MODULE_INSTANCE = "delegate-CORS-module-instance";
+  private static final int ACCESS_CONTROL_MAX_AGE = 7200;
 
   private CorsHelper() {
   }
@@ -73,7 +73,10 @@ public class CorsHelper {
             .exposedHeader(XOkapiHeaders.TOKEN)
             .exposedHeader(XOkapiHeaders.AUTHORIZATION)
             .exposedHeader(XOkapiHeaders.REQUEST_ID)
-            .exposedHeader(XOkapiHeaders.MODULE_ID).handle(ctx);
+            .exposedHeader(XOkapiHeaders.MODULE_ID)
+            // Allow browsers to cache this CORS response. The cache is per URL.
+            .maxAgeSeconds(ACCESS_CONTROL_MAX_AGE)
+            .handle(ctx);
       }
     });
   }
