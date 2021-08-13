@@ -1,6 +1,9 @@
 package org.folio.okapi.util;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import io.vertx.core.MultiMap;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -213,5 +216,14 @@ class ModuleUtilTest {
     assertThat(obsolete.get(1).getId()).isEqualTo("a-2.3.100078");
   }
 
-
+  @Test
+  void testGetParamInteger() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    assertThat(ModuleUtil.getParamInteger(params, "x", 1)).isEqualTo(1);
+    assertThrows(DecodeException.class, () -> ModuleUtil.getParamInteger(params, "x", null));
+    params.add("x", "2");
+    assertThat(ModuleUtil.getParamInteger(params, "x", 1)).isEqualTo(2);
+    params.add("y", "bad");
+    assertThrows(DecodeException.class, () -> ModuleUtil.getParamInteger(params, "y", 1));
+  }
 }
