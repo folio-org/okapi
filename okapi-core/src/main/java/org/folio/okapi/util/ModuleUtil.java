@@ -192,33 +192,42 @@ public final class ModuleUtil {
   }
 
   /**
-   * Return list of obsolete modules.
-   *
-   * <p>A module is considered obsolete if it's a snapshot *and* there is a higher
-   * non-snapshot version.
-   * @param mdl list of modules to consider
+   * Return list of obsolete modules (for clean up).
+   * <p>A module is considered a snapshot if it's part of earlier releases than saveReleases
+   * *and* it is earlier than the latest saveSnapshots in that release</p>
+   * @param mdl list of modules to consider.
+   * @param saveReleases number of latest non-snapshot releases that are preserved,
+   * @param saveSnapshots number of latest snapshots releases that are preserved.
    * @return list of obsolete modules.
    */
-  public static List<ModuleDescriptor> getObsolete(List<ModuleDescriptor> mdl) {
+  public static List<ModuleDescriptor> getObsolete(List<ModuleDescriptor> mdl,
+                                                   int saveReleases, int saveSnapshots) {
     mdl.sort(Collections.reverseOrder());
     Iterator<ModuleDescriptor> it = mdl.listIterator();
     List<ModuleDescriptor> obsoleteList = new LinkedList<>();
-    String product = "";
-    boolean removeSnapshotMode = false;
+    ModuleId idPrev = null;
+    int numberReleases = 0;
+    int numberSnapshots = 0;
     while (it.hasNext()) {
       ModuleDescriptor md = it.next();
       ModuleId id = new ModuleId(md.getId());
-      if (!product.equals(id.getProduct())) {
-        product = id.getProduct();
-        removeSnapshotMode = false;
+      int diff = idPrev == null ? -5 : id.compareTo(idPrev);
+      if (diff == -5) {
+        numberReleases = 0;
+        numberSnapshots = 0;
       }
       if (id.hasPreRelease() || id.hasNpmSnapshot()) {
-        if (removeSnapshotMode) {
+        if (numberReleases >= saveReleases && numberSnapshots >= saveSnapshots) {
           obsoleteList.add(md);
         }
-      } else {
-        removeSnapshotMode = true;
       }
+      if (diff >= -1 || id.hasNpmSnapshot()) {
+        numberSnapshots++;
+      } else {
+        numberSnapshots = 0;
+        numberReleases++;
+      }
+      idPrev = id;
     }
     return obsoleteList;
   }

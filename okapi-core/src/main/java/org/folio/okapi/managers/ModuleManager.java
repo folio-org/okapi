@@ -130,7 +130,20 @@ public class ModuleManager {
         .compose(ares -> {
           List<ModuleDescriptor> newList = new LinkedList<>(ares.values());
           Future<Void> future = Future.succeededFuture();
-          for (ModuleDescriptor md: ModuleUtil.getObsolete(newList)) {
+          for (ModuleDescriptor md: ModuleUtil.getObsolete(newList, 1, 0)) {
+            future = future.compose(x -> moduleStore.delete(md.getId()).mapEmpty());
+            future = future.compose(x -> modules.remove(md.getId()).mapEmpty());
+          }
+          return future;
+        });
+  }
+
+  Future<Void> deleteObsolete(int saveReleases, int saveSnapshots) {
+    return modules.getAll()
+        .compose(ares -> {
+          List<ModuleDescriptor> newList = new LinkedList<>(ares.values());
+          Future<Void> future = Future.succeededFuture();
+          for (ModuleDescriptor md: ModuleUtil.getObsolete(newList, saveReleases, saveSnapshots)) {
             future = future.compose(x -> moduleStore.delete(md.getId()).mapEmpty());
             future = future.compose(x -> modules.remove(md.getId()).mapEmpty());
           }

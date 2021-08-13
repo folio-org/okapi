@@ -1014,10 +1014,10 @@ public class InternalModule {
       MultiMap params = pc.getCtx().request().params();
       int saveReleases = ModuleUtil.getParamInteger(params, "saveReleases", null);
       int saveSnapshots = ModuleUtil.getParamInteger(params, "saveSnapshots", null);
+      return moduleManager.deleteObsolete(saveReleases, saveSnapshots).map("");
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
-    return Future.succeededFuture("");
   }
 
   private Future<String> createModule(ProxyContext pc, String body) {
