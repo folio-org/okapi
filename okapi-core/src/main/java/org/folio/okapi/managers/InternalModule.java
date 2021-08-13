@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
@@ -834,8 +835,13 @@ public class InternalModule {
     return tenantManager.installUpgradeDelete(tenantId, installId).map("");
   }
 
-  private Future<String> upgradeModulesForTenant(ProxyContext pc, String tenantId) {
-
+  private Future<String> upgradeModulesForTenant(ProxyContext pc, String tenantId, String body) {
+    if (! StringUtils.isEmpty(body)) {
+      return Future.failedFuture("/_/proxy/tenants/{tenant_id}/upgrade "
+          + "(upgrading to latest version) must not have a body. "
+          + "Use /_/proxy/tenants/{tenant_id}/install instead "
+          + "to specify which version to upgrade to.");
+    }
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
     UUID installId = UUID.randomUUID();
     return tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, null)
@@ -1006,28 +1012,33 @@ public class InternalModule {
   }
 
   private Future<String> listModules(ProxyContext pc, String body) {
-    String [] skipModules = new String [0];
-    if (!body.isEmpty()) {
-      skipModules = Json.decodeValue(body, skipModules.getClass());
-    }
-    return moduleManager.getModulesWithFilter(true, true, Arrays.asList(skipModules))
-        .compose(mdl -> {
-          try {
-            MultiMap params = pc.getCtx().request().params();
-            final boolean dot = ModuleUtil.getParamBoolean(params, "dot", false);
-            mdl = ModuleUtil.filter(params, mdl, dot, true);
-            String s;
-            if (dot) {
-              s = GraphDot.report(mdl);
-              pc.getCtx().response().putHeader("Content-Type", "text/plain");
-            } else {
-              s = Json.encodePrettily(mdl);
+    try {
+      String [] skipModules = new String [0];
+      if (!body.isEmpty()) {
+        skipModules = Json.decodeValue(body, skipModules.getClass());
+      }
+      return moduleManager.getModulesWithFilter(true, true, Arrays.asList(skipModules))
+          .compose(mdl -> {
+            try {
+              MultiMap params = pc.getCtx().request().params();
+              final boolean dot = ModuleUtil.getParamBoolean(params, "dot", false);
+              mdl = ModuleUtil.filter(params, mdl, dot, true);
+              String s;
+              if (dot) {
+                s = GraphDot.report(mdl);
+                pc.getCtx().response().putHeader("Content-Type", "text/plain");
+              } else {
+                s = Json.encodePrettily(mdl);
+              }
+              return Future.succeededFuture(s);
+            } catch (DecodeException ex) {
+              return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
             }
-            return Future.succeededFuture(s);
-          } catch (DecodeException ex) {
-            return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
-          }
-        });
+          });
+    } catch (Throwable t) {
+      logger.error(t.getMessage(), t);
+      return Future.failedFuture(t);
+    }
   }
 
   private Future<String> deleteModule(String id) {
@@ -1319,7 +1330,7 @@ public class InternalModule {
         }
         // /_/proxy/tenants/:id/upgrade
         if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("upgrade")) {
-          return upgradeModulesForTenant(pc, decodedSegs[4]);
+          return upgradeModulesForTenant(pc, decodedSegs[4], req);
         }
         // /_/proxy/tenants/:id/interfaces
         if (n == 6 && m.equals(HttpMethod.GET) && segments[5].equals("interfaces")) {
