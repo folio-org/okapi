@@ -391,6 +391,42 @@ types:
         body:
           text/plain:
 
+/_/proxy/cleanup/modules:
+  description: Proxy modules service, clean up obsolete snapshot modules
+  post:
+    description: Remove module snapshot modules descriptors that are obsolete. A module is
+      considered obsolete if it is part of a release that is earlier than N latest releases (saveReleases) and
+      not part of the M latest snapshots in that release.
+    queryParameters:
+      saveReleases:
+        description: The latest releases where snapshots are never considered obsolete
+        type: integer
+        required: true
+      saveSnapshots:
+        description: The latest snapshots that are never considered obsolete (preserved)
+        type: integer
+        required: true
+    body:
+      application/json:
+    responses:
+      204:
+        description: OK
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      404:
+        description: Not Found
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
+
 /_/proxy/modules:
   description: Proxy modules service
   post:

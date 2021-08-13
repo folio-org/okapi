@@ -4538,6 +4538,29 @@ public class ProxyTest {
   }
 
   @Test
+  public void testCleanupModules(TestContext context) {
+    RestAssuredClient c;
+
+    c = api.createRestAssured3();
+    given()
+        .header("Content-Type", "application/json")
+        .body("{}").post("/_/proxy/cleanup/modules?saveSnapshots=2")
+        .then().statusCode(400)
+        .body(is("Missing value for parameter 'saveReleases'"));
+    given()
+        .header("Content-Type", "application/json")
+        .body("{}").post("/_/proxy/cleanup/modules?saveReleases=1")
+        .then().statusCode(400)
+        .body(is("Missing value for parameter 'saveSnapshots'"));
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("{}").post("/_/proxy/cleanup/modules?saveReleases=1&saveSnapshots=2")
+        .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+  }
+
+  @Test
   public void testObsoleteModules(TestContext context) {
     RestAssuredClient c;
 

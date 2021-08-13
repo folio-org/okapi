@@ -58,6 +58,28 @@ public final class ModuleUtil {
     throw new DecodeException("Bad boolean for parameter " + name + ": " + v);
   }
 
+  /**
+   * Lookup integer query parameter in HTTP request.
+   * @param params HTTP server request parameters
+   * @param name name of query parameter
+   * @param defValue default value if omitted (or null if the parameter is mandatory)
+   * @return integer value
+   */
+  public static int getParamInteger(MultiMap params, String name, Integer defValue) {
+    String v = params.get(name);
+    if (v == null) {
+      if (defValue == null) {
+        throw new DecodeException("Missing value for parameter '" + name + "'");
+      }
+      return defValue;
+    }
+    try {
+      return Integer.parseInt(v);
+    } catch (NumberFormatException e) {
+      throw new DecodeException("Bad integer for parameter '" + name + "'");
+    }
+  }
+
   private static boolean interfaceCheck(
       InterfaceDescriptor[] interfaces, String interfaceStr, String scope) {
     if (interfaceStr == null) {
