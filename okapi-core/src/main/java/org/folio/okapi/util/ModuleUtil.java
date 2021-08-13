@@ -216,10 +216,9 @@ public final class ModuleUtil {
         numberReleases = 0;
         numberSnapshots = 0;
       }
-      if (id.hasPreRelease() || id.hasNpmSnapshot()) {
-        if (numberReleases >= saveReleases && numberSnapshots >= saveSnapshots) {
-          obsoleteList.add(md);
-        }
+      if ((id.hasPreRelease() || id.hasNpmSnapshot())
+          && numberReleases >= saveReleases && numberSnapshots >= saveSnapshots) {
+        obsoleteList.add(md);
       }
       if (diff >= -1 || id.hasNpmSnapshot()) {
         numberSnapshots++;
@@ -231,5 +230,4 @@ public final class ModuleUtil {
     }
     return obsoleteList;
   }
-
 }
