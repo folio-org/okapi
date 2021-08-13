@@ -1021,12 +1021,7 @@ public class ProxyService {
           proxyRedirect(it, pc, stream, bcontent, clientRequestList, mi);
           break;
         case INTERNAL:
-          try {
-            proxyInternal(it, pc, stream, bcontent, clientRequestList, mi);
-          } catch (Exception e) {
-            logger.error("AD: exception {}", e.getMessage(), e);
-            throw e;
-          }
+          proxyInternal(it, pc, stream, bcontent, clientRequestList, mi);
           break;
         case REQUEST_RESPONSE_1_0:
           proxyRequestResponse10(it, pc, stream, bcontent, clientRequestList, mi);

@@ -81,12 +81,10 @@ public class ModuleManager {
    * @param preRelease whether to allow pre-releasee
    * @param npmSnapshot whether to allow npm-snapshot
    * @param removeIfMissingDep skip modules where dependency check fails
-   * @param deleteObsolete if true: delete obsolete modules
    * @return future
    */
   public Future<Void> createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
-                                 boolean npmSnapshot, boolean removeIfMissingDep,
-                                 boolean deleteObsolete) {
+                                 boolean npmSnapshot, boolean removeIfMissingDep) {
     return getModulesWithFilter(preRelease, npmSnapshot, null).compose(ares -> {
       Map<String, ModuleDescriptor> tempList = new HashMap<>();
       for (ModuleDescriptor md : ares) {
@@ -115,27 +113,8 @@ public class ModuleManager {
           return Future.failedFuture(new OkapiError(ErrorType.USER, res));
         }
       }
-      return createList2(newList).compose(x -> {
-        if (deleteObsolete) {
-          return deleteObsolete();
-        } else {
-          return Future.succeededFuture();
-        }
-      });
+      return createList2(newList);
     });
-  }
-
-  Future<Void> deleteObsolete() {
-    return modules.getAll()
-        .compose(ares -> {
-          List<ModuleDescriptor> newList = new LinkedList<>(ares.values());
-          Future<Void> future = Future.succeededFuture();
-          for (ModuleDescriptor md: ModuleUtil.getObsolete(newList, 1, 0)) {
-            future = future.compose(x -> moduleStore.delete(md.getId()).mapEmpty());
-            future = future.compose(x -> modules.remove(md.getId()).mapEmpty());
-          }
-          return future;
-        });
   }
 
   Future<Void> deleteObsolete(int saveReleases, int saveSnapshots) {

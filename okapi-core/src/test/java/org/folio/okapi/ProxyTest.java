@@ -4538,10 +4538,9 @@ public class ProxyTest {
   }
 
   @Test
-  public void testCleanupModules(TestContext context) {
+  public void testObsoleteModules2(TestContext context) {
     RestAssuredClient c;
 
-    c = api.createRestAssured3();
     given()
         .header("Content-Type", "application/json")
         .body("{}").post("/_/proxy/cleanup/modules?saveSnapshots=2")
@@ -4552,39 +4551,65 @@ public class ProxyTest {
         .body("{}").post("/_/proxy/cleanup/modules?saveReleases=1")
         .then().statusCode(400)
         .body(is("Missing value for parameter 'saveSnapshots'"));
+    c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
         .body("{}").post("/_/proxy/cleanup/modules?saveReleases=1&saveSnapshots=2")
         .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-  }
 
-  @Test
-  public void testObsoleteModules(TestContext context) {
-    RestAssuredClient c;
-
-    ModuleDescriptor mdA = new ModuleDescriptor();
-    mdA.setId("moduleA-1.0.0-SNAPSHOT.1");
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/modules")
+        .then().statusCode(200)
+        .body("$", hasSize(1));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
 
     List<ModuleDescriptor> modules = new LinkedList<>();
+    ModuleDescriptor mdA = new ModuleDescriptor();
+    mdA.setId("moduleA-1.0.0-SNAPSHOT.1");
     modules.add(mdA);
+    mdA = new ModuleDescriptor();
+    mdA.setId("moduleA-1.0.0-SNAPSHOT.2");
+    modules.add(mdA);
+    mdA = new ModuleDescriptor();
+    mdA.setId("moduleA-1.0.0");
+    modules.add(mdA);
+
     c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
-        .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules?deleteObsolete=true")
+        .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
         .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
-    mdA.setId("moduleA-1.0.0");
-    modules = new LinkedList<>();
-    modules.add(mdA);
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/modules")
+        .then().statusCode(200)
+        .body("$", hasSize(4))
+        .body("[0].id", is("moduleA-1.0.0-SNAPSHOT.1"))
+        .body("[1].id", is("moduleA-1.0.0-SNAPSHOT.2"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
     c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
-        .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules?deleteObsolete=true")
+        .body("{}").post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
         .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/modules")
+        .then().statusCode(200)
+        .body("$", hasSize(3))
+        .body("[0].id", is("moduleA-1.0.0-SNAPSHOT.2"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
   }

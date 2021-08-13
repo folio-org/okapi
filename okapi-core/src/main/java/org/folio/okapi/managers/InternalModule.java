@@ -985,7 +985,6 @@ public class InternalModule {
       final boolean check = ModuleUtil.getParamBoolean(params, "check", true);
       final boolean preRelease = ModuleUtil.getParamBoolean(params, "preRelease", true);
       final boolean npmSnapshot = ModuleUtil.getParamBoolean(params, "npmSnapshot", true);
-      final boolean deleteObsolete = ModuleUtil.getParamBoolean(params, "deleteObsolete", false);
       for (ModuleDescriptor md : list) {
         String validerr = md.validate(logger);
         if (!validerr.isEmpty()) {
@@ -993,8 +992,7 @@ public class InternalModule {
           return Future.failedFuture(new OkapiError(ErrorType.USER, validerr));
         }
       }
-      return moduleManager.createList(list, check, preRelease, npmSnapshot, false,
-          deleteObsolete);
+      return moduleManager.createList(list, check, preRelease, npmSnapshot, false);
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }

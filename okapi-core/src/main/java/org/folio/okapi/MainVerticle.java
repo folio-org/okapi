@@ -263,8 +263,7 @@ public class MainVerticle extends AbstractVerticle {
           logger.debug("Creating the internal Okapi module {} with interface version {}",
               okapiModule, interfaceVersion);
           return moduleManager.createList(Collections.singletonList(md), true, true, true,
-              false, false
-          );
+              false);
         }).compose(x -> checkSuperTenant(okapiModule));
   }
 
