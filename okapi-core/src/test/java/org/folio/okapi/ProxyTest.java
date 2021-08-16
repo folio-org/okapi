@@ -4538,7 +4538,7 @@ public class ProxyTest {
   }
 
   @Test
-  public void testObsoleteModules2(TestContext context) {
+  public void testCleanupModules(TestContext context) {
     RestAssuredClient c;
 
     given()
@@ -4567,16 +4567,30 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
+    InterfaceDescriptor[] interfaceDescriptors = new InterfaceDescriptor[1];
+    InterfaceDescriptor interfaceDescriptor = interfaceDescriptors[0] = new InterfaceDescriptor();
+    interfaceDescriptor.setId("intA");
+    interfaceDescriptor.setVersion("1.0");
+
     List<ModuleDescriptor> modules = new LinkedList<>();
-    ModuleDescriptor mdA = new ModuleDescriptor();
-    mdA.setId("moduleA-1.0.0-SNAPSHOT.1");
-    modules.add(mdA);
-    mdA = new ModuleDescriptor();
-    mdA.setId("moduleA-1.0.0-SNAPSHOT.2");
-    modules.add(mdA);
-    mdA = new ModuleDescriptor();
-    mdA.setId("moduleA-1.0.0");
-    modules.add(mdA);
+
+    ModuleDescriptor md = new ModuleDescriptor();
+    md.setId("moduleA-1.0.0-SNAPSHOT.1"); // this snapshot requires intA provided by moduleB-1.0.0
+    md.setProvides(interfaceDescriptors);
+    modules.add(md);
+
+    md = new ModuleDescriptor();
+    md.setId("moduleA-1.0.0-SNAPSHOT.2");
+    modules.add(md);
+
+    md = new ModuleDescriptor();
+    md.setId("moduleA-1.0.0");
+    modules.add(md);
+
+    md = new ModuleDescriptor();
+    md.setId("moduleB-1.0.0");
+    md.setRequires(interfaceDescriptors);
+    modules.add(md);
 
     c = api.createRestAssured3();
     c.given()
@@ -4590,9 +4604,26 @@ public class ProxyTest {
     c.given()
         .get("/_/proxy/modules")
         .then().statusCode(200)
-        .body("$", hasSize(4))
+        .body("$", hasSize(5))
         .body("[0].id", is("moduleA-1.0.0-SNAPSHOT.1"))
         .body("[1].id", is("moduleA-1.0.0-SNAPSHOT.2"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("{}").post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
+        .then().statusCode(400)
+        .body(is("clean up modules: Missing dependency: moduleB-1.0.0 requires intA: 1.0"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .delete("/_/proxy/modules/moduleB-1.0.0")
+        .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
@@ -4610,6 +4641,85 @@ public class ProxyTest {
         .then().statusCode(200)
         .body("$", hasSize(3))
         .body("[0].id", is("moduleA-1.0.0-SNAPSHOT.2"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+  }
+
+  @Test
+  public void testCleanupModules2(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+    final String okapiTenant = "roskilde";
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(new JsonObject().put("id", okapiTenant).encode()).post("/_/proxy/tenants")
+        .then().statusCode(201);
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    List<ModuleDescriptor> modules = new LinkedList<>();
+
+    ModuleDescriptor md = new ModuleDescriptor();
+    md.setId("moduleA-1.0.0-SNAPSHOT.1");
+    modules.add(md);
+
+    md = new ModuleDescriptor();
+    md.setId("moduleA-1.0.0-SNAPSHOT.2");
+    modules.add(md);
+
+    md = new ModuleDescriptor();
+    md.setId("moduleA-1.0.0");
+    modules.add(md);
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
+        .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    JsonArray installReq = new JsonArray().add(new JsonObject().put("id",  "moduleA-1.0.0-SNAPSHOT.1").put("action", "enable"));
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(installReq.encode())
+        .post("/_/proxy/tenants/" + okapiTenant + "/install")
+        .then().statusCode(200).log().ifValidationFails()
+        .body(equalTo(installReq.encodePrettily()));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("{}").post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
+        .then().statusCode(400)
+        .body(is("delete: module moduleA-1.0.0-SNAPSHOT.1 is used by tenant roskilde"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    installReq = new JsonArray().add(new JsonObject().put("id",  "moduleA-1.0.0-SNAPSHOT.1").put("action", "disable"));
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(installReq.encode())
+        .post("/_/proxy/tenants/" + okapiTenant + "/install")
+        .then().statusCode(200).log().ifValidationFails()
+        .body(equalTo(installReq.encodePrettily()));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("{}").post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
+        .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
   }

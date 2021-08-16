@@ -223,7 +223,6 @@ class ModuleUtilTest {
     assertThat(obsolete.get(0).getId()).isEqualTo("mod-a-0.8.0-SNAPSHOT.1");
   }
 
-
   @Test
   void testGetObsoleteUI() {
     String ids[] = new String [] {

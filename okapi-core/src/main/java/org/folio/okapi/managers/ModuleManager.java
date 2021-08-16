@@ -117,12 +117,29 @@ public class ModuleManager {
     });
   }
 
-  Future<Void> deleteObsolete(int saveReleases, int saveSnapshots) {
+  Future<Void> deleteObsolete(Map<String, String> inUse, int saveReleases, int saveSnapshots) {
     return modules.getAll()
         .compose(ares -> {
           List<ModuleDescriptor> newList = new LinkedList<>(ares.values());
+          List<ModuleDescriptor> obsolete =
+              ModuleUtil.getObsolete(newList, saveReleases, saveSnapshots);
+          for (ModuleDescriptor md: obsolete) {
+            if (inUse.containsKey(md.getId())) {
+              return Future.failedFuture(new OkapiError(ErrorType.USER,
+                  messages.getMessage("10206", md.getId(), inUse.get(md.getId()))));
+            }
+            ares.remove(md.getId());
+          }
+          for (ModuleDescriptor md: obsolete) {
+            ares.remove(md.getId());
+          }
+          String res = DepResolution.checkAllDependencies(ares);
+          if (!res.isEmpty()) {
+            return Future.failedFuture(new OkapiError(ErrorType.USER,
+                messages.getMessage("10212", res)));
+          }
           Future<Void> future = Future.succeededFuture();
-          for (ModuleDescriptor md: ModuleUtil.getObsolete(newList, saveReleases, saveSnapshots)) {
+          for (ModuleDescriptor md: obsolete) {
             future = future.compose(x -> moduleStore.delete(md.getId()).mapEmpty());
             future = future.compose(x -> modules.remove(md.getId()).mapEmpty());
           }
