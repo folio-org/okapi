@@ -4553,8 +4553,7 @@ public class ProxyTest {
         .body(is("Missing value for parameter 'saveSnapshots'"));
     c = api.createRestAssured3();
     c.given()
-        .header("Content-Type", "application/json")
-        .body("{}").post("/_/proxy/cleanup/modules?saveReleases=1&saveSnapshots=2")
+        .post("/_/proxy/cleanup/modules?saveReleases=1&saveSnapshots=2")
         .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
@@ -4606,8 +4605,7 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     c.given()
-        .header("Content-Type", "application/json")
-        .body("{}").post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
+        .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
         .then().statusCode(400)
         .body(is("clean up modules: Missing dependency: moduleB-1.0.0 requires intA: 1.0"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -4623,8 +4621,7 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     c.given()
-        .header("Content-Type", "application/json")
-        .body("{}").post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
+        .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
         .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
@@ -4681,8 +4678,7 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     c.given()
-        .header("Content-Type", "application/json")
-        .body("{}").post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
+        .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
         .then().statusCode(400)
         .body(is("delete: module moduleA-1.0.0-SNAPSHOT.1 is used by tenant roskilde"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -4702,8 +4698,7 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     c.given()
-        .header("Content-Type", "application/json")
-        .body("{}").post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
+        .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
         .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
