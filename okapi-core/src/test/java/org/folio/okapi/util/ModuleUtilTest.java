@@ -174,14 +174,13 @@ class ModuleUtilTest {
         "mod-a-0.8.0",
     };
     List<ModuleDescriptor> mds = new LinkedList<>();
-    for (int i = 0; i < ids.length; i++) {
-      mds.add(new ModuleDescriptor(ids[i]));
+    for (String id : ids) {
+      mds.add(new ModuleDescriptor(id));
     }
-    assertThat(mds.size()).isEqualTo(8);
 
     // remove all snapshots except for latest version
     List<ModuleDescriptor> obsolete = ModuleUtil.getObsolete(mds, 1, 0);
-    assertThat(obsolete.size()).isEqualTo(4);
+    assertThat(obsolete).hasSize(4);
     assertThat(obsolete.get(0).getId()).isEqualTo("mod-a-1.0.0-SNAPSHOT.4");
     assertThat(obsolete.get(1).getId()).isEqualTo("mod-a-0.9.0-SNAPSHOT.3");
     assertThat(obsolete.get(2).getId()).isEqualTo("mod-a-0.8.0-SNAPSHOT.2");
@@ -189,7 +188,7 @@ class ModuleUtilTest {
 
     // remove all snapshots
     obsolete = ModuleUtil.getObsolete(mds, 0, 0);
-    assertThat(obsolete.size()).isEqualTo(6);
+    assertThat(obsolete).hasSize(6);
     assertThat(obsolete.get(0).getId()).isEqualTo("mod-b-1.0.0-SNAPSHOT.1");
     assertThat(obsolete.get(1).getId()).isEqualTo("mod-a-1.1.0-SNAPSHOT.5");
     assertThat(obsolete.get(2).getId()).isEqualTo("mod-a-1.0.0-SNAPSHOT.4");
@@ -199,21 +198,21 @@ class ModuleUtilTest {
 
     // remove all snapshots except latest in all releases
     obsolete = ModuleUtil.getObsolete(mds, 0, 1);
-    assertThat(obsolete.size()).isEqualTo(2);
+    assertThat(obsolete).hasSize(2);
     assertThat(obsolete.get(0).getId()).isEqualTo("mod-a-0.9.0-SNAPSHOT.3");
     assertThat(obsolete.get(1).getId()).isEqualTo("mod-a-0.8.0-SNAPSHOT.1");
 
     // remove all snapshots except latest 2 in all releases
     obsolete = ModuleUtil.getObsolete(mds, 0, 2);
-    assertThat(obsolete.size()).isEqualTo(0);
+    assertThat(obsolete).isEmpty();
 
     obsolete = ModuleUtil.getObsolete(mds, 3, 0);
-    assertThat(obsolete.size()).isEqualTo(2);
+    assertThat(obsolete).hasSize(2);
     assertThat(obsolete.get(0).getId()).isEqualTo("mod-a-0.8.0-SNAPSHOT.2");
     assertThat(obsolete.get(1).getId()).isEqualTo("mod-a-0.8.0-SNAPSHOT.1");
 
     obsolete = ModuleUtil.getObsolete(mds, 3, 1);
-    assertThat(obsolete.size()).isEqualTo(1);
+    assertThat(obsolete).hasSize(1);
     assertThat(obsolete.get(0).getId()).isEqualTo("mod-a-0.8.0-SNAPSHOT.1");
   }
 
@@ -229,21 +228,21 @@ class ModuleUtilTest {
         "a-2.4.10000106",
     };
     List<ModuleDescriptor> mds = new LinkedList<>();
-    for (int i = 0; i < ids.length; i++) {
-      mds.add(new ModuleDescriptor(ids[i]));
+    for (String id : ids) {
+      mds.add(new ModuleDescriptor(id));
     }
-    assertThat(mds.size()).isEqualTo(7);
+
     List<ModuleDescriptor> obsolete = ModuleUtil.getObsolete(mds, 1, 0);
-    assertThat(obsolete.size()).isEqualTo(2);
+    assertThat(obsolete).hasSize(2);
     assertThat(obsolete.get(0).getId()).isEqualTo("a-2.3.100079");
     assertThat(obsolete.get(1).getId()).isEqualTo("a-2.3.100078");
 
     obsolete = ModuleUtil.getObsolete(mds, 1, 1);
-    assertThat(obsolete.size()).isEqualTo(1);
+    assertThat(obsolete).hasSize(1);
     assertThat(obsolete.get(0).getId()).isEqualTo("a-2.3.100078");
 
     obsolete = ModuleUtil.getObsolete(mds, 2, 0);
-    assertThat(obsolete.size()).isEqualTo(0);
+    assertThat(obsolete).isEmpty();
   }
 
   @Test
