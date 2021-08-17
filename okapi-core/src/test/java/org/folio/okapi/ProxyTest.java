@@ -100,7 +100,7 @@ public class ProxyTest {
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
-    api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
+    api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml").failFast();
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
   }
 
@@ -544,7 +544,6 @@ public class ProxyTest {
 
   @Test
   public void test1(TestContext context) {
-    RestAssuredClient c;
     Response r;
     final String okapiTenant = "roskilde";
 
@@ -554,15 +553,11 @@ public class ProxyTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
       .body(equalTo(docTenantRoskilde));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String docBasic_1_0_0 = "{" + LS
       + "  \"id\" : \"basic-module-1.0.0\"," + LS
@@ -604,28 +599,19 @@ public class ProxyTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docBasic_1_0_0).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     /* missing action so this will fail */
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"basic-module-1.0.0\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(400)
       .body(equalTo("Missing action for id basic-module-1.0.0"));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"basic-module-1.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
@@ -634,12 +620,8 @@ public class ProxyTest {
         + "  \"id\" : \"basic-module-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "} ]"));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    r = c.given()
+    r = given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "B")
       .get("/testb/hugo")
@@ -647,8 +629,7 @@ public class ProxyTest {
       .extract().response();
     Assert.assertTrue(r.body().asString().contains("X-Okapi-Match-Path-Pattern:/testb/{id}"));
 
-    c = api.createRestAssured3();
-    r = c.given()
+    r = given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "B")
       .get("/testb/client_id")
@@ -656,8 +637,7 @@ public class ProxyTest {
       .extract().response();
     Assert.assertTrue(r.body().asString().contains("X-Okapi-Match-Path-Pattern:/testb/client_id"));
 
-    c = api.createRestAssured3();
-    r = c.given()
+    r = given()
         .header("X-Okapi-Tenant", okapiTenant)
         .header("X-all-headers", "B")
         .get("/testb/client_id%2Fx")
@@ -667,8 +647,7 @@ public class ProxyTest {
 
     upload(context, okapiTenant, "/testb/client_id", 6);
 
-    c = api.createRestAssured3();
-    c.given()
+    given()
         .header("X-Okapi-Tenant", okapiTenant)
         .get("/testb/client_id/x")
         .then().statusCode(404);
@@ -687,7 +666,6 @@ public class ProxyTest {
 
   @Test
   public void testAdditionalToken(TestContext context) {
-    RestAssuredClient c;
     Response r;
     final String okapiTenant = "roskilde";
 
@@ -697,15 +675,11 @@ public class ProxyTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
       .body(equalTo(docTenantRoskilde));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
     final String docAuthModule = "{" + LS
@@ -735,14 +709,10 @@ public class ProxyTest {
       + "  }" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docAuthModule).post("/_/proxy/modules")
         .then().statusCode(201);
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String docBasic_1_0_0 = "{" + LS
       + "  \"id\" : \"basic-module-1.0.0\"," + LS
@@ -775,16 +745,11 @@ public class ProxyTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docBasic_1_0_0).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"basic-module-1.0.0\", \"action\" : \"enable\"},"
@@ -799,22 +764,18 @@ public class ProxyTest {
         + "  \"id\" : \"auth-module-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "} ]"));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String docLogin = "{" + LS
       + "  \"tenant\" : \"" + okapiTenant + "\"," + LS
       + "  \"username\" : \"peter\"," + LS
       + "  \"password\" : \"peter-password\"" + LS
       + "}";
-    final String okapiToken = c.given().header("Content-Type", "application/json").body(docLogin)
+    final String okapiToken = given().header("Content-Type", "application/json").body(docLogin)
       .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
       .then().statusCode(200).extract().header("X-Okapi-Token");
 
     // tenant but no token
-    c = api.createRestAssured3();
-    r = c.given()
+    r = given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/testb/hugo")
       .then().statusCode(200)
@@ -822,16 +783,14 @@ public class ProxyTest {
     Assert.assertEquals("It works", r.getBody().asString());
 
     // token with implied tenant
-    c = api.createRestAssured3();
-    r = c.given()
+    r = given()
       .header("X-Okapi-Token", okapiToken)
       .get("/testb/hugo")
       .then().statusCode(200)
       .extract().response();
     Assert.assertEquals("It works", r.getBody().asString());
 
-    c = api.createRestAssured3();
-    r = c.given()
+    r = given()
       .header("X-all-headers", "B")
       .header("X-Okapi-Token", okapiToken)
       .header("X-Okapi-Additional-Token", "dummyJwt")
@@ -843,8 +802,7 @@ public class ProxyTest {
     // test module must NOT receive the X-Okapi-Additional-Token
     Assert.assertTrue(!b.contains("X-Okapi-Additional-Token"));
 
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("X-all-headers", "B")
       .header("X-Okapi-Token", okapiToken)
       .header("X-Okapi-Additional-Token", "nomatch")
@@ -856,60 +814,40 @@ public class ProxyTest {
   public void testProxy(TestContext context) {
     final String okapiTenant = "roskilde";
 
-    RestAssuredClient c;
     Response r;
-
     String nodeListDoc = "[ {" + LS
       + "  \"nodeId\" : \"localhost\"," + LS
       + "  \"url\" : \"http://localhost:9230\"" + LS
       + "} ]";
 
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/nodes").then().statusCode(200)
+    api.createRestAssured3().given().get("/_/discovery/nodes").then().statusCode(200)
       .body(equalTo(nodeListDoc));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/nodes/gyf").then().statusCode(404);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+    api.createRestAssured3().given().get("/_/discovery/nodes/gyf").then().statusCode(404);
 
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/nodes/localhost").then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+    api.createRestAssured3().given().get("/_/discovery/nodes/localhost").then().statusCode(200);
 
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body("{ }").post("/_/xyz").then().statusCode(404);
-    Assert.assertEquals("RamlReport{requestViolations=[Resource '/_/xyz' is not defined], "
-      + "responseViolations=[], validationViolations=[]}",
-      c.getLastReport().toString());
 
     final String badDoc = "{" + LS
       + "  \"instId\" : \"BAD\"," + LS // the comma here makes it bad json!
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body(badDoc).post("/_/deployment/modules")
       .then().statusCode(400);
 
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body("{}").post("/_/deployment/modules")
       .then().statusCode(400);
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("{\"srvcId\" : \"foo\"}").post("/_/deployment/modules")
       .then().statusCode(400);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String docUnknownJar = "{" + LS
       + "  \"srvcId\" : \"auth-1\"," + LS
@@ -919,14 +857,11 @@ public class ProxyTest {
       + "  }" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docUnknownJar).post("/_/deployment/modules")
       .then()
       .statusCode(400);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String docAuthDeployment = "{" + LS
       + "  \"srvcId\" : \"auth-1\"," + LS
@@ -936,22 +871,16 @@ public class ProxyTest {
       + "  }" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    r = c.given()
+    r = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docAuthDeployment).post("/_/deployment/modules")
       .then()
       .statusCode(201)
       .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
     String locationAuthDeployment = r.getHeader("Location");
 
-    c = api.createRestAssured3();
-    String docAuthDiscovery = c.given().get(locationAuthDeployment)
+    String docAuthDiscovery = api.createRestAssured3().given().get(locationAuthDeployment)
       .then().statusCode(200).extract().body().asString();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String docAuthModule = "{" + LS
       + "  \"id\" : \"auth-1\"," + LS
@@ -981,19 +910,15 @@ public class ProxyTest {
     // Check that we fail on unknown route types
     final String docBadTypeModule
       = docAuthModule.replaceAll("request-response", "UNKNOWN-ROUTE-TYPE");
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docBadTypeModule).post("/_/proxy/modules")
       .then().statusCode(400);
 
-    c = api.createRestAssured3();
-    r = c.given()
+    r = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docAuthModule).post("/_/proxy/modules").then().statusCode(201)
       .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
     final String locationAuthModule = r.getHeader("Location");
 
     // PUT not defined for RAML
@@ -1026,19 +951,13 @@ public class ProxyTest {
       + "  \"requires\" : [ ]" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    final String locationAuthModule2 = c.given()
+    final String locationAuthModule2 = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docAuthModule2).post("/_/proxy/modules")
       .then().statusCode(201)
       .extract().header("Location");
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given().delete(locationAuthModule2).then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+    api.createRestAssured3().given().delete(locationAuthModule2).then().statusCode(204);
 
     final String docSampleDeployment = "{" + LS
       + "  \"srvcId\" : \"sample-module-1\"," + LS
@@ -1051,22 +970,16 @@ public class ProxyTest {
       + "    } ]" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured3();
-    r = c.given()
+    r = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docSampleDeployment).post("/_/deployment/modules")
       .then()
       .statusCode(201)
       .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
     String locationSampleDeployment = r.getHeader("Location");
 
-    c = api.createRestAssured3();
-    String docSampleDiscovery = c.given().get(locationSampleDeployment)
-      .then().statusCode(200).extract().body().asString();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+    api.createRestAssured3().given().get(locationSampleDeployment)
+      .then().statusCode(200);
 
     final String docSampleModuleBadRequire = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
@@ -1078,8 +991,7 @@ public class ProxyTest {
       + "  \"routingEntries\" : [ ] " + LS
       + "}";
 
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body(docSampleModuleBadRequire).post("/_/proxy/modules").then().statusCode(400)
       .extract().response();
@@ -1097,11 +1009,9 @@ public class ProxyTest {
       + "  } ]," + LS
       + "}";
 
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
-      .body(docSampleModuleBadVersion).post("/_/proxy/modules").then().statusCode(400)
-      .extract().response();
+      .body(docSampleModuleBadVersion).post("/_/proxy/modules").then().statusCode(400);
 
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
@@ -1131,19 +1041,16 @@ public class ProxyTest {
       + "  }" + LS
       + "}";
     logger.debug(docSampleModule);
-    c = api.createRestAssured3();
-    r = c.given()
+    r = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docSampleModule).post("/_/proxy/modules")
       .then()
       .statusCode(201)
       .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
     final String locationSampleModule = r.getHeader("Location");
 
     // Try to delete the auth module that our sample depends on
-    c.given().delete(locationAuthModule).then().statusCode(400);
+    api.createRestAssured3().given().delete(locationAuthModule).then().statusCode(400);
 
     // Create our tenant
     final String docTenantRoskilde = "{" + LS
@@ -1151,7 +1058,7 @@ public class ProxyTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    c = api.createRestAssured3();
+    RestAssuredClient c = api.failFast(false).createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants/") // trailing slash fails
@@ -1162,16 +1069,12 @@ public class ProxyTest {
 
     // add tenant by using PUT (which will insert)
     final String locationTenantRoskilde = "/_/proxy/tenants/" + okapiTenant;
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde)
       .put(locationTenantRoskilde)
       .then().statusCode(200)
-      .body(equalTo(docTenantRoskilde))
-      .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+      .body(equalTo(docTenantRoskilde));
 
     // Try to enable sample without the auth that it requires
     final String docEnableWithoutDep = "{" + LS
@@ -1200,36 +1103,27 @@ public class ProxyTest {
       .then().statusCode(404);  // trailing slash is no good
 
     // Actually enable the auith
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docEnableAuth).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(201).body(equalTo(docEnableAuth));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
       .then().statusCode(404);  // trailing slash again
 
     // Get the list of one enabled module
-    c = api.createRestAssured3();
     final String exp1 = "[ {" + LS
       + "  \"id\" : \"auth-1\"" + LS
       + "} ]";
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules")
+    api.createRestAssured3().given().get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).body(equalTo(exp1));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // get the auth enabled record
     final String expAuthEnabled = "{" + LS
       + "  \"id\" : \"auth-1\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules/auth-1")
+    api.createRestAssured3().given().get("/_/proxy/tenants/" + okapiTenant + "/modules/auth-1")
       .then().statusCode(200).body(equalTo(expAuthEnabled));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // Enable with bad JSON
     given()
@@ -1244,15 +1138,12 @@ public class ProxyTest {
     final String docEnableSample = "{" + LS
       + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then()
       .statusCode(201)
       .body(equalTo(docEnableSample));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // Try to enable it again, should fail
     given()
@@ -1264,16 +1155,13 @@ public class ProxyTest {
     given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
       .then().statusCode(404); // trailing slash
 
-    c = api.createRestAssured3();
     final String expEnabledBoth = "[ {" + LS
       + "  \"id\" : \"auth-1\"" + LS
       + "}, {" + LS
       + "  \"id\" : \"sample-module-1\"" + LS
       + "} ]";
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules")
+    api.createRestAssured3().given().get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).body(equalTo(expEnabledBoth));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // Try to disable the auth module for the tenant.
     // Ought to fail, because it is needed by sample module
@@ -1286,21 +1174,15 @@ public class ProxyTest {
       + "  \"name\" : \"Roskilde-library\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTenant).put("/_/proxy/tenants/" + okapiTenant)
       .then().statusCode(200)
       .body(equalTo(docTenant));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // Check that both modules are still enabled
-    c = api.createRestAssured3();
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules")
+    api.createRestAssured3().given().get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).body(equalTo(expEnabledBoth));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // Request without any X-Okapi headers
     given()
@@ -1507,114 +1389,75 @@ public class ProxyTest {
       + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
-    c = api.createRestAssured3();
-    r = c.given()
+    r = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docSample2Module).post("/_/proxy/modules").then().statusCode(201)
       .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
     final String locationSample2Module = r.getHeader("Location");
 
     // 2nd sample module. We only create it in discovery and give it same URL as
     // for sample-module (first one). Then we delete it again.
-    c = api.createRestAssured3();
     final String docSample2Deployment = "{" + LS
       + "  \"instId\" : \"sample2-inst\"," + LS
       + "  \"srvcId\" : \"sample-module2-1\"," + LS
       + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
-    r = c.given()
+    r = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docSample2Deployment).post("/_/discovery/modules")
       .then()
       .statusCode(201).extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
     final String locationSample2Discovery = r.header("Location");
 
     // Get the sample-2
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/modules/sample-module2-1")
+    api.createRestAssured3().given().get("/_/discovery/modules/sample-module2-1")
       .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // and its instance
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/modules/sample-module2-1/sample2-inst")
+    api.createRestAssured3().given().get("/_/discovery/modules/sample-module2-1/sample2-inst")
       .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // Get with unknown instanceId AND serviceId
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/modules/foo/xyz")
+    api.createRestAssured3().given().get("/_/discovery/modules/foo/xyz")
       .then().statusCode(404);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // Get with unknown instanceId
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/modules/sample-module2-1/xyz")
+    api.createRestAssured3().given().get("/_/discovery/modules/sample-module2-1/xyz")
       .then().statusCode(404);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // Get with unknown serviceId
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/modules/foo/sample2-inst")
+    api.createRestAssured3().given().get("/_/discovery/modules/foo/sample2-inst")
       .then().statusCode(404);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // health check
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/health")
+    api.createRestAssured3().given().get("/_/discovery/health")
       .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // health for sample2
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/health/sample-module2-1")
+    api.createRestAssured3().given().get("/_/discovery/health/sample-module2-1")
       .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // health for an instance
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/health/sample-module2-1/sample2-inst")
+    api.createRestAssured3().given().get("/_/discovery/health/sample-module2-1/sample2-inst")
       .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // Health with unknown instanceId
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/health/sample-module2-1/xyz")
+    api.createRestAssured3().given().get("/_/discovery/health/sample-module2-1/xyz")
       .then().statusCode(404);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // health with unknown serviceId
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/health/foo/sample2-inst")
+    api.createRestAssured3().given().get("/_/discovery/health/foo/sample2-inst")
       .then().statusCode(404);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // enable sample2
     final String docEnableSample2 = "{" + LS
       + "  \"id\" : \"sample-module2-1\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docEnableSample2).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(201)
       .body(equalTo(docEnableSample2));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // disable it, and re-enable.
     // Later we will check that we got the right calls in its
@@ -1655,13 +1498,10 @@ public class ProxyTest {
       + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
-    c = api.createRestAssured3();
-    r = c.given()
+    r = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docSample3Module).post("/_/proxy/modules").then().statusCode(201)
       .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
     final String locationSample3Module = r.getHeader("Location");
 
     // 3rd sample module. We only create it in discovery and give it same URL as
@@ -1671,14 +1511,11 @@ public class ProxyTest {
       + "  \"srvcId\" : \"sample-module3-1\"," + LS
       + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    r = c.given()
+    r = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docSample3Deployment).post("/_/discovery/modules")
       .then()
       .statusCode(201).extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
     final String locationSample3Inst = r.getHeader("Location");
     logger.debug("Deployed: locationSample3Inst " + locationSample3Inst);
 
@@ -1688,7 +1525,7 @@ public class ProxyTest {
       + "  \"srvcId\" : \"sample-module2-1\"," + LS
       + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docSample3DeploymentError).post("/_/discovery/modules")
       .then()
@@ -1697,36 +1534,24 @@ public class ProxyTest {
     final String docEnableSample3 = "{" + LS
       + "  \"id\" : \"sample-module3-1\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docEnableSample3).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(201)
       .header("Location", equalTo("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module3-1"))
       .body(equalTo(docEnableSample3));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .get("/_/proxy/tenants/" + "unknown" + "/modules")
       .then().statusCode(404);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .get("/_/proxy/tenants/" + "unknown" + "/modules/unknown")
       .then().statusCode(404);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
@@ -1774,7 +1599,6 @@ public class ProxyTest {
       .body("OkapiX").post("/testb")
       .then().statusCode(200).body(equalTo("hej <test>hej OkapiX</test>"));
 
-    c = api.createRestAssured3();
     final String exp4Modules = "[ {" + LS
       + "  \"id\" : \"auth-1\"" + LS
       + "}, {" + LS
@@ -1784,18 +1608,13 @@ public class ProxyTest {
       + "}, {" + LS
       + "  \"id\" : \"sample-module3-1\"" + LS
       + "} ]";
-    c.given().get(locationTenantRoskilde + "/modules")
+    api.createRestAssured3().given().get(locationTenantRoskilde + "/modules")
       .then().statusCode(200)
       .body(equalTo(exp4Modules));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given().delete(locationTenantRoskilde + "/modules/sample-module3-1")
+    api.createRestAssured3().given().delete(locationTenantRoskilde + "/modules/sample-module3-1")
       .then().statusCode(204);
-    Assert.assertTrue(c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
     final String exp3Modules = "[ {" + LS
       + "  \"id\" : \"auth-1\"" + LS
       + "}, {" + LS
@@ -1803,29 +1622,19 @@ public class ProxyTest {
       + "}, {" + LS
       + "  \"id\" : \"sample-module2-1\"" + LS
       + "} ]";
-    c.given().get(locationTenantRoskilde + "/modules")
+    api.createRestAssured3().given().get(locationTenantRoskilde + "/modules")
       .then().statusCode(200)
       .body(equalTo(exp3Modules));
-    Assert.assertTrue(c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/modules")
+    api.createRestAssured3().given().get("/_/discovery/modules")
       .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // make sample 2 disappear from discovery!
-    c = api.createRestAssured3();
-    c.given().delete(locationSample2Discovery)
+    api.createRestAssured3().given().delete(locationSample2Discovery)
       .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given().get("/_/discovery/modules")
+    api.createRestAssured3().given().get("/_/discovery/modules")
       .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
@@ -1834,39 +1643,27 @@ public class ProxyTest {
       .then().statusCode(404); // because sample2 was removed
 
     // Disable the sample module. No tenant-destroy for sample
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module-1?purge=true")
       .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // Disable the sample2 module + auth-1. It has a tenant request handler which is
     // no longer invoked, so it does not matter we don't have a running instance
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .delete("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     given()
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).body(equalTo("[ ]"));
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .delete("/_/proxy/tenants/unknown-tenant/modules")
       .then().statusCode(404);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given().delete(locationTenantRoskilde)
+    api.createRestAssured3().given().delete(locationTenantRoskilde)
       .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // Clean up, so the next test starts with a clean slate
     given().delete(locationSample3Inst).then().statusCode(204);
@@ -1895,7 +1692,6 @@ public class ProxyTest {
   @Test
   public void testRedirect(TestContext context) {
     Async async = context.async();
-    RestAssuredClient c;
     Response r;
     final String okapiTenant = "roskilde";
 
@@ -1906,15 +1702,12 @@ public class ProxyTest {
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    r = c.given()
+    r = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
       .log().ifValidationFails()
       .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
     final String locationTenantRoskilde = r.getHeader("Location");
 
     // Set up, deploy, and enable a sample module
@@ -1956,8 +1749,7 @@ public class ProxyTest {
       + "  }" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    r = c.given()
+    r = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docSampleModule).post("/_/proxy/modules").then().statusCode(201)
       .extract().response();
@@ -1968,25 +1760,19 @@ public class ProxyTest {
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    r = c.given().header("Content-Type", "application/json")
+    r = api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(docSampleDeploy).post("/_/discovery/modules")
       .then().statusCode(201)
       .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
     String locationSampleDeployment = r.getHeader("Location");
 
     final String docEnableSample = "{" + LS
       + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(201).body(equalTo(docEnableSample));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     given()
       .header("X-Okapi-Tenant", okapiTenant)
@@ -2063,8 +1849,7 @@ public class ProxyTest {
       + "  }" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    r = c.given()
+    r = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docHeaderModule).post("/_/proxy/modules").then().statusCode(201)
       .extract().response();
@@ -2075,25 +1860,19 @@ public class ProxyTest {
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    r = c.given().header("Content-Type", "application/json")
+    r = api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(docHeaderDeploy).post("/_/discovery/modules")
       .then().statusCode(201)
       .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
     String locationHeaderDeployment = r.getHeader("Location");
 
     final String docEnableHeader = "{" + LS
       + "  \"id\" : \"header-module-1\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docEnableHeader).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(201).body(equalTo(docEnableHeader));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     given()
       .header("X-Okapi-Tenant", okapiTenant)
@@ -2199,7 +1978,6 @@ public class ProxyTest {
   @Test
   public void testRequestOnly(TestContext context) {
     final String okapiTenant = "roskilde";
-    RestAssuredClient c;
     Response r;
 
     // add tenant
@@ -2208,16 +1986,12 @@ public class ProxyTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    r = c.given()
+    r = api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
       .body(equalTo(docTenantRoskilde))
       .extract().response();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
     final String locationTenantRoskilde = r.getHeader("Location");
 
     final String docRequestPre = "{" + LS
@@ -2231,12 +2005,9 @@ public class ProxyTest {
         + "    \"permissionsRequired\" : [ ]" + LS
         + "  } ]" + LS
         + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docRequestPre).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String docRequestPost = "{" + LS
       + "  \"id\" : \"request-post-1.0.0\"," + LS
@@ -2249,12 +2020,9 @@ public class ProxyTest {
       + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docRequestPost).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String docRequestOnly = "{" + LS
         + "  \"id\" : \"request-only-1.0.0\"," + LS
@@ -2271,12 +2039,9 @@ public class ProxyTest {
         + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
         + "  }" + LS
         + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docRequestOnly).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
     final String docAuthModule = "{" + LS
@@ -2305,12 +2070,9 @@ public class ProxyTest {
       + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docAuthModule).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String docSample = "{" + LS
         + "  \"id\" : \"sample-module-1.0.0\"," + LS
@@ -2332,15 +2094,11 @@ public class ProxyTest {
         + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
         + "  }" + LS
         + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docSample).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"},"
         + " {\"id\" : \"request-only-1.0.0\", \"action\" : \"enable\"} ]")
@@ -2353,9 +2111,6 @@ public class ProxyTest {
         + "  \"id\" : \"request-only-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "} ]"));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("Content-Type", "text/plain")
@@ -2379,12 +2134,9 @@ public class ProxyTest {
       + "  \"url\" : \"http://localhost:" + Integer.toString(portPre) + "\"" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(nodeDoc1).post("/_/discovery/modules")
       .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String nodeDoc2 = "{" + LS
       + "  \"instId\" : \"localhost-" + Integer.toString(portPost) + "\"," + LS
@@ -2392,15 +2144,11 @@ public class ProxyTest {
       + "  \"url\" : \"http://localhost:" + Integer.toString(portPost) + "\"" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(nodeDoc2).post("/_/discovery/modules")
       .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"request-pre-1.0.0\", \"action\" : \"enable\"},"
         + " {\"id\" : \"auth-f-module-1\", \"action\" : \"enable\"},"
@@ -2417,9 +2165,6 @@ public class ProxyTest {
         + "  \"id\" : \"request-only-1.0.0\"," + LS
         + "  \"action\" : \"disable\"" + LS
         + "} ]"));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // login and get token
     final String docLogin = "{" + LS
@@ -2448,8 +2193,7 @@ public class ProxyTest {
       .delete("/testb")
       .then().statusCode(204).log().ifValidationFails();
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"request-post-1.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
@@ -2507,15 +2251,11 @@ public class ProxyTest {
         + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
         + "  }" + LS
         + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(docSample2).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"sample-module-1.0.1\", \"action\" : \"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
@@ -2525,9 +2265,6 @@ public class ProxyTest {
             + "  \"from\" : \"sample-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"));
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     given().header("X-Okapi-Tenant", okapiTenant)
         .header("X-Okapi-Token", okapiToken)
@@ -2551,7 +2288,6 @@ public class ProxyTest {
 
   @Test
   public void testEdgeCase(TestContext context) {
-    RestAssuredClient c;
     final String superTenant = "supertenant";
 
     final String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
@@ -2582,13 +2318,9 @@ public class ProxyTest {
       + "  }" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docAuthModule).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String docBasic_1_0_0 = "{" + LS
       + "  \"id\" : \"basic-module-1.0.0\"," + LS
@@ -2621,13 +2353,9 @@ public class ProxyTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docBasic_1_0_0).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String docEdge_1_0_0 = "{" + LS
       + "  \"id\" : \"edge-module-1.0.0\"," + LS
@@ -2643,13 +2371,9 @@ public class ProxyTest {
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docEdge_1_0_0).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String nodeDiscoverEdge = "{" + LS
       + "  \"instId\" : \"localhost-" + Integer.toString(portEdge) + "\"," + LS
@@ -2657,15 +2381,11 @@ public class ProxyTest {
       + "  \"url\" : \"http://localhost:" + Integer.toString(portEdge) + "\"" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(nodeDiscoverEdge).post("/_/discovery/modules")
       .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
@@ -2673,16 +2393,13 @@ public class ProxyTest {
         + "]")
       .post("/_/proxy/tenants/" + superTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String docLogin = "{" + LS
       + "  \"tenant\" : \"" + "supertenant" + "\"," + LS
       + "  \"username\" : \"peter\"," + LS
       + "  \"password\" : \"peter-password\"" + LS
       + "}";
-    final String okapiToken = c.given().header("Content-Type", "application/json").body(docLogin)
+    final String okapiToken = given().header("Content-Type", "application/json").body(docLogin)
       .header("X-Okapi-Tenant", "supertenant").post("/authn/login")
       .then().statusCode(200).extract().header("X-Okapi-Token");
 
@@ -2699,7 +2416,6 @@ public class ProxyTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    c = api.createRestAssured3();
     given()
       .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "application/json")
@@ -2713,8 +2429,7 @@ public class ProxyTest {
       .body("Okapi").get("/edge/roskilde")
       .then().statusCode(404).log().ifValidationFails();
 
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "application/json")
       .body("["
@@ -2724,65 +2439,56 @@ public class ProxyTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails();
 
-    c.given()
+    given()
       .header("Content-Type", "text/plain")
       .header("Accept", "text/xml")
       .body("Okapi").get("/edge/roskilde")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("It works"));
 
-    c.given()
+    given()
       .header("Content-Type", "text/plain")
       .header("Accept", "text/xml")
       .body("Okapi").get("/edge/unknown")
       .then().statusCode(400).log().ifValidationFails()
       .body(equalTo("No such Tenant unknown"));
 
-    c.given()
+    given()
         .header("X-Okapi-Token", okapiToken)
         .delete("/_/proxy/tenants/supertenant/modules/edge-module-1.0.0").then().statusCode(204);
 
-    c.given()
+    given()
         .header("X-Okapi-Token", okapiToken)
         .delete("/_/proxy/tenants/supertenant/modules/basic-module-1.0.0").then().statusCode(204);
 
-    c.given()
+    given()
         .header("X-Okapi-Token", okapiToken)
         .delete("/_/proxy/tenants/supertenant/modules/auth-module-1.0.0").then().statusCode(204);
 
-    c.given()
+    api.createRestAssured3().given()
       .delete("/_/discovery/modules")
       .then().statusCode(204).log().ifValidationFails();
   }
 
   void addAndDeploy(JsonObject moduleObj, String moduleName, int port) {
-    RestAssuredClient c;
     moduleObj.put("id", moduleName);
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(moduleObj.encode()).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     final JsonObject deployObj = new JsonObject()
         .put("instId", UUID.randomUUID().toString())
         .put("srvcId", moduleName)
         .put("url", "http://localhost:" + port);
 
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
         .body(deployObj.encode()).post("/_/discovery/modules")
         .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
   }
 
   @Test
   public void testTimer(TestContext context) {
-    RestAssuredClient c;
-
     JsonObject docA_obj = new JsonObject()
         .put("provides", new JsonArray()
             .add(new JsonObject()
@@ -2885,35 +2591,27 @@ public class ProxyTest {
 
     final String okapiTenant = "roskilde";
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers")
         .then().statusCode(200)
         .body("$", hasSize(0));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // add tenant
     final String docTenantRoskilde = "{" + LS
       + "  \"id\" : \"" + okapiTenant + "\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
       .body(equalTo(docTenantRoskilde));
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers")
         .then().statusCode(200)
         .body("$", hasSize(0));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"a-module-1.0.0\", \"action\" : \"enable\"},"
@@ -2921,8 +2619,6 @@ public class ProxyTest {
         + "]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
         () -> Assertions.assertThat(timerDelaySum.get(0)).isGreaterThan(1));
@@ -2931,42 +2627,30 @@ public class ProxyTest {
     Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
         () -> Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2));
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers/foo")
         .then().statusCode(404);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // not even part of RAML / MD
     given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers/a/b/c")
         .then().statusCode(404);
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers")
         .then().statusCode(200)
         .body("$", hasSize(4));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(200)
         .body("id", is("timer-module_0"))
         .body("modified", is(false));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/tenants/" + "badtenant" + "/timers/timer-module_0")
         .then().statusCode(404)
         .body(containsString("badtenant"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     given()
         .header("Content-Type", "application/json")
@@ -2988,62 +2672,44 @@ public class ProxyTest {
         .put("id", "timer-module_0")
         .put("routingEntry", routingEntry);
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(patchObj.encode())
         .patch("/_/proxy/tenants/" + okapiTenant + "/timers")
             .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // patch same data again
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(routingEntry.encode())
         .patch("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body("["
             + " {\"id\" : \"timer-module-1.0.1\", \"action\" : \"enable\"}"
             + "]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
         .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(200)
         .body("routingEntry.delay", is("2"))
         .body("modified", is(true));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_1")
         .then().statusCode(200)
         .body("routingEntry.delay", is("20"))
         .body("modified", is(false));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_2")
         .then().statusCode(200)
         .body("routingEntry.delay", is("5"))
         .body("modified", is(false));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     given()
         .header("X-Okapi-Tenant", okapiTenant)
@@ -3053,16 +2719,13 @@ public class ProxyTest {
         .then().statusCode(200);
 
     // disable the timer
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(new JsonObject()
             .put("unit", "millisecond")
             .put("delay", "0").encode())
         .patch("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     timerDelaySum.clear();
 
@@ -3073,8 +2736,7 @@ public class ProxyTest {
     Assertions.assertThat(timerDelaySum.containsKey(0)).isFalse();
 
     // enable it again
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(new JsonObject()
             .put("id", "timer-module_0")
@@ -3083,67 +2745,49 @@ public class ProxyTest {
                 .put("delay", "2")).encode())
         .patch("/_/proxy/tenants/" + okapiTenant + "/timers")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // disable and enable (quickly)
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"timer-module-1.0.1\", \"action\" : \"disable\"}"
         + "]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}"
         + "]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // reset timer
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body("{}")
         .patch("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // reset timer for other timer
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body("{}")
         .patch("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_1")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // see that values are back to that of module
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(200)
         .body("id", is("timer-module_0"))
         .body("routingEntry.unit", is("millisecond"))
         .body("routingEntry.delay", is("10"))
         .body("modified", is(false));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // disable for some time...
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"disable\"}"
@@ -3157,34 +2801,25 @@ public class ProxyTest {
     }
 
     // check that timer gone
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(404);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // try to reset a timer for module that's gone
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body("{}")
         .patch("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_1")
         .then().statusCode(404).body(containsString("timer-module_1"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // enable again
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}"
         + "]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     try {
       TimeUnit.MILLISECONDS.sleep(100);
@@ -3192,16 +2827,13 @@ public class ProxyTest {
     }
 
     // disable and remove tenant as well
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"disable\"}"
         + "]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     given()
       .header("Content-Type", "application/json")
@@ -3216,22 +2848,19 @@ public class ProxyTest {
     timerDelaySum.clear();
     timerDelayStatus = 400;
     // add tenant 2nd time
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(docTenantRoskilde).post("/_/proxy/tenants")
         .then().statusCode(201)
         .body(equalTo(docTenantRoskilde));
-    c = api.createRestAssured3();
-    c.given()
+
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body("["
             + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}"
             + "]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
         .then().statusCode(200);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     try {
       TimeUnit.MILLISECONDS.sleep(50);
@@ -3242,16 +2871,13 @@ public class ProxyTest {
     Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2);
 
     // disable and remove tenant as well
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body("["
             + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"disable\"}"
             + "]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
         .then().statusCode(200).log().ifValidationFails();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     given()
         .header("Content-Type", "application/json")
@@ -3262,9 +2888,6 @@ public class ProxyTest {
 
   @Test
   public void testTenantInit(TestContext context) {
-    RestAssuredClient c;
-    Response r;
-
     timerPermissions.clear();
 
     final String docTimer_1_0_0 = "{" + LS
@@ -3302,12 +2925,9 @@ public class ProxyTest {
       + "  } ]" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTimer_1_0_0).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String nodeDoc1 = "{" + LS
       + "  \"instId\" : \"localhost-" + Integer.toString(portTimer) + "\"," + LS
@@ -3315,12 +2935,9 @@ public class ProxyTest {
       + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(nodeDoc1).post("/_/discovery/modules")
       .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String okapiTenant = "roskilde";
     // add tenant
@@ -3329,34 +2946,28 @@ public class ProxyTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    c = api.createRestAssured3();
     given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
       .body(equalTo(docTenantRoskilde));
 
-    c = api.createRestAssured3();
-    String body = c.given().header("Content-Type", "application/json")
+    String body = api.createRestAssured3().given().header("Content-Type", "application/json")
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).extract().body().asString();
     JsonArray ar = new JsonArray(body);
     Assert.assertEquals(0, ar.size());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}"
         + "]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install")
       .then().statusCode(200).log().ifValidationFails();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     Assert.assertEquals(0, timerPermissions.size());
-    c = api.createRestAssured3();
-    body = c.given().header("Content-Type", "application/json")
+    body = api.createRestAssured3().given().header("Content-Type", "application/json")
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).extract().body().asString();
     ar = new JsonArray(body);
@@ -3415,12 +3026,9 @@ public class ProxyTest {
       + "  } ]" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTimer_1_0_1).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     Assert.assertEquals(0, timerPermissions.size());
 
@@ -3451,32 +3059,22 @@ public class ProxyTest {
         + "    \"displayName\": \"e\"" + LS
         + "  } ]" + LS
         + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docEdge_1_0_0).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
 
     final String nodeDiscoverEdge = "{" + LS
       + "  \"instId\" : \"localhost-" + Integer.toString(portEdge) + "\"," + LS
       + "  \"srvcId\" : \"edge-module-1.0.0\"," + LS
       + "  \"url\" : \"http://localhost:" + Integer.toString(portEdge) + "\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(nodeDiscoverEdge).post("/_/discovery/modules")
       .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
     Assert.assertEquals(0, timerPermissions.size());
 
     // deploy, but with no running instance of timer-module-1.0.1
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
@@ -3485,8 +3083,6 @@ public class ProxyTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install")
       .then().statusCode(400).log().ifValidationFails()
       .body(containsString("No running instances for module timer-module-1.0.1. Can not invoke /_/tenant"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     Assert.assertEquals(0, timerPermissions.size());
 
@@ -3495,23 +3091,16 @@ public class ProxyTest {
       + "  \"srvcId\" : \"timer-module-1.0.1\"," + LS
       + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(nodeDoc2).post("/_/discovery/modules")
       .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).body(containsString("timer-module-1.0.0"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     timerTenantInitStatus = 400;
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
@@ -3520,26 +3109,20 @@ public class ProxyTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install")
       .then().statusCode(400).log().ifValidationFails()
       .body(containsString("POST request for timer-module-1.0.1 /_/tenant failed with 400: timer response"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     Assert.assertEquals(0, timerPermissions.size());
 
-    c = api.createRestAssured3();
-    body = c.given().header("Content-Type", "application/json")
+    body = api.createRestAssured3().given().header("Content-Type", "application/json")
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).extract().body().asString();
     ar = new JsonArray(body);
     Assert.assertEquals(2, ar.size());
     Assert.assertEquals("edge-module-1.0.0", ar.getJsonObject(0).getString("id"));
     Assert.assertEquals("timer-module-1.0.0", ar.getJsonObject(1).getString("id"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     timerTenantInitStatus = 200;
     timerTenantPermissionsStatus = 400;
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
@@ -3549,25 +3132,19 @@ public class ProxyTest {
       .then().statusCode(400).log().ifValidationFails()
       .body(containsString("POST request for timer-module-1.0.1 "
         +"/permissionscall failed with 400: timer permissions response"));
-     Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     Assert.assertEquals(0, timerPermissions.size());
 
-    c = api.createRestAssured3();
-    body = c.given().header("Content-Type", "application/json")
+    body = api.createRestAssured3().given().header("Content-Type", "application/json")
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).extract().body().asString();
     ar = new JsonArray(body);
     Assert.assertEquals(2, ar.size());
     Assert.assertEquals("edge-module-1.0.0", ar.getJsonObject(0).getString("id"));
     Assert.assertEquals("timer-module-1.0.0", ar.getJsonObject(1).getString("id"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     timerTenantPermissionsStatus = 200;
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
@@ -3575,8 +3152,6 @@ public class ProxyTest {
         + "]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install")
       .then().statusCode(200).log().ifValidationFails();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     Assert.assertEquals(timerPermissions.encodePrettily(), 2, timerPermissions.size());
     Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.1"));
@@ -3584,27 +3159,21 @@ public class ProxyTest {
 
     // re-enable edge-module and check that permissions for it are available at tenant-init
     timerPermissions.clear();
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body("["
             + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"disable\"}"
             + "]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install")
         .then().statusCode(200).log().ifValidationFails();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body("["
             + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"}"
             + "]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install")
         .then().statusCode(200).log().ifValidationFails();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
     Assert.assertNotNull(edgePermissionsAtInit);
 
     given()
@@ -3613,7 +3182,6 @@ public class ProxyTest {
       .header("Accept", "text/plain")
       .body("Okapi").post("/timercall/1")
       .then().statusCode(200).log().ifValidationFails();
-
 
     final String docTimer_1_0_2 = "{" + LS
       + "  \"id\" : \"timer-module-1.0.2\"," + LS
@@ -3659,30 +3227,22 @@ public class ProxyTest {
       + "    \"displayName\": \"d\"" + LS
       + "  } ]" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTimer_1_0_2).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String nodeDoc3 = "{" + LS
       + "  \"instId\" : \"localhost2-" + Integer.toString(portTimer) + "\"," + LS
       + "  \"srvcId\" : \"timer-module-1.0.2\"," + LS
       + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(nodeDoc3).post("/_/discovery/modules")
       .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     timerTenantPermissionsStatus = 400;
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"timer-module\", \"action\" : \"enable\"}"
@@ -3691,14 +3251,10 @@ public class ProxyTest {
       .then().statusCode(400).log().ifValidationFails()
       .body(containsString("POST request for timer-module-1.0.2 "
         +"/permissionscall failed with 400: timer permissions response"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
   }
 
   @Test
   public void testTenantFailedUpgrade(TestContext context) {
-    RestAssuredClient c;
 
     final String okapiTenant = "roskilde";
     // add tenant
@@ -3707,7 +3263,6 @@ public class ProxyTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    c = api.createRestAssured3();
     given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
@@ -3804,84 +3359,59 @@ public class ProxyTest {
       + "  } ]" + LS
       + "}";
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTimer_1_0_0).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String deployDocTimer_1_0_0 = "{" + LS
       + "  \"instId\" : \"localhost-1-" + Integer.toString(portTimer) + "\"," + LS
       + "  \"srvcId\" : \"timer-module-1.0.0\"," + LS
       + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(deployDocTimer_1_0_0).post("/_/discovery/modules")
       .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docBusiness_1_0_0).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String deployDocBusiness_1_0_0 = "{" + LS
       + "  \"instId\" : \"localhost-2-" + Integer.toString(portTimer) + "\"," + LS
       + "  \"srvcId\" : \"business-module-1.0.0\"," + LS
       + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(deployDocBusiness_1_0_0).post("/_/discovery/modules")
       .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTimer_2_0_0).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String deployDocTimer_2_0_0 = "{" + LS
       + "  \"instId\" : \"localhost-3-" + Integer.toString(portTimer) + "\"," + LS
       + "  \"srvcId\" : \"timer-module-2.0.0\"," + LS
       + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(deployDocTimer_2_0_0).post("/_/discovery/modules")
       .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docBusiness_2_0_0).post("/_/proxy/modules").then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     final String deployDocBusiness_2_0_0 = "{" + LS
       + "  \"instId\" : \"localhost-4-" + Integer.toString(portTimer) + "\"," + LS
       + "  \"srvcId\" : \"business-module-2.0.0\"," + LS
       + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given().header("Content-Type", "application/json")
+    api.createRestAssured3().given().header("Content-Type", "application/json")
       .body(deployDocBusiness_2_0_0).post("/_/discovery/modules")
       .then().statusCode(201);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"business-module-1.0.0\", \"action\" : \"enable\"}, {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install")
@@ -3893,12 +3423,8 @@ public class ProxyTest {
         + "  \"id\" : \"business-module-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "} ]"));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
       .then().statusCode(200).log().ifValidationFails()
@@ -3911,25 +3437,17 @@ public class ProxyTest {
         + "  \"from\" : \"business-module-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "} ]"));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     /* this will try to upgrade both, but business-module-2.0.0 tenant init fails,
      so business-module-1.0.0 stays but timer-module is upgrade (no _tenant interface) */
     timerTenantInitStatus = 400; // make business-module tenant init fail
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade")
       .then().statusCode(400).log().ifValidationFails()
       .body(equalTo("POST request for business-module-2.0.0 /_/tenant failed with 400: timer response"));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
@@ -3937,12 +3455,8 @@ public class ProxyTest {
         + "}, {" + LS
         + "  \"id\" : \"timer-module-2.0.0\"" + LS
         + "} ]"));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"timer-module-2.0.0\", \"action\" : \"disable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
@@ -3954,54 +3468,34 @@ public class ProxyTest {
         + "  \"id\" : \"timer-module-2.0.0\"," + LS
         + "  \"action\" : \"disable\"" + LS
         + "} ]"));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // works, because timer-module-2.0.0 does not have tenant interface
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .delete("/_/proxy/tenants/" + okapiTenant + "/modules/timer-module-2.0.0")
       .then().statusCode(204).log().ifValidationFails();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"business-module-1.0.0\"" + LS
         + "} ]"));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     // disable also fails with 400
     Assert.assertEquals(400, timerTenantInitStatus);
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .delete("/_/proxy/tenants/" + okapiTenant + "/modules")
         .then().statusCode(400).log().ifValidationFails()
         .body(equalTo("POST request for business-module-1.0.0 /_/tenant/disable failed with 400: timer response"));
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // however, purge does not
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .delete("/_/proxy/tenants/" + okapiTenant + "/modules?purge=true")
         .then().statusCode(204).log().ifValidationFails();
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // tenant init fails, but is not called because in next tests invoke=false
     Assert.assertEquals(400, timerTenantInitStatus);
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"business-module-1.0.0\", \"action\" : \"enable\"}, {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?invoke=false")
@@ -4013,17 +3507,10 @@ public class ProxyTest {
             + "  \"id\" : \"business-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"));
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .delete("/_/proxy/tenants/" + okapiTenant + "/modules?invoke=false")
         .then().statusCode(204).log().ifValidationFails();
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
   }
 
   @Test
@@ -4033,10 +3520,9 @@ public class ProxyTest {
 
     String moduleId = "module-1.0.0";
     setupBasicModule(tenant, moduleId, "1.1", false, false, false);
-    RestAssuredClient c = api.createRestAssured3();
 
     String body = new JsonObject().put("id", "test").encode();
-    c.given()
+    given()
         .header("Content-Type", "application/json")
         .header("X-Okapi-Tenant", tenant)
         .body(body)
@@ -4050,7 +3536,7 @@ public class ProxyTest {
     listenTimer.close().onComplete(x -> async.complete());
     async.await();
 
-    c.given()
+    given()
         .header("Content-Type", "application/json")
         .header("X-Okapi-Tenant", tenant)
         .body(body)
@@ -4143,8 +3629,7 @@ public class ProxyTest {
         Assert.assertTrue(hasPermReplaces(permissions));
       }
       // proxy calls
-      RestAssuredClient c = api.createRestAssured3();
-      Response r = c.given()
+      Response r = given()
         .header("Content-Type", "application/json")
         .header("X-Okapi-Token", getOkapiToken(tenant))
         .body(body).post("/regularcall")
@@ -4183,10 +3668,8 @@ public class ProxyTest {
     setupBasicModule(tenant, moduleId, "1.1", false, false, false);
     setupBasicAuth(tenant, authModuleId);
 
-    RestAssuredClient c = api.createRestAssured3();
-
     // no CORS delegate preflight
-    c.given()
+    given()
       .header(HttpHeaders.ORIGIN.toString(), "http://localhost")
       .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD.toString(), HttpMethod.POST.name())
       .options("/_/invoke/tenant/" + tenant + "/regularcall")
@@ -4198,7 +3681,7 @@ public class ProxyTest {
       .log().ifValidationFails();
 
     // no CORS delegate
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", getOkapiToken(tenant))
       .header("Origin", "http://localhost")
@@ -4210,7 +3693,7 @@ public class ProxyTest {
       .log().ifValidationFails();
 
     // with CORS delegate preflight
-    c.given()
+    given()
       .header(HttpHeaders.ORIGIN.toString(), "http://localhost")
       .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD.toString(), HttpMethod.POST.name())
       .options("/_/invoke/tenant/" + tenant + "/corscall")
@@ -4222,7 +3705,7 @@ public class ProxyTest {
       .log().ifValidationFails();
 
     // with CORS delegate
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", getOkapiToken(tenant))
       .header("Origin", "http://localhost")
@@ -4234,7 +3717,7 @@ public class ProxyTest {
       .log().ifValidationFails();
 
     // with CORS delegate and query parameter
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", getOkapiToken(tenant))
       .header("Origin", "http://localhost")
@@ -4255,8 +3738,7 @@ public class ProxyTest {
   // add basic tenant
   private void setupBasicTenant(String tenant) {
     String tenantJson = new JsonObject().put("id", tenant).encode();
-    RestAssuredClient c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(tenantJson).post("/_/proxy/tenants")
       .then().statusCode(201);
@@ -4269,8 +3751,7 @@ public class ProxyTest {
       .put("username", "peter")
       .put("password", "peter-password")
       .encode();
-    RestAssuredClient c = api.createRestAssured3();
-    return c.given()
+    return given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Tenant", tenant)
       .body(loginJson).post("/authn/login")
@@ -4323,8 +3804,7 @@ public class ProxyTest {
       .encodePrettily();
 
     // registration
-    RestAssuredClient c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(mdJson).post("/_/proxy/modules")
       .then().statusCode(201).log().ifValidationFails();
@@ -4334,7 +3814,7 @@ public class ProxyTest {
       .put("id", authModuleId)
       .put("action", "enable"))
       .encode();
-    c.given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(installJson)
       .post("/_/proxy/tenants/" + tenant + "/install?deploy=true")
@@ -4375,8 +3855,7 @@ public class ProxyTest {
         .encodePrettily();
 
     // registration
-    RestAssuredClient c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(mdJson).post("/_/proxy/modules")
         .then().statusCode(201).log().ifValidationFails();
@@ -4387,7 +3866,7 @@ public class ProxyTest {
         .put("srvcId", moduleId)
         .put("url", "http://localhost:" + Integer.toString(portTimer))
         .encode();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(discoveryJson).post("/_/discovery/modules")
         .then().statusCode(201).log().ifValidationFails();
@@ -4396,7 +3875,7 @@ public class ProxyTest {
     String installJson = new JsonArray()
         .add(new JsonObject().put("id", moduleId).put("action", "enable"))
         .encode();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(installJson)
         .post("/_/proxy/tenants/" + tenant + "/install")
@@ -4483,7 +3962,7 @@ public class ProxyTest {
                         .put("methods", new JsonArray().add("POST"))
                         .put("pathPattern", "/corscall")
                         .put("permissionsRequired", new JsonArray())
-                        .put("delegateCORS", "true")))))
+                        .put("delegateCORS", true)))))
         .put("requires", new JsonArray());
 
     JsonArray permSets = new JsonArray()
@@ -4509,8 +3988,7 @@ public class ProxyTest {
     String mdJson = mdJsonObj.put("permissionSets", permSets).encodePrettily();
 
     // registration
-    RestAssuredClient c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(mdJson).post("/_/proxy/modules")
         .then().statusCode(201).log().ifValidationFails();
@@ -4521,7 +3999,7 @@ public class ProxyTest {
         .put("srvcId", moduleId)
         .put("url", "http://localhost:" + Integer.toString(portTimer))
         .encode();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(discoveryJson).post("/_/discovery/modules")
         .then().statusCode(201).log().ifValidationFails();
@@ -4530,7 +4008,7 @@ public class ProxyTest {
     String installJson = new JsonArray()
         .add(new JsonObject().put("id", moduleId).put("action", "enable"))
         .encode();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(installJson)
         .post("/_/proxy/tenants/" + tenant + "/install")
@@ -4539,7 +4017,6 @@ public class ProxyTest {
 
   @Test
   public void testCleanupModules(TestContext context) {
-    RestAssuredClient c;
 
     given()
         .header("Content-Type", "application/json")
@@ -4551,20 +4028,13 @@ public class ProxyTest {
         .body("{}").post("/_/proxy/cleanup/modules?saveReleases=1")
         .then().statusCode(400)
         .body(is("Missing value for parameter 'saveSnapshots'"));
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .post("/_/proxy/cleanup/modules?saveReleases=1&saveSnapshots=2")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
-
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/modules")
         .then().statusCode(200)
         .body("$", hasSize(1));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     InterfaceDescriptor[] interfaceDescriptors = new InterfaceDescriptor[1];
     InterfaceDescriptor interfaceDescriptor = interfaceDescriptors[0] = new InterfaceDescriptor();
@@ -4585,129 +4055,86 @@ public class ProxyTest {
     md.setRequires(interfaceDescriptors);
     modules.add(md);
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/modules")
         .then().statusCode(200)
         .body("$", hasSize(5))
         .body("[0].id", is("moduleA-1.0.0-SNAPSHOT.1"))
         .body("[1].id", is("moduleA-1.0.0-SNAPSHOT.2"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
         .then().statusCode(400)
         .body(is("clean up modules: Missing dependency: moduleB-1.0.0 requires intA: 1.0"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .delete("/_/proxy/modules/moduleB-1.0.0")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .get("/_/proxy/modules")
         .then().statusCode(200)
         .body("$", hasSize(3))
         .body("[0].id", is("moduleA-1.0.0-SNAPSHOT.2"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
   }
 
   @Test
   public void testCleanupModules2(TestContext context) {
-    RestAssuredClient c;
-    Response r;
     final String okapiTenant = "roskilde";
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(new JsonObject().put("id", okapiTenant).encode()).post("/_/proxy/tenants")
         .then().statusCode(201);
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     List<ModuleDescriptor> modules = new LinkedList<>();
     modules.add(new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.1"));
     modules.add(new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.2"));
     modules.add(new ModuleDescriptor("moduleA-1.0.0"));
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     JsonArray installReq = new JsonArray().add(new JsonObject().put("id",  "moduleA-1.0.0-SNAPSHOT.1").put("action", "enable"));
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(installReq.encode())
         .post("/_/proxy/tenants/" + okapiTenant + "/install")
         .then().statusCode(200).log().ifValidationFails()
         .body(equalTo(installReq.encodePrettily()));
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
         .then().statusCode(400)
         .body(is("delete: module moduleA-1.0.0-SNAPSHOT.1 is used by tenant roskilde"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     installReq = new JsonArray().add(new JsonObject().put("id",  "moduleA-1.0.0-SNAPSHOT.1").put("action", "disable"));
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(installReq.encode())
         .post("/_/proxy/tenants/" + okapiTenant + "/install")
         .then().statusCode(200).log().ifValidationFails()
         .body(equalTo(installReq.encodePrettily()));
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
   }
 
   @Test
   public void testImportModules(TestContext context) {
-    RestAssuredClient c;
-
     given()
         .header("Content-Type", "application/json")
         .body("{\"id\":").post("/_/proxy/import/modules")
@@ -4718,13 +4145,10 @@ public class ProxyTest {
         .body("[]").post("/_/proxy/import/modules?check=foo")
         .then().statusCode(400).body(equalTo("Bad boolean for parameter check: foo"));
 
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body("[]").post("/_/proxy/import/modules")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     ModuleDescriptor mdA = new ModuleDescriptor();
     mdA.setId("moduleA-1.0.0");
@@ -4735,37 +4159,25 @@ public class ProxyTest {
     mdB.setRequires("intA", "1.0");
     List<ModuleDescriptor> modules = new LinkedList<>();
     modules.add(mdB);
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
         .then().statusCode(400).body(equalTo("Missing dependency: moduleB-1.0.0 requires intA: 1.0"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // try again, but without checking .. therefore it should succeed
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules?check=false&preRelease=false&npmSnapshot=false")
         .then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // remove again..
-    c = api.createRestAssured3();
-    c.given().delete("/_/proxy/modules/" + mdB.getId()).then().statusCode(204);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
+    api.createRestAssured3().given().delete("/_/proxy/modules/" + mdB.getId()).then().statusCode(204);
 
     modules.add(mdA);
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
         .then().statusCode(400);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     ModuleDescriptor mdC = new ModuleDescriptor();
     mdC.setId("moduleC-1.0.0");
@@ -4856,19 +4268,12 @@ public class ProxyTest {
   @Test
   public void testRequestResponse(TestContext context) {
     final String okapiTenant = "roskilde";
-    RestAssuredClient c;
-    Response r;
 
     // add tenant
-    c = api.createRestAssured3();
-    r = c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(new JsonObject().put("id", okapiTenant).encode()).post("/_/proxy/tenants")
-        .then().statusCode(201)
-        .extract().response();
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
+        .then().statusCode(201);
 
     final String docRequestPre = "{" + LS
         + "  \"id\" : \"module-pre-1.0.0\"," + LS
@@ -4880,13 +4285,10 @@ public class ProxyTest {
         + "    \"permissionsRequired\" : [ ]" + LS
         + "  } ]" + LS
         + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(docRequestPre).post("/_/proxy/modules").then().statusCode(201)
         .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     String nodeDoc1 = "{" + LS
         + "  \"instId\" : \"localhost-1\"," + LS
@@ -4907,13 +4309,10 @@ public class ProxyTest {
         + "    \"permissionsRequired\" : [ ]" + LS
         + "  } ]" + LS
         + "}";
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(docRequestPost).post("/_/proxy/modules").then().statusCode(201)
         .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     nodeDoc1 = "{" + LS
         + "  \"instId\" : \"localhost-2\"," + LS
@@ -4938,7 +4337,7 @@ public class ProxyTest {
         + "  } ]," + LS
         + "  \"requires\" : [ ]" + LS
         + "}";
-    given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(docTimer_1_0_0).post("/_/proxy/modules").then().statusCode(201)
         .extract().response();
@@ -4953,16 +4352,12 @@ public class ProxyTest {
         .then().statusCode(201);
 
     JsonArray installReq = new JsonArray().add(new JsonObject().put("id",  "timer-module-1.0.0").put("action", "enable"));
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(installReq.encode())
         .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
         .then().statusCode(200).log().ifValidationFails()
         .body(equalTo(installReq.encodePrettily()));
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     given().header("X-Okapi-Tenant", okapiTenant)
         .header("Content-Type", "text/plain")
@@ -4973,16 +4368,12 @@ public class ProxyTest {
         .body(equalTo("Okapi"));
 
     installReq = new JsonArray().add(new JsonObject().put("id",  "module-pre-1.0.0").put("action", "enable"));
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(installReq.encode())
         .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
         .then().statusCode(200).log().ifValidationFails()
         .body(equalTo(installReq.encodePrettily()));
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     given().header("X-Okapi-Tenant", okapiTenant)
         .header("Content-Type", "text/plain; charset=UTF-8")
@@ -4998,16 +4389,12 @@ public class ProxyTest {
         .header("Content-Encoding", "gzip");
 
     installReq = new JsonArray().add(new JsonObject().put("id",  "module-post-1.0.0").put("action", "enable"));
-    c = api.createRestAssured3();
-    c.given()
+    api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(installReq.encode())
         .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
         .then().statusCode(200).log().ifValidationFails()
         .body(equalTo(installReq.encodePrettily()));
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     given().header("X-Okapi-Tenant", okapiTenant)
         .header("Content-Type", "text/plain; charset=UTF-8")
