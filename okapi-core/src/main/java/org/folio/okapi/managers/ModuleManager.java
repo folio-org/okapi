@@ -140,8 +140,8 @@ public class ModuleManager {
           }
           Future<Void> future = Future.succeededFuture();
           for (ModuleDescriptor md: obsolete) {
-            future = future.compose(x -> moduleStore.delete(md.getId()).mapEmpty());
-            future = future.compose(x -> modules.remove(md.getId()).mapEmpty());
+            future = future.compose(x -> moduleStore.delete(md.getId()))
+                           .compose(x -> modules.remove(md.getId())).mapEmpty();
           }
           return future;
         });
