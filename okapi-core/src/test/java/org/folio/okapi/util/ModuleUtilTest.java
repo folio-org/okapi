@@ -144,17 +144,13 @@ class ModuleUtilTest {
 
   @Test
   void testModuleList() {
-    List<ModuleDescriptor> list = new LinkedList<>();
+    List<ModuleDescriptor> list = List.of();
     assertThat(ModuleUtil.moduleList(list)).isEmpty();
 
-    ModuleDescriptor md = new ModuleDescriptor();
-    md.setId("foo-1.0.0");
-    list.add(md);
+    list = List.of(new ModuleDescriptor("foo-1.0.0"));
     assertThat(ModuleUtil.moduleList(list)).isEqualTo("foo-1.0.0");
 
-    md = new ModuleDescriptor();
-    md.setId("bar-2.0.0");
-    list.add(md);
+    list = List.of(new ModuleDescriptor("foo-1.0.0"), new ModuleDescriptor("bar-2.0.0"));
     assertThat(ModuleUtil.moduleList(list)).isEqualTo("foo-1.0.0, bar-2.0.0");
   }
 

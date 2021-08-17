@@ -41,6 +41,12 @@ case "$1" in
                     "$OKAPI_USER"
             echo " OK"
         fi
+
+        # Create DATA_DIR on reinstall because package removal removes DATA_DIR but not OKAPI_USER
+        if [ ! -e "$DATA_DIR" ] ; then
+            mkdir -m 750 "$DATA_DIR"
+            chown "${OKAPI_USER}.${OKAPI_GROUP}" "$DATA_DIR"
+        fi
     ;;
     abort-deconfigure|abort-upgrade|abort-remove)
     ;;

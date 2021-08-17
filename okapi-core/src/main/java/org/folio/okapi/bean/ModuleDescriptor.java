@@ -40,6 +40,10 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   public ModuleDescriptor() {
   }
 
+  public ModuleDescriptor(String id) {
+    setId(id);
+  }
+
   /**
    * Copy constructor with id and tags from original.
    *

@@ -90,4 +90,11 @@ public class ModuleDescriptorTest {
     assertEquals(3, perms.length);
     assertTrue(Json.encode(perms).contains("regular"));
   }
+
+  @Test
+  public void testConstructorWithId() {
+    ModuleDescriptor md = new ModuleDescriptor("foo-1.2.3");
+    assertEquals("foo-1.2.3", md.getId());
+    assertEquals("foo", md.getProduct());
+  }
 }
