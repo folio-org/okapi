@@ -4574,21 +4574,15 @@ public class ProxyTest {
 
     List<ModuleDescriptor> modules = new LinkedList<>();
 
-    ModuleDescriptor md = new ModuleDescriptor();
-    md.setId("moduleA-1.0.0-SNAPSHOT.1"); // this snapshot requires intA provided by moduleB-1.0.0
-    md.setProvides(interfaceDescriptors);
+    ModuleDescriptor md = new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.1");
+    md.setProvides(interfaceDescriptors); // this snapshot requires intA provided by moduleB-1.0.0
     modules.add(md);
 
-    md = new ModuleDescriptor();
-    md.setId("moduleA-1.0.0-SNAPSHOT.2");
-    modules.add(md);
+    modules.add(new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.2"));
 
-    md = new ModuleDescriptor();
-    md.setId("moduleA-1.0.0");
-    modules.add(md);
+    modules.add(new ModuleDescriptor("moduleA-1.0.0"));
 
-    md = new ModuleDescriptor();
-    md.setId("moduleB-1.0.0");
+    md = new ModuleDescriptor("moduleB-1.0.0");
     md.setRequires(interfaceDescriptors);
     modules.add(md);
 
@@ -4661,18 +4655,9 @@ public class ProxyTest {
         c.getLastReport().isEmpty());
 
     List<ModuleDescriptor> modules = new LinkedList<>();
-
-    ModuleDescriptor md = new ModuleDescriptor();
-    md.setId("moduleA-1.0.0-SNAPSHOT.1");
-    modules.add(md);
-
-    md = new ModuleDescriptor();
-    md.setId("moduleA-1.0.0-SNAPSHOT.2");
-    modules.add(md);
-
-    md = new ModuleDescriptor();
-    md.setId("moduleA-1.0.0");
-    modules.add(md);
+    modules.add(new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.1"));
+    modules.add(new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.2"));
+    modules.add(new ModuleDescriptor("moduleA-1.0.0"));
 
     c = api.createRestAssured3();
     c.given()

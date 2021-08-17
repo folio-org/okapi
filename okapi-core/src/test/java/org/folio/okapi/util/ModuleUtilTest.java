@@ -175,9 +175,7 @@ class ModuleUtilTest {
     };
     List<ModuleDescriptor> mds = new LinkedList<>();
     for (int i = 0; i < ids.length; i++) {
-      ModuleDescriptor md = new ModuleDescriptor();
-      md.setId(ids[i]);
-      mds.add(md);
+      mds.add(new ModuleDescriptor(ids[i]));
     }
     assertThat(mds.size()).isEqualTo(8);
 
@@ -232,9 +230,7 @@ class ModuleUtilTest {
     };
     List<ModuleDescriptor> mds = new LinkedList<>();
     for (int i = 0; i < ids.length; i++) {
-      ModuleDescriptor md = new ModuleDescriptor();
-      md.setId(ids[i]);
-      mds.add(md);
+      mds.add(new ModuleDescriptor(ids[i]));
     }
     assertThat(mds.size()).isEqualTo(7);
     List<ModuleDescriptor> obsolete = ModuleUtil.getObsolete(mds, 1, 0);
