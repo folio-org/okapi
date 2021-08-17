@@ -5,7 +5,6 @@ import io.vertx.core.json.DecodeException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -195,7 +194,7 @@ public final class ModuleUtil {
    * Return list of obsolete modules (for clean up).
    * <p>A module is considered a snapshot if it's part of earlier releases than saveReleases
    * *and* it is earlier than the latest saveSnapshots in that release</p>
-   * @param mdl list of modules to consider.
+   * @param mdl list of modules to consider - will be modified.
    * @param saveReleases number of latest non-snapshot releases that are preserved,
    * @param saveSnapshots number of latest snapshots releases that are preserved.
    * @return list of obsolete modules.
@@ -204,7 +203,7 @@ public final class ModuleUtil {
                                                    int saveReleases, int saveSnapshots) {
     mdl.sort(Collections.reverseOrder());
     Iterator<ModuleDescriptor> it = mdl.listIterator();
-    List<ModuleDescriptor> obsoleteList = new LinkedList<>();
+    List<ModuleDescriptor> obsoleteList = new ArrayList<>();
     ModuleId idPrev = null;
     int numberReleases = 0;
     int numberSnapshots = 0;
