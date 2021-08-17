@@ -167,8 +167,9 @@ public class ModuleManager {
   public Future<Void> delete(String id) {
     return modules.getAll()
         .compose(ares -> deleteCheckDep(id, ares))
-        .compose(res -> moduleStore.delete(id).mapEmpty())
-        .compose(res -> deleteInternal(id).mapEmpty());
+        .compose(res -> moduleStore.delete(id))
+        .compose(res -> deleteInternal(id))
+        .mapEmpty();
   }
 
   private Future<Void> deleteCheckDep(String id, LinkedHashMap<String, ModuleDescriptor> mods) {
