@@ -1546,7 +1546,7 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    Assert.assertEquals("Missing dependency: basic-module-1.0.0-alpha requires unknown1: 1.0" + ". "
+    Assert.assertEquals("Missing dependency: basic-module-1.0.0-alpha requires unknown1: 1.0" + "\n"
       + "Missing dependency: basic-module-1.0.0-alpha requires unknown2: 2.0", r.getBody().asString());
     c = api.createRestAssured3();
     r = c.given()

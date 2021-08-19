@@ -4070,15 +4070,11 @@ public class ProxyTest {
     api.createRestAssured3().given()
         .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
         .then().statusCode(400)
-        .body(is("clean up modules: Missing dependency: moduleB-1.0.0 requires intA: 1.0"));
+        .body(containsString("Missing dependency: moduleB-1.0.0 requires intA: 1.0"));
 
+    // this will also remove moduleB-1.0.0
     api.createRestAssured3().given()
-        .header("Content-Type", "application/json")
-        .delete("/_/proxy/modules/moduleB-1.0.0")
-        .then().statusCode(204);
-
-    api.createRestAssured3().given()
-        .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
+        .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1&removeDependencies=true")
         .then().statusCode(204);
 
     api.createRestAssured3().given()

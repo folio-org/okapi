@@ -1012,8 +1012,10 @@ public class InternalModule {
       MultiMap params = pc.getCtx().request().params();
       int saveReleases = ModuleUtil.getParamInteger(params, "saveReleases", null);
       int saveSnapshots = ModuleUtil.getParamInteger(params, "saveSnapshots", null);
+      boolean removeDependencies = ModuleUtil.getParamBoolean(params, "removeDependencies", false);
       return tenantManager.getEnabledModulesAllTenants().compose(inUse ->
-        moduleManager.deleteObsolete(inUse, saveReleases, saveSnapshots).map("")
+          moduleManager.deleteObsolete(inUse, saveReleases, saveSnapshots, removeDependencies)
+              .map("")
       );
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));

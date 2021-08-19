@@ -3,6 +3,7 @@ package org.folio.okapi.managers;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -90,7 +91,7 @@ public class ModuleManager {
       for (ModuleDescriptor md : ares) {
         tempList.put(md.getId(), md);
       }
-      LinkedList<ModuleDescriptor> newList = new LinkedList<>();
+      List<ModuleDescriptor> newList = new LinkedList<>();
       for (ModuleDescriptor md : list) {
         final String id = md.getId();
         if (tempList.containsKey(id)) {
@@ -117,26 +118,40 @@ public class ModuleManager {
     });
   }
 
-  Future<Void> deleteObsolete(Map<String, String> inUse, int saveReleases, int saveSnapshots) {
+  Future<Void> deleteObsolete(Map<String, String> inUse, int saveReleases, int saveSnapshots,
+                              boolean removeDeps) {
     return modules.getAll()
         .compose(ares -> {
           List<ModuleDescriptor> newList = new LinkedList<>(ares.values());
           List<ModuleDescriptor> obsolete =
               ModuleUtil.getObsolete(newList, saveReleases, saveSnapshots);
           for (ModuleDescriptor md: obsolete) {
+            ares.remove(md.getId());
+          }
+          Collection<ModuleDescriptor> availableBeforeDepCheck = new TreeSet<>();
+          Collection<ModuleDescriptor> availableAfterDepCheck = new TreeSet<>();
+          for (ModuleDescriptor md : ares.values()) {
+            availableBeforeDepCheck.add(md);
+            availableAfterDepCheck.add(md);
+          }
+          String msg = DepResolution.checkDependencies(ares.values(), availableAfterDepCheck,
+              removeDeps);
+          if (!msg.isEmpty()) {
+            return Future.failedFuture(new OkapiError(ErrorType.USER,
+                "Removing obsolete modules resulted in missing dependencies.\n"
+                    + "Supply removeDependencies=true if you think it's ok to remove them.\n"
+                    + msg));
+          }
+          for (ModuleDescriptor md : availableBeforeDepCheck) {
+            if (!availableAfterDepCheck.contains(md)) {
+              obsolete.add(md);
+            }
+          }
+          for (ModuleDescriptor md: obsolete) {
             if (inUse.containsKey(md.getId())) {
               return Future.failedFuture(new OkapiError(ErrorType.USER,
                   messages.getMessage("10206", md.getId(), inUse.get(md.getId()))));
             }
-            ares.remove(md.getId());
-          }
-          for (ModuleDescriptor md: obsolete) {
-            ares.remove(md.getId());
-          }
-          String res = DepResolution.checkAllDependencies(ares);
-          if (!res.isEmpty()) {
-            return Future.failedFuture(new OkapiError(ErrorType.USER,
-                messages.getMessage("10212", res)));
           }
           Future<Void> future = Future.succeededFuture();
           for (ModuleDescriptor md: obsolete) {

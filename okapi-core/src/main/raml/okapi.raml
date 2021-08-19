@@ -393,6 +393,11 @@ types:
       considered obsolete if it is part of a release that is earlier than N latest releases (saveReleases) and
       not part of the M latest snapshots in that release.
     queryParameters:
+      removeDependencies:
+        description: Force removal of modules that depend on obsolete snapshots
+        type: boolean
+        required: false
+        default: false
       saveReleases:
         description: The number of latest releases where snapshots are never considered obsolete
         type: integer
