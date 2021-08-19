@@ -158,7 +158,7 @@ class ModuleUtilTest {
   void testGetObsolete1() {
     assertThat(modulesList).hasSize(104);
     List<ModuleDescriptor> obsolete = ModuleUtil.getObsolete(modulesList, 1, 0);
-    assertThat(obsolete.isEmpty()).isTrue();
+    assertThat(obsolete).isEmpty();
   }
 
   @Test

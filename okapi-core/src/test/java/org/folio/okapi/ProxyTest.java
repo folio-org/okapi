@@ -4020,12 +4020,12 @@ public class ProxyTest {
 
     given()
         .header("Content-Type", "application/json")
-        .body("{}").post("/_/proxy/cleanup/modules?saveSnapshots=2")
+        .post("/_/proxy/cleanup/modules?saveSnapshots=2")
         .then().statusCode(400)
         .body(is("Missing value for parameter 'saveReleases'"));
     given()
         .header("Content-Type", "application/json")
-        .body("{}").post("/_/proxy/cleanup/modules?saveReleases=1")
+        .post("/_/proxy/cleanup/modules?saveReleases=1")
         .then().statusCode(400)
         .body(is("Missing value for parameter 'saveSnapshots'"));
     api.createRestAssured3().given()
@@ -4097,10 +4097,10 @@ public class ProxyTest {
         .body(new JsonObject().put("id", okapiTenant).encode()).post("/_/proxy/tenants")
         .then().statusCode(201);
 
-    List<ModuleDescriptor> modules = new LinkedList<>();
-    modules.add(new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.1"));
-    modules.add(new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.2"));
-    modules.add(new ModuleDescriptor("moduleA-1.0.0"));
+    List<ModuleDescriptor> modules = List.of(
+        new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.1"),
+        new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.2"),
+        new ModuleDescriptor("moduleA-1.0.0"));
 
     api.createRestAssured3().given()
         .header("Content-Type", "application/json")
