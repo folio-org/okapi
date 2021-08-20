@@ -931,25 +931,29 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
 
     clientsEnd(bcontent, clientRequestList);
-    internalModule.internalService(req, pc).onFailure(cause ->
-        pc.responseError(OkapiError.getType(cause), cause)
-    ).onSuccess(resp -> {
-      int statusCode = pc.getCtx().response().getStatusCode();
-      if (statusCode == 200 && resp.isEmpty()) {
-        // Say "no content", if there isn't any
-        statusCode = 204;
-        pc.getCtx().response().setStatusCode(statusCode);
-      }
-      Buffer respBuf = Buffer.buffer(resp);
-      pc.setHandlerRes(statusCode);
-      makeTraceHeader(mi, statusCode, pc);
-      if (it.hasNext()) { // carry on with the pipeline
-        proxyR(it, pc, null, respBuf, new LinkedList<>());
-      } else { // produce a result
-        pc.closeTimer();
-        ctx.response().end(respBuf);
-      }
-    });
+    try {
+      internalModule.internalService(req, pc)
+          .onFailure(cause -> pc.responseError(OkapiError.getType(cause), cause))
+          .onSuccess(resp -> {
+            int statusCode = pc.getCtx().response().getStatusCode();
+            if (statusCode == 200 && resp.isEmpty()) {
+              // Say "no content", if there isn't any
+              statusCode = 204;
+              pc.getCtx().response().setStatusCode(statusCode);
+            }
+            Buffer respBuf = Buffer.buffer(resp);
+            pc.setHandlerRes(statusCode);
+            makeTraceHeader(mi, statusCode, pc);
+            if (it.hasNext()) { // carry on with the pipeline
+              proxyR(it, pc, null, respBuf, new LinkedList<>());
+            } else { // produce a result
+              pc.closeTimer();
+              ctx.response().end(respBuf);
+            }
+          });
+    } catch (Exception e) {
+      pc.responseError(ErrorType.INTERNAL, e);
+    }
   }
 
   private void proxyR(Iterator<ModuleInstance> it,

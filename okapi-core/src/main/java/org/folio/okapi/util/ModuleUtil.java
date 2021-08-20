@@ -57,6 +57,28 @@ public final class ModuleUtil {
     throw new DecodeException("Bad boolean for parameter " + name + ": " + v);
   }
 
+  /**
+   * Lookup integer query parameter in HTTP request.
+   * @param params HTTP server request parameters
+   * @param name name of query parameter
+   * @param defValue default value if omitted (or null if the parameter is mandatory)
+   * @return integer value
+   */
+  public static int getParamInteger(MultiMap params, String name, Integer defValue) {
+    String v = params.get(name);
+    if (v == null) {
+      if (defValue == null) {
+        throw new DecodeException("Missing value for parameter '" + name + "'");
+      }
+      return defValue;
+    }
+    try {
+      return Integer.parseInt(v);
+    } catch (NumberFormatException e) {
+      throw new DecodeException("Bad integer for parameter '" + name + "'");
+    }
+  }
+
   private static boolean interfaceCheck(
       InterfaceDescriptor[] interfaces, String interfaceStr, String scope) {
     if (interfaceStr == null) {
@@ -166,5 +188,45 @@ public final class ModuleUtil {
       str.append(md.getId());
     }
     return str.toString();
+  }
+
+  /**
+   * Return list of obsolete modules (for clean up).
+   * <p>A module is considered a snapshot if it's part of earlier releases than saveReleases
+   * *and* it is earlier than the latest saveSnapshots in that release</p>
+   * @param mdl list of modules to consider - will be modified.
+   * @param saveReleases number of latest non-snapshot releases that are preserved,
+   * @param saveSnapshots number of latest snapshots releases that are preserved.
+   * @return list of obsolete modules.
+   */
+  public static List<ModuleDescriptor> getObsolete(List<ModuleDescriptor> mdl,
+                                                   int saveReleases, int saveSnapshots) {
+    mdl.sort(Collections.reverseOrder());
+    Iterator<ModuleDescriptor> it = mdl.listIterator();
+    List<ModuleDescriptor> obsoleteList = new ArrayList<>();
+    ModuleId idPrev = null;
+    int numberReleases = 0;
+    int numberSnapshots = 0;
+    while (it.hasNext()) {
+      ModuleDescriptor md = it.next();
+      ModuleId id = new ModuleId(md.getId());
+      int diff = idPrev == null ? -5 : id.compareTo(idPrev);
+      if (diff == -5) {
+        numberReleases = 0;
+        numberSnapshots = 0;
+      }
+      if ((id.hasPreRelease() || id.hasNpmSnapshot())
+          && numberReleases >= saveReleases && numberSnapshots >= saveSnapshots) {
+        obsoleteList.add(md);
+      }
+      if (diff >= -1 || id.hasNpmSnapshot()) {
+        numberSnapshots++;
+      } else {
+        numberSnapshots = 0;
+        numberReleases++;
+      }
+      idPrev = id;
+    }
+    return obsoleteList;
   }
 }

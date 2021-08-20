@@ -1124,6 +1124,28 @@ public class TenantManager implements Liveness {
   }
 
   /**
+   * Return list of modules by all tenants.
+   * @return map with key of module ID, and value of one tenant using it (there could be others).
+   */
+  public Future<Map<String, String>> getEnabledModulesAllTenants() {
+    return tenants.getKeys().compose(kres -> {
+      Map<String,String> enabled = new HashMap<>();
+      Future<Void> future = Future.succeededFuture();
+      for (String tid : kres) {
+        future = future.compose(x -> tenants.get(tid)
+            .compose(t -> {
+              for (String m : t.getEnabled().keySet()) {
+                enabled.put(m, t.getId());
+              }
+              return Future.succeededFuture();
+            })
+        );
+      }
+      return future.map(x -> enabled);
+    });
+  }
+
+  /**
    * Load tenants from the store into the shared memory map.
    *
    * @return fut future

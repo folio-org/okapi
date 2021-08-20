@@ -3,6 +3,7 @@ package org.folio.okapi.managers;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -20,6 +21,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.LockedTypedMap1;
+import org.folio.okapi.util.ModuleUtil;
 import org.folio.okapi.util.OkapiError;
 
 /**
@@ -57,9 +59,6 @@ public class ModuleManager {
    * @return future result
    */
   private Future<Void> loadModules() {
-    if (moduleStore == null) {
-      return Future.succeededFuture();
-    }
     return modules.size().compose(kres -> {
       if (kres > 0) {
         logger.debug("Not loading modules, looks like someone already did");
@@ -92,7 +91,7 @@ public class ModuleManager {
       for (ModuleDescriptor md : ares) {
         tempList.put(md.getId(), md);
       }
-      LinkedList<ModuleDescriptor> newList = new LinkedList<>();
+      List<ModuleDescriptor> newList = new LinkedList<>();
       for (ModuleDescriptor md : list) {
         final String id = md.getId();
         if (tempList.containsKey(id)) {
@@ -119,11 +118,52 @@ public class ModuleManager {
     });
   }
 
+  Future<Void> deleteObsolete(Map<String, String> inUse, int saveReleases, int saveSnapshots,
+                              boolean removeDeps) {
+    return modules.getAll()
+        .compose(ares -> {
+          List<ModuleDescriptor> newList = new LinkedList<>(ares.values());
+          List<ModuleDescriptor> obsolete =
+              ModuleUtil.getObsolete(newList, saveReleases, saveSnapshots);
+          for (ModuleDescriptor md: obsolete) {
+            ares.remove(md.getId());
+          }
+          Collection<ModuleDescriptor> availableBeforeDepCheck = new TreeSet<>();
+          Collection<ModuleDescriptor> availableAfterDepCheck = new TreeSet<>();
+          for (ModuleDescriptor md : ares.values()) {
+            availableBeforeDepCheck.add(md);
+            availableAfterDepCheck.add(md);
+          }
+          String msg = DepResolution.checkDependencies(ares.values(), availableAfterDepCheck,
+              removeDeps);
+          if (!msg.isEmpty()) {
+            return Future.failedFuture(new OkapiError(ErrorType.USER,
+                "Removing obsolete modules resulted in missing dependencies.\n"
+                    + "Supply removeDependencies=true if you think it's ok to remove them.\n"
+                    + msg));
+          }
+          for (ModuleDescriptor md : availableBeforeDepCheck) {
+            if (!availableAfterDepCheck.contains(md)) {
+              obsolete.add(md);
+            }
+          }
+          for (ModuleDescriptor md: obsolete) {
+            if (inUse.containsKey(md.getId())) {
+              return Future.failedFuture(new OkapiError(ErrorType.USER,
+                  messages.getMessage("10206", md.getId(), inUse.get(md.getId()))));
+            }
+          }
+          Future<Void> future = Future.succeededFuture();
+          for (ModuleDescriptor md: obsolete) {
+            future = future.compose(x -> moduleStore.delete(md.getId()))
+                           .compose(x -> modules.remove(md.getId())).mapEmpty();
+          }
+          return future;
+        });
+  }
+
   private Future<Void> createList2(List<ModuleDescriptor> list) {
-    Future<Void> storeFuture = Future.succeededFuture();
-    if (moduleStore != null) {
-      storeFuture = moduleStore.insert(list);
-    }
+    Future<Void> storeFuture = moduleStore.insert(list);
     List<Future<Void>> futures = new LinkedList<>();
     for (ModuleDescriptor md : list) {
       futures.add(modules.add(md.getId(), md));
@@ -142,14 +182,9 @@ public class ModuleManager {
   public Future<Void> delete(String id) {
     return modules.getAll()
         .compose(ares -> deleteCheckDep(id, ares))
-        .compose(res -> {
-          if (moduleStore == null) {
-            return Future.succeededFuture();
-          } else {
-            return moduleStore.delete(id).mapEmpty();
-          }
-        })
-        .compose(res -> deleteInternal(id).mapEmpty());
+        .compose(res -> moduleStore.delete(id))
+        .compose(res -> deleteInternal(id))
+        .mapEmpty();
   }
 
   private Future<Void> deleteCheckDep(String id, LinkedHashMap<String, ModuleDescriptor> mods) {

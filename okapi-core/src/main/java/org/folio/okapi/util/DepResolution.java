@@ -174,7 +174,7 @@ public final class DepResolution {
     if (list.isEmpty()) {
       return "";
     } else {
-      return String.join(". ", list);
+      return String.join("\n", list);
     }
   }
 

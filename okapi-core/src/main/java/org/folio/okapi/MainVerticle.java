@@ -39,6 +39,7 @@ import org.folio.okapi.managers.TenantManager;
 import org.folio.okapi.managers.TimerManager;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TenantStore;
+import org.folio.okapi.service.impl.ModuleStoreNull;
 import org.folio.okapi.service.impl.Storage;
 import org.folio.okapi.service.impl.Storage.InitMode;
 import org.folio.okapi.service.impl.TenantStoreNull;
@@ -174,7 +175,7 @@ public class MainVerticle extends AbstractVerticle {
       timerManager = new TimerManager(storage.getTimerStore(), false);
       internalModule.withTimerManager(timerManager);
     } else { // not really proxying, except to /_/deployment
-      moduleManager = new ModuleManager(null, true);
+      moduleManager = new ModuleManager(new ModuleStoreNull(), true);
       tenantManager = new TenantManager(moduleManager, new TenantStoreNull(), true);
       discoveryManager.setModuleManager(moduleManager);
       InternalModule internalModule = new InternalModule(
@@ -262,8 +263,7 @@ public class MainVerticle extends AbstractVerticle {
           logger.debug("Creating the internal Okapi module {} with interface version {}",
               okapiModule, interfaceVersion);
           return moduleManager.createList(Collections.singletonList(md), true, true, true,
-              false
-          );
+              false);
         }).compose(x -> checkSuperTenant(okapiModule));
   }
 

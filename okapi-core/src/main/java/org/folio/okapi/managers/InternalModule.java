@@ -217,6 +217,12 @@ public class InternalModule {
         + "    \"permissionsRequired\" : [ \"okapi.proxy.modules.post\" ], "
         + "    \"type\" : \"internal\" "
         + "   },"
+        + "   {"
+        + "    \"methods\" :  [ \"POST\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/cleanup/modules\","
+        + "    \"permissionsRequired\" : [ \"okapi.proxy.cleanup.modules\" ], "
+        + "    \"type\" : \"internal\" "
+        + "   },"
         // Proxy service
         + "   {" // proxy, modules
         + "    \"methods\" :  [ \"POST\" ],"
@@ -474,7 +480,12 @@ public class InternalModule {
         + "   \"permissionName\" : \"okapi.proxy.pull.modules.post\", "
         + "   \"displayName\" : \"Okapi - get ModuleDescriptors\", "
         + "   \"description\" : \"Get MDs from another Okapi, maybe a repo\" "
-        + " },"
+        + " }, "
+        + " { "
+        + "   \"permissionName\" : \"okapi.proxy.cleanup.modules\", "
+        + "   \"displayName\" : \"Okapi - clean up obsolete snapshot modules\", "
+        + "   \"description\" : \"Clean up obsolete snapshot modules\" "
+        + " }, "
         + " { "
         + "   \"permissionName\" : \"okapi.proxy.tenants.list\", "
         + "   \"displayName\" : \"Okapi - list tenants\", "
@@ -605,7 +616,8 @@ public class InternalModule {
         + "   \"subPermissions\" : [ "
         + "     \"okapi.proxy.modules.list\", \"okapi.proxy.modules.get\", "
         + "     \"okapi.proxy.modules.post\", \"okapi.proxy.modules.put\", "
-        + "     \"okapi.proxy.modules.delete\", \"okapi.proxy.pull.modules.post\""
+        + "     \"okapi.proxy.modules.delete\", \"okapi.proxy.pull.modules.post\", "
+        + "     \"okapi.proxy.cleanup.modules\""
         + "   ]"
         + " }, "
         + " { "
@@ -995,6 +1007,21 @@ public class InternalModule {
     }
   }
 
+  private Future<String> cleanupModules(ProxyContext pc) {
+    try {
+      MultiMap params = pc.getCtx().request().params();
+      int saveReleases = ModuleUtil.getParamInteger(params, "saveReleases", null);
+      int saveSnapshots = ModuleUtil.getParamInteger(params, "saveSnapshots", null);
+      boolean removeDependencies = ModuleUtil.getParamBoolean(params, "removeDependencies", false);
+      return tenantManager.getEnabledModulesAllTenants().compose(inUse ->
+          moduleManager.deleteObsolete(inUse, saveReleases, saveSnapshots, removeDependencies)
+              .map("")
+      );
+    } catch (DecodeException ex) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
+    }
+  }
+
   private Future<String> createModule(ProxyContext pc, String body) {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
@@ -1248,6 +1275,10 @@ public class InternalModule {
       if (segments[3].equals("import") && n == 5 && segments[4].equals("modules")
           && m.equals(HttpMethod.POST)) {
         return createModules(pc, req);
+      }
+      if (segments[3].equals("cleanup") && n == 5 && segments[4].equals("modules")
+          && m.equals(HttpMethod.POST)) {
+        return cleanupModules(pc);
       }
       if (segments[3].equals("modules")
           && moduleManager != null) {
