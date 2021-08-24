@@ -4,9 +4,12 @@ buildMvn {
   publishModDescriptor = 'no'
   publishAPI = 'yes'
   mvnDeploy = 'yes'
-  runLintRamlCop = 'yes'
   buildNode = 'jenkins-agent-java11'
   buildDeb = true
+
+  doApiLint = true
+  apiTypes = 'RAML'
+  apiDirectories = 'okapi-core/src/main/raml'
 
   doDocker = {
     buildJavaDocker {
