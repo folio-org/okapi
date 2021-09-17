@@ -362,8 +362,7 @@ public class TenantManager implements Liveness {
     return getTenantInstanceForModule(md, mdFrom, mdTo, jo, tenantParameters, purge)
         .compose(instances -> {
           if (instances.isEmpty()) {
-            logger.info("{}: has no support for tenant init",
-                (mdTo != null ? mdTo.getId() : mdFrom.getId()));
+            logger.info("{}: has no support for tenant init", md.getId());
             return Future.succeededFuture();
           }
           ModuleInstance postInstance = instances.get(0);
@@ -378,13 +377,13 @@ public class TenantManager implements Liveness {
                 }
                 if (instances.size() != 3) {
                   return Future.failedFuture(messages.getMessage(
-                      "10409", postInstance.getMethod(), postInstance.getPath()));
+                      "10409", md.getId(), postInstance.getMethod(), postInstance.getPath()));
                 }
                 JsonObject obj = new JsonObject(cres.getResponsebody());
                 String id = obj.getString("id");
                 if (id == null) {
                   return Future.failedFuture(messages.getMessage("10408",
-                      postInstance.getMethod().name(), postInstance.getPath()));
+                      md.getId(), postInstance.getMethod().name(), postInstance.getPath()));
                 }
                 ModuleInstance getInstance = instances.get(1);
                 getInstance.setUrl(postInstance.getUrl()); // same URL for POST & GET
@@ -693,7 +692,7 @@ public class TenantManager implements Liveness {
             // both DELETE and GET must be present
             instance = getTenantInstanceForInterfacev2(pi, md, "DELETE", "{id}");
             if (instance == null) {
-              return Future.failedFuture(messages.getMessage("10407"));
+              return Future.failedFuture(messages.getMessage("10407", md.getId()));
             }
             // 0: POST, 1: GET, 2:DELETE
             break;
