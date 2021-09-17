@@ -1182,7 +1182,8 @@ public class InstallTest {
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"" + module + "\"," + LS
         + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"Unexpected Location header in response for POST /_/tenant\"," + LS
+        + "    \"message\" : \"Unexpected Location header in response for module "
+        + module + ": POST /_/tenant\"," + LS
         + "    \"stage\" : \"invoke\"" + LS
         + "  } ]" + LS
         + "}", job.encodePrettily());
@@ -1234,7 +1235,8 @@ public class InstallTest {
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"" + module + "\"," + LS
         + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"Missing DELETE method for tenant interface version 2\"," + LS
+        + "    \"message\" : \"Missing DELETE method for tenant interface version 2 for module "
+        + module + "\"," + LS
         + "    \"stage\" : \"invoke\"" + LS
         + "  } ]" + LS
         + "}", job.encodePrettily());
@@ -1289,7 +1291,8 @@ public class InstallTest {
         + "  \"modules\" : [ {" + LS
         + "    \"id\" : \"" + module + "\"," + LS
         + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"Missing id property in JSON response for POST /_/tenant\"," + LS
+        + "    \"message\" : \"Missing id property in JSON response for module "
+        + module + ": POST /_/tenant\"," + LS
         + "    \"stage\" : \"invoke\"" + LS
         + "  } ]" + LS
         + "}", job.encodePrettily());
