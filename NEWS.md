@@ -1,3 +1,22 @@
+## 4.8.9 2021-09-19
+
+Features/improvements:
+ * [OKAPI-1020](https://issues.folio.org/browse/OKAPI-1020) Allow interface list for require/provide
+ * [OKAPI-1024](https://issues.folio.org/browse/OKAPI-1024) Add facility to remove obsolete modules
+ * [OKAPI-1034](https://issues.folio.org/browse/OKAPI-1034) Supply module id for some tenant errors
+ * [OKAPI-1029](https://issues.folio.org/browse/OKAPI-1029) Cache CORS requests using `Access-Control-Max-Age header`
+
+Fixes:
+ * [OKAPI-1015](https://issues.folio.org/browse/OKAPI-1015) /saml/login timeout
+ * [OKAPI-1016](https://issues.folio.org/browse/OKAPI-1016) Support delegate preflight request
+ * [OKAPI-1023](https://issues.folio.org/browse/OKAPI-1023) Pull module descriptors with bulk/batch, fix connection timeout
+ * [OKAPI-1025](https://issues.folio.org/browse/OKAPI-1025) `/_/proxy/tenants/{tenant_id}/upgrade` with body
+ * [OKAPI-1028](https://issues.folio.org/browse/OKAPI-1028) GET `/_/proxy/modules` with invalid JSON body hangs
+ * [OKAPI-1031](https://issues.folio.org/browse/OKAPI-1031) "apt-get install okapi" should recreate `/var/lib/okapi`
+
+Other:
+ * [OKAPI-1035](https://issues.folio.org/browse/OKAPI-1035) Upgrade to Vert.x 4.1.4 OKAPI-1035
+
 ## 4.8.0 2021-05-11
 
 Features / improvements:
