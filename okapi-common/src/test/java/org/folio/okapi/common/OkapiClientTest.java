@@ -37,7 +37,7 @@ public class OkapiClientTest {
   private HttpServer server;
 
   @Rule
-  public Timeout timeoutRule = Timeout.seconds(5);
+  public Timeout timeoutRule = Timeout.seconds(10);
 
   private void myStreamHandle1(RoutingContext ctx) {
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
