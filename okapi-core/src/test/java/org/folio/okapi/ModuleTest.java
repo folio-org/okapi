@@ -121,6 +121,7 @@ public class ModuleTest {
 
     conf.put("storage", value)
         .put(ConfNames.DEPLOY_WAIT_ITERATIONS, 30)
+        .put(ConfNames.ENABLE_TRACE_HEADERS, true)
         .put("port", "9230")
         .put("port_start", "9231")
         .put("port_end", "9237")

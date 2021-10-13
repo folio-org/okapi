@@ -357,7 +357,7 @@ public class ProxyTest {
             .put("loglevel", "info")
             .put("port", Integer.toString(port))
             .put("healthPort", Integer.toString(portHealth))
-            .put("httpCache", true));
+            .put(ConfNames.ENABLE_TRACE_HEADERS, true));
     Promise<Void> promise = Promise.promise();
     vertx.deployVerticle(MainVerticle.class.getName(), opt, x -> promise.handle(x.mapEmpty()));
     return promise.future();

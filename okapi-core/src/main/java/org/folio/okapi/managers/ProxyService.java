@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.ConfNames;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
@@ -76,6 +77,7 @@ public class ProxyService {
   private static final Random random = new Random();
   private final int waitMs;
   private final boolean enableSystemAuth;
+  private final boolean enableTraceHeaders;
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
   private static final String TOKEN_CACHE_MAX_SIZE = "token_cache_max_size";
   private static final String TOKEN_CACHE_TTL_MS = "token_cache_ttl_ms";
@@ -104,8 +106,9 @@ public class ProxyService {
     this.internalModule = im;
     this.discoveryManager = dm;
     this.okapiUrl = okapiUrl;
-    this.waitMs = config.getInteger("logWaitMs", 0);
-    this.enableSystemAuth = Config.getSysConfBoolean("enable_system_auth", true, config);
+    waitMs = config.getInteger("logWaitMs", 0);
+    enableSystemAuth = Config.getSysConfBoolean(ConfNames.ENABLE_SYSTEM_AUTH, true, config);
+    enableTraceHeaders = Config.getSysConfBoolean(ConfNames.ENABLE_TRACE_HEADERS, false, config);
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
     httpClient = new FuturisedHttpClient(vertx, opt);
@@ -130,10 +133,12 @@ public class ProxyService {
 
     RoutingContext ctx = pc.getCtx();
     String url = makeUrl(mi, ctx);
-    pc.addTraceHeaderLine(ctx.request().method() + " "
-        + mi.getModuleDescriptor().getId() + " "
-        + url.replaceFirst("[?#].*$", "..") // remove params
-        + " : " + statusCode + " " + pc.timeDiff());
+    if (enableTraceHeaders) {
+      pc.addTraceHeaderLine(ctx.request().method() + " "
+          + mi.getModuleDescriptor().getId() + " "
+          + url.replaceFirst("[?#].*$", "..") // remove params
+          + " : " + statusCode + " " + pc.timeDiff());
+    }
     pc.logResponse(mi.getModuleDescriptor().getId(), url, statusCode);
   }
 

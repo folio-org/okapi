@@ -49,8 +49,9 @@ public class ModuleTenantsTest {
     vertx = Vertx.vertx();
     httpClient = vertx.createHttpClient();
     JsonObject conf = new JsonObject()
-      .put("port", Integer.toString(port))
-      .put("logWaitMs", 200);
+        .put("port", Integer.toString(port))
+        .put(ConfNames.ENABLE_TRACE_HEADERS, false)
+        .put("logWaitMs", 200);
 
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(conf);
@@ -292,11 +293,13 @@ public class ModuleTenantsTest {
 
     // run module
     c = api.createRestAssured3();
-    c.given().header("X-Okapi-Tenant", okapiTenant)
-      .body("Okapi").post("/testb/foo")
-      .then().log().ifValidationFails()
-      .statusCode(200)
-      .body(equalTo("Hello Okapi"));
+    String trace = c.given().header("X-Okapi-Tenant", okapiTenant)
+        .body("Okapi").post("/testb/foo")
+        .then().log().ifValidationFails()
+        .statusCode(200)
+        .body(equalTo("Hello Okapi"))
+        .extract().header("X-Okapi-Trace");
+    Assert.assertNull(trace); // test trace headers disabled by default.
 
     c = api.createRestAssured3();
     c.given().header("X-Okapi-Tenant", okapiTenant)
