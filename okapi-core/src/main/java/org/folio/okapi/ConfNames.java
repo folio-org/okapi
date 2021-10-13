@@ -14,6 +14,8 @@ public final class ConfNames {
 
   public static final String DEPLOY_WAIT_ITERATIONS = "deploy.waitIterations";
   public static final String DOCKER_URL = "dockerUrl";
+  public static final String ENABLE_TRACE_HEADERS = "trace_headers";
+  public static final String ENABLE_SYSTEM_AUTH = "enable_system_auth";
 
   private ConfNames() {
     throw new UnsupportedOperationException("Cannot instantiate utility class.");

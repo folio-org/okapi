@@ -934,11 +934,14 @@ Note: for this example to work it is important that the current directory
 of the Okapi is the top-level directory `.../okapi`.
 
 ```
-java -jar okapi-core/target/okapi-core-fat.jar dev
+java -Dtrace_headers=true -jar okapi-core/target/okapi-core-fat.jar dev
 ```
 
 The `dev` command tells to run it in development mode, which makes it start
 with a known clean state without any modules or tenants defined.
+
+Setting `trace_headers` to `true` makes Okapi return HTTP header
+`X-Okapi-Trace` with information about modules involved in a call.
 
 Okapi lists its PID (process ID) and says `API Gateway started`.  That
 means it is running, and listening on the default port which happens
@@ -2842,6 +2845,13 @@ leave it unmodified (default).
   Maximum number of iterations for deployment - before
   giving up (readiness check). Defaults to 60. A value, `n`, corresponds to roughly `n*n*0.2` seconds.
   This value, if set, overrides the `waitIterations` in the launch descriptor.
+* `trace_headers`: Controls whether Okapi adds X-Okapi-Trace headers. The
+ value is a boolean - `true` for enable, `false` for disable. Default is `false`.
+This property appeared in Okapi 4.10.0; trace header was always enabled
+before 4.10.0.
+* `enable_system_auth`: Controls whether Okapi checks token by calling Auth module
+when invoking system interfaces such as `_tenant`.
+The value is a boolean - `true` for enable, `false` for disable.  Default is `true`.
 
 #### Command
 
