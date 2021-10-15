@@ -444,7 +444,7 @@ public class ProxyService {
         mi.setAuthToken(tok);
 
         String originalToken = req.getHeader(XOkapiHeaders.TOKEN);
-        if (originalToken != null) {
+        if (originalToken != null && statusOk(res)) {
           tokenCache.put(pc.getTenant(),
               req.method().name(),
               pathPattern == null ? req.path() : pathPattern,
@@ -648,7 +648,7 @@ public class ProxyService {
           .onSuccess(res -> {
             MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
                 meth.name(), mi);
-            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res);
             if (newIt.hasNext()) {
               makeTraceHeader(mi, res.statusCode(), pc);
               pc.closeTimer();
@@ -847,7 +847,7 @@ public class ProxyService {
             MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
                 request.method().name(), mi);
             fixupXOkapiToken(mi.getModuleDescriptor(), request.headers(), res.headers());
-            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res);
             if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
               makeTraceHeader(mi, res.statusCode(), pc);
               relayToRequest(res, pc, mi);
@@ -885,7 +885,7 @@ public class ProxyService {
           .onSuccess(res -> {
             MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
                 ctx.request().method().name(), mi);
-            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res);
             if (newIt.hasNext()) {
               relayToRequest(res, pc, mi);
               storeResponseInfo(pc, mi, res);
@@ -895,7 +895,7 @@ public class ProxyService {
             } else {
               relayToResponse(ctx.response(), res, pc);
               makeTraceHeader(mi, res.statusCode(), pc);
-              if (res.statusCode() >= 200 && res.statusCode() <= 299) {
+              if (statusOk(res)) {
                 proxyResponseImmediate(pc, stream, bcontent, clientRequestList);
               } else {
                 proxyResponseImmediate(pc, res, null, clientRequestList);
@@ -1370,9 +1370,9 @@ public class ProxyService {
 
   // skip handler, but not if at pre/post filter phase
   private static Iterator<ModuleInstance> getNewIterator(Iterator<ModuleInstance> it,
-                                                         ModuleInstance mi, int statusCode) {
+      ModuleInstance mi, HttpClientResponse res) {
 
-    if (statusCode >= 200 && statusCode <= 299) {
+    if (statusOk(res)) {
       return it;
     }
     String phase = mi.getRoutingEntry().getPhase();
@@ -1388,4 +1388,7 @@ public class ProxyService {
     return list.iterator();
   }
 
+  private static boolean statusOk(HttpClientResponse res) {
+    return res.statusCode() >= 200 && res.statusCode() <= 299;
+  }
 } // class
