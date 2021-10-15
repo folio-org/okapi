@@ -422,8 +422,8 @@ public class ProxyService {
   private void authResponse(HttpClientResponse res, ProxyContext pc) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
     String modTok = res.headers().get(XOkapiHeaders.MODULE_TOKENS);
-    HttpServerRequest req = pc.getCtx().request();
-    if (modTok != null && !modTok.isEmpty()) {
+    if (statusOk(res) && modTok != null && !modTok.isEmpty()) {
+      HttpServerRequest req = pc.getCtx().request();
       JsonObject jo = new JsonObject(modTok);
       for (ModuleInstance mi : pc.getModList()) {
         String id = mi.getModuleDescriptor().getId();
@@ -444,7 +444,7 @@ public class ProxyService {
         mi.setAuthToken(tok);
 
         String originalToken = req.getHeader(XOkapiHeaders.TOKEN);
-        if (originalToken != null && statusOk(res)) {
+        if (originalToken != null) {
           tokenCache.put(pc.getTenant(),
               req.method().name(),
               pathPattern == null ? req.path() : pathPattern,
@@ -478,8 +478,7 @@ public class ProxyService {
    */
   private void relayToRequest(HttpClientResponse res, ProxyContext pc,
                               ModuleInstance mi) {
-    if (XOkapiHeaders.FILTER_AUTH.equals(mi.getRoutingEntry().getPhase())
-        && res.headers().contains(XOkapiHeaders.MODULE_TOKENS)) {
+    if (XOkapiHeaders.FILTER_AUTH.equals(mi.getRoutingEntry().getPhase())) {
       authResponse(res, pc);
     }
     // Sanitize both request headers (to remove the auth stuff we may have added)
@@ -1314,7 +1313,7 @@ public class ProxyService {
       ctx.data().remove(CorsHelper.DELEGATE_CORS);
       ModuleInstance mi = (ModuleInstance) ctx.data().get(CorsHelper.DELEGATE_CORS_MODULE_INSTANCE);
       ctx.data().remove(CorsHelper.DELEGATE_CORS_MODULE_INSTANCE);
-      resolveUrls(Arrays.asList(mi)).compose(unused -> {
+      resolveUrls(List.of(mi)).compose(unused -> {
         RequestOptions requestOptions = new RequestOptions().setMethod(ctx.request().method())
             .setAbsoluteURI(mi.getUrl() + newPath);
         return httpClient.request(requestOptions)
