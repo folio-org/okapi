@@ -142,18 +142,32 @@ public class ProxyService {
     pc.logResponse(mi.getModuleDescriptor().getId(), url, statusCode);
   }
 
+  /** Get path key for token.
+   *
+   * @param re routing entry.
+   * @param path actual HTTP request path.
+   * @return path key for token cache.
+   */
+  static String getTokenPath(RoutingEntry re, String path) {
+    // only use path pattern if that's given and if permissions required do not depend
+    // on path itself.
+    return re.getPathPattern() != null && re.getPermissionsRequiredTenant() == null
+        ? re.getPathPattern()
+        : path;
+  }
+
   /**
    * Checks for a cached token, userId, permissions and updates the provided ModuleInstance
    * accordingly.
    *
    * @param tenant The tenant, used to tag cache event metrics
    * @param req Request, used for accessing headers, etc.
-   * @param pathPattern Path pattern used in generation of the cache key
+   * @param re routing entry.
    * @param mi ModuleInstance to be updated
    * @return <code>true</code> if the ModuleInstance is updated with cached values,
    *         <code>false</code> otherwise.
    */
-  private boolean checkTokenCache(String tenant, HttpServerRequest req, String pathPattern,
+  private boolean checkTokenCache(String tenant, HttpServerRequest req, RoutingEntry re,
       ModuleInstance mi) {
     String token = req.headers().get(XOkapiHeaders.TOKEN);
     if (token == null) {
@@ -163,7 +177,7 @@ public class ProxyService {
       return false;
     }
 
-    String pathComponent = pathPattern == null ? req.path() : pathPattern;
+    String pathComponent = getTokenPath(re, req.path());
 
     CacheEntry cached = tokenCache.get(tenant, req.method().name(),
             pathComponent, req.getHeader(XOkapiHeaders.USER_ID),
@@ -197,7 +211,7 @@ public class ProxyService {
       if (mi.isHandler()) {
         pc.setHandlerModuleInstance(mi);
         RoutingEntry re = mi.getRoutingEntry();
-        skipAuth = checkTokenCache(pc.getTenant(), req, re.getPathPattern(), mi);
+        skipAuth = checkTokenCache(pc.getTenant(), req, re, mi);
         logger.debug("getModulesForRequest:  Added {} {} {} {} / {}",
             mi.getModuleDescriptor().getId(),
             re.getPathPattern(), re.getPath(), re.getPhase(), re.getLevel());
@@ -427,7 +441,7 @@ public class ProxyService {
       JsonObject jo = new JsonObject(modTok);
       for (ModuleInstance mi : pc.getModList()) {
         String id = mi.getModuleDescriptor().getId();
-        String pathPattern = mi.getRoutingEntry().getPathPattern();
+        RoutingEntry routingEntry = mi.getRoutingEntry();
 
         String tok;
         if (jo.containsKey(id)) {
@@ -447,7 +461,7 @@ public class ProxyService {
         if (originalToken != null) {
           tokenCache.put(pc.getTenant(),
               req.method().name(),
-              pathPattern == null ? req.path() : pathPattern,
+              getTokenPath(routingEntry, req.path()),
               res.getHeader(XOkapiHeaders.USER_ID),
               res.getHeader(XOkapiHeaders.PERMISSIONS),
               originalToken,
