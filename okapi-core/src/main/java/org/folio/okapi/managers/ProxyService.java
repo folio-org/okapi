@@ -436,7 +436,7 @@ public class ProxyService {
   private void authResponse(HttpClientResponse res, ProxyContext pc) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
     String modTok = res.headers().get(XOkapiHeaders.MODULE_TOKENS);
-    if (statusOk(res) && modTok != null && !modTok.isEmpty()) {
+    if (statusOk(res) && modTok != null) {
       HttpServerRequest req = pc.getCtx().request();
       JsonObject jo = new JsonObject(modTok);
       for (ModuleInstance mi : pc.getModList()) {
