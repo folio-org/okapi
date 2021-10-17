@@ -412,7 +412,7 @@ public class ProxyService {
     if (pc.getHandlerRes() != 0) {
       hres.setStatusCode(pc.getHandlerRes());
       hres.headers().addAll(pc.getHandlerHeaders());
-    } else if (pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300)) {
+    } else if (pc.getAuthRes() != 0 && !statusOk(pc.getAuthRes())) {
       hres.setStatusCode(pc.getAuthRes());
       hres.headers().addAll(pc.getAuthHeaders());
     } else {
@@ -609,7 +609,7 @@ public class ProxyService {
                                       Buffer bcontent, List<HttpClientRequest> clientRequestList) {
 
     RoutingContext ctx = pc.getCtx();
-    if (pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300)) {
+    if (pc.getAuthRes() != 0 && !statusOk(pc.getAuthRes())) {
       if (bcontent == null) {
         readStream.resume();
       }
@@ -1073,7 +1073,7 @@ public class ProxyService {
       // The auth filter needs all kinds of special headers
       headers.add(XOkapiHeaders.FILTER, filt);
 
-      boolean badAuth = pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300);
+      boolean badAuth = pc.getAuthRes() != 0 && !statusOk(pc.getAuthRes());
       switch (phase) {
         case XOkapiHeaders.FILTER_AUTH:
           authHeaders(pc.getModList(), headers, pc);
@@ -1401,7 +1401,11 @@ public class ProxyService {
     return list.iterator();
   }
 
-  private static boolean statusOk(HttpClientResponse res) {
-    return res.statusCode() >= 200 && res.statusCode() <= 299;
+  static boolean statusOk(HttpClientResponse res) {
+    return statusOk(res.statusCode());
+  }
+
+  static boolean statusOk(int status) {
+    return status >= 200 && status <= 299;
   }
 } // class
