@@ -436,8 +436,10 @@ public class ProxyService {
   private void authResponse(HttpClientResponse res, ProxyContext pc) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
     String modTok = res.headers().get(XOkapiHeaders.MODULE_TOKENS);
-    if (statusOk(res) && modTok != null) {
+    if (modTok != null) {
+      // Have module tokens: save them for this request even in case of error
       HttpServerRequest req = pc.getCtx().request();
+      String originalToken = req.getHeader(XOkapiHeaders.TOKEN);
       JsonObject jo = new JsonObject(modTok);
       for (ModuleInstance mi : pc.getModList()) {
         String id = mi.getModuleDescriptor().getId();
@@ -457,8 +459,8 @@ public class ProxyService {
 
         mi.setAuthToken(tok);
 
-        String originalToken = req.getHeader(XOkapiHeaders.TOKEN);
-        if (originalToken != null) {
+        // Only save in cache if no error from auth and there's a token to save
+        if (statusOk(res) && originalToken != null) {
           tokenCache.put(pc.getTenant(),
               req.method().name(),
               getTokenPath(routingEntry, req.path()),
