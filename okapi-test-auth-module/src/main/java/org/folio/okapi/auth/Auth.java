@@ -116,9 +116,8 @@ class Auth {
         tokens.put(mod, token(mod, permstr.toString(), null));
       }
     }
-    if (!tokens.isEmpty()) { // return also a 'clean' token
-      tokens.put("_", ctx.request().getHeader(XOkapiHeaders.TOKEN));
-    }
+    tokens.put("_", ctx.request().getHeader(XOkapiHeaders.TOKEN));
+
     String alltokens = Json.encode(tokens);
     logger.debug("test-auth: module tokens for {}: {}", modPermJson, alltokens);
     return alltokens;
@@ -227,12 +226,16 @@ class Auth {
     if (des != null) {
       ctx.response().headers().add(XOkapiHeaders.PERMISSIONS, des);
     }
+    String modTok = moduleTokens(ctx);
     if (req != null) {
       ctx.response().headers().add("X-Auth-Permissions-Required", req);
       if (permissions != null) {
         String[] reqList = req.split(",");
         for (String r : reqList) {
           if (!permissions.contains(r)) {
+            // auth should NOT be returning module tokens in case of errors, but mod-authtoken
+            // does that at the moment MODAT-107
+            ctx.response().headers().add(XOkapiHeaders.MODULE_TOKENS, modTok);
             HttpResponse.responseError(ctx, 403, "Call requires permission " + r);
             return;
           }
@@ -243,7 +246,6 @@ class Auth {
       ctx.response().headers().add("X-Auth-Permissions-Desired", des);
     }
     // Fake some module tokens
-    String modTok = moduleTokens(ctx);
     ctx.response().headers()
         .add(XOkapiHeaders.TOKEN, tok)
         .add(XOkapiHeaders.MODULE_TOKENS, modTok)

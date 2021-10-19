@@ -142,18 +142,32 @@ public class ProxyService {
     pc.logResponse(mi.getModuleDescriptor().getId(), url, statusCode);
   }
 
+  /** Get path key for token.
+   *
+   * @param re routing entry.
+   * @param path actual HTTP request path.
+   * @return path key for token cache.
+   */
+  static String getTokenPath(RoutingEntry re, String path) {
+    // only use path pattern if that's given and if permissions required do not depend
+    // on path itself.
+    return re.getPathPattern() != null && re.getPermissionsRequiredTenant() == null
+        ? re.getPathPattern()
+        : path;
+  }
+
   /**
    * Checks for a cached token, userId, permissions and updates the provided ModuleInstance
    * accordingly.
    *
    * @param tenant The tenant, used to tag cache event metrics
    * @param req Request, used for accessing headers, etc.
-   * @param pathPattern Path pattern used in generation of the cache key
+   * @param re routing entry.
    * @param mi ModuleInstance to be updated
    * @return <code>true</code> if the ModuleInstance is updated with cached values,
    *         <code>false</code> otherwise.
    */
-  private boolean checkTokenCache(String tenant, HttpServerRequest req, String pathPattern,
+  private boolean checkTokenCache(String tenant, HttpServerRequest req, RoutingEntry re,
       ModuleInstance mi) {
     String token = req.headers().get(XOkapiHeaders.TOKEN);
     if (token == null) {
@@ -163,7 +177,7 @@ public class ProxyService {
       return false;
     }
 
-    String pathComponent = pathPattern == null ? req.path() : pathPattern;
+    String pathComponent = getTokenPath(re, req.path());
 
     CacheEntry cached = tokenCache.get(tenant, req.method().name(),
             pathComponent, req.getHeader(XOkapiHeaders.USER_ID),
@@ -197,7 +211,7 @@ public class ProxyService {
       if (mi.isHandler()) {
         pc.setHandlerModuleInstance(mi);
         RoutingEntry re = mi.getRoutingEntry();
-        skipAuth = checkTokenCache(pc.getTenant(), req, re.getPathPattern(), mi);
+        skipAuth = checkTokenCache(pc.getTenant(), req, re, mi);
         logger.debug("getModulesForRequest:  Added {} {} {} {} / {}",
             mi.getModuleDescriptor().getId(),
             re.getPathPattern(), re.getPath(), re.getPhase(), re.getLevel());
@@ -398,7 +412,7 @@ public class ProxyService {
     if (pc.getHandlerRes() != 0) {
       hres.setStatusCode(pc.getHandlerRes());
       hres.headers().addAll(pc.getHandlerHeaders());
-    } else if (pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300)) {
+    } else if (pc.getAuthRes() != 0 && !statusOk(pc.getAuthRes())) {
       hres.setStatusCode(pc.getAuthRes());
       hres.headers().addAll(pc.getAuthHeaders());
     } else {
@@ -422,12 +436,14 @@ public class ProxyService {
   private void authResponse(HttpClientResponse res, ProxyContext pc) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
     String modTok = res.headers().get(XOkapiHeaders.MODULE_TOKENS);
-    HttpServerRequest req = pc.getCtx().request();
-    if (modTok != null && !modTok.isEmpty()) {
+    if (modTok != null) {
+      // Have module tokens: save them for this request even in case of error
+      HttpServerRequest req = pc.getCtx().request();
+      String originalToken = req.getHeader(XOkapiHeaders.TOKEN);
       JsonObject jo = new JsonObject(modTok);
       for (ModuleInstance mi : pc.getModList()) {
         String id = mi.getModuleDescriptor().getId();
-        String pathPattern = mi.getRoutingEntry().getPathPattern();
+        RoutingEntry routingEntry = mi.getRoutingEntry();
 
         String tok;
         if (jo.containsKey(id)) {
@@ -443,11 +459,11 @@ public class ProxyService {
 
         mi.setAuthToken(tok);
 
-        String originalToken = req.getHeader(XOkapiHeaders.TOKEN);
-        if (originalToken != null) {
+        // Only save in cache if no error from auth and there's a token to save
+        if (statusOk(res) && originalToken != null) {
           tokenCache.put(pc.getTenant(),
               req.method().name(),
-              pathPattern == null ? req.path() : pathPattern,
+              getTokenPath(routingEntry, req.path()),
               res.getHeader(XOkapiHeaders.USER_ID),
               res.getHeader(XOkapiHeaders.PERMISSIONS),
               originalToken,
@@ -478,8 +494,7 @@ public class ProxyService {
    */
   private void relayToRequest(HttpClientResponse res, ProxyContext pc,
                               ModuleInstance mi) {
-    if (XOkapiHeaders.FILTER_AUTH.equals(mi.getRoutingEntry().getPhase())
-        && res.headers().contains(XOkapiHeaders.MODULE_TOKENS)) {
+    if (XOkapiHeaders.FILTER_AUTH.equals(mi.getRoutingEntry().getPhase())) {
       authResponse(res, pc);
     }
     // Sanitize both request headers (to remove the auth stuff we may have added)
@@ -596,7 +611,7 @@ public class ProxyService {
                                       Buffer bcontent, List<HttpClientRequest> clientRequestList) {
 
     RoutingContext ctx = pc.getCtx();
-    if (pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300)) {
+    if (pc.getAuthRes() != 0 && !statusOk(pc.getAuthRes())) {
       if (bcontent == null) {
         readStream.resume();
       }
@@ -648,7 +663,7 @@ public class ProxyService {
           .onSuccess(res -> {
             MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
                 meth.name(), mi);
-            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res);
             if (newIt.hasNext()) {
               makeTraceHeader(mi, res.statusCode(), pc);
               pc.closeTimer();
@@ -847,7 +862,7 @@ public class ProxyService {
             MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
                 request.method().name(), mi);
             fixupXOkapiToken(mi.getModuleDescriptor(), request.headers(), res.headers());
-            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res);
             if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
               makeTraceHeader(mi, res.statusCode(), pc);
               relayToRequest(res, pc, mi);
@@ -885,7 +900,7 @@ public class ProxyService {
           .onSuccess(res -> {
             MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
                 ctx.request().method().name(), mi);
-            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+            Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res);
             if (newIt.hasNext()) {
               relayToRequest(res, pc, mi);
               storeResponseInfo(pc, mi, res);
@@ -895,7 +910,7 @@ public class ProxyService {
             } else {
               relayToResponse(ctx.response(), res, pc);
               makeTraceHeader(mi, res.statusCode(), pc);
-              if (res.statusCode() >= 200 && res.statusCode() <= 299) {
+              if (statusOk(res)) {
                 proxyResponseImmediate(pc, stream, bcontent, clientRequestList);
               } else {
                 proxyResponseImmediate(pc, res, null, clientRequestList);
@@ -1060,7 +1075,7 @@ public class ProxyService {
       // The auth filter needs all kinds of special headers
       headers.add(XOkapiHeaders.FILTER, filt);
 
-      boolean badAuth = pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300);
+      boolean badAuth = pc.getAuthRes() != 0 && !statusOk(pc.getAuthRes());
       switch (phase) {
         case XOkapiHeaders.FILTER_AUTH:
           authHeaders(pc.getModList(), headers, pc);
@@ -1314,7 +1329,7 @@ public class ProxyService {
       ctx.data().remove(CorsHelper.DELEGATE_CORS);
       ModuleInstance mi = (ModuleInstance) ctx.data().get(CorsHelper.DELEGATE_CORS_MODULE_INSTANCE);
       ctx.data().remove(CorsHelper.DELEGATE_CORS_MODULE_INSTANCE);
-      resolveUrls(Arrays.asList(mi)).compose(unused -> {
+      resolveUrls(List.of(mi)).compose(unused -> {
         RequestOptions requestOptions = new RequestOptions().setMethod(ctx.request().method())
             .setAbsoluteURI(mi.getUrl() + newPath);
         return httpClient.request(requestOptions)
@@ -1370,9 +1385,9 @@ public class ProxyService {
 
   // skip handler, but not if at pre/post filter phase
   private static Iterator<ModuleInstance> getNewIterator(Iterator<ModuleInstance> it,
-                                                         ModuleInstance mi, int statusCode) {
+      ModuleInstance mi, HttpClientResponse res) {
 
-    if (statusCode >= 200 && statusCode <= 299) {
+    if (statusOk(res)) {
       return it;
     }
     String phase = mi.getRoutingEntry().getPhase();
@@ -1388,4 +1403,11 @@ public class ProxyService {
     return list.iterator();
   }
 
+  static boolean statusOk(HttpClientResponse res) {
+    return statusOk(res.statusCode());
+  }
+
+  static boolean statusOk(int status) {
+    return status >= 200 && status <= 299;
+  }
 } // class

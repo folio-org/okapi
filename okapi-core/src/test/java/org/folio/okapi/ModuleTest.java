@@ -360,7 +360,7 @@ public class ModuleTest {
       + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/testb\"," + LS
       + "      \"type\" : \"request-response\"," + LS
-      + "      \"permissionsRequired\" : [ ]" + LS
+      + "      \"permissionsRequired\" : [ \"testb.get\" ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"permissionSets\" : [ ]," + LS
@@ -408,14 +408,14 @@ public class ModuleTest {
     logger.debug(" testFilters auth: " + locAuthModule + " " + locationAuthDeployment + " " + locAuthEnable);
 
     // login and get token
-    final String docLogin = "{" + LS
-      + "  \"tenant\" : \"" + okapiTenant + "\"," + LS
-      + "  \"username\" : \"peter\"," + LS
-      + "  \"password\" : \"peter-password\"" + LS
-      + "}";
-    okapiToken = given().header("Content-Type", "application/json").body(docLogin)
-      .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
-      .then().statusCode(200).extract().header("X-Okapi-Token");
+    JsonObject loginObject = new JsonObject()
+        .put("tenant", okapiTenant)
+        .put("username", "hans")
+        .put("password", "hans-password");
+    okapiToken = given().header("Content-Type", "application/json")
+        .body(loginObject.encode())
+        .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
+        .then().statusCode(200).extract().header("X-Okapi-Token");
     logger.debug(" testFilters Got auth token " + okapiToken);
 
     // Make a simple request. Checks that the auth filter gets called
@@ -486,8 +486,73 @@ public class ModuleTest {
     String locPostEnable = enableModule("post-f-module-1");
     logger.debug("testFilters post: " + locPostModule + " " + locationPostDeployment + " " + locPostEnable);
 
+    // Obtain token with insufficient to access sample module
+    loginObject = new JsonObject()
+        .put("tenant", okapiTenant)
+        .put("username", "hans")
+        .put("password", "hans-password")
+        .put("permissions", new JsonArray().add("testb.bad"));
+    okapiToken = given().header("Content-Type", "application/json")
+        .body(loginObject.encode())
+        .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
+        .then().statusCode(200).extract().header("X-Okapi-Token");
+
+    // Test Auth filter returns error.
+    c = api.createRestAssured3();
+    traces = c.given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .header("X-Okapi-Token", okapiToken)
+        .header("X-all-headers", "BL") // ask sample to report all headers
+        .header("X-filter-pre", "202") // ask pre-filter to return 202
+        .header("X-filter-post", "203") // ask post-filter to return 203
+        // Those returns coders should be overwritten by the 200 from the handler
+        .body("Testing... ")
+        .post("/testb")
+        .then().statusCode(403)
+        .body(is("Call requires permission testb.get"))
+        .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertTrue(traces.get(0).contains("POST auth-f-module-1"));
+    Assert.assertTrue(traces.get(0).contains("403"));
+    Assert.assertTrue(traces.get(1).contains("POST pre-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("202"));
+    Assert.assertTrue(traces.get(2).contains("POST post-f-module-1"));
+    Assert.assertTrue(traces.get(2).contains("203"));
+
+    // Repeat with same token and check that we are still rejected OKAPI-1037
+    c = api.createRestAssured3();
+    traces = c.given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .header("X-Okapi-Token", okapiToken)
+        .header("X-all-headers", "BL") // ask sample to report all headers
+        .header("X-filter-pre", "202") // ask pre-filter to return 202
+        .header("X-filter-post", "203") // ask post-filter to return 203
+        // Those returns coders should be overwritten by the 200 from the handler
+        .body("Testing... ")
+        .post("/testb")
+        .then().statusCode(403)
+        .body(is("Call requires permission testb.get"))
+        .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertTrue(traces.get(0).contains("POST auth-f-module-1"));
+    Assert.assertTrue(traces.get(0).contains("403"));
+    Assert.assertTrue(traces.get(1).contains("POST pre-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("202"));
+    Assert.assertTrue(traces.get(2).contains("POST post-f-module-1"));
+    Assert.assertTrue(traces.get(2).contains("203"));
+
+    // Obtain token with sufficient permissions to access sample module
+    loginObject = new JsonObject()
+        .put("tenant", okapiTenant)
+        .put("username", "hans")
+        .put("password", "hans-password")
+        .put("permissions", new JsonArray().add("testb.get"));
+    okapiToken = given().header("Content-Type", "application/json")
+        .body(loginObject.encode())
+        .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
+        .then().statusCode(200).extract().header("X-Okapi-Token");
+
     // Make a simple GET request. All three filters should be called
-    //
     c = api.createRestAssured3();
     traces = c.given()
       .header("X-Okapi-Tenant", okapiTenant)
@@ -525,12 +590,12 @@ public class ModuleTest {
       .body(containsString("It works"))
       .extract().headers().getValues("X-Okapi-Trace");
     logger.debug("Filter test. Traces: " + Json.encode(traces));
-    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
-    Assert.assertTrue(traces.get(1).contains("GET pre-f-module-1"));
-    Assert.assertTrue(traces.get(1).contains("500"));
-    Assert.assertTrue(traces.get(2).contains("GET sample-f-module-1"));
-    Assert.assertTrue(traces.get(3).contains("GET post-f-module-1"));
-    Assert.assertTrue(traces.get(3).contains("500"));
+    // auth-f-module-1 not called, due to token cache.
+    Assert.assertTrue(traces.get(0).contains("GET pre-f-module-1"));
+    Assert.assertTrue(traces.get(0).contains("500"));
+    Assert.assertTrue(traces.get(1).contains("GET sample-f-module-1"));
+    Assert.assertTrue(traces.get(2).contains("GET post-f-module-1"));
+    Assert.assertTrue(traces.get(2).contains("500"));
 
     // Make a simple GET request. All three filters including post-filter
     // should be called even though handler returns error
@@ -547,11 +612,10 @@ public class ModuleTest {
       .body(containsString("It does not work")) // should see error content
       .extract().headers().getValues("X-Okapi-Trace");
     logger.debug("Filter test. Traces: " + Json.encode(traces));
-    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
-    Assert.assertTrue(traces.get(1).contains("GET pre-f-module-1"));
-    Assert.assertTrue(traces.get(2).contains("GET sample-f-module-1"));
+    Assert.assertTrue(traces.get(0).contains("GET pre-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET sample-f-module-1"));
     // should see post-filter even though handler returns error
-    Assert.assertTrue(traces.get(3).contains("GET post-f-module-1"));
+    Assert.assertTrue(traces.get(2).contains("GET post-f-module-1"));
 
     // Test Auth filter returns error.
     // Handler should be skipped, but not Pre/Post filters.
@@ -576,7 +640,7 @@ public class ModuleTest {
     // Test Pre/Post filter returns error.
     // All phases should be seen in trace.
     // Caller should see Handler response.
-    List<String> modTraces = Arrays.asList("GET auth-f-module-1",
+    List<String> modTraces = Arrays.asList(
         "GET pre-f-module-1", "GET sample-f-module-1", "GET post-f-module-1");
     testPrePostFilterError(XOkapiHeaders.FILTER_PRE, modTraces);
     testPrePostFilterError(XOkapiHeaders.FILTER_POST, modTraces);

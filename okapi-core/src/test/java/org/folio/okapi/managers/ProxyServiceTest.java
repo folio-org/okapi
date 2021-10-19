@@ -172,4 +172,11 @@ public class ProxyServiceTest implements WithAssertions {
     assertThat(writeStream2.overflow).isTrue();
     assertThat(readStream.pause).isTrue();
   }
+
+  @Test
+  public void testStatusOk() {
+    assertThat(ProxyService.statusOk(100)).isFalse();
+    assertThat(ProxyService.statusOk(200)).isTrue();
+    assertThat(ProxyService.statusOk(300)).isFalse();
+  }
 }
