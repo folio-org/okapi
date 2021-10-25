@@ -217,11 +217,13 @@ public class InterfaceDescriptor {
           prefix, version);
     }
 
-    if ("_tenant".equals(this.id) && !"1.0 1.1 1.2 2.0".contains(version)) {
+    List<String> tenantVersions = List.of("1.0", "1.1", "2.0");
+    if ("_tenant".equals(this.id) && !tenantVersions.contains(version)) {
       logger.warn("{} is '{}'. Should be '1.0/1.1/1.2/2.0'", prefix, version);
     }
-    if ("_tenantPermissions".equals(this.id) && !"1.0 1.1".contains(version)) {
-      logger.warn("{} is '{}'. should be '1.0/1.1'", prefix, version);
+    List<String> tenantPermissionsVersions = List.of("1.0", "1.1", "2.0");
+    if ("_tenantPermissions".equals(this.id) && !tenantPermissionsVersions.contains(version)) {
+      logger.warn("{} is '{}'. should be '1.0/1.1/2.0'", prefix, version);
     }
 
     if (section.equals("provides")) {
