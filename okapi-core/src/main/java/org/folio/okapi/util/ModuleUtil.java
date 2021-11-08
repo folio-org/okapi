@@ -35,6 +35,7 @@ public final class ModuleUtil {
     options.setInvoke(params.get("invoke"));
     options.setAsync(getParamBoolean(params, "async", false));
     options.setIgnoreErrors(getParamBoolean(params, "ignoreErrors", false));
+    options.setReinstall(getParamBoolean(params, "reinstall", false));
     return options;
   }
 

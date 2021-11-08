@@ -925,96 +925,98 @@ public class TenantManager implements Liveness {
       Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     List<TenantModuleDescriptor> tml = job.getModules();
-    return DepResolution.installSimulate(modsAvailable, modsEnabled, tml).compose(res -> {
-      if (options.getSimulate()) {
-        return Future.succeededFuture(tml);
-      }
-      return jobs.add(t.getId(), job.getId(), job).compose(res2 -> {
-        Promise<List<TenantModuleDescriptor>> promise = Promise.promise();
-        Future<Void> future = Future.succeededFuture();
-        if (options.getAsync()) {
-          List<TenantModuleDescriptor> tml2 = new LinkedList<>();
-          for (TenantModuleDescriptor tm : tml) {
-            tml2.add(tm.cloneWithoutStage());
+    return DepResolution.installSimulate(modsAvailable, modsEnabled, tml, options.getReinstall())
+        .compose(res -> {
+          if (options.getSimulate()) {
+            return Future.succeededFuture(tml);
           }
-          promise.complete(tml2);
-        }
-        future = future.compose(x -> {
-          for (TenantModuleDescriptor tm : tml) {
-            tm.setStage(TenantModuleDescriptor.Stage.pending);
-          }
-          return jobs.put(t.getId(), job.getId(), job);
-        });
-        if (options.getDeploy()) {
-          future = future.compose(x -> autoDeploy(t, job, modsAvailable, tml));
-        }
-        for (TenantModuleDescriptor tm : tml) {
-          future = future.compose(x -> {
-            tm.setStage(TenantModuleDescriptor.Stage.invoke);
-            return jobs.put(t.getId(), job.getId(), job);
-          });
-          if (options.getIgnoreErrors()) {
-            Promise<Void> promise1 = Promise.promise();
-            installTenantModule(t, pc, options, modsAvailable, tm).onComplete(x -> {
-              if (x.failed()) {
-                logger.warn("Ignoring error for tenant {} module {}",
-                    t.getId(), tm.getId(), x.cause());
+          return jobs.add(t.getId(), job.getId(), job).compose(res2 -> {
+            Promise<List<TenantModuleDescriptor>> promise = Promise.promise();
+            Future<Void> future = Future.succeededFuture();
+            if (options.getAsync()) {
+              List<TenantModuleDescriptor> tml2 = new LinkedList<>();
+              for (TenantModuleDescriptor tm : tml) {
+                tml2.add(tm.cloneWithoutStage());
               }
-              promise1.complete();
+              promise.complete(tml2);
+            }
+            future = future.compose(x -> {
+              for (TenantModuleDescriptor tm : tml) {
+                tm.setStage(TenantModuleDescriptor.Stage.pending);
+              }
+              return jobs.put(t.getId(), job.getId(), job);
             });
-            future = future.compose(x -> promise1.future());
-          } else {
-            future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
-          }
-          future = future.compose(x -> {
-            if (tm.getMessage() != null) {
-              return Future.succeededFuture();
+            if (options.getDeploy()) {
+              future = future.compose(x -> autoDeploy(t, job, modsAvailable, tml));
             }
-            tm.setStage(TenantModuleDescriptor.Stage.done);
-            return jobs.put(t.getId(), job.getId(), job);
-          });
-        }
-        // if we are really upgrading permissions do a refresh last
-        for (TenantModuleDescriptor tm : tml) {
-          if (tm.getAction() == Action.enable && tm.getFrom() != null) {
-            ModuleDescriptor mdTo = modsAvailable.get(tm.getId());
-            // mdFrom is null so reloadPermissions is triggered!!!!
-            future = future.compose(x -> reloadPermissions(t, options, null, mdTo, pc));
-          }
-        }
-        if (options.getDeploy()) {
-          future.compose(x -> autoUndeploy(t, job, modsAvailable, tml));
-        }
-        for (TenantModuleDescriptor tm : tml) {
-          future = future.compose(x -> {
-            if (tm.getMessage() != null) {
-              return Future.succeededFuture();
+            for (TenantModuleDescriptor tm : tml) {
+              future = future.compose(x -> {
+                tm.setStage(TenantModuleDescriptor.Stage.invoke);
+                return jobs.put(t.getId(), job.getId(), job);
+              });
+              if (options.getIgnoreErrors()) {
+                Promise<Void> promise1 = Promise.promise();
+                installTenantModule(t, pc, options, modsAvailable, tm).onComplete(x -> {
+                  if (x.failed()) {
+                    logger.warn("Ignoring error for tenant {} module {}",
+                        t.getId(), tm.getId(), x.cause());
+                  }
+                  promise1.complete();
+                });
+                future = future.compose(x -> promise1.future());
+              } else {
+                future = future
+                    .compose(x -> installTenantModule(t, pc, options, modsAvailable,tm));
+              }
+              future = future.compose(x -> {
+                if (tm.getMessage() != null) {
+                  return Future.succeededFuture();
+                }
+                tm.setStage(TenantModuleDescriptor.Stage.done);
+                return jobs.put(t.getId(), job.getId(), job);
+              });
             }
-            tm.setStage(TenantModuleDescriptor.Stage.done);
-            return jobs.put(t.getId(), job.getId(), job);
+            // if we are really upgrading permissions do a refresh last
+            for (TenantModuleDescriptor tm : tml) {
+              if (tm.getAction() == Action.enable && tm.getFrom() != null) {
+                ModuleDescriptor mdTo = modsAvailable.get(tm.getId());
+                // mdFrom is null so reloadPermissions is triggered!!!!
+                future = future.compose(x -> reloadPermissions(t, options, null, mdTo, pc));
+              }
+            }
+            if (options.getDeploy()) {
+              future.compose(x -> autoUndeploy(t, job, modsAvailable, tml));
+            }
+            for (TenantModuleDescriptor tm : tml) {
+              future = future.compose(x -> {
+                if (tm.getMessage() != null) {
+                  return Future.succeededFuture();
+                }
+                tm.setStage(TenantModuleDescriptor.Stage.done);
+                return jobs.put(t.getId(), job.getId(), job);
+              });
+            }
+            future.onComplete(x -> {
+              job.setEndDate(Instant.now().toString());
+              job.setComplete(true);
+              jobs.put(t.getId(), job.getId(), job).onComplete(y -> logger.info("job complete"));
+              if (options.getAsync()) {
+                return;
+              }
+              if (x.failed()) {
+                logger.warn("job failed", x.cause());
+                promise.fail(x.cause());
+                return;
+              }
+              List<TenantModuleDescriptor> tml2 = new LinkedList<>();
+              for (TenantModuleDescriptor tm : tml) {
+                tml2.add(tm.cloneWithoutStage());
+              }
+              promise.complete(tml2);
+            });
+            return promise.future();
           });
-        }
-        future.onComplete(x -> {
-          job.setEndDate(Instant.now().toString());
-          job.setComplete(true);
-          jobs.put(t.getId(), job.getId(), job).onComplete(y -> logger.info("job complete"));
-          if (options.getAsync()) {
-            return;
-          }
-          if (x.failed()) {
-            logger.warn("job failed", x.cause());
-            promise.fail(x.cause());
-            return;
-          }
-          List<TenantModuleDescriptor> tml2 = new LinkedList<>();
-          for (TenantModuleDescriptor tm : tml) {
-            tml2.add(tm.cloneWithoutStage());
-          }
-          promise.complete(tml2);
         });
-        return promise.future();
-      });
-    });
   }
 
   private Future<Void> autoDeploy(Tenant tenant, InstallJob job, Map<String,

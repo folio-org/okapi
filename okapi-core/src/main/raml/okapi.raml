@@ -1030,6 +1030,11 @@ types:
             type: boolean
             required: false
             default: false
+          reinstall:
+            description: Whether to install modules even if up-to-update
+            type: boolean
+            required: false
+            default: false
           simulate:
             description: Whether the installation is simulated
             type: boolean
@@ -1166,6 +1171,11 @@ types:
             default: true
           purge:
             description: Disabled modules will also be purged
+            type: boolean
+            required: false
+            default: false
+          reinstall:
+            description: Whether to install modules even if up-to-update
             type: boolean
             required: false
             default: false
