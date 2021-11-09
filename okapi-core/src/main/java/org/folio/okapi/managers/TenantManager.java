@@ -954,19 +954,12 @@ public class TenantManager implements Liveness {
                 tm.setStage(TenantModuleDescriptor.Stage.invoke);
                 return jobs.put(t.getId(), job.getId(), job);
               });
+              future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable,tm));
               if (options.getIgnoreErrors()) {
-                Promise<Void> promise1 = Promise.promise();
-                installTenantModule(t, pc, options, modsAvailable, tm).onComplete(x -> {
-                  if (x.failed()) {
-                    logger.warn("Ignoring error for tenant {} module {}",
-                        t.getId(), tm.getId(), x.cause());
-                  }
-                  promise1.complete();
+                future = future.otherwise(e -> {
+                  logger.warn("Ignoring error for tenant {} module {}", t.getId(), tm.getId(), e);
+                  return null;
                 });
-                future = future.compose(x -> promise1.future());
-              } else {
-                future = future
-                    .compose(x -> installTenantModule(t, pc, options, modsAvailable,tm));
               }
               future = future.compose(x -> {
                 if (tm.getMessage() != null) {
