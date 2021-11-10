@@ -12,6 +12,7 @@ public class TenantInstallOptions {
   private String invoke;
   private boolean async = false;
   private boolean ignoreErrors = false;
+  private boolean reinstall = false;
 
   public void setPreRelease(boolean v) {
     preRelease = v;
@@ -102,5 +103,13 @@ public class TenantInstallOptions {
 
   public void setIgnoreErrors(boolean ignoreErrors) {
     this.ignoreErrors = ignoreErrors;
+  }
+
+  public boolean getReinstall() {
+    return reinstall;
+  }
+
+  public void setReinstall(boolean reinstall) {
+    this.reinstall = reinstall;
   }
 }

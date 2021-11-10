@@ -688,7 +688,7 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true&reinstall=false")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-1.0.0\"," + LS
@@ -697,6 +697,21 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    // this time with reinstall
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true&reinstall=true")
+        .then().statusCode(200)
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"sample-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "} ]"));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
 
     // upgrade from 1.0.0 to 1.2.0 - post known module which require basic
     c = api.createRestAssured3();

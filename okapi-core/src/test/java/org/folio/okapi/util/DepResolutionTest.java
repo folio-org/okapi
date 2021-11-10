@@ -205,7 +205,7 @@ public class DepResolutionTest {
   @Test
   public void testUpgradeUpToDate(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdA100);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE110), map(mdA100), tml)
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE110), map(mdA100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
           logger.debug("tml result = " + Json.encodePrettily(tml));
           context.assertEquals(1, tml.size());
@@ -214,9 +214,20 @@ public class DepResolutionTest {
   }
 
   @Test
+  public void testUpgradeReinstall(TestContext context) {
+    List<TenantModuleDescriptor> tml = enableList(mdA100);
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE110), map(mdA100), tml, true)
+        .onComplete(context.asyncAssertSuccess(res -> {
+          logger.debug("tml result = " + Json.encodePrettily(tml));
+          context.assertEquals(1, tml.size());
+          assertEnable(tml.get(0), mdA100);
+        }));
+  }
+
+  @Test
   public void testUpgradeDifferentProduct(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdB);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml)
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
           logger.debug("tml result = " + Json.encodePrettily(tml));
           context.assertEquals(2, tml.size());
@@ -228,7 +239,7 @@ public class DepResolutionTest {
   @Test
   public void testUpgradeSameProduct(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdA110);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdD100, mdE100), map(mdA100), tml)
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdD100, mdE100), map(mdA100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
@@ -239,7 +250,7 @@ public class DepResolutionTest {
   @Test
   public void testUpgradeWithRequires(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdE100);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdD100, mdE100), map(mdA100), tml)
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdD100, mdE100), map(mdA100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
@@ -251,7 +262,7 @@ public class DepResolutionTest {
   @Test
   public void testInstallOptional1(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdD100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110, mdE100), map(), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110, mdE100), map(), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
@@ -263,7 +274,7 @@ public class DepResolutionTest {
   @Test
   public void testInstallOptional2(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdD100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdE100), map(mdA100), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdE100), map(mdA100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
@@ -275,7 +286,7 @@ public class DepResolutionTest {
   @Test
   public void testInstallOptionalFail(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
-    DepResolution.installSimulate(map(mdA100, mdD100, mdD110, mdE100), map(mdA100), tml)
+    DepResolution.installSimulate(map(mdA100, mdD100, mdD110, mdE100), map(mdA100), tml, false)
         .onComplete(context.asyncAssertFailure(cause -> {
       context.assertEquals("interface int required by module moduleD-1.1.0 not found", cause.getMessage());
     }));
@@ -285,7 +296,7 @@ public class DepResolutionTest {
   @Test
   public void testInstallMinorLeafOptional(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110, mdE100), map(mdA100), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110, mdE100), map(mdA100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -298,7 +309,7 @@ public class DepResolutionTest {
   @Test
   public void testInstallMinorBaseOptional(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdA110);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110), map(mdA100, mdD100), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110), map(mdA100, mdD100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
@@ -310,7 +321,7 @@ public class DepResolutionTest {
   @Test
   public void testInstallMinorLeafOptional2(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110), map(mdA100, mdD100), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110), map(mdA100, mdD100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -324,7 +335,7 @@ public class DepResolutionTest {
   public void testInstallMajorBaseOptional(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdA200);
     DepResolution.installSimulate(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200, mdDA200),
-        map(mdA100, mdD100), tml).onComplete(context.asyncAssertSuccess(res -> {
+        map(mdA100, mdD100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
       assertUpgrade(tml.get(0), mdA200, mdA100);
@@ -342,7 +353,7 @@ public class DepResolutionTest {
 
     List<TenantModuleDescriptor> tml = enableList(mdA200);
     DepResolution.installSimulate(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200F),
-        map(mdA100, mdD100), tml).onComplete(context.asyncAssertFailure(cause ->
+        map(mdA100, mdD100), tml, false).onComplete(context.asyncAssertFailure(cause ->
         context.assertEquals("Incompatible version for module moduleD-1.0.0 interface int. Need 1.0. Have 2.0/moduleA-2.0.0",
             cause.getMessage())
     ));
@@ -353,7 +364,7 @@ public class DepResolutionTest {
   public void testInstallMajorLeafOptional(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdD200);
     DepResolution.installSimulate(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200, mdA200),
-        map(mdA100, mdD100), tml).onComplete(context.asyncAssertSuccess(res -> {
+        map(mdA100, mdD100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
       assertUpgrade(tml.get(0), mdA200, mdA100);
@@ -367,7 +378,7 @@ public class DepResolutionTest {
   public void testInstallOptionalExistingModuleFail(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdC, mdD100, mdD110, mdE100),
-        map(mdA100), tml).onComplete(context.asyncAssertFailure(cause ->
+        map(mdA100), tml, false).onComplete(context.asyncAssertFailure(cause ->
       context.assertEquals(
           "interface int required by module moduleD-1.1.0 is provided by multiple products: moduleA, moduleC",
           cause.getMessage())
@@ -379,7 +390,7 @@ public class DepResolutionTest {
   public void testInstallMajorBaseRequired(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdA200);
     DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200),
-        map(mdA100, mdE100), tml).onComplete(context.asyncAssertSuccess(res -> {
+        map(mdA100, mdE100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
       assertUpgrade(tml.get(0), mdA200, mdA100);
@@ -392,7 +403,7 @@ public class DepResolutionTest {
   public void testInstallMajorBaseRequired2(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdA200, mdE200);
     DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200),
-        map(mdA100, mdE100), tml).onComplete(context.asyncAssertSuccess(res -> {
+        map(mdA100, mdE100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
       assertUpgrade(tml.get(0), mdA200, mdA100);
@@ -405,7 +416,7 @@ public class DepResolutionTest {
   public void testInstallMajorBaseRequired3(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdE200, mdA200);
     DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200),
-        map(mdA100, mdE100), tml).onComplete(context.asyncAssertSuccess(res -> {
+        map(mdA100, mdE100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
       assertUpgrade(tml.get(0), mdA200, mdA100);
@@ -417,7 +428,7 @@ public class DepResolutionTest {
   @Test
   public void testInstallMajorLeafRequired(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdE200);
-    DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200), map(mdA100, mdE100), tml)
+    DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200), map(mdA100, mdE100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -439,7 +450,7 @@ public class DepResolutionTest {
 
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdA100);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml)
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -451,7 +462,7 @@ public class DepResolutionTest {
   @Test
   public void testInstallNew2(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdB);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml)
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -463,7 +474,7 @@ public class DepResolutionTest {
   @Test
   public void testInstallNewProduct(TestContext context) {
     List<TenantModuleDescriptor> tml = createList(Action.enable, true, mdE100, mdB);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml)
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -475,7 +486,7 @@ public class DepResolutionTest {
   @Test
   public void testInstallNewProductNonExisting(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdB);
-    DepResolution.installSimulate(map(mdA100), map(), tml)
+    DepResolution.installSimulate(map(mdA100), map(), tml, false)
         .onComplete(context.asyncAssertFailure(cause ->
             context.assertEquals("Module moduleB-1.0.0 not found", cause.getMessage())
         ));
@@ -484,7 +495,7 @@ public class DepResolutionTest {
   @Test
   public void testMultipleInterfacesMatch1(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdE100);
-    DepResolution.installSimulate(map(mdA100, mdB, mdE100), map(), tml)
+    DepResolution.installSimulate(map(mdA100, mdB, mdE100), map(), tml, false)
         .onComplete(context.asyncAssertFailure(cause ->
             context.assertEquals(
                 "interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleB",
@@ -495,7 +506,7 @@ public class DepResolutionTest {
   @Test
   public void testMultipleInterfacesMatch2(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdE100);
-    DepResolution.installSimulate(map(mdA100, mdC, mdE100), map(), tml)
+    DepResolution.installSimulate(map(mdA100, mdC, mdE100), map(), tml, false)
         .onComplete(context.asyncAssertFailure(cause ->
       context.assertEquals(
           "interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleC",
@@ -507,7 +518,7 @@ public class DepResolutionTest {
   public void testMultipleInterfacesMatchReplaces1(TestContext context) {
     mdB.setReplaces(new String[]{mdA100.getProduct()});
     List<TenantModuleDescriptor> tml = enableList(mdE100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdE100), map(), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdE100), map(), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -522,7 +533,7 @@ public class DepResolutionTest {
     mdC.setReplaces(new String[]{mdB.getProduct()});
 
     List<TenantModuleDescriptor> tml = enableList(mdE100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdC, mdE100), map(), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdC, mdE100), map(), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -534,7 +545,7 @@ public class DepResolutionTest {
   @Test
   public void testDisableNonEnabled(TestContext context) {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100);
-    DepResolution.installSimulate(map(mdA100), map(), tml)
+    DepResolution.installSimulate(map(mdA100), map(), tml, false)
         .onComplete(context.asyncAssertFailure(cause ->
       context.assertEquals("Module moduleA-1.0.0 not found", cause.getMessage())
         ));
@@ -543,7 +554,7 @@ public class DepResolutionTest {
   @Test
   public void testDisableNonExisting(TestContext context) {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100);
-    DepResolution.installSimulate(map(mdB), map(), tml)
+    DepResolution.installSimulate(map(mdB), map(), tml, false)
         .onComplete(context.asyncAssertFailure(cause ->
       context.assertEquals("Module moduleA-1.0.0 not found", cause.getMessage())
     ));
@@ -552,7 +563,7 @@ public class DepResolutionTest {
   @Test
   public void testDisable1(TestContext context) {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -564,7 +575,7 @@ public class DepResolutionTest {
   @Test
   public void testDisableProduct(TestContext context) {
     List<TenantModuleDescriptor> tml = createList(Action.disable, true, mdA100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -576,7 +587,7 @@ public class DepResolutionTest {
   @Test
   public void testDisable2(TestContext context) {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdE100, mdA100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -588,7 +599,7 @@ public class DepResolutionTest {
   @Test
   public void testDisable3(TestContext context) {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100, mdE100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -600,7 +611,7 @@ public class DepResolutionTest {
   @Test
   public void testUpToDate(TestContext context) {
     List<TenantModuleDescriptor> tml = createList(Action.uptodate, mdA100);
-    DepResolution.installSimulate(map(mdA100), map(mdA100), tml)
+    DepResolution.installSimulate(map(mdA100), map(mdA100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
@@ -611,7 +622,7 @@ public class DepResolutionTest {
   @Test
   public void testConflict(TestContext context) {
     List<TenantModuleDescriptor> tml = createList(Action.conflict, mdA100);
-    DepResolution.installSimulate(map(mdB), map(), tml)
+    DepResolution.installSimulate(map(mdB), map(), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
       context.assertEquals(1, tml.size());
       assertAction(tml.get(0), Action.conflict, mdA100, null);
@@ -686,7 +697,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot100, st101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertFailure(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertFailure(res -> {
         context.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1", res.getMessage());
         async.complete();
       }));
@@ -696,7 +707,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st101, ot100);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertFailure(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertFailure(res -> {
         context.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1", res.getMessage());
         async.complete();
       }));
@@ -706,7 +717,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot101, st100);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertFailure(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertFailure(res -> {
         context.assertEquals("Cannot remove module st-1.0.0 which is explicitly given", res.getMessage());
         async.complete();
       }));
@@ -716,7 +727,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st100, ot101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertFailure(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertFailure(res -> {
         context.assertEquals("Cannot remove module st-1.0.0 which is explicitly given", res.getMessage());
         async.complete();
       }));
@@ -731,7 +742,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
         assertUpgrade(tml.get(0), st101, st100);
         assertUpgrade(tml.get(1), ot101, ot100);
@@ -743,7 +754,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
         assertUpgrade(tml.get(0), st101, st100);
         assertUpgrade(tml.get(1), ot101, ot100);
@@ -759,7 +770,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot101, st101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
         assertUpgrade(tml.get(0), st101, st100);
         assertUpgrade(tml.get(1), ot101, ot100);
@@ -771,7 +782,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st101, ot101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
         assertUpgrade(tml.get(0), st101, st100);
         assertUpgrade(tml.get(1), ot101, ot100);
@@ -787,7 +798,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = createList(Action.enable, true, st101, ot100);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
         assertUpgrade(tml.get(0), st101, st100);
         assertUpgrade(tml.get(1), ot101, ot100);
@@ -799,7 +810,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = createList(Action.enable, true, ot100);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
         assertUpgrade(tml.get(0), st101, st100);
         assertUpgrade(tml.get(1), ot101, ot100);
@@ -811,7 +822,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = createList(Action.enable, true, st100);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
         assertUpgrade(tml.get(0), st101, st100);
         assertUpgrade(tml.get(1), ot101, ot100);
@@ -827,7 +838,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot100, st101);
-      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml).onComplete(context.asyncAssertFailure(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false).onComplete(context.asyncAssertFailure(res -> {
         context.assertEquals("Cannot remove module st-1.0.1 which is explicitly given", res.getMessage());
         async.complete();
       }));
@@ -837,7 +848,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot101, st100);
-      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml).onComplete(context.asyncAssertFailure(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false).onComplete(context.asyncAssertFailure(res -> {
         context.assertEquals("Incompatible version for module ot-1.0.1 interface int. Need 2.0. Have 1.0/st-1.0.0", res.getMessage());
         async.complete();
       }));
@@ -852,7 +863,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot100, st100);
-      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml).onComplete(context.asyncAssertSuccess(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false).onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
         assertUpgrade(tml.get(0), st100, st101);
         assertUpgrade(tml.get(1), ot100, ot101);
@@ -864,7 +875,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot100);
-      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml).onComplete(context.asyncAssertSuccess(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false).onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
         assertUpgrade(tml.get(0), st100, st101);
         assertUpgrade(tml.get(1), ot100, ot101);
@@ -876,7 +887,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st100);
-      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml).onComplete(context.asyncAssertSuccess(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false).onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
         assertUpgrade(tml.get(0), st100, st101);
         assertUpgrade(tml.get(1), ot100, ot101);
@@ -894,7 +905,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st100, st101);
-      DepResolution.installSimulate(modsAvailable, map(), tml).onComplete(context.asyncAssertFailure(res -> {
+      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
         context.assertEquals("Cannot remove module st-1.0.0 which is explicitly given", res.getMessage());
         async.complete();
       }));
@@ -904,7 +915,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st101, st100);
-      DepResolution.installSimulate(modsAvailable, map(), tml).onComplete(context.asyncAssertFailure(res -> {
+      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
         context.assertEquals("Cannot remove module st-1.0.1 which is explicitly given", res.getMessage());
         async.complete();
       }));
@@ -914,7 +925,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot100, ot101);
-      DepResolution.installSimulate(modsAvailable, map(), tml).onComplete(context.asyncAssertFailure(res -> {
+      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
         context.assertEquals("Cannot remove module ot-1.0.0 which is explicitly given", res.getMessage());
         async.complete();
       }));
@@ -924,7 +935,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot101, ot100);
-      DepResolution.installSimulate(modsAvailable, map(), tml).onComplete(context.asyncAssertFailure(res -> {
+      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
         context.assertEquals("Cannot remove module ot-1.0.1 which is explicitly given", res.getMessage());
         async.complete();
       }));
@@ -934,7 +945,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot100, ot101);
-      DepResolution.installSimulate(modsAvailable, map(), tml).onComplete(context.asyncAssertFailure(res -> {
+      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
         context.assertEquals("Cannot remove module ot-1.0.0 which is explicitly given", res.getMessage());
         async.complete();
       }));
@@ -977,7 +988,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st101, ot101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(2, tml.size());
         assertUpgrade(tml.get(0), st101, st100);
         assertUpgrade(tml.get(1), ot101, ot100);
@@ -987,7 +998,7 @@ public class DepResolutionTest {
     {
       Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml).onComplete(context.asyncAssertSuccess(res -> {
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(3, tml.size());
         assertUpgrade(tml.get(0), st101, st100);
         assertEnable(tml.get(1), p100);
@@ -1011,7 +1022,7 @@ public class DepResolutionTest {
   @Test
   public void testDepOrderSwapEnable(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdA100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
           logger.debug("tml result = " + Json.encodePrettily(tml));
           context.assertEquals(2, tml.size());
@@ -1024,7 +1035,7 @@ public class DepResolutionTest {
   @Test
   public void testDepOrderSwapUpgrade(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdE110, mdA110);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(mdE100, mdA100), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(mdE100, mdA100), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
           logger.debug("tml result = " + Json.encodePrettily(tml));
           context.assertEquals(2, tml.size());
@@ -1037,7 +1048,7 @@ public class DepResolutionTest {
   @Test
   public void testDepOrderAlready(TestContext context) {
     List<TenantModuleDescriptor> tml = enableList(mdA100, mdE100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(), tml)
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(), tml, false)
         .onComplete(context.asyncAssertSuccess(res -> {
           logger.debug("tml result = " + Json.encodePrettily(tml));
           context.assertEquals(2, tml.size());

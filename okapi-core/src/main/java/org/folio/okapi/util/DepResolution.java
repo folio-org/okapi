@@ -244,11 +244,13 @@ public final class DepResolution {
    * @param modsAvailable available modules
    * @param modsEnabled enabled modules (for some tenant)
    * @param tml install list with actions
+   * @param reinstall whether to re-install
    * @return future
    */
   public static Future<Void> installSimulate(Map<String, ModuleDescriptor> modsAvailable,
-                                             Map<String, ModuleDescriptor> modsEnabled,
-                                             List<TenantModuleDescriptor> tml) {
+      Map<String, ModuleDescriptor> modsEnabled,
+      List<TenantModuleDescriptor> tml,
+      boolean reinstall) {
     List<String> errors = new LinkedList<>();
     for (TenantModuleDescriptor tm : tml) {
       String id = tm.getId();
@@ -263,7 +265,7 @@ public final class DepResolution {
         if (!modsAvailable.containsKey(id)) {
           errors.add(messages.getMessage("10801", id));
         }
-        if (modsEnabled.containsKey(id)) {
+        if (modsEnabled.containsKey(id) && !reinstall) {
           tm.setAction(TenantModuleDescriptor.Action.uptodate);
         }
       }

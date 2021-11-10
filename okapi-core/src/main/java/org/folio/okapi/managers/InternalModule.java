@@ -703,7 +703,7 @@ public class InternalModule {
    * to it, and puts it in the Location header in pc.response. Also sets the
    * return code to 201-Created. You can overwrite it after, if needed.
    */
-  private Future<String> location(ProxyContext pc, String[] ids, String baseUri, String s) {
+  private String location(ProxyContext pc, String[] ids, String baseUri, String s) {
 
     String uri;
     if (baseUri == null) {
@@ -721,10 +721,10 @@ public class InternalModule {
     }
     pc.getCtx().response().putHeader("Location", uriEncoded.toString());
     pc.getCtx().response().setStatusCode(201);
-    return Future.succeededFuture(s);
+    return s;
   }
 
-  private Future<String> location(ProxyContext pc, String id, String baseUri, String s) {
+  private String location(ProxyContext pc, String id, String baseUri, String s) {
     String [] ids = new String[1];
     ids[0] = id;
     return location(pc, ids, baseUri, s);
@@ -742,7 +742,7 @@ public class InternalModule {
             new OkapiError(ErrorType.USER, messages.getMessage("11601", tenantId)));
       }
       Tenant t = new Tenant(td);
-      return tenantManager.insert(t).compose(res ->
+      return tenantManager.insert(t).map(res ->
         location(pc, tenantId, null, Json.encodePrettily(t.getDescriptor())));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
@@ -790,7 +790,7 @@ public class InternalModule {
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
       return tenantManager.enableAndDisableModule(tenantId, options, null, td, pc)
-          .compose(eres -> {
+          .map(eres -> {
             td.setId(eres);
             return location(pc, td.getId(), null, Json.encodePrettily(td));
           });
@@ -815,13 +815,13 @@ public class InternalModule {
       Collections.addAll(tm, tml);
       UUID installId = UUID.randomUUID();
       return tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, tm)
-          .compose(res -> {
+          .map(res -> {
             String jsonResponse = Json.encodePrettily(res);
             logger.info("installTenantModulesPost returns: {}", jsonResponse);
             if (options.getAsync()) {
               return location(pc, installId.toString(), null, jsonResponse);
             } else {
-              return Future.succeededFuture(jsonResponse);
+              return jsonResponse;
             }
           });
     } catch (DecodeException ex) {
@@ -857,14 +857,14 @@ public class InternalModule {
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
     UUID installId = UUID.randomUUID();
     return tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, null)
-        .compose(res -> {
+        .map(res -> {
           String jsonResponse = Json.encodePrettily(res);
           if (options.getAsync()) {
             // using same location as install
             String baseUri = pc.getCtx().request().uri().replace("/upgrade", "/install");
             return location(pc, installId.toString(), baseUri, jsonResponse);
           } else {
-            return Future.succeededFuture(jsonResponse);
+            return jsonResponse;
           }
         });
   }
@@ -877,7 +877,7 @@ public class InternalModule {
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
       return tenantManager.enableAndDisableModule(tenantId, options, module_from, td, pc)
-          .compose(res -> {
+          .map(res -> {
             td.setId(res);
             final String uri = pc.getCtx().request().uri();
             final String regex = "^(.*)/" + module_from + "$";
@@ -1026,7 +1026,7 @@ public class InternalModule {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
       return createModules(pc, Collections.singletonList(md))
-          .compose(res -> location(pc, md.getId(), null, Json.encodePrettily(md)));
+          .map(res -> location(pc, md.getId(), null, Json.encodePrettily(md)));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
@@ -1092,10 +1092,8 @@ public class InternalModule {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(body,
           DeploymentDescriptor.class);
-      return deploymentManager.deploy(pmd).compose(res -> {
-        final String s = Json.encodePrettily(res);
-        return location(pc, res.getInstId(), null, s);
-      });
+      return deploymentManager.deploy(pmd)
+          .map(res -> location(pc, res.getInstId(), null, Json.encodePrettily(res)));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
@@ -1151,7 +1149,7 @@ public class InternalModule {
         String[] ids = new String [2];
         ids[0] = md.getSrvcId();
         ids[1] = md.getInstId();
-        return location(pc, ids, baseuri, s);
+        return Future.succeededFuture(location(pc, ids, baseuri, s));
       });
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
@@ -1199,10 +1197,8 @@ public class InternalModule {
   private Future<String> createEnv(ProxyContext pc, String body) {
     try {
       final EnvEntry pmd = Json.decodeValue(body, EnvEntry.class);
-      return envManager.add(pmd).compose(res -> {
-        final String js = Json.encodePrettily(pmd);
-        return location(pc, pmd.getName(), null, js);
-      });
+      return envManager.add(pmd)
+          .map(res -> location(pc, pmd.getName(), null, Json.encodePrettily(pmd)));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
