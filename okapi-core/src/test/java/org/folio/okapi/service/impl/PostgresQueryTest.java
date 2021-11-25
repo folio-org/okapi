@@ -8,6 +8,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.sqlclient.PrepareOptions;
 import io.vertx.sqlclient.PreparedQuery;
 import io.vertx.sqlclient.PreparedStatement;
 import io.vertx.sqlclient.Query;
@@ -87,6 +88,16 @@ public class PostgresQueryTest {
     }
 
     @Override
+    public SqlConnection prepare(String s, PrepareOptions prepareOptions, Handler<AsyncResult<PreparedStatement>> handler) {
+      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public Future<PreparedStatement> prepare(String s, PrepareOptions prepareOptions) {
+      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
     public SqlConnection exceptionHandler(Handler<Throwable> hndlr) {
       throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
@@ -122,6 +133,11 @@ public class PostgresQueryTest {
     }
 
     @Override
+    public PreparedQuery<RowSet<Row>> preparedQuery(String s, PrepareOptions prepareOptions) {
+      return null;
+    }
+
+    @Override
     public void close(Handler<AsyncResult<Void>> handler) {
 
     }
@@ -153,19 +169,6 @@ public class PostgresQueryTest {
       }
       return Future.succeededFuture(new FakeSqlConnection());
     }
-  }
-
-  class PostgresHandleGetConnectionFail extends PostgresHandle {
-
-    protected PostgresHandleGetConnectionFail(Vertx vertx, JsonObject conf) {
-      super(vertx, conf);
-    }
-
-    @Override
-    public Future<SqlConnection> getConnection() {
-      return Future.succeededFuture(new FakeSqlConnection());
-    }
-
   }
 
   @Before
