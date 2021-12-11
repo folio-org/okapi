@@ -1,3 +1,20 @@
+## 4.9.10 2021-12-11
+
+Fixes:
+
+ * [OKAPI-1046](https://issues.folio.org/browse/OKAPI-1046) Log4j 2.15.0 fixing remote execution (CVE-2021-44228)
+ * [OKAPI-1041](https://issues.folio.org/browse/OKAPI-1041) Fix warnings about _tenantPermissions version 2.0
+ * [OKAPI-1037](https://issues.folio.org/browse/OKAPI-1037) Missing permission check, token cache and pre/post filter
+ * [OKAPI-1038](https://issues.folio.org/browse/OKAPI-1038) Disable X-Okapi-Trace header by default
+ * Upgrade to testcontainters 1.16.2 - makes Okapi pass tests on Apple M1
+ * Upgrade to nuprocess 2.0.2
+ * Upgrade to cron-utils 9.1.6
+
+Other:
+
+ * [OKAPI-1044](https://issues.folio.org/browse/OKAPI-1044) Upgrade to Vert.x 4.2.1
+ * [OKAPI-1043](https://issues.folio.org/browse/OKAPI-1043) okapi reinstall
+
 ## 4.9.0 2021-09-22
 
 Features/improvements:
