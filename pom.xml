@@ -159,6 +159,7 @@
                 <artifact>*:*</artifact>
                 <excludes>
                   <exclude>**/Log4j2Plugins.dat</exclude>
+                  <exclude>org/apache/logging/log4j/core/lookup/JndiLookup.class</exclude>
                 </excludes>
               </filter>
             </filters>
