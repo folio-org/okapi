@@ -193,7 +193,7 @@ public class MainDeploy {
         interfacesConfig.setEnabled(true).addInterface(clusterHost);
       }
     }
-    hazelcastConfig.setProperty("hazelcast.logging.type", "log4j");
+    hazelcastConfig.setProperty("hazelcast.logging.type", "log4j2");
 
     HazelcastClusterManager mgr = new HazelcastClusterManager(hazelcastConfig);
     vopt.setClusterManager(mgr);
