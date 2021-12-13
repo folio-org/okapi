@@ -1,9 +1,13 @@
+## 4.8.4 2021-12-13
+
+Fix:
+ * [OKAPI-1046](https://issues.folio.org/browse/OKAPI-1046) Log4j 2.15.0 fixing remote execution (CVE-2021-44228)
+
 ## 4.8.3 2021-12-13
 
 Fixes:
  * [OKAPI-1050](https://issues.folio.org/browse/OKAPI-1050) -Dlog4j2.formatMsgNoLookups=true for Debian/Ubuntu package (CVE-2021-44228)
  * [OKAPI-1047](https://issues.folio.org/browse/OKAPI-1047) Disable JDNI in log4j by removing JdniLookup class (CVE-2021-44228)
- * [OKAPI-1046](https://issues.folio.org/browse/OKAPI-1046) Log4j 2.15.0 fixing remote execution (CVE-2021-44228)
 
 ## 4.8.2 2021-05-26
 
