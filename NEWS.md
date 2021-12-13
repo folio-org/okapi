@@ -1,3 +1,22 @@
+## 4.10.0 2021-12-13
+
+Fixes:
+ * [OKAPI-1050](https://issues.folio.org/browse/OKAPI-1050) -Dlog4j2.formatMsgNoLookups=true for Debian/Ubuntu package (CVE-2021-44228)
+ * [OKAPI-1049](https://issues.folio.org/browse/OKAPI-1049) Disable JDNI by removing JdniLookup class
+ * [OKAPI-1048](https://issues.folio.org/browse/OKAPI-1048) Hazelcast 4.2.2, logging log4j2
+ * [OKAPI-1046](https://issues.folio.org/browse/OKAPI-1046) Log4j 2.15.0 fixing remote execution (CVE-2021-44228)
+ * [OKAPI-1041](https://issues.folio.org/browse/OKAPI-1041) Fix warnings about _tenantPermissions version 2.0
+ * [OKAPI-1037](https://issues.folio.org/browse/OKAPI-1037) Missing permission check, token cache and pre/post filter
+ * [OKAPI-1038](https://issues.folio.org/browse/OKAPI-1038) Disable X-Okapi-Trace header by default
+ * Upgrade to testcontainters 1.16.2 - makes Okapi pass tests on Apple M1
+ * Upgrade to nuprocess 2.0.2
+ * Upgrade to cron-utils 9.1.6
+
+Other:
+
+ * [OKAPI-1044](https://issues.folio.org/browse/OKAPI-1044) Upgrade to Vert.x 4.2.1
+ * [OKAPI-1043](https://issues.folio.org/browse/OKAPI-1043) okapi reinstall
+
 ## 4.9.0 2021-09-22
 
 Features/improvements:
@@ -15,7 +34,7 @@ Fixes:
  * [OKAPI-1031](https://issues.folio.org/browse/OKAPI-1031) "apt-get install okapi" should recreate `/var/lib/okapi`
 
 Other:
- * [OKAPI-1035](https://issues.folio.org/browse/OKAPI-1035) Upgrade to Vert.x 4.1.4 OKAPI-1035
+ * [OKAPI-1035](https://issues.folio.org/browse/OKAPI-1035) Upgrade to Vert.x 4.1.4 [OKAPI-1035](https://issues.folio.org/browse/OKAPI-1035)
 
 ## 4.8.0 2021-05-11
 
@@ -703,7 +722,7 @@ Some performance improvements in various areas.
 
  * Auto-deploy for install/upgrade operation [OKAPI-424](https://issues.folio.org/browse/OKAPI-424)
  * Docker: Okapi port substitution in dockerArgs - solves [OKAPI-458](https://issues.folio.org/browse/OKAPI-458)
- * Script/documentation on how to secure Okapi FOLIO-913
+ * Script/documentation on how to secure Okapi [FOLIO-913](https://issues.folio.org/browse/FOLIO-913)
    See doc/securing.md
 
 ## 2.2.0 2017-10-31
@@ -882,7 +901,7 @@ Some performance improvements in various areas.
 
 ## 1.2.4 2017-04-20
 
- * Fix hang in recursive calls for parallel requests [OKAPI-312](https://issues.folio.org/browse/OKAPI-312) / FOLIO-516
+ * Fix hang in recursive calls for parallel requests [OKAPI-312](https://issues.folio.org/browse/OKAPI-312) / [FOLIO-516](https://issues.folio.org/browse/FOLIO-516)
  * Document PostrgreSQL init commands [OKAPI-310](https://issues.folio.org/browse/OKAPI-310)
 
 ## 1.2.3 2017-04-07
