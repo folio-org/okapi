@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>4.8.3-SNAPSHOT</version>
+  <version>4.8.4-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
@@ -153,6 +153,7 @@
                 <artifact>*:*</artifact>
                 <excludes>
                   <exclude>**/Log4j2Plugins.dat</exclude>
+                  <exclude>org/apache/logging/log4j/core/lookup/JndiLookup.class</exclude>
                 </excludes>
               </filter>
             </filters>
