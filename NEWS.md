@@ -2,7 +2,7 @@
 
 Fixes:
  * [OKAPI-1050](https://issues.folio.org/browse/OKAPI-1050) -Dlog4j2.formatMsgNoLookups=true for Debian/Ubuntu package (CVE-2021-44228)
- * [OKAPI-1049](https://issues.folio.org/browse/OKAPI-1049) Disable JDNI by removing JdniLookup class
+ * [OKAPI-1047](https://issues.folio.org/browse/OKAPI-1047) Disable JDNI by removing JdniLookup class
  * [OKAPI-1048](https://issues.folio.org/browse/OKAPI-1048) Hazelcast 4.2.2, logging log4j2
  * [OKAPI-1046](https://issues.folio.org/browse/OKAPI-1046) Log4j 2.15.0 fixing remote execution (CVE-2021-44228)
  * [OKAPI-1041](https://issues.folio.org/browse/OKAPI-1041) Fix warnings about _tenantPermissions version 2.0
@@ -34,7 +34,7 @@ Fixes:
  * [OKAPI-1031](https://issues.folio.org/browse/OKAPI-1031) "apt-get install okapi" should recreate `/var/lib/okapi`
 
 Other:
- * [OKAPI-1035](https://issues.folio.org/browse/OKAPI-1035) Upgrade to Vert.x 4.1.4 [OKAPI-1035](https://issues.folio.org/browse/OKAPI-1035)
+ * [OKAPI-1035](https://issues.folio.org/browse/OKAPI-1035) Upgrade to Vert.x 4.1.4
 
 ## 4.8.0 2021-05-11
 
