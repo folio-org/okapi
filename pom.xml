@@ -50,7 +50,7 @@
       <dependency>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast</artifactId>
-        <version>4.0.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml -->
+        <version>4.2.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml -->
       </dependency>
       <dependency>
         <groupId>com.hazelcast</groupId>
@@ -163,6 +163,7 @@
                 <artifact>*:*</artifact>
                 <excludes>
                   <exclude>**/Log4j2Plugins.dat</exclude>
+                  <exclude>org/apache/logging/log4j/core/lookup/JndiLookup.class</exclude>
                 </excludes>
               </filter>
             </filters>
