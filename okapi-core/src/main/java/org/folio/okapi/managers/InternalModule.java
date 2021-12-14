@@ -15,7 +15,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
@@ -848,7 +847,7 @@ public class InternalModule {
   }
 
   private Future<String> upgradeModulesForTenant(ProxyContext pc, String tenantId, String body) {
-    if (! StringUtils.isEmpty(body)) {
+    if (!body.isEmpty()) {
       return Future.failedFuture("/_/proxy/tenants/{tenant_id}/upgrade "
           + "(upgrading to latest version) must not have a body. "
           + "Use /_/proxy/tenants/{tenant_id}/install instead "
