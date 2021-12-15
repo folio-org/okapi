@@ -83,7 +83,7 @@
     },
     "user" : {
       "description": "Module user descriptor",
-      "$ref": "LaunchDescriptor.json"
+      "$ref": "ModuleUser.json"
     }
   },
   "required": ["id"]
