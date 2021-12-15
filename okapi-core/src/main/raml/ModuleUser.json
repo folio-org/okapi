@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "id": "LaunchDescriptor.json",
   "title": "LaunchDescriptor",
-  "description": "Specifies how a module is deployed and undeployed",
+  "description": "Specifies the user that should be created for the module",
   "type": [ "object", "null" ],
   "additionalProperties" : false,
   "properties": {
