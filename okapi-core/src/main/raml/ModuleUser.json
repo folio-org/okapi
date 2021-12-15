@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "LaunchDescriptor.json",
+  "title": "LaunchDescriptor",
+  "description": "Specifies how a module is deployed and undeployed",
+  "type": [ "object", "null" ],
+  "additionalProperties" : false,
+  "properties": {
+    "type": {
+      "description": "The type of the module user",
+      "type": ["string"]
+    },
+    "permissions": {
+      "description": "Permission ID (usually module.service.method or similar)",
+      "type": ["array", "null"],
+      "items": {"type": "string"}
+    }
+  }
+}
+

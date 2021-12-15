@@ -80,6 +80,10 @@
     "launchDescriptor": {
       "description": "Default deployment for this module",
       "$ref": "LaunchDescriptor.json"
+    },
+    "user" : {
+      "description": "Module user descriptor",
+      "$ref": "LaunchDescriptor.json"
     }
   },
   "required": ["id"]
