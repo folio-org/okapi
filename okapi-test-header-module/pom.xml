@@ -86,7 +86,7 @@
          <configuration>
            <archive>
             <manifestEntries>
-             <Automatic-Module-Name>org.folio.okapi.auth</Automatic-Module-Name>
+             <Automatic-Module-Name>org.folio.okapi.header</Automatic-Module-Name>
              </manifestEntries>
            </archive>
          </configuration>
