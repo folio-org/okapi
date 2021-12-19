@@ -169,6 +169,12 @@
           </configuration>
         </plugin>
 
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
+
       </plugins>
     </pluginManagement>
 
@@ -179,6 +185,22 @@
         <configuration>
           <release>11</release>
           <compilerArgument>-Xlint:unchecked</compilerArgument>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jdeps-plugin</artifactId>
+        <version>3.1.2</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>jdkinternals</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <multiRelease>base</multiRelease>
         </configuration>
       </plugin>
 
