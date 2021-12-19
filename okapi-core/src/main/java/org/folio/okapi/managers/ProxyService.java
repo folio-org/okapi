@@ -541,29 +541,26 @@ public class ProxyService {
     // it will get read into a buffer somewhere.
 
     ProxyContext pc = new ProxyContext(ctx, waitMs);
+    final MultiMap headers = ctx.request().headers();
 
     // It would be nice to pass the request-id to the client, so it knows what
     // to look for in Okapi logs. But that breaks the schemas, and RMB-based
     // modules will not accept the response. Maybe later...
     try {
       parseTokenAndPopulateContext(pc);
+      putAndRejectMdcLookups(pc,
+          FolioLoggingContext.TENANT_ID_LOGGING_VAR_NAME, pc.getTenant());
+      putAndRejectMdcLookups(pc,
+          FolioLoggingContext.REQUEST_ID_LOGGING_VAR_NAME, headers.get(XOkapiHeaders.REQUEST_ID));
+      putAndRejectMdcLookups(pc,
+          FolioLoggingContext.MODULE_ID_LOGGING_VAR_NAME, headers.get(XOkapiHeaders.MODULE_ID));
+      putAndRejectMdcLookups(pc,
+          FolioLoggingContext.USER_ID_LOGGING_VAR_NAME, pc.getUserId());
     } catch (IllegalArgumentException e) {
       stream.resume();
       return; // Error code already set in ctx
     }
     String tenantId = pc.getTenant();
-
-    final MultiMap headers = ctx.request().headers();
-
-    FolioLoggingContext.put(FolioLoggingContext.TENANT_ID_LOGGING_VAR_NAME,
-        tenantId);
-    FolioLoggingContext.put(FolioLoggingContext.REQUEST_ID_LOGGING_VAR_NAME,
-        headers.get(XOkapiHeaders.REQUEST_ID));
-    FolioLoggingContext.put(FolioLoggingContext.MODULE_ID_LOGGING_VAR_NAME,
-        headers.get(XOkapiHeaders.MODULE_ID));
-    FolioLoggingContext.put(FolioLoggingContext.USER_ID_LOGGING_VAR_NAME,
-        pc.getUserId());
-
     sanitizeAuthHeaders(headers);
     tenantManager.get(tenantId)
         .onFailure(cause -> {
@@ -599,6 +596,21 @@ public class ProxyService {
             proxyR(l.iterator(), pc, stream, null, clientRequest);
           });
         });
+  }
+
+  /**
+   * Throw IllegalArgumentException if s contains ${ to disable MDC lookups
+   * mitigating any denial of service attack using recursive lookups
+   * (CVE-2021-45105, https://logging.apache.org/log4j/2.x/index.html ).
+   * Otherwise put (name, s) into FolioLoggingContext.
+   */
+  private static void putAndRejectMdcLookups(ProxyContext pc, String name, String s) {
+    if (s != null && s.contains("${")) {
+      var e = new IllegalArgumentException(name + " must not contain ${");
+      pc.responseError(400, e.getMessage());
+      throw e;
+    }
+    FolioLoggingContext.put(name, s);
   }
 
   private static void clientsEnd(Buffer bcontent, List<HttpClientRequest> clientRequestList) {
@@ -1322,6 +1334,13 @@ public class ProxyService {
         .replaceFirst("^/_/invoke/tenant/([^/ ]+)/.*$", "$1");
     String newPath = origPath
         .replaceFirst("^/_/invoke/tenant/[^/ ]+(/.*$)", "$1");
+
+    // disable MDC lookup to mitigate recursive lookup denial of service attack
+    // CVE-2021-45105: https://logging.apache.org/log4j/2.x/index.html
+    if (tid.contains("${")) {
+      HttpResponse.responseError(ctx, 400, "tenantId must not contain ${");
+      return;
+    }
 
     // delegate CORS for preflight request
     if (HttpMethod.OPTIONS.equals(ctx.request().method())
