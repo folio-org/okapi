@@ -1,12 +1,19 @@
 package org.folio.okapi.managers;
 
+import static org.mockito.Mockito.*;
+
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.core.streams.WriteStream;
+import io.vertx.ext.web.RoutingContext;
 import java.util.Arrays;
+import java.util.Base64;
 import org.assertj.core.api.WithAssertions;
 import org.junit.Test;
 
@@ -178,5 +185,38 @@ public class ProxyServiceTest implements WithAssertions {
     assertThat(ProxyService.statusOk(100)).isFalse();
     assertThat(ProxyService.statusOk(200)).isTrue();
     assertThat(ProxyService.statusOk(300)).isFalse();
+  }
+
+  private void rejectMdcLookups(String headerName, String headerValue) {
+    var proxyService = new ProxyService(Vertx.vertx(), null, null, null, null, new JsonObject());
+    var routingContext = mock(RoutingContext.class, RETURNS_DEEP_STUBS);
+    var headers = MultiMap.caseInsensitiveMultiMap().add(headerName, headerValue);
+    when(routingContext.request().headers()).thenReturn(headers);
+    when(routingContext.request().getHeader(headerName)).thenReturn(headerValue);
+    proxyService.proxy(routingContext);
+    verify(routingContext.response()).setStatusCode(400);
+  }
+
+  @Test
+  public void rejectMdcLookups() {
+    rejectMdcLookups("X-Okapi-Tenant", "${foo}");
+    rejectMdcLookups("X-Okapi-Request-Id", "${foo}-y");
+    rejectMdcLookups("X-Okapi-Module-Id", "x${foo}y${bar}z");
+
+    JsonObject jsonObject = new JsonObject();
+    jsonObject.put("user_id", "x-${foo${bar}}");
+    byte[] encodedBytes = Base64.getEncoder().encode(jsonObject.encode().getBytes());
+    String encodedString = new String(encodedBytes);
+    String token = "method." + encodedString + ".trail";
+    rejectMdcLookups("X-Okapi-Token", token);
+  }
+
+  @Test
+  public void rejectMdcLookupsRedirect() {
+    var proxyService = new ProxyService(Vertx.vertx(), null, null, null, null, new JsonObject());
+    var routingContext = mock(RoutingContext.class, RETURNS_DEEP_STUBS);
+    when(routingContext.request().path()).thenReturn("/_/invoke/tenant/x${foo}y/123");
+    proxyService.redirectProxy(routingContext);
+    verify(routingContext.response()).setStatusCode(400);
   }
 }
