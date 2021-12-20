@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.folio.okapi</groupId>
     <artifactId>okapi</artifactId>
-    <version>4.11.0-SNAPSHOT</version>
+    <version>4.12.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>okapi-test-header-module</artifactId>
@@ -79,6 +79,17 @@
             </configuration>
           </execution>
         </executions>
+       </plugin>
+       <plugin>
+         <groupId>org.apache.maven.plugins</groupId>
+         <artifactId>maven-jar-plugin</artifactId>
+         <configuration>
+           <archive>
+            <manifestEntries>
+             <Automatic-Module-Name>org.folio.okapi.header</Automatic-Module-Name>
+             </manifestEntries>
+           </archive>
+         </configuration>
       </plugin>
     </plugins>
   </build>

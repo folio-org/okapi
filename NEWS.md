@@ -1,3 +1,15 @@
+## 4.11.0 2021-12-17
+
+Features:
+ * [OKAPI-1054](https://issues.folio.org/browse/OKAPI-1054) WebClientFactory to avoid socket leaks (okapi-common)
+
+Fixes:
+ * [OKAPI-1051](https://issues.folio.org/browse/OKAPI-1051) log4j 2.16.0: replacing temporary fix by upstream fix (CVE-2021-45046)
+ * [OKAPI-1052](https://issues.folio.org/browse/OKAPI-1052) okapi-common uses only optional maven dependencies
+
+Other:
+ * [#1166](https://github.com/folio-org/okapi/pull/1166) Unused commons-lang3 removed
+
 ## 4.10.0 2021-12-13
 
 Fixes:
