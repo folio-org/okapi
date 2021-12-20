@@ -1,3 +1,10 @@
+## 4.11.1 2021-12-20
+
+Fixes:
+ * [OKAPI-1056](https://issues.folio.org/browse/OKAPI-1056) Log4j 2.17.0 fixing self-referential lookups in Thread Context Map (CVE-2021-45105)
+ * [OKAPI-1057](https://issues.folio.org/browse/OKAPI-1057) Vert.x 4.2.2, Netty 4.1.72.Final fixing header request smuggling (CVE-2021-43797)
+ * [OKAPI-1058](https://issues.folio.org/browse/OKAPI-1058) Reject MDC lookups mitigating log4j vuln (CVE-2021-45105)
+
 ## 4.11.0 2021-12-17
 
 Features:
