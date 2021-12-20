@@ -13,7 +13,11 @@
     "permissions": {
       "description": "Permission ID (usually module.service.method or similar)",
       "type": ["array", "null"],
-      "items": {"type": "string"}
+      "items": {
+        "type": "string",
+        "enum": ["module", "tenant"],
+        "default": "module"
+      }
     }
   }
 }
