@@ -36,7 +36,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
   private ModuleId[] replaces;
-  private ModuleUser[] user;
+  private ModuleUser user;
 
   public ModuleDescriptor() {
   }
@@ -486,11 +486,11 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     return id.getProduct();
   }
 
-  public ModuleUser[] getUser() {
+  public ModuleUser getUser() {
     return user;
   }
 
-  public void setUser(ModuleUser[] user) {
+  public void setUser(ModuleUser user) {
     this.user = user;
   }
 }
