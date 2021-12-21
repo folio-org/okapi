@@ -60,6 +60,14 @@
         }
       }
     }
+  },
+  "user": {
+    "type": "tenant",
+    "permissions": [
+      "inventory-storage.identifier-types.collection.get",
+      "inventory-storage.inventory-view.instances.collection.get",
+      "inventory-storage.alternative-title-types.collection.get"
+    ]
   }
 }, {
   "id" : "edge-orders-2.2.1",
@@ -90,6 +98,14 @@
         }
       }
     }
+  },
+  "user": {
+    "type": "tenant",
+    "permissions": [
+      "inventory-storage.identifier-types.collection.get",
+      "inventory-storage.inventory-view.instances.collection.get",
+      "inventory-storage.alternative-title-types.collection.get"
+    ]
   }
 }, {
   "id" : "edge-patron-4.2.0",
