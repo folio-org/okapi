@@ -36,6 +36,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
   private ModuleId[] replaces;
+  private ModuleUser[] user;
 
   public ModuleDescriptor() {
   }
@@ -483,5 +484,13 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   @JsonIgnore
   public String getProduct() {
     return id.getProduct();
+  }
+
+  public ModuleUser[] getUser() {
+    return user;
+  }
+
+  public void setUser(ModuleUser[] user) {
+    this.user = user;
   }
 }

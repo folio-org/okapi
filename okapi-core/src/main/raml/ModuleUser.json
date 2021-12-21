@@ -8,15 +8,15 @@
   "properties": {
     "type": {
       "description": "The type of the module user",
-      "type": ["string"]
+      "type": "string",
+      "enum": ["module", "tenant"],
+      "default": "module"
     },
     "permissions": {
       "description": "Permission ID (usually module.service.method or similar)",
-      "type": ["array", "null"],
+      "type": "array",
       "items": {
-        "type": "string",
-        "enum": ["module", "tenant"],
-        "default": "module"
+        "type": "string"
       }
     }
   }
