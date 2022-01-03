@@ -21,15 +21,10 @@ public class OkapiToken {
    */
   public OkapiToken(String token) {
     this.token = token;
-    payloadWithoutValidation = this.getPayloadWithoutValidation();
+    payloadWithoutValidation = init(token);
   }
 
-  @Override
-  public String toString() {
-    return token;
-  }
-
-  private JsonObject getPayloadWithoutValidation() {
+  private static JsonObject init(String token) {
     if (token == null) {
       return null;
     }
@@ -51,7 +46,25 @@ public class OkapiToken {
     }
   }
 
-  private String getFieldFromTokenWithoutValidation(String field) {
+  @Override
+  public String toString() {
+    return token;
+  }
+
+  /**
+   * Get payload.
+   * @return payload JSON object.
+   */
+  public JsonObject getPayloadWithoutValidation() {
+    return payloadWithoutValidation;
+  }
+
+  /**
+   * Get payload field content from token.
+   * @param field property.
+   * @return field content.
+   */
+  public String getFieldFromTokenWithoutValidation(String field) {
     if (payloadWithoutValidation == null) {
       return null;
     }

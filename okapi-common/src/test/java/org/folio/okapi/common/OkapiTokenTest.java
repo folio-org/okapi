@@ -27,6 +27,7 @@ public class OkapiTokenTest {
     String e = new String(encodedBytes);
     String tokenStr = "method." + e + ".trail";
     OkapiToken tok = new OkapiToken(tokenStr);
+    Assert.assertEquals(o.encode(), tok.getPayloadWithoutValidation().encode());
     Assert.assertEquals(TENANT, tok.getTenantWithoutValidation());
     Assert.assertEquals(USERNAME, tok.getUsernameWithoutValidation());
     Assert.assertEquals(USERID, tok.getUserIdWithoutValidation());
@@ -35,6 +36,7 @@ public class OkapiTokenTest {
   @Test
   public void testNullToken() {
     OkapiToken tok = new OkapiToken(null);
+    assertNull(tok.getPayloadWithoutValidation());
     assertNull(tok.getTenantWithoutValidation());
     assertNull(tok.getUsernameWithoutValidation());
     assertNull(tok.getUserIdWithoutValidation());
@@ -44,6 +46,7 @@ public class OkapiTokenTest {
   public void noTenant() {
     OkapiToken tok = new OkapiToken("a.eyB9Cg==.c"); // "{ }"
     Assert.assertNull(tok.getTenantWithoutValidation());
+    Assert.assertEquals("{}", tok.getPayloadWithoutValidation().encode());
   }
 
   private String exceptionMessage(String token) {
