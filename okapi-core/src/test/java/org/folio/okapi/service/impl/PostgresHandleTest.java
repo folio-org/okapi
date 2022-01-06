@@ -71,16 +71,16 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
   void hostAndPort(Vertx vertx) {
     PostgresHandle postgresHandle = new PostgresHandle(vertx,
         new JsonObject().put("postgres_host", "example.com").put("postgres_port", "9876"));
-    assertThat(postgresHandle.getOptions())
-    .extracting("getHost", "getPort").containsExactly("example.com", 9876);
+    assertThat(postgresHandle.getOptions().getHost()).isEqualTo("example.com");
+    assertThat(postgresHandle.getOptions().getPort()).isEqualTo(9876);
   }
 
   @Test
   void ignoreInvalidPortNumber(Vertx vertx) {
     PostgresHandle postgresHandle = new PostgresHandle(vertx,
         new JsonObject().put("postgres_port", "q"));
-    assertThat(postgresHandle.getOptions())
-    .extracting("getHost", "getPort").containsExactly("localhost", 5432);
+    assertThat(postgresHandle.getOptions().getHost()).isEqualTo("localhost");
+    assertThat(postgresHandle.getOptions().getPort()).isEqualTo(5432);
   }
 
   static private JsonObject config() {
