@@ -707,6 +707,7 @@ public class ModuleTenantsTest {
         .then().statusCode(200)
         .body(equalTo("[ {" + LS
             + "  \"id\" : \"sample-module-1.0.0\"," + LS
+            + "  \"from\" : \"sample-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"));
     Assert.assertTrue(
@@ -1758,6 +1759,9 @@ public class ModuleTenantsTest {
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"level1-1.0.1\"," + LS
         + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"level1-1.0.1\"," + LS
+        + "  \"action\" : \"uptodate\"" + LS
         + "} ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
@@ -2113,8 +2117,8 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    Assert.assertEquals("Incompatible version for module req2-1.0.0 interface i1. "
-      + "Need 2.0. Have 1.0/prov-1.0.0", r.getBody().asString());
+    Assert.assertEquals("Incompatible version for module req1-1.0.0 interface i1. "
+      + "Need 1.0. Have 2.0/prov-2.0.0", r.getBody().asString());
 
     c = api.createRestAssured3();
     c.given()
@@ -2259,10 +2263,10 @@ public class ModuleTenantsTest {
         + "  \"id\" : \"prov-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
-        + "  \"id\" : \"req1-1.0.0\"," + LS
+        + "  \"id\" : \"req1or2-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
-        + "  \"id\" : \"req1or2-1.0.0\"," + LS
+        + "  \"id\" : \"req1-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"reqI1or2-1.0.0\"," + LS
@@ -2327,8 +2331,8 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    Assert.assertEquals("Incompatible version for module req1-1.0.0 interface i1. "
-      + "Need 1.0. Have 2.0/prov-2.0.0", r.getBody().asString());
+    Assert.assertEquals("Incompatible version for module req2-1.0.0 interface i1. "
+      + "Need 2.0. Have 1.0/prov-1.0.0", r.getBody().asString());
   }
 
   @Test

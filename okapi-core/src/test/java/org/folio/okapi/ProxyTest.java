@@ -2003,22 +2003,22 @@ public class ProxyTest {
       .then().statusCode(201);
 
     api.createRestAssured3().given()
-      .header("Content-Type", "application/json")
-      .body("[ {\"id\" : \"request-pre-1.0.0\", \"action\" : \"enable\"},"
-        + " {\"id\" : \"auth-f-module-1\", \"action\" : \"enable\"},"
-        + " {\"id\" : \"request-only-1.0.0\", \"action\" : \"disable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
-      .then().statusCode(200).log().ifValidationFails()
-      .body(equalTo("[ {" + LS
-        + "  \"id\" : \"request-pre-1.0.0\"," + LS
-        + "  \"action\" : \"enable\"" + LS
-        + "}, {" + LS
-        + "  \"id\" : \"auth-f-module-1\"," + LS
-        + "  \"action\" : \"enable\"" + LS
-        + "}, {" + LS
-        + "  \"id\" : \"request-only-1.0.0\"," + LS
-        + "  \"action\" : \"disable\"" + LS
-        + "} ]"));
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"request-pre-1.0.0\", \"action\" : \"enable\"},"
+            + " {\"id\" : \"auth-f-module-1\", \"action\" : \"enable\"},"
+            + " {\"id\" : \"request-only-1.0.0\", \"action\" : \"disable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+        .then().statusCode(200).log().ifValidationFails()
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"request-only-1.0.0\"," + LS
+            + "  \"action\" : \"disable\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"request-pre-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"auth-f-module-1\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "} ]"));
 
     // login and get token
     final String docLogin = "{" + LS
@@ -3310,6 +3310,7 @@ public class ProxyTest {
         + "  \"id\" : \"timer-module-2.0.0\"" + LS
         + "} ]"));
 
+    logger.info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
     api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"timer-module-2.0.0\", \"action\" : \"disable\"} ]")
