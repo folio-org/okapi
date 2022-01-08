@@ -376,6 +376,24 @@ public final class DepResolution {
             .add(moduleInterface);
       }
     }
+    if (checkMultiple(modsEnabled, tml, fix, errors, providedInterfaces)) {
+      return null;
+    }
+    if (checkRequired(modsAvailable, modsEnabled, tml, fix, errors,
+        providedInterfaces, requiredInterfaces)) {
+      return null;
+    }
+    if (checkCompatible(modsAvailable, modsEnabled, tml, fix, errors,
+        providedInterfaces, requiredOptInterfaces, stickyModules)) {
+      return null;
+    }
+    return errors;
+  }
+
+  private static boolean checkMultiple(Map<String, ModuleDescriptor> modsEnabled,
+      List<TenantModuleDescriptor> tml, boolean fix, List<String> errors,
+      Map<String, List<ModuleInterface>> providedInterfaces) {
+
     for (Map.Entry<String,List<ModuleInterface>> entry : providedInterfaces.entrySet()) {
       if (entry.getValue().size() > 1) {
         logger.info("Interface {} is defined {} times",
@@ -392,7 +410,7 @@ public final class DepResolution {
                     tm.setFrom(md.getId());
                     modsEnabled.remove(md.getId());
                     logger.info("Disable by adding from {}", md.getId());
-                    return null;
+                    return true;
                   }
                 }
               }
@@ -408,7 +426,7 @@ public final class DepResolution {
               logger.info("Disable module {}", md.getId());
               modsEnabled.remove(md.getId());
               addTenantModule(tml, md.getId(), null, TenantModuleDescriptor.Action.disable);
-              return null;
+              return true;
             }
           }
         }
@@ -418,7 +436,15 @@ public final class DepResolution {
         errors.add(messages.getMessage("10213", modules, entry.getKey()));
       }
     }
-    for (Map.Entry<String,List<ModuleInterface>> entry : requiredInterfaces.entrySet()) {
+    return false;
+  }
+
+  private static boolean checkRequired(Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
+      boolean fix, List<String> errors, Map<String, List<ModuleInterface>> providedInterfaces,
+      Map<String, List<ModuleInterface>> requiredInterfaces) {
+
+    for (Map.Entry<String, List<ModuleInterface>> entry : requiredInterfaces.entrySet()) {
       List<ModuleInterface> providedModuleInterfaces = providedInterfaces.get(entry.getKey());
       if (providedModuleInterfaces == null) {
         logger.info("Interface {} undefined and required", entry.getKey());
@@ -429,7 +455,7 @@ public final class DepResolution {
             if (modules.size() > 1) {
               errors.add(messages.getMessage("10210", entry.getKey(), req.moduleDescriptor.getId(),
                   String.join(", ", modules.keySet())));
-              return errors;
+              return false;
             } else if (!modules.isEmpty()) {
               ModuleDescriptor mdFound = modules.values().iterator().next();
               String id = req.moduleDescriptor.getId();
@@ -444,12 +470,12 @@ public final class DepResolution {
                 logger.info("Removing {}", id);
                 modsEnabled.remove(id);
                 addTenantModule(tml, id, null, TenantModuleDescriptor.Action.disable);
-                return null;
+                return true;
               } else {
                 logger.info("Enable {}", mdFound.getId());
                 modsEnabled.put(mdFound.getId(), mdFound);
                 addTenantModule(tml, mdFound.getId(), null, TenantModuleDescriptor.Action.enable);
-                return null;
+                return true;
               }
             }
           }
@@ -457,6 +483,13 @@ public final class DepResolution {
         }
       }
     }
+    return false;
+  }
+
+  private static boolean checkCompatible(Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
+      boolean fix, List<String> errors, Map<String, List<ModuleInterface>> providedInterfaces,
+      Map<String, List<ModuleInterface>> requiredOptInterfaces, Set<String> stickyModules) {
     for (Map.Entry<String,List<ModuleInterface>> entry : requiredOptInterfaces.entrySet()) {
       List<ModuleInterface> providedModuleInterfaces = providedInterfaces.get(entry.getKey());
       if (providedModuleInterfaces != null) {
@@ -476,7 +509,7 @@ public final class DepResolution {
                   errors.add(messages.getMessage("10210", entry.getKey(),
                       req.moduleDescriptor.getId(),
                       String.join(", ", modules.keySet())));
-                  return errors;
+                  return false;
                 } else if (!modules.isEmpty()) {
                   ModuleDescriptor mdFound = modules.values().iterator().next();
                   String from = prov.moduleDescriptor.getId();
@@ -485,7 +518,7 @@ public final class DepResolution {
                   modsEnabled.remove(from);
                   modsEnabled.put(mdFound.getId(), mdFound);
                   addTenantModule(tml, mdFound.getId(), from, TenantModuleDescriptor.Action.enable);
-                  return null;
+                  return true;
                 }
               }
               if (!stickyModules.contains(req.moduleDescriptor.getId())) {
@@ -507,14 +540,16 @@ public final class DepResolution {
                   if (products.size() > 1) {
                     errors.add(messages.getMessage("10210", entry.getKey(),
                         req.moduleDescriptor.getId(), String.join(", ", products)));
-                    return errors;
+                    return false;
+                  } else {
+                    String from = req.moduleDescriptor.getId();
+                    logger.info("Adding to={} from={}", mdFound.getId(), from);
+                    modsEnabled.remove(from);
+                    modsEnabled.put(mdFound.getId(), mdFound);
+                    addTenantModule(tml, mdFound.getId(), from,
+                        TenantModuleDescriptor.Action.enable);
+                    return true;
                   }
-                  String from = req.moduleDescriptor.getId();
-                  logger.info("Adding to={} from={}", mdFound.getId(), from);
-                  modsEnabled.remove(from);
-                  modsEnabled.put(mdFound.getId(), mdFound);
-                  addTenantModule(tml, mdFound.getId(), from, TenantModuleDescriptor.Action.enable);
-                  return null;
                 }
               }
             }
@@ -525,7 +560,7 @@ public final class DepResolution {
         }
       }
     }
-    return errors;
+    return false;
   }
 
   /**

@@ -78,12 +78,6 @@ public class DepResolutionTest {
     return createList(Action.enable, array);
   }
 
-  static void assertAction(TenantModuleDescriptor tm, Action action, ModuleDescriptor id, ModuleDescriptor from) {
-    Assert.assertEquals(action, tm.getAction());
-    Assert.assertEquals(id.getId(), tm.getId());
-    Assert.assertEquals(from != null ? from.getId() : null, tm.getFrom());
-  }
-
   static void assertEnable(List<TenantModuleDescriptor> tml, int idx, ModuleDescriptor md) {
     assertUpgrade(tml, idx, md, null);
   }
@@ -99,7 +93,6 @@ public class DepResolutionTest {
   static void assertUpToDate(List<TenantModuleDescriptor> tml, int idx, ModuleDescriptor md) {
     assertAction(tml, idx, Action.uptodate, md, null);
   }
-
 
   static void assertAction(List<TenantModuleDescriptor> tml, int idx, Action action, ModuleDescriptor md, ModuleDescriptor from) {
     TenantModuleDescriptor tm = tml.get(idx);
@@ -212,8 +205,7 @@ public class DepResolutionTest {
   public void testUpgradeUpToDate() {
     List<TenantModuleDescriptor> tml = enableList(mdA100);
     DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE110), map(mdA100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(1, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
     assertUpToDate(tml, 0, mdA100);
   }
 
@@ -221,8 +213,7 @@ public class DepResolutionTest {
   public void testUpgradeReinstall() {
     List<TenantModuleDescriptor> tml = enableList(mdA100);
     DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE110), map(mdA100), tml, true);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(1, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
     assertAction(tml, 0, Action.enable, mdA100, mdA100);
   }
 
@@ -230,8 +221,7 @@ public class DepResolutionTest {
   public void testUpgradeDifferentProduct() {
     List<TenantModuleDescriptor> tml = enableList(mdB);
     DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertDisable(tml, 0, mdA100);
     assertEnable(tml, 1, mdB);
   }
@@ -240,8 +230,7 @@ public class DepResolutionTest {
   public void testUpgradeSameProduct() {
     List<TenantModuleDescriptor> tml = enableList(mdA110);
     DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdD100, mdE100), map(mdA100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(1, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
     assertUpgrade(tml, 0, mdA110, mdA100);
   }
 
@@ -249,8 +238,7 @@ public class DepResolutionTest {
   public void testUpgradeWithRequires() {
     List<TenantModuleDescriptor> tml = enableList(mdE100);
     DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdD100, mdE100), map(mdA100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(1, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
     assertEnable(tml, 0, mdE100);
   }
 
@@ -259,8 +247,7 @@ public class DepResolutionTest {
   public void testInstallOptional1() {
     List<TenantModuleDescriptor> tml = enableList(mdD100);
     DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110, mdE100), map(), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(1, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
     assertEnable(tml, 0, mdD100);
   }
 
@@ -269,8 +256,7 @@ public class DepResolutionTest {
   public void testInstallOptional2() {
     List<TenantModuleDescriptor> tml = enableList(mdD100);
     DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdE100), map(mdA100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(1, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
     assertEnable(tml, 0, mdD100);
   }
 
@@ -288,8 +274,7 @@ public class DepResolutionTest {
   public void testInstallMinorLeafOptional() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110, mdE100), map(mdA100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertUpgrade(tml, 0, mdA110, mdA100);
     assertEnable(tml, 1, mdD110);
   }
@@ -299,8 +284,7 @@ public class DepResolutionTest {
   public void testInstallMinorBaseOptional() {
     List<TenantModuleDescriptor> tml = enableList(mdA110);
     DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110), map(mdA100, mdD100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(1, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
     assertUpgrade(tml, 0, mdA110, mdA100);
   }
 
@@ -309,8 +293,7 @@ public class DepResolutionTest {
   public void testInstallMinorLeafOptional2() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110), map(mdA100, mdD100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertUpgrade(tml, 0, mdA110, mdA100);
     assertUpgrade(tml, 1, mdD110, mdD100);
   }
@@ -321,8 +304,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdA200);
     DepResolution.installSimulate(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200),
         map(mdA100, mdD100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertUpgrade(tml, 0, mdA200, mdA100);
     assertUpgrade(tml, 1, mdD200, mdD100);
   }
@@ -348,8 +330,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdD200);
     DepResolution.installSimulate(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200, mdA200),
         map(mdA100, mdD100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertUpgrade(tml, 0, mdA200, mdA100);
     assertUpgrade(tml, 1, mdD200, mdD100);
   }
@@ -373,8 +354,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdA200);
     DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200),
         map(mdA100, mdE100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertUpgrade(tml, 0, mdA200, mdA100);
     assertUpgrade(tml, 1, mdE200, mdE100);
   }
@@ -385,8 +365,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdA200, mdE200);
     DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200),
         map(mdA100, mdE100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertUpgrade(tml, 0, mdA200, mdA100);
     assertUpgrade(tml, 1, mdE200, mdE100);
   }
@@ -397,8 +376,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdE200, mdA200);
     DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200),
         map(mdA100, mdE100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertUpgrade(tml, 0, mdA200, mdA100);
     assertUpgrade(tml, 1, mdE200, mdE100);
   }
@@ -408,8 +386,7 @@ public class DepResolutionTest {
   public void testInstallMajorLeafRequired() {
     List<TenantModuleDescriptor> tml = enableList(mdE200);
     DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200), map(mdA100, mdE100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertUpgrade(tml, 0, mdA200, mdA100);
     assertUpgrade(tml, 1, mdE200, mdE100);
   }
@@ -428,8 +405,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdA100);
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertEnable(tml, 0, mdA100);
     assertEnable(tml, 1, mdE100);
   }
@@ -438,8 +414,7 @@ public class DepResolutionTest {
   public void testInstallNew2() {
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdB);
     DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertEnable(tml, 0, mdB);
     assertEnable(tml, 1, mdE100);
   }
@@ -448,8 +423,7 @@ public class DepResolutionTest {
   public void testInstallNewProduct() {
     List<TenantModuleDescriptor> tml = createList(Action.enable, true, mdE100, mdB);
     DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertEnable(tml, 0, mdB);
     assertEnable(tml, 1, mdE100);
   }
@@ -487,8 +461,7 @@ public class DepResolutionTest {
     mdB.setReplaces(new String[]{mdA100.getProduct()});
     List<TenantModuleDescriptor> tml = enableList(mdE100);
     DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdE100), map(), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertEnable(tml, 0, mdB);
     assertEnable(tml, 1, mdE100);
   }
@@ -500,8 +473,7 @@ public class DepResolutionTest {
 
     List<TenantModuleDescriptor> tml = enableList(mdE100);
     DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdC, mdE100), map(), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertEnable(tml, 0, mdC);
     assertEnable(tml, 1, mdE100);
   }
@@ -526,8 +498,7 @@ public class DepResolutionTest {
   public void testDisable1() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100);
     DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertDisable(tml, 0, mdE100);
     assertDisable(tml, 1, mdA100);
   }
@@ -536,8 +507,7 @@ public class DepResolutionTest {
   public void testDisableProduct() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, true, mdA100);
     DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertDisable(tml, 0, mdE100);
     assertDisable(tml, 1, mdA100);
   }
@@ -546,8 +516,7 @@ public class DepResolutionTest {
   public void testDisable2() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdE100, mdA100);
     DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertDisable(tml, 0, mdE100);
     assertDisable(tml, 1, mdA100);
   }
@@ -556,8 +525,7 @@ public class DepResolutionTest {
   public void testDisable3() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100, mdE100);
     DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertDisable(tml, 0, mdE100);
     assertDisable(tml, 1, mdA100);
   }
@@ -566,8 +534,7 @@ public class DepResolutionTest {
   public void testUpToDate() {
     List<TenantModuleDescriptor> tml = createList(Action.uptodate, mdA100);
     DepResolution.installSimulate(map(mdA100), map(mdA100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(1, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
     assertUpToDate(tml, 0, mdA100);
   }
 
@@ -655,8 +622,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100);
       List<TenantModuleDescriptor> tml = enableList(req1_100);
       DepResolution.installSimulate(modsAvailable, map(), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(2, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertEnable(tml, 0, prov100);
       assertEnable(tml, 1, req1_100);
     }
@@ -665,8 +631,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100);
       List<TenantModuleDescriptor> tml = enableList(req2_100);
       DepResolution.installSimulate(modsAvailable, map(), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(2, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertEnable(tml, 0, prov200);
       assertEnable(tml, 1, req2_100);
     }
@@ -685,8 +650,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100, req1or2, reqI1or2);
       List<TenantModuleDescriptor> tml = enableList(reqI1or2, req1_100);
       DepResolution.installSimulate(modsAvailable, map(), tml, false);
-      logger.debug("result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(4, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 4, tml.size());
       assertEnable(tml, 0, prov100);
       assertEnable(tml, 1, req1or2);
       assertEnable(tml, 2, reqI1or2);
@@ -698,7 +662,7 @@ public class DepResolutionTest {
       List<TenantModuleDescriptor> tml = enableList(req1_100, reqI1or2);
       DepResolution.installSimulate(modsAvailable, map(), tml, false);
       logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(4, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 4, tml.size());
       assertEnable(tml, 0, prov100);
       assertEnable(tml, 1, req1or2);
       assertEnable(tml, 2, req1_100);
@@ -743,8 +707,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modA, modB, modC);
       DepResolution.installSimulate(modsAvailable, map(), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(3, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
       assertEnable(tml, 0, modA);
       assertEnable(tml, 1, modB);
       assertEnable(tml, 2, modC);
@@ -754,8 +717,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modC, modB, modA);
       DepResolution.installSimulate(modsAvailable, map(), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(3, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
       assertEnable(tml, 0, modA);
       assertEnable(tml, 1, modB);
       assertEnable(tml, 2, modC);
@@ -765,8 +727,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modC, modA, modB);
       DepResolution.installSimulate(modsAvailable, map(), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(3, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
       assertEnable(tml, 0, modA);
       assertEnable(tml, 1, modB);
       assertEnable(tml, 2, modC);
@@ -776,8 +737,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modB, modC, modA);
       DepResolution.installSimulate(modsAvailable, map(), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(3, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
       assertEnable(tml, 0, modA);
       assertEnable(tml, 1, modB);
       assertEnable(tml, 2, modC);
@@ -787,8 +747,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modC, modB);
       DepResolution.installSimulate(modsAvailable, map(modA), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(2, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertEnable(tml, 0, modB);
       assertEnable(tml, 1, modC);
     }
@@ -797,8 +756,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB, modC, modA);
       DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(3, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
       assertDisable(tml, 0, modC);
       assertDisable(tml, 1, modB);
       assertDisable(tml, 2, modA);
@@ -808,8 +766,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB, modA, modC);
       DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(3, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
       assertDisable(tml, 0, modC);
       assertDisable(tml, 1, modB);
       assertDisable(tml, 2, modA);
@@ -819,8 +776,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB, modC, modA);
       DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(3, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
       assertDisable(tml, 0, modC);
       assertDisable(tml, 1, modB);
       assertDisable(tml, 2, modA);
@@ -830,8 +786,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB);
       DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(2, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertDisable(tml, 0, modC);
       assertDisable(tml, 1, modB);
     }
@@ -840,8 +795,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB, modC);
       DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(2, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertDisable(tml, 0, modC);
       assertDisable(tml, 1, modB);
     }
@@ -850,8 +804,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modA);
       DepResolution.installSimulate(modsAvailable, map(modA, modB), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(2, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertDisable(tml, 0, modB);
       assertDisable(tml, 1, modA);
     }
@@ -962,7 +915,7 @@ public class DepResolutionTest {
     {
       List<TenantModuleDescriptor> tml = enableList(ot101);
       DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(2, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertUpgrade(tml, 0, st101, st100);
       assertUpgrade(tml, 1, ot101, ot100);
     }
@@ -971,7 +924,7 @@ public class DepResolutionTest {
     {
       List<TenantModuleDescriptor> tml = enableList(st101);
       DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(2, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertUpgrade(tml, 0, st101, st100);
       assertUpgrade(tml, 1, ot101, ot100);
     }
@@ -984,7 +937,7 @@ public class DepResolutionTest {
     {
       List<TenantModuleDescriptor> tml = enableList(ot101, st101);
       DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(2, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertUpgrade(tml, 0, st101, st100);
       assertUpgrade(tml, 1, ot101, ot100);
     }
@@ -993,7 +946,7 @@ public class DepResolutionTest {
     {
       List<TenantModuleDescriptor> tml = enableList(st101, ot101);
       DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(2, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertUpgrade(tml, 0, st101, st100);
       assertUpgrade(tml, 1, ot101, ot100);
     }
@@ -1006,7 +959,7 @@ public class DepResolutionTest {
     {
       List<TenantModuleDescriptor> tml = createList(Action.enable, true, st101, ot100);
       DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(2, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertUpgrade(tml, 0, st101, st100);
       assertUpgrade(tml, 1, ot101, ot100);
     }
@@ -1167,15 +1120,14 @@ public class DepResolutionTest {
     {
       List<TenantModuleDescriptor> tml = enableList(st101, ot101);
       DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(2, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertUpgrade(tml, 0, st101, st100);
       assertUpgrade(tml, 1, ot101, ot100);
     }
     {
       List<TenantModuleDescriptor> tml = enableList(st101);
       DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(3, tml.size());
+      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
       assertUpgrade(tml, 0, st101, st100);
       assertEnable(tml, 1, p100);
       assertUpgrade(tml, 2, ot102, ot100);
@@ -1197,8 +1149,7 @@ public class DepResolutionTest {
   public void testDepOrderSwapEnable() {
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdA100);
     DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertEnable(tml, 0, mdA100);
     assertEnable(tml, 1, mdE100);
   }
@@ -1208,8 +1159,7 @@ public class DepResolutionTest {
   public void testDepOrderSwapUpgrade() {
     List<TenantModuleDescriptor> tml = enableList(mdE110, mdA110);
     DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(mdE100, mdA100), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertUpgrade(tml, 0, mdA110, mdA100);
     assertUpgrade(tml, 1, mdE110, mdE100);
   }
@@ -1219,8 +1169,7 @@ public class DepResolutionTest {
   public void testDepOrderAlready() {
     List<TenantModuleDescriptor> tml = enableList(mdA100, mdE100);
     DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(), tml, false);
-    logger.debug("tml result = " + Json.encodePrettily(tml));
-    Assert.assertEquals(2, tml.size());
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertEnable(tml, 0, mdA100);
     assertEnable(tml, 1, mdE100);
   }
