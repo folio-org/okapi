@@ -389,7 +389,7 @@ public final class DepResolution {
       return null;
     }
     if (checkRequired(modsAvailable, modsEnabled, tml, fix, errors,
-        providedInterfaces, requiredInterfaces)) {
+        providedInterfaces, requiredInterfaces, stickyModules)) {
       return null;
     }
     if (checkCompatible(modsAvailable, modsEnabled, tml, fix, errors,
@@ -410,20 +410,6 @@ public final class DepResolution {
         if (fix) {
           for (ModuleInterface ent : entry.getValue()) {
             ModuleDescriptor md = ent.moduleDescriptor;
-            for (TenantModuleDescriptor tm : tml) {
-              if (tm.getAction().equals(TenantModuleDescriptor.Action.enable)
-                  && tm.getId().equals(md.getId()) && tm.getFrom() == null) {
-                for (ModuleInterface ent1 : entry.getValue()) {
-                  ModuleDescriptor md1 = ent1.moduleDescriptor;
-                  if (!md1.getId().equals(md.getId()) && md1.getProduct().equals(md.getProduct())) {
-                    tm.setFrom(md.getId());
-                    modsEnabled.remove(md.getId());
-                    logger.info("Disable by adding from {}", md.getId());
-                    return true;
-                  }
-                }
-              }
-            }
             if (!stickyModules.contains(md.getId())) {
               logger.info("Disable module {}", md.getId());
               modsEnabled.remove(md.getId());
@@ -444,7 +430,7 @@ public final class DepResolution {
   private static boolean checkRequired(Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
       boolean fix, List<String> errors, Map<String, List<ModuleInterface>> providedInterfaces,
-      Map<String, List<ModuleInterface>> requiredInterfaces) {
+      Map<String, List<ModuleInterface>> requiredInterfaces, Set<String> stickyModules) {
 
     for (Map.Entry<String, List<ModuleInterface>> entry : requiredInterfaces.entrySet()) {
       List<ModuleInterface> providedModuleInterfaces = providedInterfaces.get(entry.getKey());
@@ -461,22 +447,16 @@ public final class DepResolution {
             } else if (!modules.isEmpty()) {
               ModuleDescriptor mdFound = modules.values().iterator().next();
               String id = req.moduleDescriptor.getId();
-              boolean mayDisable = true;
-              for (TenantModuleDescriptor tm : tml) {
-                if (tm.getId().equals(req.moduleDescriptor.getId())
-                    && tm.getAction().equals(TenantModuleDescriptor.Action.enable)) {
-                  mayDisable = false;
-                }
-              }
-              if (mayDisable) {
-                logger.info("Removing {}", id);
-                modsEnabled.remove(id);
-                addTenantModule(tml, id, null, TenantModuleDescriptor.Action.disable);
-                return true;
-              } else {
+              if (stickyModules.contains(req.moduleDescriptor.getId())) {
                 logger.info("Enable {}", mdFound.getId());
                 modsEnabled.put(mdFound.getId(), mdFound);
                 addTenantModule(tml, mdFound.getId(), null, TenantModuleDescriptor.Action.enable);
+                stickyModules.add(mdFound.getId());
+                return true;
+              } else {
+                logger.info("Removing {}", id);
+                modsEnabled.remove(id);
+                addTenantModule(tml, id, null, TenantModuleDescriptor.Action.disable);
                 return true;
               }
             }
@@ -492,6 +472,7 @@ public final class DepResolution {
       Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
       boolean fix, List<String> errors, Map<String, List<ModuleInterface>> providedInterfaces,
       Map<String, List<ModuleInterface>> requiredOptInterfaces, Set<String> stickyModules) {
+
     for (Map.Entry<String,List<ModuleInterface>> entry : requiredOptInterfaces.entrySet()) {
       List<ModuleInterface> providedModuleInterfaces = providedInterfaces.get(entry.getKey());
       if (providedModuleInterfaces != null) {
@@ -547,6 +528,7 @@ public final class DepResolution {
                     return false;
                   } else {
                     String from = req.moduleDescriptor.getId();
+                    stickyModules.add(mdFound.getId());
                     logger.info("Adding 2 to={} from={}", mdFound.getId(), from);
                     modsEnabled.remove(from);
                     modsEnabled.put(mdFound.getId(), mdFound);
@@ -577,7 +559,7 @@ public final class DepResolution {
   public static void installSimulate(Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
       boolean reinstall) {
-    installSimulate(modsAvailable, modsEnabled, tml, reinstall, true);
+    installSimulate(modsAvailable, modsEnabled, tml, reinstall, 100);
   }
 
   /**
@@ -586,11 +568,11 @@ public final class DepResolution {
    * @param modsEnabled enabled modules (for some tenant)
    * @param tml install list with actions
    * @param reinstall whether to re-install
-   * @param fixup whether allow fix-up list to satisfy dependencies.
+   * @param maxIterations how many iterations to allow fixup of list.
    */
   public static void installSimulate(Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-      boolean reinstall, boolean fixup) {
+      boolean reinstall, int maxIterations) {
 
     List<String> errors = new LinkedList<>();
     Set<String> stickyModules = new HashSet<>();
@@ -639,14 +621,17 @@ public final class DepResolution {
         }
       }
     }
-    for (int i = 0; i < 10 && (errors == null || errors.isEmpty()); i++) {
-      errors = interfaceCheck(modsAvailable, modsEnabled, tml, fixup, stickyModules);
+    if (maxIterations == 0) {
+      errors = interfaceCheck(modsAvailable, modsEnabled, tml, false, stickyModules);
+    } else {
+      for (int i = 0; i < maxIterations && (errors == null || errors.isEmpty()); i++) {
+        errors = interfaceCheck(modsAvailable, modsEnabled, tml, true, stickyModules);
+      }
     }
     if (errors == null) {
       throw new OkapiError(ErrorType.INTERNAL,
-          "resolve not completing in 10 iterations");
-    }
-    if (!errors.isEmpty()) {
+          "Dependency resolution not completing in " + maxIterations + " iterations");
+    } else if (!errors.isEmpty()) {
       throw new OkapiError(ErrorType.USER, String.join(". ", errors));
     }
     sortTenantModules(tml, modsAvailable, modsEnabled);

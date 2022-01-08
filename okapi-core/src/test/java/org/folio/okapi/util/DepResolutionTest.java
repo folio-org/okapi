@@ -214,7 +214,7 @@ public class DepResolutionTest {
   public void testUpgradeDifferentProductNoFixup() {
     List<TenantModuleDescriptor> tml = enableList(mdB);
     OkapiError error = Assert.assertThrows(OkapiError.class,
-        () -> DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false, false));
+        () -> DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false, 0));
     Assert.assertEquals("Multiple modules moduleB-1.0.0, moduleA-1.0.0 provide interface int", error.getMessage());
   }
 
@@ -616,8 +616,7 @@ public class DepResolutionTest {
           List<TenantModuleDescriptor> tml = enableList(req1_100, req2_100);
           DepResolution.installSimulate(modsAvailable, map(), tml, false);
         });
-    Assert.assertEquals("Incompatible version for module req1-1.0.0 interface i1. "
-        + "Need 1.0. Have 2.0/prov-2.0.0", error.getMessage());
+    Assert.assertEquals("Incompatible version for module req2-1.0.0 interface i1. Need 2.0. Have 1.0/prov-1.0.0", error.getMessage());
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100);
@@ -943,6 +942,15 @@ public class DepResolutionTest {
       assertUpgrade(tml, 0, st101, st100);
       assertUpgrade(tml, 1, ot101, ot100);
     }
+    // patch to higher version with st given, but no fixup
+    {
+      List<TenantModuleDescriptor> tml = enableList(st101);
+      OkapiError error = Assert.assertThrows(OkapiError.class,
+          () -> DepResolution.installSimulate(map(st100, st101, ot100, ot101),
+              map(ot100, st100), tml, false, 0));
+      Assert.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1",
+          error.getMessage());
+    }
 
     // patch to higher version with st given, but with multiple products to support it
     {
@@ -957,14 +965,6 @@ public class DepResolutionTest {
           error.getMessage());
     }
 
-    {
-      List<TenantModuleDescriptor> tml = enableList(st101);
-      OkapiError error = Assert.assertThrows(OkapiError.class,
-          () -> DepResolution.installSimulate(map(st100, st101, ot100, ot101),
-              map(ot100, st100), tml, false, false));
-      Assert.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1",
-          error.getMessage());
-    }
   }
 
   @Test
@@ -1203,5 +1203,28 @@ public class DepResolutionTest {
     Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertEnable(tml, 0, mdA100);
     assertEnable(tml, 1, mdE100);
+  }
+
+  @Test
+  public void testIterations() {
+    int numberOfModules = 5;
+    Map<String,ModuleDescriptor> available = new HashMap<>();
+    ModuleDescriptor md = null;
+    for (int i = 0; i < numberOfModules; i++) {
+      md = new ModuleDescriptor("m" + i + "-1.0.0");
+      if (i > 0) {
+        md.setRequires("i" + (i-1), "1.0");
+      }
+      InterfaceDescriptor interfaceDescriptor = new InterfaceDescriptor("i" + i, "1.0");
+      md.setProvides(new InterfaceDescriptor[] {interfaceDescriptor});
+      available.put(md.getId(), md);
+    }
+    List<TenantModuleDescriptor> tml = enableList(md);
+    DepResolution.installSimulate(available, map(), tml, false, numberOfModules);
+
+    List<TenantModuleDescriptor> tml1 = enableList(md);
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.installSimulate(available, map(), tml1, false, numberOfModules - 1));
+    Assert.assertEquals("Dependency resolution not completing in " + (numberOfModules - 1) + " iterations", error.getMessage());
   }
 }
