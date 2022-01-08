@@ -110,69 +110,53 @@ public class DepResolutionTest {
     InterfaceDescriptor int20 = new InterfaceDescriptor("int", "2.0");
     InterfaceDescriptor[] int20a = {int20};
 
-    mdA100 = new ModuleDescriptor();
-    mdA100.setId("moduleA-1.0.0");
+    mdA100 = new ModuleDescriptor("moduleA-1.0.0");
     mdA100.setProvides(int10a);
 
-    mdB = new ModuleDescriptor();
-    mdB.setId("moduleB-1.0.0");
+    mdB = new ModuleDescriptor("moduleB-1.0.0");
     mdB.setProvides(int10a);
 
-    mdC = new ModuleDescriptor();
-    mdC.setId("moduleC-1.0.0");
+    mdC = new ModuleDescriptor("moduleC-1.0.0");
     mdC.setProvides(int11a);
 
-    mdA110 = new ModuleDescriptor();
-    mdA110.setId("moduleA-1.1.0");
+    mdA110 = new ModuleDescriptor("moduleA-1.1.0");
     mdA110.setProvides(int11a);
 
-    mdA200 = new ModuleDescriptor();
-    mdA200.setId("moduleA-2.0.0");
+    mdA200 = new ModuleDescriptor("moduleA-2.0.0");
     mdA200.setProvides(int20a);
 
-    mdD100 = new ModuleDescriptor();
-    mdD100.setId("moduleD-1.0.0");
+    mdD100 = new ModuleDescriptor("moduleD-1.0.0");
     mdD100.setOptional(int10a);
 
-    mdD110 = new ModuleDescriptor();
-    mdD110.setId("moduleD-1.1.0");
+    mdD110 = new ModuleDescriptor("moduleD-1.1.0");
     mdD110.setOptional(int11a);
 
-    mdD200 = new ModuleDescriptor();
-    mdD200.setId("moduleD-2.0.0");
+    mdD200 = new ModuleDescriptor("moduleD-2.0.0");
     mdD200.setOptional(int20a);
 
-    mdDA200 = new ModuleDescriptor();
-    mdDA200.setId("moduleDA-2.0.0");
+    mdDA200 = new ModuleDescriptor("moduleDA-2.0.0");
     mdDA200.setOptional(int20a);
     mdDA200.setRequires(new InterfaceDescriptor[]{new InterfaceDescriptor("unknown-interface", "2.0")});
 
-    mdE100 = new ModuleDescriptor();
-    mdE100.setId("moduleE-1.0.0");
+    mdE100 = new ModuleDescriptor("moduleE-1.0.0");
     mdE100.setRequires(int10a);
 
-    mdE110 = new ModuleDescriptor();
-    mdE110.setId("moduleE-1.1.0");
+    mdE110 = new ModuleDescriptor("moduleE-1.1.0");
     mdE110.setRequires(int11a);
 
-    mdE200 = new ModuleDescriptor();
-    mdE200.setId("moduleE-2.0.0");
+    mdE200 = new ModuleDescriptor("moduleE-2.0.0");
     mdE200.setRequires(int20a);
 
-    st100 = new ModuleDescriptor();
-    st100.setId("st-1.0.0");
+    st100 = new ModuleDescriptor("st-1.0.0");
     st100.setProvides(int10a);
 
-    st101 = new ModuleDescriptor();
-    st101.setId("st-1.0.1");
+    st101 = new ModuleDescriptor("st-1.0.1");
     st101.setProvides(int20a);
 
-    ot100 = new ModuleDescriptor();
-    ot100.setId("ot-1.0.0");
+    ot100 = new ModuleDescriptor("ot-1.0.0");
     ot100.setRequires(int10a);
 
-    ot101 = new ModuleDescriptor();
-    ot101.setId("ot-1.0.1");
+    ot101 = new ModuleDescriptor("ot-1.0.1");
     ot101.setRequires(int20a);
   }
 
@@ -227,11 +211,38 @@ public class DepResolutionTest {
   }
 
   @Test
+  public void testUpgradeDifferentProductNoFixup() {
+    List<TenantModuleDescriptor> tml = enableList(mdB);
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false, false));
+    Assert.assertEquals("Multiple modules moduleB-1.0.0, moduleA-1.0.0 provide interface int", error.getMessage());
+  }
+
+  @Test
+  public void testMultipleInterfaces() {
+    List<TenantModuleDescriptor> tml = enableList(mdB,mdA100);
+
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false));
+    Assert.assertEquals("Multiple modules moduleB-1.0.0, moduleA-1.0.0 provide interface int", error.getMessage());
+  }
+
+  @Test
   public void testUpgradeSameProduct() {
     List<TenantModuleDescriptor> tml = enableList(mdA110);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdD100, mdE100), map(mdA100), tml, false);
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdD100), map(mdA100), tml, false);
     Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
     assertUpgrade(tml, 0, mdA110, mdA100);
+  }
+
+  @Test
+  public void testUpgrade1() {
+    List<TenantModuleDescriptor> tml = enableList(mdD200);
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdA200, mdD100, mdD200), map(mdB), tml, false);
+    Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
+    assertDisable(tml, 0, mdB);
+    assertEnable(tml, 1, mdA200);
+    assertEnable(tml, 2, mdD200);
   }
 
   @Test
@@ -266,7 +277,8 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     OkapiError error = Assert.assertThrows(OkapiError.class,
         () -> DepResolution.installSimulate(map(mdA100, mdD100, mdD110, mdE100), map(mdA100), tml, false));
-    Assert.assertEquals("Incompatible version for module moduleD-1.1.0 interface int. Need 1.1. Have 1.0/moduleA-1.0.0", error.getMessage());
+    Assert.assertEquals("Incompatible version for module moduleD-1.1.0 interface int. Need 1.1. Have 1.0/moduleA-1.0.0",
+        error.getMessage());
   }
 
   // install optional with existing interface that needs upgrading
@@ -312,8 +324,7 @@ public class DepResolutionTest {
   // upgrade base dependency and pull in module with unknown interface (results in error)
   @Test
   public void testInstallMajorBaseError() {
-    ModuleDescriptor mdD200F = new ModuleDescriptor();
-    mdD200F.setId(mdD200.getId());
+    ModuleDescriptor mdD200F = new ModuleDescriptor(mdD200.getId());
     mdD200F.setOptional(mdD200.getOptional());
     mdD200F.setRequires(new InterfaceDescriptor[]{new InterfaceDescriptor("unknown", "2.0")});
 
@@ -393,18 +404,8 @@ public class DepResolutionTest {
 
   @Test
   public void testInstallNew1() {
-    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
-    modsAvailable.put(mdA100.getId(), mdA100);
-    modsAvailable.put(mdB.getId(), mdB);
-    modsAvailable.put(mdC.getId(), mdC);
-    modsAvailable.put(mdA110.getId(), mdA110);
-    modsAvailable.put(mdE100.getId(), mdE100);
-
-    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
-
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdA100);
-
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, false);
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml, false);
     Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertEnable(tml, 0, mdA100);
     assertEnable(tml, 1, mdE100);
@@ -818,32 +819,27 @@ public class DepResolutionTest {
     InterfaceDescriptor int10 = new InterfaceDescriptor("int", "1.0");
     InterfaceDescriptor[] int10a = {int10};
 
-    ModuleDescriptor mdA = new ModuleDescriptor();
-    mdA.setId("moduleA-1.0.0");
+    ModuleDescriptor mdA = new ModuleDescriptor("moduleA-1.0.0");
     mdA.setProvides(int10a);
 
-    ModuleDescriptor mdB = new ModuleDescriptor();
-    mdB.setId("moduleB-1.0.0");
+    ModuleDescriptor mdB = new ModuleDescriptor("moduleB-1.0.0");
     mdB.setRequires(int10a);
     mdB.setProvides(inu10a);
 
     InterfaceDescriptor int20 = new InterfaceDescriptor("int", "2.0");
     InterfaceDescriptor[] int20a = {int20};
 
-    ModuleDescriptor mdC = new ModuleDescriptor();
-    mdC.setId("moduleC-1.0.0");
+    ModuleDescriptor mdC = new ModuleDescriptor("moduleC-1.0.0");
     mdC.setProvides(int20a);
 
-    ModuleDescriptor mdD = new ModuleDescriptor();
-    mdD.setId("moduleD-1.0.0");
+    ModuleDescriptor mdD = new ModuleDescriptor("moduleD-1.0.0");
     mdD.setRequires(int20a);
     mdD.setProvides(inu10a);
 
     InterfaceDescriptor int30 = new InterfaceDescriptor("int", "3.0");
     InterfaceDescriptor[] int30a = {int30};
 
-    ModuleDescriptor mdE = new ModuleDescriptor();
-    mdE.setId("moduleE-1.0.0");
+    ModuleDescriptor mdE = new ModuleDescriptor("moduleE-1.0.0");
     mdE.setProvides(int30a);
 
     Assert.assertEquals("", DepResolution.checkAllDependencies(map(mdA, mdB, mdC, mdD)));
@@ -864,10 +860,30 @@ public class DepResolutionTest {
 
     testList = new TreeSet<>();
     testList.add(mdB);
+    testList.add(mdC);
     Assert.assertEquals("Incompatible version for module moduleB-1.0.0 interface int. Need 1.0. Have 2.0/moduleC-1.0.0 3.0/moduleE-1.0.0",
         DepResolution.checkDependencies(available.values(), testList, false));
+    Assert.assertTrue(testList.containsAll(List.of(mdB, mdC)));
+
+    testList = new TreeSet<>();
+    testList.add(mdB);
+    testList.add(mdC);
+    Assert.assertEquals("",
+        DepResolution.checkDependencies(available.values(), testList, true));
+    Assert.assertTrue(testList.containsAll(List.of(mdC)));
 
     Assert.assertEquals("", DepResolution.checkAllDependencies(map(mdC, mdD)));
+
+    ModuleDescriptor mdOpt = new ModuleDescriptor("moduleO-1.0.0");
+    mdOpt.setOptional(int10a);
+
+    testList = new TreeSet<>();
+    testList.add(mdOpt);
+    Assert.assertEquals("", DepResolution.checkAllDependencies(map(mdOpt)));
+    Assert.assertEquals("", DepResolution.checkAllDependencies(map(mdOpt, mdA)));
+    Assert.assertEquals("", DepResolution.checkAllDependencies(map(mdOpt, mdA, mdC)));
+    Assert.assertEquals("Incompatible version for module moduleO-1.0.0 interface int. Need 1.0. Have 2.0/moduleC-1.0.0",
+        DepResolution.checkAllDependencies(map(mdOpt, mdC)));
   }
 
   @Test
@@ -909,12 +925,10 @@ public class DepResolutionTest {
 
   @Test
   public void testUpgradeOneGiven() {
-    Map<String, ModuleDescriptor> modsAvailable = map(st100, st101, ot100, ot101);
-
     // patch to higher version with ot given
     {
       List<TenantModuleDescriptor> tml = enableList(ot101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+      DepResolution.installSimulate(map(st100, st101, ot100, ot101), map(ot100, st100), tml, false);
       Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertUpgrade(tml, 0, st101, st100);
       assertUpgrade(tml, 1, ot101, ot100);
@@ -923,10 +937,33 @@ public class DepResolutionTest {
     // patch to higher version with st given
     {
       List<TenantModuleDescriptor> tml = enableList(st101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+      DepResolution.installSimulate(map(st100, st101, ot100, ot101),
+          map(ot100, st100), tml, false);
       Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertUpgrade(tml, 0, st101, st100);
       assertUpgrade(tml, 1, ot101, ot100);
+    }
+
+    // patch to higher version with st given, but with multiple products to support it
+    {
+      ModuleDescriptor ot101_alt = new ModuleDescriptor("otA-1.0.1");
+      ot101_alt.setRequires(ot101.getRequires());
+
+      List<TenantModuleDescriptor> tml = enableList(st101);
+      OkapiError error = Assert.assertThrows(OkapiError.class,
+          () -> DepResolution.installSimulate(map(st100, st101, ot100, ot101, ot101_alt),
+              map(ot100, st100), tml, false));
+      Assert.assertEquals("interface int required by module ot-1.0.0 is provided by multiple products: ot, otA",
+          error.getMessage());
+    }
+
+    {
+      List<TenantModuleDescriptor> tml = enableList(st101);
+      OkapiError error = Assert.assertThrows(OkapiError.class,
+          () -> DepResolution.installSimulate(map(st100, st101, ot100, ot101),
+              map(ot100, st100), tml, false, false));
+      Assert.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1",
+          error.getMessage());
     }
   }
 
@@ -1089,31 +1126,25 @@ public class DepResolutionTest {
 
     tenant20.setInterfaceType("system");
 
-    ModuleDescriptor st100 = new ModuleDescriptor();
-    st100.setId("st-1.0.0");
+    ModuleDescriptor st100 = new ModuleDescriptor("st-1.0.0");
     st100.setProvides(new InterfaceDescriptor[]{int10, tenant20});
 
-    ModuleDescriptor st101 = new ModuleDescriptor();
-    st101.setId("st-1.0.1");
+    ModuleDescriptor st101 = new ModuleDescriptor("st-1.0.1");
     st101.setProvides(new InterfaceDescriptor[]{int20, tenant20});
 
-    ModuleDescriptor ot100 = new ModuleDescriptor();
-    ot100.setId("ot-1.0.0");
+    ModuleDescriptor ot100 = new ModuleDescriptor("ot-1.0.0");
     ot100.setRequires(new InterfaceDescriptor[]{int10});
     ot100.setProvides(new InterfaceDescriptor[]{tenant20});
 
-    ModuleDescriptor ot101 = new ModuleDescriptor();
-    ot101.setId("ot-1.0.1");
+    ModuleDescriptor ot101 = new ModuleDescriptor("ot-1.0.1");
     ot101.setRequires(new InterfaceDescriptor[] {int20});
     ot101.setProvides(new InterfaceDescriptor[]{tenant20});
 
-    ModuleDescriptor ot102 = new ModuleDescriptor();
-    ot102.setId("ot-1.0.2");
+    ModuleDescriptor ot102 = new ModuleDescriptor("ot-1.0.2");
     ot102.setRequires(new InterfaceDescriptor[] {int20, ont10});
     ot102.setProvides(new InterfaceDescriptor[]{tenant20});
 
-    ModuleDescriptor p100 = new ModuleDescriptor();
-    p100.setId("p-1.0.0");
+    ModuleDescriptor p100 = new ModuleDescriptor("p-1.0.0");
     p100.setProvides(new InterfaceDescriptor[]{ont10, tenant20});
 
     Map<String, ModuleDescriptor> modsAvailable = map(st100, st101, ot100, ot101, ot102, p100);

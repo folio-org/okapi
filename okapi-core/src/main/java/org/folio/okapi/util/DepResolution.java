@@ -341,6 +341,15 @@ public final class DepResolution {
 
   private static void addTenantModule(List<TenantModuleDescriptor> tml, String id, String from,
       TenantModuleDescriptor.Action action) {
+    if (from != null && action == TenantModuleDescriptor.Action.enable && id != from) {
+      if (!new ModuleId(id).getProduct().equals(new ModuleId(from).getProduct())) {
+        TenantModuleDescriptor tm = new TenantModuleDescriptor();
+        tm.setAction(TenantModuleDescriptor.Action.disable);
+        tm.setId(from);
+        tml.add(tm);
+        from = null;
+      }
+    }
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     tm.setId(id);
     tm.setFrom(from);
@@ -376,7 +385,7 @@ public final class DepResolution {
             .add(moduleInterface);
       }
     }
-    if (checkMultiple(modsEnabled, tml, fix, errors, providedInterfaces)) {
+    if (checkMultiple(modsEnabled, tml, fix, errors, providedInterfaces, stickyModules)) {
       return null;
     }
     if (checkRequired(modsAvailable, modsEnabled, tml, fix, errors,
@@ -392,7 +401,7 @@ public final class DepResolution {
 
   private static boolean checkMultiple(Map<String, ModuleDescriptor> modsEnabled,
       List<TenantModuleDescriptor> tml, boolean fix, List<String> errors,
-      Map<String, List<ModuleInterface>> providedInterfaces) {
+      Map<String, List<ModuleInterface>> providedInterfaces, Set<String> stickyModules) {
 
     for (Map.Entry<String,List<ModuleInterface>> entry : providedInterfaces.entrySet()) {
       if (entry.getValue().size() > 1) {
@@ -415,14 +424,7 @@ public final class DepResolution {
                 }
               }
             }
-            boolean mayDisable = true;
-            for (TenantModuleDescriptor tm : tml) {
-              if (tm.getAction().equals(TenantModuleDescriptor.Action.enable)
-                  && tm.getId().equals(md.getId())) {
-                mayDisable = false;
-              }
-            }
-            if (mayDisable) {
+            if (!stickyModules.contains(md.getId())) {
               logger.info("Disable module {}", md.getId());
               modsEnabled.remove(md.getId());
               addTenantModule(tml, md.getId(), null, TenantModuleDescriptor.Action.disable);
@@ -503,6 +505,7 @@ public final class DepResolution {
                 req.moduleDescriptor.getId());
             if (fix) {
               if (!stickyModules.contains(prov.moduleDescriptor.getId())) {
+                // see if we can find a module that provides the required interface
                 Map<String, ModuleDescriptor> modules =
                     checkInterfaceDepAvailable(modsAvailable, req.interfaceDescriptor);
                 if (modules.size() > 1) {
@@ -514,7 +517,7 @@ public final class DepResolution {
                   ModuleDescriptor mdFound = modules.values().iterator().next();
                   String from = prov.moduleDescriptor.getId();
                   stickyModules.add(mdFound.getId());
-                  logger.info("Adding to={} from={}", mdFound.getId(), from);
+                  logger.info("Adding 1 to={} from={}", mdFound.getId(), from);
                   modsEnabled.remove(from);
                   modsEnabled.put(mdFound.getId(), mdFound);
                   addTenantModule(tml, mdFound.getId(), from, TenantModuleDescriptor.Action.enable);
@@ -522,6 +525,7 @@ public final class DepResolution {
                 }
               }
               if (!stickyModules.contains(req.moduleDescriptor.getId())) {
+                // see if we can find a module that require the provided interface
                 ModuleDescriptor mdFound = null;
                 Set<String> products = new HashSet<>();
                 for (Map.Entry<String, ModuleDescriptor> ent : modsAvailable.entrySet()) {
@@ -543,7 +547,7 @@ public final class DepResolution {
                     return false;
                   } else {
                     String from = req.moduleDescriptor.getId();
-                    logger.info("Adding to={} from={}", mdFound.getId(), from);
+                    logger.info("Adding 2 to={} from={}", mdFound.getId(), from);
                     modsEnabled.remove(from);
                     modsEnabled.put(mdFound.getId(), mdFound);
                     addTenantModule(tml, mdFound.getId(), from,
@@ -571,9 +575,23 @@ public final class DepResolution {
    * @param reinstall whether to re-install
    */
   public static void installSimulate(Map<String, ModuleDescriptor> modsAvailable,
-      Map<String, ModuleDescriptor> modsEnabled,
-      List<TenantModuleDescriptor> tml,
+      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
       boolean reinstall) {
+    installSimulate(modsAvailable, modsEnabled, tml, reinstall, true);
+  }
+
+  /**
+   * Install modules with dependency checking only.
+   * @param modsAvailable available modules
+   * @param modsEnabled enabled modules (for some tenant)
+   * @param tml install list with actions
+   * @param reinstall whether to re-install
+   * @param fixup whether allow fix-up list to satisfy dependencies.
+   */
+  public static void installSimulate(Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
+      boolean reinstall, boolean fixup) {
+
     List<String> errors = new LinkedList<>();
     Set<String> stickyModules = new HashSet<>();
     for (TenantModuleDescriptor tm : tml) {
@@ -622,7 +640,7 @@ public final class DepResolution {
       }
     }
     for (int i = 0; i < 10 && (errors == null || errors.isEmpty()); i++) {
-      errors = interfaceCheck(modsAvailable, modsEnabled, tml, true, stickyModules);
+      errors = interfaceCheck(modsAvailable, modsEnabled, tml, fixup, stickyModules);
     }
     if (errors == null) {
       throw new OkapiError(ErrorType.INTERNAL,
