@@ -1,10 +1,6 @@
 package org.folio.okapi.util;
 
 import io.vertx.core.json.Json;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,9 +19,7 @@ import org.folio.okapi.testing.UtilityClassTester;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
-@RunWith(VertxUnitRunner.class)
 public class DepResolutionTest {
 
   private final Logger logger = OkapiLogger.get();
@@ -90,20 +84,28 @@ public class DepResolutionTest {
     Assert.assertEquals(from != null ? from.getId() : null, tm.getFrom());
   }
 
-  static void assertEnable(TenantModuleDescriptor tm, ModuleDescriptor id) {
-    assertAction(tm, Action.enable, id, null);
+  static void assertEnable(List<TenantModuleDescriptor> tml, int idx, ModuleDescriptor md) {
+    assertUpgrade(tml, idx, md, null);
   }
 
-  static void assertUpgrade(TenantModuleDescriptor tm, ModuleDescriptor id, ModuleDescriptor from) {
-    assertAction(tm, Action.enable, id, from);
+  static void assertUpgrade(List<TenantModuleDescriptor> tml, int idx, ModuleDescriptor md, ModuleDescriptor from) {
+    assertAction(tml, idx, Action.enable, md, from);
   }
 
-  static void assertDisable(TenantModuleDescriptor tm, ModuleDescriptor id) {
-    assertAction(tm, Action.disable, id, null);
+  static void assertDisable(List<TenantModuleDescriptor> tml, int idx, ModuleDescriptor md) {
+    assertAction(tml, idx, Action.disable, md, null);
   }
 
-  static void assertUpToDate(TenantModuleDescriptor tm, ModuleDescriptor id) {
-    assertAction(tm, Action.uptodate, id, null);
+  static void assertUpToDate(List<TenantModuleDescriptor> tml, int idx, ModuleDescriptor md) {
+    assertAction(tml, idx, Action.uptodate, md, null);
+  }
+
+
+  static void assertAction(List<TenantModuleDescriptor> tml, int idx, Action action, ModuleDescriptor md, ModuleDescriptor from) {
+    TenantModuleDescriptor tm = tml.get(idx);
+    Assert.assertEquals(Json.encodePrettily(tml), action, tm.getAction());
+    Assert.assertEquals(Json.encodePrettily(tml), md.getId(), tm.getId());
+    Assert.assertEquals(Json.encodePrettily(tml), from != null ? from.getId() : null, tm.getFrom());
   }
 
   @Before
@@ -182,7 +184,7 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void testLatest(TestContext context) {
+  public void testLatest() {
     List<ModuleDescriptor> mdl = new LinkedList<>();
 
     mdl.add(mdA200);
@@ -194,254 +196,226 @@ public class DepResolutionTest {
 
     DepResolution.getLatestProducts(2, mdl);
 
-    context.assertEquals(5, mdl.size());
-    context.assertEquals(mdE100, mdl.get(0));
-    context.assertEquals(mdC, mdl.get(1));
-    context.assertEquals(mdB, mdl.get(2));
-    context.assertEquals(mdA200, mdl.get(3));
-    context.assertEquals(mdA110, mdl.get(4));
+    Assert.assertEquals(5, mdl.size());
+    Assert.assertEquals(mdE100, mdl.get(0));
+    Assert.assertEquals(mdC, mdl.get(1));
+    Assert.assertEquals(mdB, mdl.get(2));
+    Assert.assertEquals(mdA200, mdl.get(3));
+    Assert.assertEquals(mdA110, mdl.get(4));
 
     DepResolution.getLatestProducts(1, mdl);
-    context.assertEquals(4, mdl.size());
-    context.assertEquals(mdA200, mdl.get(3));
+    Assert.assertEquals(4, mdl.size());
+    Assert.assertEquals(mdA200, mdl.get(3));
   }
 
   @Test
-  public void testUpgradeUpToDate(TestContext context) {
+  public void testUpgradeUpToDate() {
     List<TenantModuleDescriptor> tml = enableList(mdA100);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE110), map(mdA100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(1, tml.size());
-          assertUpToDate(tml.get(0), mdA100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE110), map(mdA100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(1, tml.size());
+    assertUpToDate(tml, 0, mdA100);
   }
 
   @Test
-  public void testUpgradeReinstall(TestContext context) {
+  public void testUpgradeReinstall() {
     List<TenantModuleDescriptor> tml = enableList(mdA100);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE110), map(mdA100), tml, true)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(1, tml.size());
-          assertAction(tml.get(0), Action.enable, mdA100, mdA100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE110), map(mdA100), tml, true);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(1, tml.size());
+    assertAction(tml, 0, Action.enable, mdA100, mdA100);
   }
 
   @Test
-  public void testUpgradeDifferentProduct(TestContext context) {
+  public void testUpgradeDifferentProduct() {
     List<TenantModuleDescriptor> tml = enableList(mdB);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertDisable(tml.get(0), mdA100);
-          assertEnable(tml.get(1), mdB);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertDisable(tml, 0, mdA100);
+    assertEnable(tml, 1, mdB);
   }
 
   @Test
-  public void testUpgradeSameProduct(TestContext context) {
+  public void testUpgradeSameProduct() {
     List<TenantModuleDescriptor> tml = enableList(mdA110);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdD100, mdE100), map(mdA100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(1, tml.size());
-          assertUpgrade(tml.get(0), mdA110, mdA100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdD100, mdE100), map(mdA100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(1, tml.size());
+    assertUpgrade(tml, 0, mdA110, mdA100);
   }
 
   @Test
-  public void testUpgradeWithRequires(TestContext context) {
+  public void testUpgradeWithRequires() {
     List<TenantModuleDescriptor> tml = enableList(mdE100);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdD100, mdE100), map(mdA100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(1, tml.size());
-          assertEnable(tml.get(0), mdE100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdD100, mdE100), map(mdA100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(1, tml.size());
+    assertEnable(tml, 0, mdE100);
   }
 
   // install optional with no provided interface enabled
   @Test
-  public void testInstallOptional1(TestContext context) {
+  public void testInstallOptional1() {
     List<TenantModuleDescriptor> tml = enableList(mdD100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110, mdE100), map(), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(1, tml.size());
-          assertEnable(tml.get(0), mdD100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110, mdE100), map(), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(1, tml.size());
+    assertEnable(tml, 0, mdD100);
   }
 
   // install optional with a matched interface provided
   @Test
-  public void testInstallOptional2(TestContext context) {
+  public void testInstallOptional2() {
     List<TenantModuleDescriptor> tml = enableList(mdD100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdE100), map(mdA100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(1, tml.size());
-          assertEnable(tml.get(0), mdD100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdE100), map(mdA100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(1, tml.size());
+    assertEnable(tml, 0, mdD100);
   }
 
   // install optional with existing interface that is too low (error)
   @Test
-  public void testInstallOptionalFail(TestContext context) {
+  public void testInstallOptionalFail() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
-    DepResolution.installSimulate(map(mdA100, mdD100, mdD110, mdE100), map(mdA100), tml, false)
-        .onComplete(context.asyncAssertFailure(cause ->
-            context.assertEquals("Incompatible version for module moduleD-1.1.0 interface int. Need 1.1. Have 1.0/moduleA-1.0.0", cause.getMessage())));
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.installSimulate(map(mdA100, mdD100, mdD110, mdE100), map(mdA100), tml, false));
+    Assert.assertEquals("Incompatible version for module moduleD-1.1.0 interface int. Need 1.1. Have 1.0/moduleA-1.0.0", error.getMessage());
   }
 
   // install optional with existing interface that needs upgrading
   @Test
-  public void testInstallMinorLeafOptional(TestContext context) {
+  public void testInstallMinorLeafOptional() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110, mdE100), map(mdA100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertUpgrade(tml.get(0), mdA110, mdA100);
-          assertEnable(tml.get(1), mdD110);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110, mdE100), map(mdA100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertUpgrade(tml, 0, mdA110, mdA100);
+    assertEnable(tml, 1, mdD110);
   }
 
   // upgrade base dependency which is still compatible with optional interface
   @Test
-  public void testInstallMinorBaseOptional(TestContext context) {
+  public void testInstallMinorBaseOptional() {
     List<TenantModuleDescriptor> tml = enableList(mdA110);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110), map(mdA100, mdD100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(1, tml.size());
-          assertUpgrade(tml.get(0), mdA110, mdA100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110), map(mdA100, mdD100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(1, tml.size());
+    assertUpgrade(tml, 0, mdA110, mdA100);
   }
 
   // upgrade optional dependency which require upgrading base dependency
   @Test
-  public void testInstallMinorLeafOptional2(TestContext context) {
+  public void testInstallMinorLeafOptional2() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110), map(mdA100, mdD100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertUpgrade(tml.get(0), mdA110, mdA100);
-          assertUpgrade(tml.get(1), mdD110, mdD100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdD100, mdD110), map(mdA100, mdD100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertUpgrade(tml, 0, mdA110, mdA100);
+    assertUpgrade(tml, 1, mdD110, mdD100);
   }
 
   // upgrade base dependency which is a major interface bump to optional interface
   @Test
-  public void testInstallMajorBaseOptional(TestContext context) {
+  public void testInstallMajorBaseOptional() {
     List<TenantModuleDescriptor> tml = enableList(mdA200);
     DepResolution.installSimulate(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200),
-        map(mdA100, mdD100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      context.assertEquals(2, tml.size());
-      assertUpgrade(tml.get(0), mdA200, mdA100);
-      assertUpgrade(tml.get(1), mdD200, mdD100);
-    }));
+        map(mdA100, mdD100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertUpgrade(tml, 0, mdA200, mdA100);
+    assertUpgrade(tml, 1, mdD200, mdD100);
   }
 
   // upgrade base dependency and pull in module with unknown interface (results in error)
   @Test
-  public void testInstallMajorBaseError(TestContext context) {
+  public void testInstallMajorBaseError() {
     ModuleDescriptor mdD200F = new ModuleDescriptor();
     mdD200F.setId(mdD200.getId());
     mdD200F.setOptional(mdD200.getOptional());
     mdD200F.setRequires(new InterfaceDescriptor[]{new InterfaceDescriptor("unknown", "2.0")});
 
     List<TenantModuleDescriptor> tml = enableList(mdA200);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200F),
-        map(mdA100, mdD100), tml, false).onComplete(context.asyncAssertFailure(cause ->
-        context.assertEquals("interface unknown required by module moduleD-2.0.0 not found",
-            cause.getMessage())
-    ));
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () ->  DepResolution.installSimulate(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200F),
+           map(mdA100, mdD100), tml, false));
+    Assert.assertEquals("interface unknown required by module moduleD-2.0.0 not found", error.getMessage());
   }
 
   // upgrade optional dependency which require upgrading base dependency
   @Test
-  public void testInstallMajorLeafOptional(TestContext context) {
+  public void testInstallMajorLeafOptional() {
     List<TenantModuleDescriptor> tml = enableList(mdD200);
     DepResolution.installSimulate(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200, mdA200),
-        map(mdA100, mdD100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      context.assertEquals(2, tml.size());
-      assertUpgrade(tml.get(0), mdA200, mdA100);
-      assertUpgrade(tml.get(1), mdD200, mdD100);
-    }));
+        map(mdA100, mdD100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertUpgrade(tml, 0, mdA200, mdA100);
+    assertUpgrade(tml, 1, mdD200, mdD100);
   }
 
   // install optional with existing interface that needs upgrading, but
   // there are multiple modules providing same interface
   @Test
-  public void testInstallOptionalExistingModuleFail(TestContext context) {
+  public void testInstallOptionalExistingModuleFail() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdC, mdD100, mdD110, mdE100),
-        map(mdA100), tml, false).onComplete(context.asyncAssertFailure(cause ->
-        context.assertEquals(
-            "interface int required by module moduleD-1.1.0 is provided by multiple products: moduleA, moduleC",
-            cause.getMessage())
-    ));
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdC, mdD100, mdD110, mdE100),
+            map(mdA100), tml, false));
+    Assert.assertEquals(
+        "interface int required by module moduleD-1.1.0 is provided by multiple products: moduleA, moduleC",
+        error.getMessage());
   }
 
   // upgrade base dependency which is a major interface bump to required interface
   @Test
-  public void testInstallMajorBaseRequired(TestContext context) {
+  public void testInstallMajorBaseRequired() {
     List<TenantModuleDescriptor> tml = enableList(mdA200);
     DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200),
-        map(mdA100, mdE100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      context.assertEquals(2, tml.size());
-      assertUpgrade(tml.get(0), mdA200, mdA100);
-      assertUpgrade(tml.get(1), mdE200, mdE100);
-    }));
+        map(mdA100, mdE100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertUpgrade(tml, 0, mdA200, mdA100);
+    assertUpgrade(tml, 1, mdE200, mdE100);
   }
 
   // upgrade both dependency which is a major interface bump to required interface
   @Test
-  public void testInstallMajorBaseRequired2(TestContext context) {
+  public void testInstallMajorBaseRequired2() {
     List<TenantModuleDescriptor> tml = enableList(mdA200, mdE200);
     DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200),
-        map(mdA100, mdE100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      context.assertEquals(2, tml.size());
-      assertUpgrade(tml.get(0), mdA200, mdA100);
-      assertUpgrade(tml.get(1), mdE200, mdE100);
-    }));
+        map(mdA100, mdE100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertUpgrade(tml, 0, mdA200, mdA100);
+    assertUpgrade(tml, 1, mdE200, mdE100);
   }
 
   // upgrade both dependency which is a major interface bump to required interface
   @Test
-  public void testInstallMajorBaseRequired3(TestContext context) {
+  public void testInstallMajorBaseRequired3() {
     List<TenantModuleDescriptor> tml = enableList(mdE200, mdA200);
     DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200),
-        map(mdA100, mdE100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      context.assertEquals(2, tml.size());
-      assertUpgrade(tml.get(0), mdA200, mdA100);
-      assertUpgrade(tml.get(1), mdE200, mdE100);
-    }));
+        map(mdA100, mdE100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertUpgrade(tml, 0, mdA200, mdA100);
+    assertUpgrade(tml, 1, mdE200, mdE100);
   }
 
   // upgrade module with major dependency upgrade
   @Test
-  public void testInstallMajorLeafRequired(TestContext context) {
+  public void testInstallMajorLeafRequired() {
     List<TenantModuleDescriptor> tml = enableList(mdE200);
-    DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200), map(mdA100, mdE100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertUpgrade(tml.get(0), mdA200, mdA100);
-          assertUpgrade(tml.get(1), mdE200, mdE100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA200, mdE100, mdE200), map(mdA100, mdE100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertUpgrade(tml, 0, mdA200, mdA100);
+    assertUpgrade(tml, 1, mdE200, mdE100);
   }
 
   @Test
-  public void testInstallNew1(TestContext context) {
+  public void testInstallNew1() {
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
     modsAvailable.put(mdA100.getId(), mdA100);
     modsAvailable.put(mdB.getId(), mdB);
@@ -453,187 +427,152 @@ public class DepResolutionTest {
 
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdA100);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertEnable(tml.get(0), mdA100);
-          assertEnable(tml.get(1), mdE100);
-        }));
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertEnable(tml, 0, mdA100);
+    assertEnable(tml, 1, mdE100);
   }
 
   @Test
-  public void testInstallNew2(TestContext context) {
+  public void testInstallNew2() {
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdB);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertEnable(tml.get(0), mdB);
-          assertEnable(tml.get(1), mdE100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertEnable(tml, 0, mdB);
+    assertEnable(tml, 1, mdE100);
   }
 
   @Test
-  public void testInstallNewProduct(TestContext context) {
+  public void testInstallNewProduct() {
     List<TenantModuleDescriptor> tml = createList(Action.enable, true, mdE100, mdB);
-    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertEnable(tml.get(0), mdB);
-          assertEnable(tml.get(1), mdE100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertEnable(tml, 0, mdB);
+    assertEnable(tml, 1, mdE100);
   }
 
   @Test
-  public void testInstallNewProductNonExisting(TestContext context) {
+  public void testInstallNewProductNonExisting() {
     List<TenantModuleDescriptor> tml = enableList(mdB);
-    DepResolution.installSimulate(map(mdA100), map(), tml, false)
-        .onComplete(context.asyncAssertFailure(cause ->
-            context.assertEquals("Module moduleB-1.0.0 not found", cause.getMessage())
-        ));
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.installSimulate(map(mdA100), map(), tml, false));
+    Assert.assertEquals("Module moduleB-1.0.0 not found", error.getMessage());
   }
 
   @Test
-  public void testMultipleInterfacesMatch1(TestContext context) {
+  public void testMultipleInterfacesMatch1() {
     List<TenantModuleDescriptor> tml = enableList(mdE100);
-    DepResolution.installSimulate(map(mdA100, mdB, mdE100), map(), tml, false)
-        .onComplete(context.asyncAssertFailure(cause ->
-            context.assertEquals(
-                "interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleB",
-                cause.getMessage())
-        ));
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.installSimulate(map(mdA100, mdB, mdE100), map(), tml, false));
+    Assert.assertEquals(
+        "interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleB",
+        error.getMessage());
   }
 
   @Test
-  public void testMultipleInterfacesMatch2(TestContext context) {
+  public void testMultipleInterfacesMatch2() {
     List<TenantModuleDescriptor> tml = enableList(mdE100);
-    DepResolution.installSimulate(map(mdA100, mdC, mdE100), map(), tml, false)
-        .onComplete(context.asyncAssertFailure(cause ->
-            context.assertEquals(
-                "interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleC",
-                cause.getMessage())
-        ));
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.installSimulate(map(mdA100, mdC, mdE100), map(), tml, false));
+    Assert.assertEquals(
+        "interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleC",
+        error.getMessage());
   }
 
   @Test
-  public void testMultipleInterfacesMatchReplaces1(TestContext context) {
+  public void testMultipleInterfacesMatchReplaces1() {
     mdB.setReplaces(new String[]{mdA100.getProduct()});
     List<TenantModuleDescriptor> tml = enableList(mdE100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdE100), map(), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertEnable(tml.get(0), mdB);
-          assertEnable(tml.get(1), mdE100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdE100), map(), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertEnable(tml, 0, mdB);
+    assertEnable(tml, 1, mdE100);
   }
 
   @Test
-  public void testMultipleInterfacesMatchReplaces2(TestContext context) {
+  public void testMultipleInterfacesMatchReplaces2() {
     mdB.setReplaces(new String[]{mdA100.getProduct()});
     mdC.setReplaces(new String[]{mdB.getProduct()});
 
     List<TenantModuleDescriptor> tml = enableList(mdE100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdC, mdE100), map(), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertEnable(tml.get(0), mdC);
-          assertEnable(tml.get(1), mdE100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdB, mdC, mdE100), map(), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertEnable(tml, 0, mdC);
+    assertEnable(tml, 1, mdE100);
   }
 
   @Test
-  public void testDisableNonEnabled(TestContext context) {
+  public void testDisableNonEnabled() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100);
-    DepResolution.installSimulate(map(mdA100), map(), tml, false)
-        .onComplete(context.asyncAssertFailure(cause ->
-            context.assertEquals("Module moduleA-1.0.0 not found", cause.getMessage())
-        ));
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.installSimulate(map(mdA100), map(), tml, false));
+    Assert.assertEquals("Module moduleA-1.0.0 not found", error.getMessage());
   }
 
   @Test
-  public void testDisableNonExisting(TestContext context) {
+  public void testDisableNonExisting() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100);
-    DepResolution.installSimulate(map(mdB), map(), tml, false)
-        .onComplete(context.asyncAssertFailure(cause ->
-            context.assertEquals("Module moduleA-1.0.0 not found", cause.getMessage())
-        ));
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.installSimulate(map(mdB), map(), tml, false));
+    Assert.assertEquals("Module moduleA-1.0.0 not found", error.getMessage());
   }
 
   @Test
-  public void testDisable1(TestContext context) {
+  public void testDisable1() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertDisable(tml.get(0), mdE100);
-          assertDisable(tml.get(1), mdA100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertDisable(tml, 0, mdE100);
+    assertDisable(tml, 1, mdA100);
   }
 
   @Test
-  public void testDisableProduct(TestContext context) {
+  public void testDisableProduct() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, true, mdA100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertDisable(tml.get(0), mdE100);
-          assertDisable(tml.get(1), mdA100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertDisable(tml, 0, mdE100);
+    assertDisable(tml, 1, mdA100);
   }
 
   @Test
-  public void testDisable2(TestContext context) {
+  public void testDisable2() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdE100, mdA100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertDisable(tml.get(0), mdE100);
-          assertDisable(tml.get(1), mdA100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertDisable(tml, 0, mdE100);
+    assertDisable(tml, 1, mdA100);
   }
 
   @Test
-  public void testDisable3(TestContext context) {
+  public void testDisable3() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100, mdE100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertDisable(tml.get(0), mdE100);
-          assertDisable(tml.get(1), mdA100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertDisable(tml, 0, mdE100);
+    assertDisable(tml, 1, mdA100);
   }
 
   @Test
-  public void testUpToDate(TestContext context) {
+  public void testUpToDate() {
     List<TenantModuleDescriptor> tml = createList(Action.uptodate, mdA100);
-    DepResolution.installSimulate(map(mdA100), map(mdA100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(1, tml.size());
-          assertUpToDate(tml.get(0), mdA100);
-        }));
+    DepResolution.installSimulate(map(mdA100), map(mdA100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(1, tml.size());
+    assertUpToDate(tml, 0, mdA100);
   }
 
   @Test
-  public void testConflict(TestContext context) {
-    List<TenantModuleDescriptor> tml = createList(Action.conflict, mdA100);
-    DepResolution.installSimulate(map(mdB), map(), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          context.assertEquals(1, tml.size());
-          assertAction(tml.get(0), Action.conflict, mdA100, null);
-        }));
-  }
-
-  @Test
-  public void testMultiErrors(TestContext context) {
+  public void testMultiErrors() {
     InterfaceDescriptor[] inta10 = {new InterfaceDescriptor("inta", "1.0")};
     InterfaceDescriptor[] inta20 = {new InterfaceDescriptor("inta", "2.0")};
 
@@ -647,26 +586,28 @@ public class DepResolutionTest {
     mdC.setRequires(inta20);
 
     Map<String, ModuleDescriptor> modsAvailable = map(mdA100, mdB, mdC);
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(mdA100, mdB, mdC);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        Assert.assertEquals("Incompatible version for module moduleB-1.0.0 interface inta. Need 2.0. Have 1.0/moduleA-1.0.0. Incompatible version for module moduleC-1.0.0 interface inta. Need 2.0. Have 1.0/moduleA-1.0.0", res.getMessage());
-        async.complete();
-      }));
-    }
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(mdA100, mdC, mdB);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        Assert.assertEquals("Incompatible version for module moduleB-1.0.0 interface inta. Need 2.0. Have 1.0/moduleA-1.0.0. Incompatible version for module moduleC-1.0.0 interface inta. Need 2.0. Have 1.0/moduleA-1.0.0", res.getMessage());
-        async.complete();
-      }));
-    }
+
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(mdA100, mdB, mdC);
+          DepResolution.installSimulate(modsAvailable, map(), tml, false);
+        });
+    Assert.assertEquals("Incompatible version for module moduleB-1.0.0 interface inta. Need 2.0. Have 1.0/moduleA-1.0.0."
+            + " Incompatible version for module moduleC-1.0.0 interface inta. Need 2.0. Have 1.0/moduleA-1.0.0",
+        error.getMessage());
+
+    error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(mdA100, mdC, mdB);
+          DepResolution.installSimulate(modsAvailable, map(), tml, false);
+        });
+    Assert.assertEquals("Incompatible version for module moduleB-1.0.0 interface inta. Need 2.0. Have 1.0/moduleA-1.0.0."
+            + " Incompatible version for module moduleC-1.0.0 interface inta. Need 2.0. Have 1.0/moduleA-1.0.0",
+        error.getMessage());
   }
 
   @Test
-  public void testOkapi647(TestContext context) {
+  public void testOkapi647() {
     InterfaceDescriptor[] i1_10 = {new InterfaceDescriptor("i1", "1.0")};
     ModuleDescriptor prov100 = new ModuleDescriptor("prov-1.0.0");
     prov100.setProvides(i1_10);
@@ -675,24 +616,21 @@ public class DepResolutionTest {
     ModuleDescriptor prov200 = new ModuleDescriptor("prov-2.0.0");
     prov200.setProvides(i1_20);
 
-    {
-      Async async = context.async();
-      Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200);
-      List<TenantModuleDescriptor> tml = enableList(prov100, prov200);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        Assert.assertEquals("Cannot remove module prov-1.0.0 which is explicitly given", res.getMessage());
-        async.complete();
-      }));
-    }
-    {
-      Async async = context.async();
-      Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200);
-      List<TenantModuleDescriptor> tml = enableList(prov200, prov100);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        Assert.assertEquals("Cannot remove module prov-2.0.0 which is explicitly given", res.getMessage());
-        async.complete();
-      }));
-    }
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200);
+          List<TenantModuleDescriptor> tml = enableList(prov100, prov200);
+          DepResolution.installSimulate(modsAvailable, map(), tml, false);
+        });
+    Assert.assertEquals("Cannot remove module prov-1.0.0 which is explicitly given", error.getMessage());
+
+    error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200);
+          List<TenantModuleDescriptor> tml = enableList(prov200, prov100);
+          DepResolution.installSimulate(modsAvailable, map(), tml, false);
+        });
+    Assert.assertEquals("Cannot remove module prov-2.0.0 which is explicitly given", error.getMessage());
 
     InterfaceDescriptor[] i2_10 = {new InterfaceDescriptor("i2", "1.0")};
     ModuleDescriptor req1_100 = new ModuleDescriptor("req1-1.0.0");
@@ -704,41 +642,33 @@ public class DepResolutionTest {
     req1_100.setProvides(i3_10);
     req2_100.setRequires(i1_20);
 
-    {
-      Async async = context.async();
-      Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100);
-      List<TenantModuleDescriptor> tml = enableList(req1_100, req2_100);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        Assert.assertEquals("Incompatible version for module req1-1.0.0 interface i1. "
-            + "Need 1.0. Have 2.0/prov-2.0.0", res.getMessage());
-        async.complete();
-      }));
-    }
+    error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100);
+          List<TenantModuleDescriptor> tml = enableList(req1_100, req2_100);
+          DepResolution.installSimulate(modsAvailable, map(), tml, false);
+        });
+    Assert.assertEquals("Incompatible version for module req1-1.0.0 interface i1. "
+        + "Need 1.0. Have 2.0/prov-2.0.0", error.getMessage());
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100);
       List<TenantModuleDescriptor> tml = enableList(req1_100);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(2, tml.size());
-        assertEnable(tml.get(0), prov100);
-        assertEnable(tml.get(1), req1_100);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(2, tml.size());
+      assertEnable(tml, 0, prov100);
+      assertEnable(tml, 1, req1_100);
     }
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100);
       List<TenantModuleDescriptor> tml = enableList(req2_100);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(2, tml.size());
-        assertEnable(tml.get(0), prov200);
-        assertEnable(tml.get(1), req2_100);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(2, tml.size());
+      assertEnable(tml, 0, prov200);
+      assertEnable(tml, 1, req2_100);
     }
 
     ModuleDescriptor req1or2 = new ModuleDescriptor("req1or2-1.0.0");
@@ -752,38 +682,32 @@ public class DepResolutionTest {
     reqI1or2.setRequires(i4_10);
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100, req1or2, reqI1or2);
       List<TenantModuleDescriptor> tml = enableList(reqI1or2, req1_100);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("result = " + Json.encodePrettily(tml));
-        context.assertEquals(4, tml.size());
-        assertEnable(tml.get(0), prov100);
-        assertEnable(tml.get(1), req1or2);
-        assertEnable(tml.get(2), reqI1or2);
-        assertEnable(tml.get(3), req1_100);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(), tml, false);
+      logger.debug("result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(4, tml.size());
+      assertEnable(tml, 0, prov100);
+      assertEnable(tml, 1, req1or2);
+      assertEnable(tml, 2, reqI1or2);
+      assertEnable(tml, 3, req1_100);
     }
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100, req1or2, reqI1or2);
       List<TenantModuleDescriptor> tml = enableList(req1_100, reqI1or2);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(4, tml.size());
-        assertEnable(tml.get(0), prov100);
-        assertEnable(tml.get(1), req1or2);
-        assertEnable(tml.get(2), req1_100);
-        assertEnable(tml.get(3), reqI1or2);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(4, tml.size());
+      assertEnable(tml, 0, prov100);
+      assertEnable(tml, 1, req1or2);
+      assertEnable(tml, 2, req1_100);
+      assertEnable(tml, 3, reqI1or2);
     }
   }
 
   @Test
-  public void testSorting(TestContext context) {
+  public void testSorting() {
     ModuleDescriptor modA = new ModuleDescriptor("modA-1.0.0");
     InterfaceDescriptor[] i1 = {new InterfaceDescriptor("i1", "1.0")};
     modA.setProvides(i1);
@@ -809,162 +733,128 @@ public class DepResolutionTest {
 
     List<ModuleDescriptor> l = new ArrayList<>(List.of(modC, modA, modB));
     DepResolution.topoSort(l);
-    Assert.assertArrayEquals(new ModuleDescriptor[] { modA, modB, modC }, l.toArray());
+    Assert.assertArrayEquals(new ModuleDescriptor[]{modA, modB, modC}, l.toArray());
 
     l = new ArrayList<>(List.of(modB, modA, modC));
     DepResolution.topoSort(l);
-    Assert.assertArrayEquals(new ModuleDescriptor[] { modA, modB, modC }, l.toArray());
+    Assert.assertArrayEquals(new ModuleDescriptor[]{modA, modB, modC}, l.toArray());
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modA, modB, modC);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(3, tml.size());
-        assertEnable(tml.get(0), modA);
-        assertEnable(tml.get(1), modB);
-        assertEnable(tml.get(2), modC);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(3, tml.size());
+      assertEnable(tml, 0, modA);
+      assertEnable(tml, 1, modB);
+      assertEnable(tml, 2, modC);
     }
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modC, modB, modA);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(3, tml.size());
-        assertEnable(tml.get(0), modA);
-        assertEnable(tml.get(1), modB);
-        assertEnable(tml.get(2), modC);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(3, tml.size());
+      assertEnable(tml, 0, modA);
+      assertEnable(tml, 1, modB);
+      assertEnable(tml, 2, modC);
     }
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modC, modA, modB);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(3, tml.size());
-        assertEnable(tml.get(0), modA);
-        assertEnable(tml.get(1), modB);
-        assertEnable(tml.get(2), modC);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(3, tml.size());
+      assertEnable(tml, 0, modA);
+      assertEnable(tml, 1, modB);
+      assertEnable(tml, 2, modC);
     }
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modB, modC, modA);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(3, tml.size());
-        assertEnable(tml.get(0), modA);
-        assertEnable(tml.get(1), modB);
-        assertEnable(tml.get(2), modC);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(3, tml.size());
+      assertEnable(tml, 0, modA);
+      assertEnable(tml, 1, modB);
+      assertEnable(tml, 2, modC);
     }
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modC, modB);
-      DepResolution.installSimulate(modsAvailable, map(modA), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(2, tml.size());
-        assertEnable(tml.get(0), modB);
-        assertEnable(tml.get(1), modC);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(modA), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(2, tml.size());
+      assertEnable(tml, 0, modB);
+      assertEnable(tml, 1, modC);
     }
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB, modC, modA);
-      DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(3, tml.size());
-        assertDisable(tml.get(0), modC);
-        assertDisable(tml.get(1), modB);
-        assertDisable(tml.get(2), modA);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(3, tml.size());
+      assertDisable(tml, 0, modC);
+      assertDisable(tml, 1, modB);
+      assertDisable(tml, 2, modA);
     }
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB, modA, modC);
-      DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(3, tml.size());
-        assertDisable(tml.get(0), modC);
-        assertDisable(tml.get(1), modB);
-        assertDisable(tml.get(2), modA);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(3, tml.size());
+      assertDisable(tml, 0, modC);
+      assertDisable(tml, 1, modB);
+      assertDisable(tml, 2, modA);
     }
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB, modC, modA);
-      DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(3, tml.size());
-        assertDisable(tml.get(0), modC);
-        assertDisable(tml.get(1), modB);
-        assertDisable(tml.get(2), modA);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(3, tml.size());
+      assertDisable(tml, 0, modC);
+      assertDisable(tml, 1, modB);
+      assertDisable(tml, 2, modA);
     }
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB);
-      DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(2, tml.size());
-        assertDisable(tml.get(0), modC);
-        assertDisable(tml.get(1), modB);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(2, tml.size());
+      assertDisable(tml, 0, modC);
+      assertDisable(tml, 1, modB);
     }
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB, modC);
-      DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(2, tml.size());
-        assertDisable(tml.get(0), modC);
-        assertDisable(tml.get(1), modB);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(modA, modB, modC), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(2, tml.size());
+      assertDisable(tml, 0, modC);
+      assertDisable(tml, 1, modB);
     }
 
     {
-      Async async = context.async();
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modA);
-      DepResolution.installSimulate(modsAvailable, map(modA, modB), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(2, tml.size());
-        assertDisable(tml.get(0), modB);
-        assertDisable(tml.get(1), modA);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(modA, modB), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(2, tml.size());
+      assertDisable(tml, 0, modB);
+      assertDisable(tml, 1, modA);
     }
-
   }
 
   @Test
@@ -1028,271 +918,217 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void testUpgradeImpossible(TestContext context) {
+  public void testUpgradeImpossible() {
     Map<String, ModuleDescriptor> modsAvailable = map(st100, st101, ot100, ot101);
 
     // patch to higher version with impossible combination 1/4
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(ot100, st101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        context.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1", res.getMessage());
-        async.complete();
-      }));
-    }
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(ot100, st101);
+          DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+        });
+    Assert.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1", error.getMessage());
 
     // patch to higher version with impossible combination 2/4
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(st101, ot100);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        context.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1", res.getMessage());
-        async.complete();
-      }));
-    }
+    error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(st101, ot100);
+          DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+        });
+    Assert.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1", error.getMessage());
 
     // patch to higher version with impossible combination 3/4
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(ot101, st100);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        context.assertEquals("Incompatible version for module ot-1.0.1 interface int. Need 2.0. Have 1.0/st-1.0.0", res.getMessage());
-        async.complete();
-      }));
-    }
+    error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(ot101, st100);
+          DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+        });
+    Assert.assertEquals("Incompatible version for module ot-1.0.1 interface int. Need 2.0. Have 1.0/st-1.0.0", error.getMessage());
 
     // patch to higher version with impossible combination 4/4
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(st100, ot101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        context.assertEquals("Incompatible version for module ot-1.0.1 interface int. Need 2.0. Have 1.0/st-1.0.0", res.getMessage());
-        async.complete();
-      }));
-    }
+    error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(st100, ot101);
+          DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+        });
+    Assert.assertEquals("Incompatible version for module ot-1.0.1 interface int. Need 2.0. Have 1.0/st-1.0.0", error.getMessage());
   }
 
   @Test
-  public void testUpgradeOneGiven(TestContext context) {
+  public void testUpgradeOneGiven() {
     Map<String, ModuleDescriptor> modsAvailable = map(st100, st101, ot100, ot101);
 
     // patch to higher version with ot given
     {
-      Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
-        assertUpgrade(tml.get(0), st101, st100);
-        assertUpgrade(tml.get(1), ot101, ot100);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+      Assert.assertEquals(2, tml.size());
+      assertUpgrade(tml, 0, st101, st100);
+      assertUpgrade(tml, 1, ot101, ot100);
     }
 
     // patch to higher version with st given
     {
-      Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
-        assertUpgrade(tml.get(0), st101, st100);
-        assertUpgrade(tml.get(1), ot101, ot100);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+      Assert.assertEquals(2, tml.size());
+      assertUpgrade(tml, 0, st101, st100);
+      assertUpgrade(tml, 1, ot101, ot100);
     }
   }
 
   @Test
-  public void testUpgradeBothGiven(TestContext context) {
+  public void testUpgradeBothGiven() {
     Map<String, ModuleDescriptor> modsAvailable = map(st100, st101, ot100, ot101);
     // patch to higher version with both given 1/2
     {
-      Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot101, st101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
-        assertUpgrade(tml.get(0), st101, st100);
-        assertUpgrade(tml.get(1), ot101, ot100);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+      Assert.assertEquals(2, tml.size());
+      assertUpgrade(tml, 0, st101, st100);
+      assertUpgrade(tml, 1, ot101, ot100);
     }
 
     // patch to higher version with both given 2/2
     {
-      Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st101, ot101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
-        assertUpgrade(tml.get(0), st101, st100);
-        assertUpgrade(tml.get(1), ot101, ot100);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+      Assert.assertEquals(2, tml.size());
+      assertUpgrade(tml, 0, st101, st100);
+      assertUpgrade(tml, 1, ot101, ot100);
     }
   }
   @Test
-  public void testUpgradeWithProduct(TestContext context) {
+  public void testUpgradeWithProduct() {
     Map<String, ModuleDescriptor> modsAvailable = map(st100, st101, ot100, ot101);
 
     // patch to higher version with products only
     {
-      Async async = context.async();
       List<TenantModuleDescriptor> tml = createList(Action.enable, true, st101, ot100);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
-        assertUpgrade(tml.get(0), st101, st100);
-        assertUpgrade(tml.get(1), ot101, ot100);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+      Assert.assertEquals(2, tml.size());
+      assertUpgrade(tml, 0, st101, st100);
+      assertUpgrade(tml, 1, ot101, ot100);
     }
 
     // patch to higher version with products for ot
     {
-      Async async = context.async();
       List<TenantModuleDescriptor> tml = createList(Action.enable, true, ot100);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
-        assertUpgrade(tml.get(0), st101, st100);
-        assertUpgrade(tml.get(1), ot101, ot100);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
+      assertUpgrade(tml, 0, st101, st100);
+      assertUpgrade(tml, 1, ot101, ot100);
     }
 
     // patch to higher version with products for st
     {
-      Async async = context.async();
       List<TenantModuleDescriptor> tml = createList(Action.enable, true, st100);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
-        assertUpgrade(tml.get(0), st101, st100);
-        assertUpgrade(tml.get(1), ot101, ot100);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
+      assertUpgrade(tml, 0, st101, st100);
+      assertUpgrade(tml, 1, ot101, ot100);
     }
   }
 
   @Test
-  public void testDowngradeImpossible(TestContext context) {
+  public void testDowngradeImpossible() {
     Map<String, ModuleDescriptor> modsAvailable = map(st100, st101, ot100, ot101);
     // patch to lower version with impossible combination
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(ot100, st101);
-      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        context.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1", res.getMessage());
-        async.complete();
-      }));
-    }
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(ot100, st101);
+          DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false);
+        });
+    Assert.assertEquals("Incompatible version for module ot-1.0.0 interface int. Need 1.0. Have 2.0/st-1.0.1", error.getMessage());
 
     // patch to lower version with impossible combination
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(ot101, st100);
-      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        context.assertEquals("Incompatible version for module ot-1.0.1 interface int. Need 2.0. Have 1.0/st-1.0.0", res.getMessage());
-        async.complete();
-      }));
-    }
+    error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(ot101, st100);
+          DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false);
+        });
+    Assert.assertEquals("Incompatible version for module ot-1.0.1 interface int. Need 2.0. Have 1.0/st-1.0.0", error.getMessage());
   }
 
   @Test
-  public void testDowngradeGiven(TestContext context) {
+  public void testDowngradeGiven() {
     Map<String, ModuleDescriptor> modsAvailable = map(st100, st101, ot100, ot101);
 
     // patch to lower version with both given
     {
-      Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot100, st100);
-      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
-        assertUpgrade(tml.get(0), st100, st101);
-        assertUpgrade(tml.get(1), ot100, ot101);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false);
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
+      assertUpgrade(tml, 0, st100, st101);
+      assertUpgrade(tml, 1, ot100, ot101);
     }
 
     // patch to lower version with ot given
     {
-      Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(ot100);
-      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
-        assertUpgrade(tml.get(0), st100, st101);
-        assertUpgrade(tml.get(1), ot100, ot101);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false);
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
+      assertUpgrade(tml, 0, st100, st101);
+      assertUpgrade(tml, 1, ot100, ot101);
     }
 
     // patch to lower version with st given
     {
-      Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st100);
-      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        context.assertEquals(2, tml.size(), Json.encodePrettily(tml));
-        assertUpgrade(tml.get(0), st100, st101);
-        assertUpgrade(tml.get(1), ot100, ot101);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(ot101, st101), tml, false);
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
+      assertUpgrade(tml, 0, st100, st101);
+      assertUpgrade(tml, 1, ot100, ot101);
     }
-
   }
 
   @Test
-  public void testInstallConflicting(TestContext context) {
+  public void testInstallConflicting() {
     Map<String, ModuleDescriptor> modsAvailable = map(st100, st101, ot100, ot101);
 
     // install conflicting versions 1/2
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(st100, st101);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        context.assertEquals("Cannot remove module st-1.0.0 which is explicitly given", res.getMessage());
-        async.complete();
-      }));
-    }
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(st100, st101);
+          DepResolution.installSimulate(modsAvailable, map(), tml, false);
+        });
+    Assert.assertEquals("Cannot remove module st-1.0.0 which is explicitly given", error.getMessage());
 
     // install conflicting versions for st 1/2
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(st101, st100);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        context.assertEquals("Cannot remove module st-1.0.1 which is explicitly given", res.getMessage());
-        async.complete();
-      }));
-    }
+    error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(st101, st100);
+          DepResolution.installSimulate(modsAvailable, map(), tml, false);
+        });
+    Assert.assertEquals("Cannot remove module st-1.0.1 which is explicitly given", error.getMessage());
 
     // install conflicting versions for st 2/2
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(ot100, ot101);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        context.assertEquals("Cannot remove module ot-1.0.0 which is explicitly given", res.getMessage());
-        async.complete();
-      }));
-    }
+    error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(ot100, ot101);
+          DepResolution.installSimulate(modsAvailable, map(), tml, false);
+        });
+    Assert.assertEquals("Cannot remove module ot-1.0.0 which is explicitly given", error.getMessage());
 
     // install conflicting versions for ot 1/2
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(ot101, ot100);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        context.assertEquals("Cannot remove module ot-1.0.1 which is explicitly given", res.getMessage());
-        async.complete();
-      }));
-    }
+    error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(ot101, ot100);
+          DepResolution.installSimulate(modsAvailable, map(), tml, false);
+        });
+    Assert.assertEquals("Cannot remove module ot-1.0.1 which is explicitly given", error.getMessage());
 
     // install conflicting versions for ot 2/2
-    {
-      Async async = context.async();
-      List<TenantModuleDescriptor> tml = enableList(ot100, ot101);
-      DepResolution.installSimulate(modsAvailable, map(), tml, false).onComplete(context.asyncAssertFailure(res -> {
-        context.assertEquals("Cannot remove module ot-1.0.0 which is explicitly given", res.getMessage());
-        async.complete();
-      }));
-    }
-
+    error = Assert.assertThrows(OkapiError.class,
+        () -> {
+          List<TenantModuleDescriptor> tml = enableList(ot100, ot101);
+          DepResolution.installSimulate(modsAvailable, map(), tml, false);
+        });
+    Assert.assertEquals("Cannot remove module ot-1.0.0 which is explicitly given", error.getMessage());
   }
 
   @Test
-  public void testOkapi925(TestContext context) {
+  public void testOkapi925() {
     InterfaceDescriptor ont10 = new InterfaceDescriptor("ont", "1.0");
     InterfaceDescriptor int10 = new InterfaceDescriptor("int", "1.0");
     InterfaceDescriptor int20 = new InterfaceDescriptor("int", "2.0");
@@ -1329,26 +1165,20 @@ public class DepResolutionTest {
 
     Map<String, ModuleDescriptor> modsAvailable = map(st100, st101, ot100, ot101, ot102, p100);
     {
-      Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st101, ot101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        context.assertEquals(2, tml.size());
-        assertUpgrade(tml.get(0), st101, st100);
-        assertUpgrade(tml.get(1), ot101, ot100);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+      Assert.assertEquals(2, tml.size());
+      assertUpgrade(tml, 0, st101, st100);
+      assertUpgrade(tml, 1, ot101, ot100);
     }
     {
-      Async async = context.async();
       List<TenantModuleDescriptor> tml = enableList(st101);
-      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false).onComplete(context.asyncAssertSuccess(res -> {
-        logger.debug("tml result = " + Json.encodePrettily(tml));
-        context.assertEquals(3, tml.size());
-        assertUpgrade(tml.get(0), st101, st100);
-        assertEnable(tml.get(1), p100);
-        assertUpgrade(tml.get(2), ot102, ot100);
-        async.complete();
-      }));
+      DepResolution.installSimulate(modsAvailable, map(ot100, st100), tml, false);
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      Assert.assertEquals(3, tml.size());
+      assertUpgrade(tml, 0, st101, st100);
+      assertEnable(tml, 1, p100);
+      assertUpgrade(tml, 2, ot102, ot100);
     }
   }
 
@@ -1364,41 +1194,34 @@ public class DepResolutionTest {
 
   // see that order is right. mdE requires mdA (so mdA must be enabled first)
   @Test
-  public void testDepOrderSwapEnable(TestContext context) {
+  public void testDepOrderSwapEnable() {
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdA100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertEnable(tml.get(0), mdA100);
-          assertEnable(tml.get(1), mdE100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertEnable(tml, 0, mdA100);
+    assertEnable(tml, 1, mdE100);
   }
 
   // see that order is right. mdE requires mdA (so mdA must be upgraded first)
   @Test
-  public void testDepOrderSwapUpgrade(TestContext context) {
+  public void testDepOrderSwapUpgrade() {
     List<TenantModuleDescriptor> tml = enableList(mdE110, mdA110);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(mdE100, mdA100), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertUpgrade(tml.get(0), mdA110, mdA100);
-          assertUpgrade(tml.get(1), mdE110, mdE100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(mdE100, mdA100), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertUpgrade(tml, 0, mdA110, mdA100);
+    assertUpgrade(tml, 1, mdE110, mdE100);
   }
 
   // see that order is right. mdE requires mdA (so mdA must be enabled first)
   @Test
-  public void testDepOrderAlready(TestContext context) {
+  public void testDepOrderAlready() {
     List<TenantModuleDescriptor> tml = enableList(mdA100, mdE100);
-    DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(), tml, false)
-        .onComplete(context.asyncAssertSuccess(res -> {
-          logger.debug("tml result = " + Json.encodePrettily(tml));
-          context.assertEquals(2, tml.size());
-          assertEnable(tml.get(0), mdA100);
-          assertEnable(tml.get(1), mdE100);
-        }));
+    DepResolution.installSimulate(map(mdA100, mdA110, mdE100, mdE110), map(), tml, false);
+    logger.debug("tml result = " + Json.encodePrettily(tml));
+    Assert.assertEquals(2, tml.size());
+    assertEnable(tml, 0, mdA100);
+    assertEnable(tml, 1, mdE100);
   }
-
 }

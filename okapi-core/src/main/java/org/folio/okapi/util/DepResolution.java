@@ -1,6 +1,5 @@
 package org.folio.okapi.util;
 
-import io.vertx.core.Future;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -535,9 +534,8 @@ public final class DepResolution {
    * @param modsEnabled enabled modules (for some tenant)
    * @param tml install list with actions
    * @param reinstall whether to re-install
-   * @return future
    */
-  public static Future<Void> installSimulate(Map<String, ModuleDescriptor> modsAvailable,
+  public static void installSimulate(Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled,
       List<TenantModuleDescriptor> tml,
       boolean reinstall) {
@@ -592,14 +590,13 @@ public final class DepResolution {
       errors = interfaceCheck(modsAvailable, modsEnabled, tml, true, stickyModules);
     }
     if (errors == null) {
-      return Future.failedFuture(new OkapiError(ErrorType.INTERNAL,
-          "resolve not completing in 10 iterations"));
+      throw new OkapiError(ErrorType.INTERNAL,
+          "resolve not completing in 10 iterations");
     }
     if (!errors.isEmpty()) {
-      return Future.failedFuture(new OkapiError(ErrorType.USER, String.join(". ", errors)));
+      throw new OkapiError(ErrorType.USER, String.join(". ", errors));
     }
     sortTenantModules(tml, modsAvailable, modsEnabled);
-    return Future.succeededFuture();
   }
 
   private static Map<String, ModuleDescriptor> checkInterfaceDepAvailable(

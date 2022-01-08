@@ -925,14 +925,12 @@ public class TenantManager implements Liveness {
       Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     List<TenantModuleDescriptor> tml = job.getModules();
-    return DepResolution.installSimulate(modsAvailable, modsEnabled, tml, options.getReinstall())
-        .compose(res -> {
-          if (options.getSimulate()) {
-            return Future.succeededFuture(tml);
-          }
-          return jobs.add(t.getId(), job.getId(), job)
-              .compose(res2 -> runJob(t, pc, options, tml, modsAvailable, job));
-        });
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, options.getReinstall());
+    if (options.getSimulate()) {
+      return Future.succeededFuture(tml);
+    }
+    return jobs.add(t.getId(), job.getId(), job)
+        .compose(res2 -> runJob(t, pc, options, tml, modsAvailable, job));
   }
 
   private Future<List<TenantModuleDescriptor>> runJob(
