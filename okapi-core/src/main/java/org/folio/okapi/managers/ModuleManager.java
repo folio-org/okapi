@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import org.apache.logging.log4j.Logger;
@@ -79,13 +80,27 @@ public class ModuleManager {
    *
    * @param list list of modules
    * @param check whether to check dependencies
+   * @param removeIfMissingDep skip modules where dependency check fails
+   * @return future
+   */
+  public Future<Void> createList(List<ModuleDescriptor> list, boolean check,
+      boolean removeIfMissingDep) {
+    return createList(list, check, Optional.empty(), Optional.empty(), removeIfMissingDep);
+  }
+
+  /**
+   * Create a list of modules.
+   *
+   * @param list list of modules
+   * @param check whether to check dependencies
    * @param preRelease whether to allow pre-releasee
    * @param npmSnapshot whether to allow npm-snapshot
    * @param removeIfMissingDep skip modules where dependency check fails
    * @return future
    */
-  public Future<Void> createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
-                                 boolean npmSnapshot, boolean removeIfMissingDep) {
+  public Future<Void> createList(List<ModuleDescriptor> list, boolean check,
+      Optional<Boolean> preRelease, Optional<Boolean> npmSnapshot,
+      boolean removeIfMissingDep) {
     return getModulesWithFilter(preRelease, npmSnapshot, null).compose(ares -> {
       Map<String, ModuleDescriptor> tempList = new HashMap<>();
       for (ModuleDescriptor md : ares) {
@@ -227,8 +242,8 @@ public class ModuleManager {
     });
   }
 
-  Future<List<ModuleDescriptor>> getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
-                                                      List<String> skipModules) {
+  Future<List<ModuleDescriptor>> getModulesWithFilter(Optional<Boolean> preRelease,
+      Optional<Boolean> npmSnapshot, List<String> skipModules) {
 
     Set<String> skipIds = new TreeSet<>();
     if (skipModules != null) {
@@ -238,9 +253,7 @@ public class ModuleManager {
       List<ModuleDescriptor> mdl = new LinkedList<>();
       for (ModuleDescriptor md : kres.values()) {
         String id = md.getId();
-        ModuleId idThis = new ModuleId(id);
-        if ((npmSnapshot || !idThis.hasNpmSnapshot())
-            && (preRelease || !idThis.hasPreRelease())
+        if (ModuleUtil.versionFilterCheck(new ModuleId(id), preRelease, npmSnapshot)
             && !skipIds.contains(id)) {
           mdl.add(md);
         }

@@ -252,6 +252,19 @@ public class PullTest {
 
     c = api.createRestAssured3();
     c.given().port(port2)
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=only&npmSnapshot=only&latest=2")
+        .then().statusCode(200).log().ifValidationFails()
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"module-c-1.0.10000\"," + LS
+            + "  \"name\" : \"C\"" + LS
+            + "} ]"));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true&npmSnapshot=true&latest=2")
       .then().statusCode(200).log().ifValidationFails()
