@@ -234,7 +234,6 @@ public class ModuleManager {
     if (skipModules != null) {
       skipIds.addAll(skipModules);
     }
-    logger.info("AD: getModulesWithFilter preRelease={} npmSnapshot={}", preRelease, npmSnapshot);
     if (Boolean.TRUE.equals(preRelease)) {
       throw new OkapiError(ErrorType.INTERNAL, "preRelease=true");
     }
