@@ -372,15 +372,19 @@ types:
         required: false
         default: true
       preRelease:
-        description: Whether to allow pre-release modules in dependency check
+        description:
+          Whether to allow pre-release modules in dependency check. "true"&#58; include all
+          modules; "false"&#58; releases (no pre-releases); "only"&#58; only pre-releases
         enum: ["true","false","only"]
         required: false
         default: "true"
       npmSnapshot:
-        description: Whether to allow NPM module snapshots in dependency check
+        description:
+          Whether to allow NPM module snapshots in dependency check. "true"&#58; include all
+          modules; "false"&#58; releases (no NPM snapshots); "only"&#58; only NPM snapshots
         enum: ["true","false","only"]
         required: false
-        default: true
+        default: "true"
     body:
       application/json:
         type: ModuleList
@@ -459,12 +463,12 @@ types:
         description: Whether to allow pre-release modules in dependency check
         enum: ["true","false","only"]
         required: false
-        default: true
+        default: "true"
       npmSnapshot:
         description: Whether to allow NPM module snapshots in dependency check
         enum: ["true","false","only"]
         required: false
-        default: true
+        default: "true"
     body:
       application/json:
         type: ModuleDescriptor
@@ -513,7 +517,7 @@ types:
         description: Whether to include NPM module snapshots
         enum: ["true","false","only"]
         required: false
-        default: true
+        default: "true"
       order:
         description: Order
         enum: [desc, asc]
@@ -526,7 +530,7 @@ types:
         description: Whether to include modules with pre-release info
         enum: ["true","false","only"]
         required: false
-        default: true
+        default: "true"
       provide:
         description: Limit to provided interfaces (each interface name separated by comma)
         type: string
@@ -736,7 +740,7 @@ types:
             description: Whether to include NPM module snapshots
             enum: ["true","false","only"]
             required: false
-            default: true
+            default: "true"
           order:
             description: Order
             enum: [desc, asc]
@@ -749,7 +753,7 @@ types:
             description: Whether to include modules with pre-release info
             enum: ["true","false","only"]
             required: false
-            default: true
+            default: "true"
           provide:
             description: Limit to provided interfaces (each interface name separated by comma)
             type: string
@@ -1019,12 +1023,12 @@ types:
             description: Whether to include NPM module snapshots.
             enum: ["true","false","only"]
             required: false
-            default: true
+            default: "true"
           preRelease:
             description: Whether pre-releases should be considered for installation.
             enum: ["true","false","only"]
             required: false
-            default: true
+            default: "true"
           purge:
             description: Disabled modules will also be purged.
             type: boolean
