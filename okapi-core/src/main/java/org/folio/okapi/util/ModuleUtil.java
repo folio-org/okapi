@@ -57,7 +57,8 @@ public final class ModuleUtil {
     } else if ("only".equals(v)) {
       return Optional.of(true);
     }
-    throw new DecodeException("Bad boolean for parameter " + name + ": " + v);
+    throw new DecodeException("Expected \"true\", \"false\", \"only\" or undefined/null "
+        + "for parameter " + name + ", but got: " + v);
   }
 
   /**

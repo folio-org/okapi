@@ -279,6 +279,10 @@ class ModuleUtilTest {
     assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isEqualTo(Optional.of(false));
     params.set("n", "only");
     assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isEqualTo(Optional.of(true));
+
+    params.set("n", "foo");
+    String msg = assertThrows(DecodeException.class, () -> ModuleUtil.getParamVersionFilter(params, "n")).getMessage();
+    assertThat(msg).isEqualTo("Expected \"true\", \"false\", \"only\" or undefined/null for parameter n, but got: foo");
   }
 
   @Test
