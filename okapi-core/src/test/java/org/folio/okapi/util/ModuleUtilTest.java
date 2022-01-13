@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.testing.UtilityClassTester;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,8 +43,18 @@ class ModuleUtilTest {
   @Test
   void testFilterNone() {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    int sz = modulesList.size();
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(modulesList.size());
+    assertThat(sz).isEqualTo(res.size());
+  }
+
+  @Test
+  void testFilterOnly() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.add("npmSnapshot", "only");
+    params.add("preRelease", "only");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res).isEmpty();
   }
 
   @Test
@@ -255,4 +266,49 @@ class ModuleUtilTest {
     params.add("y", "bad");
     assertThrows(DecodeException.class, () -> ModuleUtil.getParamInteger(params, "y", 1));
   }
+
+  @Test
+  void testGetParamVersionFilter() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isNull();
+    params.set("n", "true");
+    assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isNull();
+    params.set("n", "false");
+    assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isFalse();
+    params.set("n", "only");
+    assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isTrue();
+  }
+
+  @Test
+  void testVersionFilterCheckRelease() {
+    ModuleId moduleId = new ModuleId("mod-1.0.0");
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, null, null)).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, false, false)).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, true)).isFalse();
+  }
+
+  @Test
+  void testVersionFilterCheckPreRelease() {
+    ModuleId moduleId = new ModuleId("mod-1.0.0-SNAPSHOT");
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, null, null)).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, false, null)).isFalse();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, false, false)).isFalse();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, false, true)).isFalse();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, null)).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, true)).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, false)).isTrue();
+  }
+
+  @Test
+  void testVersionFilterCheckNpmSnapshot() {
+    ModuleId moduleId = new ModuleId("mod-1.0.10000");
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, null, null)).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, null, false)).isFalse();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, false, false)).isFalse();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, false, true)).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, null)).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, true)).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, false)).isFalse();
+  }
+
 }

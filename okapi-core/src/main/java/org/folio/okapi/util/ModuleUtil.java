@@ -27,8 +27,8 @@ public final class ModuleUtil {
     TenantInstallOptions options = new TenantInstallOptions();
 
     options.setSimulate(getParamBoolean(params, "simulate", false));
-    options.setPreRelease(getParamBoolean(params, "preRelease", true));
-    options.setNpmSnapshot(getParamBoolean(params, "npmSnapshot", true));
+    options.setPreRelease(getParamVersionFilter(params, "preRelease"));
+    options.setNpmSnapshot(getParamVersionFilter(params, "npmSnapshot"));
     options.setDeploy(getParamBoolean(params, "deploy", false));
     options.setPurge(getParamBoolean(params, "purge", false));
     options.setTenantParameters(params.get("tenantParameters"));
@@ -37,6 +37,24 @@ public final class ModuleUtil {
     options.setIgnoreErrors(getParamBoolean(params, "ignoreErrors", false));
     options.setReinstall(getParamBoolean(params, "reinstall", false));
     return options;
+  }
+
+  /**
+   * Lookup boolean preRelease/npmSnapshot parameter in HTTP request.
+   * @param params HTTP server request parameters
+   * @param name name of query parameter
+   * @return boolean value (possibly null)
+   */
+  public static Boolean getParamVersionFilter(MultiMap params, String name) {
+    String v = params.get(name);
+    if (v == null || "true".equals(v)) {
+      return null;
+    } else if ("false".equals(v)) {
+      return false;
+    } else if ("only".equals(v)) {
+      return true;
+    }
+    throw new DecodeException("Bad boolean for parameter " + name + ": " + v);
   }
 
   /**
@@ -104,6 +122,25 @@ public final class ModuleUtil {
   }
 
   /**
+   * Check if module ID matches preRelease/npmSnapshot spec.
+   * @param idThis module ID
+   * @param preRelease whether preRelease (null means all)
+   * @param npmSnapshot whether npmSnapshot (null means all)
+   * @return true if module should be included; false it should be filtered away.
+   */
+  public static boolean versionFilterCheck(ModuleId idThis,
+      Boolean preRelease, Boolean npmSnapshot) {
+    if (idThis.hasPreRelease()) {
+      return preRelease == null || preRelease;
+    } else if (idThis.hasNpmSnapshot()) {
+      return npmSnapshot == null || npmSnapshot;
+    } else {
+      return ((npmSnapshot == null || !npmSnapshot) && (preRelease == null || !preRelease));
+    }
+  }
+
+
+  /**
    * Produce list of modules based on various filters.
    * @param params HTTP server request parameters
    * @param list list of modules to consider
@@ -123,8 +160,8 @@ public final class ModuleUtil {
     final String requireStr = params.get("require");
     final String orderByStr = params.get("orderBy");
     final String orderStr = params.get("order");
-    final boolean preRelease = getParamBoolean(params, "preRelease", true);
-    final boolean npmSnapshot = getParamBoolean(params, "npmSnapshot", true);
+    final Boolean preRelease = getParamVersionFilter(params, "preRelease");
+    final Boolean npmSnapshot = getParamVersionFilter(params, "npmSnapshot");
     final String scope = params.get("scope");
     if (!full) {
       full = getParamBoolean(params, "full", false);
@@ -135,8 +172,7 @@ public final class ModuleUtil {
       String id = md.getId();
       ModuleId idThis = new ModuleId(id);
       if ((filter != null && !idThis.hasPrefix(filter))
-          || (!npmSnapshot && idThis.hasNpmSnapshot())
-          || (!preRelease && idThis.hasPreRelease())
+          || !versionFilterCheck(idThis, preRelease, npmSnapshot)
           || !(interfaceCheck(md.getRequires(), requireStr, scope)
           || interfaceCheck(md.getOptional(), requireStr, scope))
           || !interfaceCheck(md.getProvides(), provideStr, scope)) {

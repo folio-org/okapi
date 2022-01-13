@@ -169,14 +169,14 @@ public class PullManager {
         }
       }
       logger.info("pull: {} MDs to insert", mustAddList.size());
-      return moduleManager.createList(mustAddList, true, true,true, true)
+      return moduleManager.createList(mustAddList, true, null,null, true)
           .map(briefList);
     });
   }
 
   Future<List<ModuleDescriptor>> pull(PullDescriptor pd) {
     return getRemoteUrl(Arrays.asList(pd.getUrls()))
-        .compose(resUrl -> moduleManager.getModulesWithFilter(true, true, null)
+        .compose(resUrl -> moduleManager.getModulesWithFilter(null, null, null)
             .compose(resLocal -> {
               final String remoteUrl = resUrl.get(0);
               final String remoteVersion = resUrl.get(1);

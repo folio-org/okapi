@@ -2,7 +2,7 @@ package org.folio.okapi.util;
 
 import org.folio.okapi.common.ErrorType;
 
-public class OkapiError extends Throwable {
+public class OkapiError extends RuntimeException {
   private final String msg;
   private final ErrorType type;
 

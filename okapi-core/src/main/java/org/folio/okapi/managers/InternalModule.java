@@ -982,8 +982,8 @@ public class InternalModule {
     try {
       MultiMap params = pc.getCtx().request().params();
       final boolean check = ModuleUtil.getParamBoolean(params, "check", true);
-      final boolean preRelease = ModuleUtil.getParamBoolean(params, "preRelease", true);
-      final boolean npmSnapshot = ModuleUtil.getParamBoolean(params, "npmSnapshot", true);
+      final Boolean preRelease = ModuleUtil.getParamVersionFilter(params, "preRelease");
+      final Boolean npmSnapshot = ModuleUtil.getParamVersionFilter(params, "npmSnapshot");
       for (ModuleDescriptor md : list) {
         String validerr = md.validate(logger);
         if (!validerr.isEmpty()) {
@@ -1041,7 +1041,7 @@ public class InternalModule {
       if (!body.isEmpty()) {
         skipModules = Json.decodeValue(body, skipModules.getClass());
       }
-      return moduleManager.getModulesWithFilter(true, true, Arrays.asList(skipModules))
+      return moduleManager.getModulesWithFilter(null, null, Arrays.asList(skipModules))
           .compose(mdl -> {
             try {
               MultiMap params = pc.getCtx().request().params();

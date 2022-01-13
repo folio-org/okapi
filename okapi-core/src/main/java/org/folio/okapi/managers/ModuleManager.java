@@ -84,8 +84,8 @@ public class ModuleManager {
    * @param removeIfMissingDep skip modules where dependency check fails
    * @return future
    */
-  public Future<Void> createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
-                                 boolean npmSnapshot, boolean removeIfMissingDep) {
+  public Future<Void> createList(List<ModuleDescriptor> list, boolean check, Boolean preRelease,
+                                 Boolean npmSnapshot, boolean removeIfMissingDep) {
     return getModulesWithFilter(preRelease, npmSnapshot, null).compose(ares -> {
       Map<String, ModuleDescriptor> tempList = new HashMap<>();
       for (ModuleDescriptor md : ares) {
@@ -227,20 +227,22 @@ public class ModuleManager {
     });
   }
 
-  Future<List<ModuleDescriptor>> getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
-                                                      List<String> skipModules) {
+  Future<List<ModuleDescriptor>> getModulesWithFilter(Boolean preRelease, Boolean npmSnapshot,
+      List<String> skipModules) {
 
     Set<String> skipIds = new TreeSet<>();
     if (skipModules != null) {
       skipIds.addAll(skipModules);
     }
+    logger.info("AD: getModulesWithFilter preRelease={} npmSnapshot={}", preRelease, npmSnapshot);
+    if (Boolean.TRUE.equals(preRelease)) {
+      throw new OkapiError(ErrorType.INTERNAL, "preRelease=true");
+    }
     return modules.getAll().compose(kres -> {
       List<ModuleDescriptor> mdl = new LinkedList<>();
       for (ModuleDescriptor md : kres.values()) {
         String id = md.getId();
-        ModuleId idThis = new ModuleId(id);
-        if ((npmSnapshot || !idThis.hasNpmSnapshot())
-            && (preRelease || !idThis.hasPreRelease())
+        if (ModuleUtil.versionFilterCheck(new ModuleId(id), preRelease, npmSnapshot)
             && !skipIds.contains(id)) {
           mdl.add(md);
         }

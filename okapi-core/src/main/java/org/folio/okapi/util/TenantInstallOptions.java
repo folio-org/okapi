@@ -2,23 +2,23 @@ package org.folio.okapi.util;
 
 public class TenantInstallOptions {
 
-  private boolean preRelease = false;
+  private Boolean preRelease = null;
   private boolean simulate = false;
   private boolean deploy = false;
   private boolean purge = false;
   private String tenantParameters;
-  private boolean npmSnapshot = false;
+  private Boolean npmSnapshot = null;
   private boolean depCheck = true;
   private String invoke;
   private boolean async = false;
   private boolean ignoreErrors = false;
   private boolean reinstall = false;
 
-  public void setPreRelease(boolean v) {
+  public void setPreRelease(Boolean v) {
     preRelease = v;
   }
 
-  public boolean getPreRelease() {
+  public Boolean getPreRelease() {
     return preRelease;
   }
 
@@ -54,11 +54,11 @@ public class TenantInstallOptions {
     return tenantParameters;
   }
 
-  public void setNpmSnapshot(boolean v) {
+  public void setNpmSnapshot(Boolean v) {
     npmSnapshot = v;
   }
 
-  public boolean getNpmSnapshot() {
+  public Boolean getNpmSnapshot() {
     return npmSnapshot;
   }
 
