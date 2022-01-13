@@ -285,6 +285,8 @@ class ModuleUtilTest {
   void testVersionFilterCheckRelease() {
     ModuleId moduleId = new ModuleId("mod-1.0.0");
     assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.empty(), Optional.empty())).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(false), Optional.empty())).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.empty(), Optional.of(false))).isTrue();
     assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(false), Optional.of(false))).isTrue();
     assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(true), Optional.of(true))).isFalse();
   }

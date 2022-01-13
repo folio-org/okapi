@@ -80,6 +80,19 @@ public class ModuleManager {
    *
    * @param list list of modules
    * @param check whether to check dependencies
+   * @param removeIfMissingDep skip modules where dependency check fails
+   * @return future
+   */
+  public Future<Void> createList(List<ModuleDescriptor> list, boolean check,
+      boolean removeIfMissingDep) {
+    return createList(list, check, Optional.empty(), Optional.empty(), removeIfMissingDep);
+  }
+
+  /**
+   * Create a list of modules.
+   *
+   * @param list list of modules
+   * @param check whether to check dependencies
    * @param preRelease whether to allow pre-releasee
    * @param npmSnapshot whether to allow npm-snapshot
    * @param removeIfMissingDep skip modules where dependency check fails

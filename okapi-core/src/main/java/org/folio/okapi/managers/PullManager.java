@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import org.apache.logging.log4j.Logger;
@@ -169,14 +170,15 @@ public class PullManager {
         }
       }
       logger.info("pull: {} MDs to insert", mustAddList.size());
-      return moduleManager.createList(mustAddList, true, null,null, true)
+      return moduleManager.createList(mustAddList, true, true)
           .map(briefList);
     });
   }
 
   Future<List<ModuleDescriptor>> pull(PullDescriptor pd) {
     return getRemoteUrl(Arrays.asList(pd.getUrls()))
-        .compose(resUrl -> moduleManager.getModulesWithFilter(null, null, null)
+        .compose(resUrl -> moduleManager.getModulesWithFilter(Optional.empty(),
+                Optional.empty(), null)
             .compose(resLocal -> {
               final String remoteUrl = resUrl.get(0);
               final String remoteVersion = resUrl.get(1);

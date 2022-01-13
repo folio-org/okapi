@@ -1042,7 +1042,8 @@ public class InternalModule {
       if (!body.isEmpty()) {
         skipModules = Json.decodeValue(body, skipModules.getClass());
       }
-      return moduleManager.getModulesWithFilter(null, null, Arrays.asList(skipModules))
+      return moduleManager.getModulesWithFilter(Optional.empty(), Optional.empty(),
+              Arrays.asList(skipModules))
           .compose(mdl -> {
             try {
               MultiMap params = pc.getCtx().request().params();
