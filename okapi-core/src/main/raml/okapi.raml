@@ -29,6 +29,24 @@ types:
   Permission: !include Permission.json
   PullDescriptor: !include PullDescriptor.json
 
+traits:
+  versionFilters:
+    queryParameters:
+      preRelease:
+        description:
+          Whether to use pre-release in operation. "true"&#58; use all
+          modules; "false"&#58; releases (no pre-releases); "only"&#58; only pre-releases
+        enum: ["true","false","only"]
+        required: false
+        default: "true"
+      npmSnapshot:
+        description:
+          Whether to use NPM module snapshots in operation. "true"&#58; use all
+          modules; "false"&#58; releases (no NPM snapshots); "only"&#58; only NPM snapshots
+        enum: ["true","false","only"]
+        required: false
+        default: "true"
+
 /_/deployment/modules:
   description: |
     Deployment service. This is responsible for starting and stopping modules.
@@ -362,6 +380,9 @@ types:
 /_/proxy/import/modules:
   description: Proxy modules service, list import
   post:
+    is: [
+      versionFilters
+    ]
     description: Announce a list of new modules to the proxy. Once successful a module
       can be selected for a specific tenant. To announce only one module you may use
       /_/proxy/modules.
@@ -371,20 +392,6 @@ types:
         type: boolean
         required: false
         default: true
-      preRelease:
-        description:
-          Whether to allow pre-release modules in dependency check. "true"&#58; include all
-          modules; "false"&#58; releases (no pre-releases); "only"&#58; only pre-releases
-        enum: ["true","false","only"]
-        required: false
-        default: "true"
-      npmSnapshot:
-        description:
-          Whether to allow NPM module snapshots in dependency check. "true"&#58; include all
-          modules; "false"&#58; releases (no NPM snapshots); "only"&#58; only NPM snapshots
-        enum: ["true","false","only"]
-        required: false
-        default: "true"
     body:
       application/json:
         type: ModuleList
@@ -451,6 +458,9 @@ types:
 /_/proxy/modules:
   description: Proxy modules service
   post:
+    is: [
+      versionFilters
+    ]
     description: Announce new module to the proxy. Once successful a module
       can be selected for a specific tenant.
     queryParameters:
@@ -459,16 +469,6 @@ types:
         type: boolean
         required: false
         default: true
-      preRelease:
-        description: Whether to allow pre-release modules in dependency check
-        enum: ["true","false","only"]
-        required: false
-        default: "true"
-      npmSnapshot:
-        description: Whether to allow NPM module snapshots in dependency check
-        enum: ["true","false","only"]
-        required: false
-        default: "true"
     body:
       application/json:
         type: ModuleDescriptor
@@ -493,6 +493,9 @@ types:
         body:
           text/plain:
   get:
+    is: [
+      versionFilters
+    ]
     description: List all or subset of modules for proxy
     queryParameters:
       dot:
@@ -513,11 +516,6 @@ types:
         description: Limit to latest N releases (most likely 1 if given)
         type: integer
         required: false
-      npmSnapshot:
-        description: Whether to include NPM module snapshots
-        enum: ["true","false","only"]
-        required: false
-        default: "true"
       order:
         description: Order
         enum: [desc, asc]
@@ -526,11 +524,6 @@ types:
         description: Order by field
         type: string
         required: false
-      preRelease:
-        description: Whether to include modules with pre-release info
-        enum: ["true","false","only"]
-        required: false
-        default: "true"
       provide:
         description: Limit to provided interfaces (each interface name separated by comma)
         type: string
@@ -716,6 +709,9 @@ types:
             body:
               text/plain:
       get:
+        is: [
+          versionFilters
+        ]
         description: Get enabled modules for tenant
         queryParameters:
           dot:
@@ -736,11 +732,6 @@ types:
             description: Limit to latest N releases (most likely 1 if given)
             type: integer
             required: false
-          npmSnapshot:
-            description: Whether to include NPM module snapshots
-            enum: ["true","false","only"]
-            required: false
-            default: "true"
           order:
             description: Order
             enum: [desc, asc]
@@ -749,11 +740,6 @@ types:
             description: Order by field
             type: string
             required: false
-          preRelease:
-            description: Whether to include modules with pre-release info
-            enum: ["true","false","only"]
-            required: false
-            default: "true"
           provide:
             description: Limit to provided interfaces (each interface name separated by comma)
             type: string
@@ -975,6 +961,9 @@ types:
             body:
               text/plain:
       post:
+        is: [
+          versionFilters
+        ]
         description: Enable, disable or upgrade one or more modules for
           tenant. The request body and response body is of the same type
           TenantModuleDescriptorList. This list includes one or more
@@ -1017,16 +1006,6 @@ types:
               is a regular expression that is matched against the module ID.
               If that pattern matches, invoke is performed (same as "true)".
             type: string
-            required: false
-            default: "true"
-          npmSnapshot:
-            description: Whether to include NPM module snapshots.
-            enum: ["true","false","only"]
-            required: false
-            default: "true"
-          preRelease:
-            description: Whether pre-releases should be considered for installation.
-            enum: ["true","false","only"]
             required: false
             default: "true"
           purge:
