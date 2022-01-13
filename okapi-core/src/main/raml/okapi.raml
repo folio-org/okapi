@@ -373,12 +373,12 @@ types:
         default: true
       preRelease:
         description: Whether to allow pre-release modules in dependency check
-        enum: [true,false,only]
+        enum: ["true","false","only"]
         required: false
         default: true
       npmSnapshot:
         description: Whether to allow NPM module snapshots in dependency check
-        enum: [true,false,only]
+        enum: ["true","false","only"]
         required: false
         default: true
     body:
@@ -457,12 +457,12 @@ types:
         default: true
       preRelease:
         description: Whether to allow pre-release modules in dependency check
-        enum: [true,false,only]
+        enum: ["true","false","only"]
         required: false
         default: true
       npmSnapshot:
         description: Whether to allow NPM module snapshots in dependency check
-        enum: [true,false,only]
+        enum: ["true","false","only"]
         required: false
         default: true
     body:
@@ -511,7 +511,7 @@ types:
         required: false
       npmSnapshot:
         description: Whether to include NPM module snapshots
-        enum: [true,false,only]
+        enum: ["true","false","only"]
         required: false
         default: true
       order:
@@ -524,7 +524,7 @@ types:
         required: false
       preRelease:
         description: Whether to include modules with pre-release info
-        enum: [true,false,only]
+        enum: ["true","false","only"]
         required: false
         default: true
       provide:
@@ -734,7 +734,7 @@ types:
             required: false
           npmSnapshot:
             description: Whether to include NPM module snapshots
-            enum: [true,false,only]
+            enum: ["true","false","only"]
             required: false
             default: true
           order:
@@ -747,7 +747,7 @@ types:
             required: false
           preRelease:
             description: Whether to include modules with pre-release info
-            enum: [true,false,only]
+            enum: ["true","false","only"]
             required: false
             default: true
           provide:
@@ -1017,12 +1017,12 @@ types:
             default: "true"
           npmSnapshot:
             description: Whether to include NPM module snapshots.
-            enum: [true,false,only]
+            enum: ["true","false","only"]
             required: false
             default: true
           preRelease:
             description: Whether pre-releases should be considered for installation.
-            enum: [true,false,only]
+            enum: ["true","false","only"]
             required: false
             default: true
           purge:
