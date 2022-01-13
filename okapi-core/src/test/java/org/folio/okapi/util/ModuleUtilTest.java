@@ -8,6 +8,8 @@ import io.vertx.core.json.JsonArray;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
+
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.testing.UtilityClassTester;
@@ -270,45 +272,45 @@ class ModuleUtilTest {
   @Test
   void testGetParamVersionFilter() {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
-    assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isNull();
+    assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isEmpty();
     params.set("n", "true");
-    assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isNull();
+    assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isEmpty();
     params.set("n", "false");
-    assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isFalse();
+    assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isEqualTo(Optional.of(false));
     params.set("n", "only");
-    assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isTrue();
+    assertThat(ModuleUtil.getParamVersionFilter(params, "n")).isEqualTo(Optional.of(true));
   }
 
   @Test
   void testVersionFilterCheckRelease() {
     ModuleId moduleId = new ModuleId("mod-1.0.0");
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, null, null)).isTrue();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, false, false)).isTrue();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, true)).isFalse();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.empty(), Optional.empty())).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(false), Optional.of(false))).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(true), Optional.of(true))).isFalse();
   }
 
   @Test
   void testVersionFilterCheckPreRelease() {
     ModuleId moduleId = new ModuleId("mod-1.0.0-SNAPSHOT");
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, null, null)).isTrue();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, false, null)).isFalse();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, false, false)).isFalse();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, false, true)).isFalse();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, null)).isTrue();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, true)).isTrue();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, false)).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.empty(), Optional.empty())).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(false), Optional.empty())).isFalse();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(false), Optional.of(false))).isFalse();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(false), Optional.of(true))).isFalse();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(true), Optional.empty())).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(true), Optional.of(true))).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(true), Optional.of(false))).isTrue();
   }
 
   @Test
   void testVersionFilterCheckNpmSnapshot() {
     ModuleId moduleId = new ModuleId("mod-1.0.10000");
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, null, null)).isTrue();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, null, false)).isFalse();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, false, false)).isFalse();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, false, true)).isTrue();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, null)).isTrue();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, true)).isTrue();
-    assertThat(ModuleUtil.versionFilterCheck(moduleId, true, false)).isFalse();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.empty(), Optional.empty())).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.empty(), Optional.of(false))).isFalse();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(false), Optional.of(false))).isFalse();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(false), Optional.of(true))).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(true), Optional.empty())).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(true), Optional.of(true))).isTrue();
+    assertThat(ModuleUtil.versionFilterCheck(moduleId, Optional.of(true), Optional.of(false))).isFalse();
   }
 
 }

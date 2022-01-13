@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import org.apache.logging.log4j.Logger;
@@ -84,8 +85,9 @@ public class ModuleManager {
    * @param removeIfMissingDep skip modules where dependency check fails
    * @return future
    */
-  public Future<Void> createList(List<ModuleDescriptor> list, boolean check, Boolean preRelease,
-                                 Boolean npmSnapshot, boolean removeIfMissingDep) {
+  public Future<Void> createList(List<ModuleDescriptor> list, boolean check,
+      Optional<Boolean> preRelease, Optional<Boolean> npmSnapshot,
+      boolean removeIfMissingDep) {
     return getModulesWithFilter(preRelease, npmSnapshot, null).compose(ares -> {
       Map<String, ModuleDescriptor> tempList = new HashMap<>();
       for (ModuleDescriptor md : ares) {
@@ -227,15 +229,12 @@ public class ModuleManager {
     });
   }
 
-  Future<List<ModuleDescriptor>> getModulesWithFilter(Boolean preRelease, Boolean npmSnapshot,
-      List<String> skipModules) {
+  Future<List<ModuleDescriptor>> getModulesWithFilter(Optional<Boolean> preRelease,
+      Optional<Boolean> npmSnapshot, List<String> skipModules) {
 
     Set<String> skipIds = new TreeSet<>();
     if (skipModules != null) {
       skipIds.addAll(skipModules);
-    }
-    if (Boolean.TRUE.equals(preRelease)) {
-      throw new OkapiError(ErrorType.INTERNAL, "preRelease=true");
     }
     return modules.getAll().compose(kres -> {
       List<ModuleDescriptor> mdl = new LinkedList<>();

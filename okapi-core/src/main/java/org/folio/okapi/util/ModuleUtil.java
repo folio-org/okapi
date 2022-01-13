@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.Messages;
@@ -43,16 +44,16 @@ public final class ModuleUtil {
    * Lookup boolean preRelease/npmSnapshot parameter in HTTP request.
    * @param params HTTP server request parameters
    * @param name name of query parameter
-   * @return boolean value (possibly null)
+   * @return boolean value (possibly empty)
    */
-  public static Boolean getParamVersionFilter(MultiMap params, String name) {
+  public static Optional<Boolean> getParamVersionFilter(MultiMap params, String name) {
     String v = params.get(name);
     if (v == null || "true".equals(v)) {
-      return null;
+      return Optional.empty();
     } else if ("false".equals(v)) {
-      return false;
+      return Optional.of(false);
     } else if ("only".equals(v)) {
-      return true;
+      return Optional.of(true);
     }
     throw new DecodeException("Bad boolean for parameter " + name + ": " + v);
   }
@@ -129,13 +130,14 @@ public final class ModuleUtil {
    * @return true if module should be included; false it should be filtered away.
    */
   public static boolean versionFilterCheck(ModuleId idThis,
-      Boolean preRelease, Boolean npmSnapshot) {
+      Optional<Boolean> preRelease, Optional<Boolean> npmSnapshot) {
     if (idThis.hasPreRelease()) {
-      return preRelease == null || preRelease;
+      return preRelease.isEmpty() || preRelease.get();
     } else if (idThis.hasNpmSnapshot()) {
-      return npmSnapshot == null || npmSnapshot;
+      return npmSnapshot.isEmpty() || npmSnapshot.get();
     } else {
-      return ((npmSnapshot == null || !npmSnapshot) && (preRelease == null || !preRelease));
+      return ((npmSnapshot.isEmpty() || !npmSnapshot.get())
+          && (preRelease.isEmpty() || !preRelease.get()));
     }
   }
 
@@ -160,8 +162,8 @@ public final class ModuleUtil {
     final String requireStr = params.get("require");
     final String orderByStr = params.get("orderBy");
     final String orderStr = params.get("order");
-    final Boolean preRelease = getParamVersionFilter(params, "preRelease");
-    final Boolean npmSnapshot = getParamVersionFilter(params, "npmSnapshot");
+    final Optional<Boolean> preRelease = getParamVersionFilter(params, "preRelease");
+    final Optional<Boolean> npmSnapshot = getParamVersionFilter(params, "npmSnapshot");
     final String scope = params.get("scope");
     if (!full) {
       full = getParamBoolean(params, "full", false);

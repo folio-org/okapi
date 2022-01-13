@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.logging.log4j.Logger;
@@ -982,8 +983,8 @@ public class InternalModule {
     try {
       MultiMap params = pc.getCtx().request().params();
       final boolean check = ModuleUtil.getParamBoolean(params, "check", true);
-      final Boolean preRelease = ModuleUtil.getParamVersionFilter(params, "preRelease");
-      final Boolean npmSnapshot = ModuleUtil.getParamVersionFilter(params, "npmSnapshot");
+      final Optional<Boolean> preRelease = ModuleUtil.getParamVersionFilter(params, "preRelease");
+      final Optional<Boolean> npmSnapshot = ModuleUtil.getParamVersionFilter(params, "npmSnapshot");
       for (ModuleDescriptor md : list) {
         String validerr = md.validate(logger);
         if (!validerr.isEmpty()) {
