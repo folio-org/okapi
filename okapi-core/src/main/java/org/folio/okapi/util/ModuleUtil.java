@@ -44,7 +44,8 @@ public final class ModuleUtil {
    * Lookup boolean preRelease/npmSnapshot parameter in HTTP request.
    * @param params HTTP server request parameters
    * @param name name of query parameter
-   * @return returns false for "false", true for "only", and Optional.empty() for "true" and null/undefined
+   * @return returns false for "false", true for "only", and
+   *     Optional.empty() for "true" and null/undefined
    * @throws DecodeException on invalid value
    */
   public static Optional<Boolean> getParamVersionFilter(MultiMap params, String name) {
