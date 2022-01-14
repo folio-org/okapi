@@ -29,6 +29,96 @@ public final class DepResolution {
     throw new UnsupportedOperationException("DepResolution");
   }
 
+  /**
+   * Test required dependencies for a set of modules.
+   * @param available existing set of modules to check
+   * @return empty string if all OK; error message otherwise
+   */
+  public static String checkAvailable(Map<String, ModuleDescriptor> available) {
+    Collection<ModuleDescriptor> testList = available.values();
+    return checkAvailable(testList, testList, false);
+  }
+
+  /**
+   * Test required dependencies for a set of modules against an existing set.
+   * @param available existing set of modules
+   * @param testList modules whose dependencies we want to check
+   * @param removeIfMissingDep remove from testList if dependency check fails
+   * @return empty string if all OK; error message otherwise
+   */
+  public static String checkAvailable(Collection<ModuleDescriptor> available,
+      Collection<ModuleDescriptor> testList, boolean removeIfMissingDep) {
+
+    Map<String, List<InterfaceDescriptor>> ints = getProvidedInterfaces(available);
+    List<String> list = new LinkedList<>();
+
+    Iterator<ModuleDescriptor> iterator = testList.iterator();
+    while (iterator.hasNext()) {
+      ModuleDescriptor md = iterator.next();
+      List<String> res = checkDependenciesInts(md, available, ints);
+      if (!res.isEmpty()) {
+        if (removeIfMissingDep) {
+          available.remove(md);
+          ints = getProvidedInterfaces(available);
+          iterator.remove();
+          iterator = testList.iterator();
+        } else {
+          list.addAll(res);
+        }
+      }
+    }
+    if (list.isEmpty()) {
+      return "";
+    } else {
+      return String.join("\n", list);
+    }
+  }
+
+  /**
+   * Test interfaces for a set of enabled modules.
+   * @param modsEnabled enabled modules
+   * @return list of errors ; empty list if not error(s)
+   */
+  public static List<String> checkEnabled(Map<String, ModuleDescriptor> modsEnabled) {
+    return interfaceCheck(modsEnabled, modsEnabled, Collections.emptyList(), false,
+        new HashSet<>());
+  }
+
+  /**
+   * Install modules with dependency checking only.
+   * @param modsAvailable available modules
+   * @param modsEnabled enabled modules (for some tenant)
+   * @param tml install list with actions
+   * @param reinstall whether to re-install
+   */
+  public static void install(Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
+      boolean reinstall) {
+    installMaxIterations(modsAvailable, modsEnabled, tml, reinstall, 100);
+  }
+
+  /**
+   * Return top-N set of modules - in order of module ID.
+   * @param limit max number for each module (Top-N)
+   * @param mdl modules to consider (will be modified!)
+   */
+  public static void getLatestProducts(int limit, List<ModuleDescriptor> mdl) {
+    mdl.sort(Collections.reverseOrder());
+    Iterator<ModuleDescriptor> it = mdl.listIterator();
+    String product = "";
+    int no = 0;
+    while (it.hasNext()) {
+      ModuleDescriptor md = it.next();
+      if (!product.equals(md.getProduct())) {
+        product = md.getProduct();
+        no = 0;
+      } else if (no >= limit) {
+        it.remove();
+      }
+      no++;
+    }
+  }
+
   static boolean moduleDepProvided(List<ModuleDescriptor> modules, ModuleDescriptor md) {
     List<InterfaceDescriptor> requiresOptionalList = md.getRequiresOptionalList();
     for (InterfaceDescriptor req : requiresOptionalList) {
@@ -64,10 +154,7 @@ public final class DepResolution {
         }
       }
     }
-    if (!modules.isEmpty()) {
-      logger.info("Unsorted modules because dependencies failed {}",
-          modules.stream().map(ModuleDescriptor::getId).collect(Collectors.joining(", ")));
-    }
+    // add remaining result to modules (such as modules with optional interfaces requirements
     modules.addAll(0, result);
   }
 
@@ -186,77 +273,6 @@ public final class DepResolution {
     return ints;
   }
 
-  /**
-   * Test required dependencies for a set of modules against an existing set.
-   * @param available existing set of modules
-   * @param testList modules whose dependencies we want to check
-   * @param removeIfMissingDep remove from testList if dependency check fails
-   * @return empty string if all OK; error message otherwise
-   */
-  public static String checkDependencies(Collection<ModuleDescriptor> available,
-                                         Collection<ModuleDescriptor> testList,
-                                         boolean removeIfMissingDep) {
-    Map<String, List<InterfaceDescriptor>> ints = getProvidedInterfaces(available);
-    List<String> list = new LinkedList<>();
-
-    Iterator<ModuleDescriptor> iterator = testList.iterator();
-    while (iterator.hasNext()) {
-      ModuleDescriptor md = iterator.next();
-      List<String> res = checkDependenciesInts(md, available, ints);
-      if (!res.isEmpty()) {
-        if (removeIfMissingDep) {
-          available.remove(md);
-          ints = getProvidedInterfaces(available);
-          iterator.remove();
-          iterator = testList.iterator();
-        } else {
-          list.addAll(res);
-        }
-      }
-    }
-    if (list.isEmpty()) {
-      return "";
-    } else {
-      return String.join("\n", list);
-    }
-  }
-
-  /**
-   * Test required dependencies for a set of modules.
-   * @param available existing set of modules to check
-   * @return empty string if all OK; error message otherwise
-   */
-  public static String checkAllDependencies(Map<String, ModuleDescriptor> available) {
-    Collection<ModuleDescriptor> testList = available.values();
-    return checkDependencies(testList, testList, false);
-  }
-
-  /**
-   * Check a module list for conflicts.
-   *
-   * @param modlist modules to be checked
-   * @return error message listing conflicts, or "" if no problems
-   */
-  public static String checkAllConflicts(Map<String, ModuleDescriptor> modlist) {
-    Map<String, String> provs = new HashMap<>(); // interface name to module name
-    List<String> conflicts = new LinkedList<>();
-    for (ModuleDescriptor md : modlist.values()) {
-      InterfaceDescriptor[] provides = md.getProvidesList();
-      for (InterfaceDescriptor mi : provides) {
-        if (mi.isRegularHandler()) {
-          String confl = provs.get(mi.getId());
-          if (confl == null) {
-            provs.put(mi.getId(), md.getId());
-          } else {
-            String msg = messages.getMessage("10202", mi.getId(), md.getId(), confl);
-            conflicts.add(msg);
-          }
-        }
-      }
-    }
-    return String.join(" ", conflicts);
-  }
-
   static class ModuleInterface {
     final ModuleDescriptor moduleDescriptor;
     final InterfaceDescriptor interfaceDescriptor;
@@ -266,6 +282,7 @@ public final class DepResolution {
       this.interfaceDescriptor = id;
     }
   }
+
 
   private static void sortTenantModules(List<TenantModuleDescriptor> tml,
       Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled) {
@@ -303,8 +320,8 @@ public final class DepResolution {
 
     List<TenantModuleDescriptor> tml2 = new ArrayList<>();
 
-    Iterator<ModuleDescriptor> moduleIterator = sortedList.descendingIterator();
     // go through disabled modules
+    Iterator<ModuleDescriptor> moduleIterator = sortedList.descendingIterator();
     while (moduleIterator.hasNext()) {
       ModuleDescriptor md = moduleIterator.next();
       Iterator<TenantModuleDescriptor> iterator = tml.iterator();
@@ -361,7 +378,7 @@ public final class DepResolution {
     tml.add(tm);
   }
 
-  private static List<String> interfaceCheck(Map<String, ModuleDescriptor> modsAvailable,
+  static List<String> interfaceCheck(Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml, boolean fix,
       Set<String> stickyModules) {
 
@@ -456,13 +473,12 @@ public final class DepResolution {
                 modsEnabled.put(mdFound.getId(), mdFound);
                 addTenantModule(tml, mdFound.getId(), null, TenantModuleDescriptor.Action.enable);
                 stickyModules.add(mdFound.getId());
-                return true;
               } else {
                 logger.info("Removing {}", id);
                 modsEnabled.remove(id);
                 addTenantModule(tml, id, null, TenantModuleDescriptor.Action.disable);
-                return true;
               }
+              return true;
             }
           }
           errors.add(messages.getMessage("10211", entry.getKey(), req.moduleDescriptor.getId()));
@@ -553,18 +569,6 @@ public final class DepResolution {
     return false;
   }
 
-  /**
-   * Install modules with dependency checking only.
-   * @param modsAvailable available modules
-   * @param modsEnabled enabled modules (for some tenant)
-   * @param tml install list with actions
-   * @param reinstall whether to re-install
-   */
-  public static void installSimulate(Map<String, ModuleDescriptor> modsAvailable,
-      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-      boolean reinstall) {
-    installSimulate(modsAvailable, modsEnabled, tml, reinstall, 100);
-  }
 
   /**
    * Install modules with dependency checking only.
@@ -574,7 +578,7 @@ public final class DepResolution {
    * @param reinstall whether to re-install
    * @param maxIterations how many iterations to allow fixup of list.
    */
-  public static void installSimulate(Map<String, ModuleDescriptor> modsAvailable,
+  static void installMaxIterations(Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
       boolean reinstall, int maxIterations) {
 
@@ -670,25 +674,4 @@ public final class DepResolution {
     return productMd;
   }
 
-  /**
-   * Return top-N set of modules - in order of module ID.
-   * @param limit max number for each module (Top-N)
-   * @param mdl modules to consider (will be modified!)
-   */
-  public static void getLatestProducts(int limit, List<ModuleDescriptor> mdl) {
-    mdl.sort(Collections.reverseOrder());
-    Iterator<ModuleDescriptor> it = mdl.listIterator();
-    String product = "";
-    int no = 0;
-    while (it.hasNext()) {
-      ModuleDescriptor md = it.next();
-      if (!product.equals(md.getProduct())) {
-        product = md.getProduct();
-        no = 0;
-      } else if (no >= limit) {
-        it.remove();
-      }
-      no++;
-    }
-  }
 }

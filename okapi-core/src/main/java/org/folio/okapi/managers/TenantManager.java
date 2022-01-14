@@ -233,8 +233,8 @@ public class TenantManager implements Liveness {
       mods.put(md.getId(), md);
     }
     if (modTo == null) {
-      String deps = DepResolution.checkAllDependencies(mods);
-      if (!deps.isEmpty()) {
+      List<String> errors = DepResolution.checkEnabled(mods);
+      if (!errors.isEmpty()) {
         return Future.succeededFuture(); // failures even before we remove a module
       }
     }
@@ -249,10 +249,10 @@ public class TenantManager implements Liveness {
       }
       mods.put(modTo.getId(), modTo);
     }
-    String conflicts = DepResolution.checkAllConflicts(mods);
-    String deps = DepResolution.checkAllDependencies(mods);
-    if (!conflicts.isEmpty() || !deps.isEmpty()) {
-      return Future.failedFuture(new OkapiError(ErrorType.USER, conflicts + " " + deps));
+
+    List<String> errors = DepResolution.checkEnabled(mods);
+    if (!errors.isEmpty()) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, String.join(". ", errors)));
     }
     return Future.succeededFuture();
   }
@@ -925,7 +925,7 @@ public class TenantManager implements Liveness {
       Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     List<TenantModuleDescriptor> tml = job.getModules();
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, options.getReinstall());
+    DepResolution.install(modsAvailable, modsEnabled, tml, options.getReinstall());
     if (options.getSimulate()) {
       return Future.succeededFuture(tml);
     }
