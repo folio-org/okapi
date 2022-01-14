@@ -2852,6 +2852,9 @@ before 4.10.0.
 * `enable_system_auth`: Controls whether Okapi checks token by calling Auth module
 when invoking system interfaces such as `_tenant`.
 The value is a boolean - `true` for enable, `false` for disable.  Default is `true`.
+* `kube_config`: Filename/resource which is the Kubernetes configuration
+to use for Kubernetes integration. If unset, no Kubernetes integration is
+disabled (default).
 
 #### Command
 

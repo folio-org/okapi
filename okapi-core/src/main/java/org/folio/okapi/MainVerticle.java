@@ -32,6 +32,7 @@ import org.folio.okapi.managers.DiscoveryManager;
 import org.folio.okapi.managers.EnvManager;
 import org.folio.okapi.managers.HealthManager;
 import org.folio.okapi.managers.InternalModule;
+import org.folio.okapi.managers.KubernetesManager;
 import org.folio.okapi.managers.ModuleManager;
 import org.folio.okapi.managers.ProxyService;
 import org.folio.okapi.managers.PullManager;
@@ -62,6 +63,7 @@ public class MainVerticle extends AbstractVerticle {
   private DiscoveryManager discoveryManager;
   private ClusterManager clusterManager;
   private HealthManager healthManager;
+  private KubernetesManager kubernetesManager;
   private Storage storage;
   private Storage.InitMode initMode = InitMode.NORMAL;
   private int port;
@@ -79,7 +81,6 @@ public class MainVerticle extends AbstractVerticle {
     ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-core");
     okapiVersion = m.getVersion();
     m.logStart();
-
 
     boolean enableDeployment = false;
 
@@ -158,6 +159,7 @@ public class MainVerticle extends AbstractVerticle {
         }
       }));
     }
+    kubernetesManager = new KubernetesManager(config);
     if (enableProxy) {
       ModuleStore moduleStore = storage.getModuleStore();
       moduleManager = new ModuleManager(moduleStore, false);
@@ -207,6 +209,7 @@ public class MainVerticle extends AbstractVerticle {
             logger.warn("event bus check failed {}", cause.getMessage());
             return Future.succeededFuture();
           }));
+      fut = fut.compose(x -> kubernetesManager.init(vertx));
       fut = fut.compose(x -> startModuleManager());
       fut = fut.compose(x -> startTenants());
       fut = fut.compose(x -> checkInternalModules());
