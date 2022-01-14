@@ -1,27 +1,24 @@
 package org.folio.okapi.util;
 
-import java.util.Optional;
-
 public class TenantInstallOptions {
 
-  private Optional<Boolean> preRelease = Optional.empty();
+  private ModuleVersionFilter moduleVersionFilter = new ModuleVersionFilter();
   private boolean simulate = false;
   private boolean deploy = false;
   private boolean purge = false;
   private String tenantParameters;
-  private Optional<Boolean> npmSnapshot = Optional.empty();
   private boolean depCheck = true;
   private String invoke;
   private boolean async = false;
   private boolean ignoreErrors = false;
   private boolean reinstall = false;
 
-  public void setPreRelease(Optional<Boolean> v) {
-    preRelease = v;
+  public void setModuleVersionFilter(ModuleVersionFilter v) {
+    moduleVersionFilter = v;
   }
 
-  public Optional<Boolean> getPreRelease() {
-    return preRelease;
+  public ModuleVersionFilter getModuleVersionFilter() {
+    return moduleVersionFilter;
   }
 
   public void setSimulate(boolean v) {
@@ -54,14 +51,6 @@ public class TenantInstallOptions {
 
   public String getTenantParameters() {
     return tenantParameters;
-  }
-
-  public void setNpmSnapshot(Optional<Boolean> v) {
-    npmSnapshot = v;
-  }
-
-  public Optional<Boolean> getNpmSnapshot() {
-    return npmSnapshot;
   }
 
   public void setDepCheck(boolean v) {

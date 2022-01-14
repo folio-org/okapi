@@ -877,8 +877,7 @@ public class TenantManager implements Liveness {
       }
     }
     return tenants.getNotFound(tenantId).compose(tenant ->
-        moduleManager.getModulesWithFilter(options.getPreRelease(),
-            options.getNpmSnapshot(), null)
+        moduleManager.getModulesWithFilter(options.getModuleVersionFilter(), null)
             .compose(modules -> {
               HashMap<String, ModuleDescriptor> modsAvailable = new HashMap<>(modules.size());
               HashMap<String, ModuleDescriptor> modsEnabled = new HashMap<>();
