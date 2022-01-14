@@ -23,11 +23,8 @@ public class ModuleVersionFilter {
    * @param params HTTP parameters
    */
   public ModuleVersionFilter(MultiMap params) {
-    Optional<Boolean> o = getParamVersionFilter(params, "npmSnapshot");
-    npmSnapshot = o.isEmpty() ? null : o.get();
-
-    o = getParamVersionFilter(params, "preRelease");
-    preRelease = o.isEmpty() ? null : o.get();
+    npmSnapshot = getParamVersionFilter(params, "npmSnapshot").orElse(null);
+    preRelease = getParamVersionFilter(params, "preRelease").orElse(null);
   }
 
   /**
