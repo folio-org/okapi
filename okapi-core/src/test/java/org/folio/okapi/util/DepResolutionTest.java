@@ -532,11 +532,29 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void testUpToDate() {
+  public void testUpToDate1() {
     List<TenantModuleDescriptor> tml = createList(Action.uptodate, mdA100);
     DepResolution.installSimulate(map(mdA100), map(mdA100), tml, false);
     Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
     assertUpToDate(tml, 0, mdA100);
+  }
+
+  @Test
+  public void testUpToDate2() {
+    List<TenantModuleDescriptor> tml = enableList(mdA100, mdA100);
+    DepResolution.installSimulate(map(mdA100), map(mdA100), tml, false);
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
+    assertUpToDate(tml, 0, mdA100);
+    assertUpToDate(tml, 1, mdA100);
+  }
+
+  @Test
+  public void testUpToDate3() {
+    List<TenantModuleDescriptor> tml = enableList(mdA100, mdA100);
+    DepResolution.installSimulate(map(mdA100), map(), tml, false);
+    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
+    assertEnable(tml, 0, mdA100);
+    assertUpToDate(tml, 1, mdA100);
   }
 
   @Test
