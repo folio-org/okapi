@@ -9,7 +9,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import org.apache.logging.log4j.Logger;
@@ -23,6 +22,7 @@ import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.ModuleUtil;
+import org.folio.okapi.util.ModuleVersionFilter;
 import org.folio.okapi.util.OkapiError;
 
 /**
@@ -85,7 +85,7 @@ public class ModuleManager {
    */
   public Future<Void> createList(List<ModuleDescriptor> list, boolean check,
       boolean removeIfMissingDep) {
-    return createList(list, check, Optional.empty(), Optional.empty(), removeIfMissingDep);
+    return createList(list, check, new ModuleVersionFilter(), removeIfMissingDep);
   }
 
   /**
@@ -93,15 +93,13 @@ public class ModuleManager {
    *
    * @param list list of modules
    * @param check whether to check dependencies
-   * @param preRelease whether to allow pre-releasee
-   * @param npmSnapshot whether to allow npm-snapshot
+   * @param moduleVersionFilter whether to allow pre-release/npmSnapshots
    * @param removeIfMissingDep skip modules where dependency check fails
    * @return future
    */
   public Future<Void> createList(List<ModuleDescriptor> list, boolean check,
-      Optional<Boolean> preRelease, Optional<Boolean> npmSnapshot,
-      boolean removeIfMissingDep) {
-    return getModulesWithFilter(preRelease, npmSnapshot, null).compose(ares -> {
+      ModuleVersionFilter moduleVersionFilter, boolean removeIfMissingDep) {
+    return getModulesWithFilter(moduleVersionFilter, null).compose(ares -> {
       Map<String, ModuleDescriptor> tempList = new HashMap<>();
       for (ModuleDescriptor md : ares) {
         tempList.put(md.getId(), md);
@@ -242,8 +240,8 @@ public class ModuleManager {
     });
   }
 
-  Future<List<ModuleDescriptor>> getModulesWithFilter(Optional<Boolean> preRelease,
-      Optional<Boolean> npmSnapshot, List<String> skipModules) {
+  Future<List<ModuleDescriptor>> getModulesWithFilter(ModuleVersionFilter moduleVersionFilter,
+      List<String> skipModules) {
 
     Set<String> skipIds = new TreeSet<>();
     if (skipModules != null) {
@@ -253,8 +251,7 @@ public class ModuleManager {
       List<ModuleDescriptor> mdl = new LinkedList<>();
       for (ModuleDescriptor md : kres.values()) {
         String id = md.getId();
-        if (ModuleUtil.versionFilterCheck(new ModuleId(id), preRelease, npmSnapshot)
-            && !skipIds.contains(id)) {
+        if (moduleVersionFilter.matchesModule(new ModuleId(id)) && !skipIds.contains(id)) {
           mdl.add(md);
         }
       }

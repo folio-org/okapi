@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.Messages;
@@ -28,8 +27,7 @@ public final class ModuleUtil {
     TenantInstallOptions options = new TenantInstallOptions();
 
     options.setSimulate(getParamBoolean(params, "simulate", false));
-    options.setPreRelease(getParamVersionFilter(params, "preRelease"));
-    options.setNpmSnapshot(getParamVersionFilter(params, "npmSnapshot"));
+    options.setModuleVersionFilter(new ModuleVersionFilter(params));
     options.setDeploy(getParamBoolean(params, "deploy", false));
     options.setPurge(getParamBoolean(params, "purge", false));
     options.setTenantParameters(params.get("tenantParameters"));
@@ -38,27 +36,6 @@ public final class ModuleUtil {
     options.setIgnoreErrors(getParamBoolean(params, "ignoreErrors", false));
     options.setReinstall(getParamBoolean(params, "reinstall", false));
     return options;
-  }
-
-  /**
-   * Lookup boolean preRelease/npmSnapshot parameter in HTTP request.
-   * @param params HTTP server request parameters
-   * @param name name of query parameter
-   * @return returns false for "false", true for "only", and
-   *     Optional.empty() for "true" and null/undefined
-   * @throws DecodeException on invalid value
-   */
-  public static Optional<Boolean> getParamVersionFilter(MultiMap params, String name) {
-    String v = params.get(name);
-    if (v == null || "true".equals(v)) {
-      return Optional.empty();
-    } else if ("false".equals(v)) {
-      return Optional.of(false);
-    } else if ("only".equals(v)) {
-      return Optional.of(true);
-    }
-    throw new DecodeException("Expected \"true\", \"false\", \"only\" or undefined/null "
-        + "for parameter " + name + ", but got: " + v);
   }
 
   /**
@@ -126,26 +103,6 @@ public final class ModuleUtil {
   }
 
   /**
-   * Check if module ID matches preRelease/npmSnapshot spec.
-   * @param idThis module ID
-   * @param preRelease whether preRelease (null means all)
-   * @param npmSnapshot whether npmSnapshot (null means all)
-   * @return true if module should be included; false it should be filtered away.
-   */
-  public static boolean versionFilterCheck(ModuleId idThis,
-      Optional<Boolean> preRelease, Optional<Boolean> npmSnapshot) {
-    if (idThis.hasPreRelease()) {
-      return preRelease.isEmpty() || preRelease.get();
-    } else if (idThis.hasNpmSnapshot()) {
-      return npmSnapshot.isEmpty() || npmSnapshot.get();
-    } else {
-      return ((npmSnapshot.isEmpty() || !npmSnapshot.get())
-          && (preRelease.isEmpty() || !preRelease.get()));
-    }
-  }
-
-
-  /**
    * Produce list of modules based on various filters.
    * @param params HTTP server request parameters
    * @param list list of modules to consider
@@ -165,8 +122,7 @@ public final class ModuleUtil {
     final String requireStr = params.get("require");
     final String orderByStr = params.get("orderBy");
     final String orderStr = params.get("order");
-    final Optional<Boolean> preRelease = getParamVersionFilter(params, "preRelease");
-    final Optional<Boolean> npmSnapshot = getParamVersionFilter(params, "npmSnapshot");
+    final ModuleVersionFilter moduleVersionFilter = new ModuleVersionFilter(params);
     final String scope = params.get("scope");
     if (!full) {
       full = getParamBoolean(params, "full", false);
@@ -177,7 +133,7 @@ public final class ModuleUtil {
       String id = md.getId();
       ModuleId idThis = new ModuleId(id);
       if ((filter != null && !idThis.hasPrefix(filter))
-          || !versionFilterCheck(idThis, preRelease, npmSnapshot)
+          || !moduleVersionFilter.matchesModule(idThis)
           || !(interfaceCheck(md.getRequires(), requireStr, scope)
           || interfaceCheck(md.getOptional(), requireStr, scope))
           || !interfaceCheck(md.getProvides(), provideStr, scope)) {

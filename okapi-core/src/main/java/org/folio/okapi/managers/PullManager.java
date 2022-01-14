@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import org.apache.logging.log4j.Logger;
@@ -23,6 +22,7 @@ import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.FuturisedHttpClient;
+import org.folio.okapi.util.ModuleVersionFilter;
 import org.folio.okapi.util.OkapiError;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -177,8 +177,7 @@ public class PullManager {
 
   Future<List<ModuleDescriptor>> pull(PullDescriptor pd) {
     return getRemoteUrl(Arrays.asList(pd.getUrls()))
-        .compose(resUrl -> moduleManager.getModulesWithFilter(Optional.empty(),
-                Optional.empty(), null)
+        .compose(resUrl -> moduleManager.getModulesWithFilter(new ModuleVersionFilter(), null)
             .compose(resLocal -> {
               final String remoteUrl = resUrl.get(0);
               final String remoteVersion = resUrl.get(1);
