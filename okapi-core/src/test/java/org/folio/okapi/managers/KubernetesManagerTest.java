@@ -4,7 +4,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -16,7 +15,10 @@ public class KubernetesManagerTest {
   @Test
   void testNoConfig(Vertx vertx, VertxTestContext context) {
     KubernetesManager kubernetesManager = new KubernetesManager(new JsonObject());
-    kubernetesManager.init(vertx).onComplete(context.succeedingThenComplete());
+    kubernetesManager.init(vertx).onComplete(context.succeeding(res -> {
+      assertThat(kubernetesManager.kubeConfig).isNull();
+      context.completeNow();
+    }));
   }
 
   @Test
