@@ -288,6 +288,9 @@ public final class DepResolution {
       }
     }
     topoSort(sortedList);
+    // we now have a list where things mentioned in the install comes first.. Thus, if
+    // for cases where there are different orders satisfying dependencies, the order in the
+    // install is honored and will be listed first.
     logger.info("Topo sort result {}", () ->
         sortedList.stream()
         .map(ModuleDescriptor::getId)
@@ -335,6 +338,7 @@ public final class DepResolution {
       }
     }
     tml2.addAll(tml);
+    // result in tml2.. transfer to tml
     tml.clear();
     tml.addAll(tml2);
   }
