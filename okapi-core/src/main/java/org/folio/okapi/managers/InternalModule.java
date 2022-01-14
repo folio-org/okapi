@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.logging.log4j.Logger;
@@ -34,6 +33,7 @@ import org.folio.okapi.common.UrlDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.GraphDot;
 import org.folio.okapi.util.ModuleUtil;
+import org.folio.okapi.util.ModuleVersionFilter;
 import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.util.TenantInstallOptions;
@@ -983,8 +983,7 @@ public class InternalModule {
     try {
       MultiMap params = pc.getCtx().request().params();
       final boolean check = ModuleUtil.getParamBoolean(params, "check", true);
-      final Optional<Boolean> preRelease = ModuleUtil.getParamVersionFilter(params, "preRelease");
-      final Optional<Boolean> npmSnapshot = ModuleUtil.getParamVersionFilter(params, "npmSnapshot");
+      final ModuleVersionFilter moduleVersionFilter = new ModuleVersionFilter(params);
       for (ModuleDescriptor md : list) {
         String validerr = md.validate(logger);
         if (!validerr.isEmpty()) {
@@ -992,7 +991,7 @@ public class InternalModule {
           return Future.failedFuture(new OkapiError(ErrorType.USER, validerr));
         }
       }
-      return moduleManager.createList(list, check, preRelease, npmSnapshot, false);
+      return moduleManager.createList(list, check, moduleVersionFilter, false);
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
@@ -1042,7 +1041,7 @@ public class InternalModule {
       if (!body.isEmpty()) {
         skipModules = Json.decodeValue(body, skipModules.getClass());
       }
-      return moduleManager.getModulesWithFilter(Optional.empty(), Optional.empty(),
+      return moduleManager.getModulesWithFilter(new ModuleVersionFilter(),
               Arrays.asList(skipModules))
           .compose(mdl -> {
             try {
