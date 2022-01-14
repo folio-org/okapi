@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.json.DecodeException;
-import java.util.Optional;
 import org.folio.okapi.common.ModuleId;
 import org.junit.jupiter.api.Test;
 
@@ -27,13 +26,13 @@ public class ModuleVersionFilterTest {
   @Test
   void testGetParamVersionFilter() {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
-    assertThat(ModuleVersionFilter.getParamVersionFilter(params, "n")).isEmpty();
+    assertThat(ModuleVersionFilter.getParamVersionFilter(params, "n")).isNull();
     params.set("n", "true");
-    assertThat(ModuleVersionFilter.getParamVersionFilter(params, "n")).isEmpty();
+    assertThat(ModuleVersionFilter.getParamVersionFilter(params, "n")).isNull();
     params.set("n", "false");
-    assertThat(ModuleVersionFilter.getParamVersionFilter(params, "n")).isEqualTo(Optional.of(false));
+    assertThat(ModuleVersionFilter.getParamVersionFilter(params, "n")).isFalse();
     params.set("n", "only");
-    assertThat(ModuleVersionFilter.getParamVersionFilter(params, "n")).isEqualTo(Optional.of(true));
+    assertThat(ModuleVersionFilter.getParamVersionFilter(params, "n")).isTrue();
 
     params.set("n", "foo");
     String msg = assertThrows(DecodeException.class, () -> ModuleVersionFilter.getParamVersionFilter(params, "n")).getMessage();

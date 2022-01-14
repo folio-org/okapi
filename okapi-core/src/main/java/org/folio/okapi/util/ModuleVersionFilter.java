@@ -2,7 +2,6 @@ package org.folio.okapi.util;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.json.DecodeException;
-import java.util.Optional;
 import org.folio.okapi.common.ModuleId;
 
 public class ModuleVersionFilter {
@@ -23,11 +22,8 @@ public class ModuleVersionFilter {
    * @param params HTTP parameters
    */
   public ModuleVersionFilter(MultiMap params) {
-    Optional<Boolean> o = getParamVersionFilter(params, "npmSnapshot");
-    npmSnapshot = o.isEmpty() ? null : o.get();
-
-    o = getParamVersionFilter(params, "preRelease");
-    preRelease = o.isEmpty() ? null : o.get();
+    npmSnapshot = getParamVersionFilter(params, "npmSnapshot");
+    preRelease = getParamVersionFilter(params, "preRelease");
   }
 
   /**
@@ -54,14 +50,14 @@ public class ModuleVersionFilter {
    *     Optional.empty() for "true" and null/undefined
    * @throws DecodeException on invalid value
    */
-  static Optional<Boolean> getParamVersionFilter(MultiMap params, String name) {
+  static Boolean getParamVersionFilter(MultiMap params, String name) {
     String v = params.get(name);
     if (v == null || "true".equals(v)) {
-      return Optional.empty();
+      return null;
     } else if ("false".equals(v)) {
-      return Optional.of(false);
+      return false;
     } else if ("only".equals(v)) {
-      return Optional.of(true);
+      return true;
     }
     throw new DecodeException("Expected \"true\", \"false\", \"only\" or undefined/null "
         + "for parameter " + name + ", but got: " + v);
