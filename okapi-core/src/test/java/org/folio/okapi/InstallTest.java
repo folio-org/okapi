@@ -31,8 +31,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 
 @RunWith(VertxUnitRunner.class)
 public class InstallTest {
@@ -44,6 +43,7 @@ public class InstallTest {
   private Vertx vertx;
   private final int portOkapi = 9230;
   private final int portModule = 9235;
+  private final int portModule2 = 9236;
   private HttpServer httpServerV1 = null;
   private Async asyncV1 = null;  // used to wake up the v1 server's init.
   private int v1TenantInitStatus = 200;
@@ -1110,10 +1110,8 @@ public class InstallTest {
         ).encode())
         .post("/_/proxy/tenants/" + tenant + "/install" + installParameters)
         .then().statusCode(201)
-        .body(equalTo(new JsonArray().add(new JsonObject()
-            .put("id", module)
-            .put("action", action)).encodePrettily())
-        )
+        .body("[0].id", is(module))
+        .body("[0].action", is(action))
         .extract().response();
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
@@ -1126,48 +1124,76 @@ public class InstallTest {
   @Test
   public void installTenantInitVersion2OK(TestContext context) {
     final String okapiTenant = "roskilde";
-    final String module = "init-v2-module-1.0.0";
+    final String module1 = "v2-module-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context, module);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
+    createAsyncInitModule(context, module1);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module1, portModule);
 
     tModule.start().onComplete(context.asyncAssertSuccess());
 
-    deployAsyncInitModule(context, module, portModule);
-    JsonObject job = installAndWait(context, okapiTenant, module, "enable", "?async=true");
+    deployAsyncInitModule(context, module1, portModule);
+    JsonObject job = installAndWait(context, okapiTenant, module1, "enable", "?async=true");
     context.assertEquals(new JsonObject()
         .put("complete", true)
         .put("modules", new JsonArray()
             .add(new JsonObject()
-                .put("id", module)
+                .put("id", module1)
                 .put("action", "enable")
                 .put("stage", "done")
             )
         ), job);
 
-    job = installAndWait(context, okapiTenant, module, "disable", "?async=true&purge=true");
+    final String module2 = "v2-module-1.0.1";
+    createAsyncInitModule(context, module2);
+    ModuleTenantInitAsync tModule2 = new ModuleTenantInitAsync(vertx, module2, portModule2);
+    tModule2.start().onComplete(context.asyncAssertSuccess());
+
+    deployAsyncInitModule(context, module2, portModule2);
+    job = installAndWait(context, okapiTenant, module2, "enable", "?async=true");
     context.assertEquals(new JsonObject()
         .put("complete", true)
         .put("modules", new JsonArray()
             .add(new JsonObject()
-                .put("id", module)
+                .put("id", module2)
+                .put("from", module1)
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+        ), job);
+
+    job = installAndWait(context, okapiTenant, module2, "disable", "?async=true&purge=true");
+    context.assertEquals(new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", module2)
                 .put("action", "disable")
                 .put("stage", "done")
             )
         ), job);
 
+    // initial module called once..
     context.assertEquals(tModule.getOperations().get(0),
         new JsonObject()
-            .put("module_to", module)
+            .put("module_to", module1)
             .put("purge", false));
 
-    context.assertEquals(tModule.getOperations().get(1),
+    // second module called on upgrade
+    context.assertEquals(tModule2.getOperations().get(0),
         new JsonObject()
-            .put("module_from", module)
+            .put("module_to", module2)
+            .put("module_from", module1)
+            .put("purge", false));
+
+    // second module called on purge
+    context.assertEquals(tModule2.getOperations().get(1),
+        new JsonObject()
+            .put("module_from", module2)
             .put("purge", true));
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
+    tModule2.stop().onComplete(context.asyncAssertSuccess());
   }
 
   @Test
