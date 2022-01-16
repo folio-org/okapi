@@ -65,14 +65,6 @@ class ModuleUtilTest {
   }
 
   @Test
-  void testFilterRequireInstanceStorage7_0() {
-    MultiMap params = MultiMap.caseInsensitiveMultiMap();
-    params.set("require", "instance-storage=7.0");
-    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(4);
-  }
-
-  @Test
   void testFilterRequireNotify2_0() {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "notify=2.0");
@@ -89,11 +81,75 @@ class ModuleUtilTest {
   }
 
   @Test
-  void testFilterRequireNotify2() {
+  void testFilterRequireInstanceStorage() {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
-    params.set("require", "notify=2");
+    params.set("require", "instance-storage");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res.size()).isEqualTo(9);
+  }
+
+  @Test
+  void testFilterProvideInstanceStorage4_0() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("provide", "instance-storage=4.0");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
     assertThat(res.size()).isEqualTo(0);
+  }
+
+  @Test
+  void testFilterProvideInstanceStorage7_0() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("provide", "instance-storage=7.0");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res.size()).isEqualTo(1);
+  }
+
+  @Test
+  void testFilterProvideInstanceStorage7_4() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("provide", "instance-storage=7.4");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res.size()).isEqualTo(1);
+  }
+
+  @Test
+  void testFilterProvideInstanceStorage7_5() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("provide", "instance-storage=7.5");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res.size()).isEqualTo(0);
+  }
+
+  @Test
+  void testFilterRequireInstanceStorage4_0() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("require", "instance-storage=4.0");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res.size()).isEqualTo(1);
+  }
+
+  @Test
+  void testFilterRequireInstanceStorage7_0() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("require", "instance-storage=7.0");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res.size()).isEqualTo(7);
+  }
+
+  @Test
+  void testFilterRequireInstanceStorage7_1() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("require", "instance-storage=7.1");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res.size()).isEqualTo(5);
+  }
+
+  @Test
+  void testFilterRequireInstanceStorage7_2() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("require", "instance-storage=7.2");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res.size()).isEqualTo(5);
   }
 
   @Test
