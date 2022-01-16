@@ -65,6 +65,14 @@ class ModuleUtilTest {
   }
 
   @Test
+  void testFilterRequireInstanceStorage7_0() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("require", "instance-storage=7.0");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res.size()).isEqualTo(4);
+  }
+
+  @Test
   void testFilterRequireNotify2_0() {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "notify=2.0");

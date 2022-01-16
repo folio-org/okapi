@@ -83,23 +83,31 @@ public final class ModuleUtil {
       InterfaceDescriptor[] interfaces, String interfaceStr, String scope) {
     if (interfaceStr == null) {
       return true;
-    } else {
-      if (interfaces != null) {
-        for (InterfaceDescriptor pi : interfaces) {
-          String[] interfaceList = interfaceStr.split(",");
-          for (String interfacePair : interfaceList) {
+    }
+    if (interfaces != null) {
+      for (InterfaceDescriptor pi : interfaces) {
+        String[] interfaceList = interfaceStr.split(",");
+        for (String interfacePair : interfaceList) {
+          List<String> gotScope = pi.getScopeArray();
+          if (scope == null || gotScope.contains(scope)) {
             String[] kv = interfacePair.split("=");
-            List<String> gotScope = pi.getScopeArray();
-            if (pi.getId().equals(kv[0])
-                && (kv.length != 2 || pi.getVersion().equals(kv[1]))
-                && (scope == null || gotScope.contains(scope))) {
-              return true;
+            if (pi.getId().equals(kv[0])) {
+              if (kv.length == 2) {
+                final String[] verComp = pi.getVersion().split(" ");
+                for (String comp : verComp) {
+                  if (comp.equals(kv[1])) {
+                    return true;
+                  }
+                }
+              } else {
+                return true;
+              }
             }
           }
         }
       }
-      return false;
     }
+    return false;
   }
 
   /**
