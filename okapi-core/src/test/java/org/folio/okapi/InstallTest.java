@@ -52,6 +52,7 @@ public class InstallTest {
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
+    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
   }
 
   Future<Void> startOkapi() {
@@ -1051,30 +1052,33 @@ public class InstallTest {
   }
 
   void createAsyncInitModule(TestContext context, String module) {
-    final String docModule = "{" + LS
-        + "  \"id\" : \"" + module + "\"," + LS
-        + "  \"name\" : \"async tenant init module\"," + LS
-        + "  \"provides\" : [ {" + LS
-        + "    \"id\" : \"_tenant\"," + LS
-        + "    \"version\" : \"2.0\"," + LS
-        + "    \"interfaceType\" : \"system\"," + LS
-        + "    \"handlers\" : [ {" + LS
-        + "      \"methods\" : [ \"POST\" ]," + LS
-        + "      \"pathPattern\" : \"/_/tenant\"," + LS
-        + "      \"permissionsRequired\" : [ ]" + LS
-        + "    }, {" + LS
-        + "      \"methods\" : [ \"GET\", \"DELETE\" ]," + LS
-        + "      \"pathPattern\" : \"/_/tenant/{id}\"," + LS
-        + "      \"permissionsRequired\" : [ ]" + LS
-        + "    } ]" + LS
-        + "  } ]," + LS
-        + "  \"requires\" : [ ]" + LS
-        + "}";
-
+    final JsonObject md = new JsonObject()
+        .put("id", module)
+        .put("name", "async tenant init module")
+        .put("provides", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "_tenant")
+                .put("version", "2.0")
+                .put("interfaceType", "system")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/_/tenant")
+                        .put("permissionsRequired", new JsonArray())
+                    )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("GET").add("DELETE"))
+                        .put("pathPattern", "/_/tenant/{id}")
+                        .put("permissionsRequired", new JsonArray())
+                    )
+                )
+            )
+        )
+        .put("requires", new JsonArray());
     RestAssuredClient c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
-        .body(docModule).post("/_/proxy/modules").then().statusCode(201);
+        .body(md.encode()).post("/_/proxy/modules").then().statusCode(201);
   }
 
   void deployAsyncInitModule(TestContext context, String module, int port) {
@@ -1092,17 +1096,24 @@ public class InstallTest {
         c.getLastReport().isEmpty());
   }
 
-  JsonObject enableAndWait(TestContext context, String tenant, String module) {
+  JsonObject installAndWait(TestContext context, String tenant, String module) {
+    return installAndWait(context, tenant, module, "enable", "?async=true");
+  }
+
+  JsonObject installAndWait(TestContext context, String tenant, String module, String action, String installParameters) {
     RestAssuredClient c = api.createRestAssured3();
     Response r = c.given()
         .header("Content-Type", "application/json")
-        .body("[ {\"id\" : \"" + module + "\", \"action\" : \"enable\"} ]")
-        .post("/_/proxy/tenants/" + tenant + "/install?async=true")
+        .body(new JsonArray().add(new JsonObject()
+            .put("id", module)
+            .put("action", action)
+        ).encode())
+        .post("/_/proxy/tenants/" + tenant + "/install" + installParameters)
         .then().statusCode(201)
-        .body(equalTo("[ {" + LS
-            + "  \"id\" : \""+ module + "\"," + LS
-            + "  \"action\" : \"enable\"" + LS
-            + "} ]"))
+        .body(equalTo(new JsonArray().add(new JsonObject()
+            .put("id", module)
+            .put("action", action)).encodePrettily())
+        )
         .extract().response();
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
@@ -1124,17 +1135,106 @@ public class InstallTest {
     tModule.start().onComplete(context.asyncAssertSuccess());
 
     deployAsyncInitModule(context, module, portModule);
+    JsonObject job = installAndWait(context, okapiTenant, module, "enable", "?async=true");
+    context.assertEquals(new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", module)
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+        ), job);
 
-    JsonObject job = enableAndWait(context, okapiTenant, module);
-    context.assertEquals("{" + LS
-        + "  \"complete\" : true," + LS
-        + "  \"modules\" : [ {" + LS
-        + "    \"id\" : \"" + module + "\"," + LS
-        + "    \"action\" : \"enable\"," + LS
-        + "    \"stage\" : \"done\"" + LS
-        + "  } ]" + LS
-        + "}", job.encodePrettily());
+    job = installAndWait(context, okapiTenant, module, "disable", "?async=true&purge=true");
+    context.assertEquals(new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", module)
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+        ), job);
 
+    context.assertEquals(tModule.getOperations().get(0),
+        new JsonObject()
+            .put("module_to", module)
+            .put("purge", false));
+
+    context.assertEquals(tModule.getOperations().get(1),
+        new JsonObject()
+            .put("module_from", module)
+            .put("purge", true));
+
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
+  @Test
+  public void installTenantInitVersion2EnableWithPurge(TestContext context) {
+    final String okapiTenant = "roskilde";
+    final String module = "init-v2-module-1.0.0";
+
+    createTenant(context, okapiTenant);
+    createAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
+
+    tModule.start().onComplete(context.asyncAssertSuccess());
+
+    deployAsyncInitModule(context, module, portModule);
+    JsonObject job = installAndWait(context, okapiTenant, module, "enable", "?async=true&purge=true");
+    context.assertEquals(new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", module)
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+        ), job);
+    context.assertEquals(tModule.getOperations().get(0),
+        new JsonObject()
+            .put("module_from", module)
+            .put("purge", true));
+
+    context.assertEquals(tModule.getOperations().get(1),
+        new JsonObject()
+            .put("module_to", module)
+            .put("purge", false));
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
+  @Test
+  public void installTenantInitVersion2EnableWithPurgeFailing(TestContext context) {
+    final String okapiTenant = "roskilde";
+    final String module = "init-v2-module-1.0.0";
+
+    createTenant(context, okapiTenant);
+    createAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
+
+    tModule.start().onComplete(context.asyncAssertSuccess());
+    tModule.setPurgeFail(true);
+    deployAsyncInitModule(context, module, portModule);
+    JsonObject job = installAndWait(context, okapiTenant, module, "enable", "?async=true&purge=true");
+    context.assertEquals(new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", module)
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+        ), job);
+    context.assertEquals(tModule.getOperations().get(0),
+        new JsonObject()
+            .put("module_from", module)
+            .put("purge", true));
+
+    context.assertEquals(tModule.getOperations().get(1),
+        new JsonObject()
+            .put("module_to", module)
+            .put("purge", false));
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
 
@@ -1145,30 +1245,34 @@ public class InstallTest {
 
     createTenant(context, okapiTenant);
 
-    final String docModule = "{" + LS
-        + "  \"id\" : \"" + module + "\"," + LS
-        + "  \"name\" : \"async tenant init module\"," + LS
-        + "  \"provides\" : [ {" + LS
-        + "    \"id\" : \"_tenant\"," + LS
-        + "    \"version\" : \"1.2\"," + LS
-        + "    \"interfaceType\" : \"system\"," + LS
-        + "    \"handlers\" : [ {" + LS
-        + "      \"methods\" : [ \"POST\" ]," + LS
-        + "      \"pathPattern\" : \"/_/tenant\"," + LS
-        + "      \"permissionsRequired\" : [ ]" + LS
-        + "    }, {" + LS
-        + "      \"methods\" : [ \"DELETE\" ]," + LS
-        + "      \"pathPattern\" : \"/_/tenant\"," + LS
-        + "      \"permissionsRequired\" : [ ]" + LS
-        + "    } ]" + LS
-        + "  } ]," + LS
-        + "  \"requires\" : [ ]" + LS
-        + "}";
+    final JsonObject md = new JsonObject()
+        .put("id", module)
+        .put("name", "async tenant init module")
+        .put("provides", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "_tenant")
+                .put("version", "1.2")
+                .put("interfaceType", "system")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/_/tenant")
+                        .put("permissionsRequired", new JsonArray())
+                    )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("DELETE"))
+                        .put("pathPattern", "/_/tenant")
+                        .put("permissionsRequired", new JsonArray())
+                    )
+                )
+            )
+        )
+        .put("requires", new JsonArray());
 
     RestAssuredClient c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
-        .body(docModule).post("/_/proxy/modules").then().statusCode(201);
+        .body(md.encode()).post("/_/proxy/modules").then().statusCode(201);
 
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
 
@@ -1176,7 +1280,7 @@ public class InstallTest {
 
     deployAsyncInitModule(context, module, portModule);
 
-    JsonObject job = enableAndWait(context, okapiTenant, module);
+    JsonObject job = installAndWait(context, okapiTenant, module);
     context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
@@ -1198,30 +1302,34 @@ public class InstallTest {
 
     createTenant(context, okapiTenant);
 
-    final String docModule = "{" + LS
-        + "  \"id\" : \"" + module + "\"," + LS
-        + "  \"name\" : \"async tenant init module\"," + LS
-        + "  \"provides\" : [ {" + LS
-        + "    \"id\" : \"_tenant\"," + LS
-        + "    \"version\" : \"2.0\"," + LS
-        + "    \"interfaceType\" : \"system\"," + LS
-        + "    \"handlers\" : [ {" + LS
-        + "      \"methods\" : [ \"POST\" ]," + LS
-        + "      \"pathPattern\" : \"/_/tenant\"," + LS
-        + "      \"permissionsRequired\" : [ ]" + LS
-        + "    }, {" + LS
-        + "      \"methods\" : [ \"GET\" ]," + LS
-        + "      \"pathPattern\" : \"/_/tenant/{id}\"," + LS
-        + "      \"permissionsRequired\" : [ ]" + LS
-        + "    } ]" + LS
-        + "  } ]," + LS
-        + "  \"requires\" : [ ]" + LS
-        + "}";
+    final JsonObject md = new JsonObject()
+        .put("id", module)
+        .put("name", "async tenant init module")
+        .put("provides", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "_tenant")
+                .put("version", "2.0")
+                .put("interfaceType", "system")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/_/tenant")
+                        .put("permissionsRequired", new JsonArray())
+                    )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("GET"))
+                        .put("pathPattern", "/_/tenant/{id}")
+                        .put("permissionsRequired", new JsonArray())
+                    )
+                )
+            )
+        )
+        .put("requires", new JsonArray());
 
     RestAssuredClient c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
-        .body(docModule).post("/_/proxy/modules").then().statusCode(201);
+        .body(md.encode()).post("/_/proxy/modules").then().statusCode(201);
 
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
 
@@ -1229,7 +1337,7 @@ public class InstallTest {
 
     deployAsyncInitModule(context, module, portModule);
 
-    JsonObject job = enableAndWait(context, okapiTenant, module);
+    JsonObject job = installAndWait(context, okapiTenant, module);
     context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
@@ -1258,7 +1366,7 @@ public class InstallTest {
 
     deployAsyncInitModule(context, module, portModule);
 
-    JsonObject job = enableAndWait(context, okapiTenant, module);
+    JsonObject job = installAndWait(context, okapiTenant, module);
     context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
@@ -1285,7 +1393,7 @@ public class InstallTest {
 
     deployAsyncInitModule(context, module, portModule);
 
-    JsonObject job = enableAndWait(context, okapiTenant, module);
+    JsonObject job = installAndWait(context, okapiTenant, module);
     context.assertEquals("{" + LS
         + "  \"complete\" : true," + LS
         + "  \"modules\" : [ {" + LS
@@ -1314,7 +1422,7 @@ public class InstallTest {
 
     deployAsyncInitModule(context, module, portModule);
 
-    JsonObject job = enableAndWait(context, okapiTenant, module);
+    JsonObject job = installAndWait(context, okapiTenant, module);
     context.assertTrue(job.getJsonArray("modules").getJsonObject(0).
         getString("message").startsWith("Failed to decode:Unexpected close marker"));
 
@@ -1335,7 +1443,7 @@ public class InstallTest {
 
     deployAsyncInitModule(context, module, portModule);
 
-    JsonObject job = enableAndWait(context, okapiTenant, module);
+    JsonObject job = installAndWait(context, okapiTenant, module);
     context.assertTrue(job.getJsonArray("modules").getJsonObject(0).
         getString("message").contains("failed with 400:"), job.encodePrettily());
 
@@ -1356,13 +1464,13 @@ public class InstallTest {
 
     deployAsyncInitModule(context, module, portModule);
 
-    JsonObject job = enableAndWait(context, okapiTenant, module);
+    JsonObject job = installAndWait(context, okapiTenant, module);
     context.assertEquals("Tenant operation failed for module init-v2-module-1.0.0: foo bar error", job.getJsonArray("modules")
         .getJsonObject(0).getString("message"));
 
     tModule.setErrorMessage("foo bar error", new JsonArray().add("msg1").add("msg2"));
 
-    job = enableAndWait(context, okapiTenant, module);
+    job = installAndWait(context, okapiTenant, module);
     context.assertEquals("Tenant operation failed for module init-v2-module-1.0.0: foo bar error\nmsg1\nmsg2", job.getJsonArray("modules")
         .getJsonObject(0).getString("message"));
 
