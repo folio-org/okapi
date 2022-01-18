@@ -322,6 +322,16 @@ public class DepResolutionTest {
     assertUpgrade(tml, 1, mdD200, mdD100);
   }
 
+  @Test
+  public void testInstallMajorBaseOptionalError() {
+    List<TenantModuleDescriptor> tml = enableList(mdA200);
+    // note that mdD200 is not part of the lsit
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110),
+        map(mdA100, mdD100), tml, false));
+    Assert.assertEquals("Incompatible version for module moduleD-1.0.0 interface int. Need 1.0. Have 2.0/moduleA-2.0.0", error.getMessage());
+  }
+
   // upgrade base dependency and pull in module with unknown interface (results in error)
   @Test
   public void testInstallMajorBaseError() {
