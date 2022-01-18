@@ -3310,7 +3310,6 @@ public class ProxyTest {
         + "  \"id\" : \"timer-module-2.0.0\"" + LS
         + "} ]"));
 
-    logger.info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
     api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"timer-module-2.0.0\", \"action\" : \"disable\"} ]")
