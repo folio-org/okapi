@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Collection;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
@@ -28,6 +29,7 @@ public class DepResolutionTest {
   private ModuleDescriptor mdB;
   private ModuleDescriptor mdC;
   private ModuleDescriptor mdA110;
+  private ModuleDescriptor mdA111;
   private ModuleDescriptor mdA200;
   private ModuleDescriptor mdD100;
   private ModuleDescriptor mdD110;
@@ -122,6 +124,9 @@ public class DepResolutionTest {
 
     mdA110 = new ModuleDescriptor("moduleA-1.1.0");
     mdA110.setProvides(int11a);
+
+    mdA111 = new ModuleDescriptor("moduleA-1.1.1");
+    mdA111.setProvides(int11a);
 
     mdA200 = new ModuleDescriptor("moduleA-2.0.0");
     mdA200.setProvides(int20a);
@@ -286,9 +291,9 @@ public class DepResolutionTest {
   @Test
   public void testInstallMinorLeafOptional() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
-    DepResolution.install(map(mdA100, mdA110, mdD100, mdD110, mdE100), map(mdA100), tml, false);
+    DepResolution.install(map(mdA100, mdA110, mdA111, mdD100, mdD110, mdE100), map(mdA100), tml, false);
     Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertUpgrade(tml, 0, mdA110, mdA100);
+    assertUpgrade(tml, 0, mdA111, mdA100);
     assertEnable(tml, 1, mdD110);
   }
 
@@ -305,9 +310,9 @@ public class DepResolutionTest {
   @Test
   public void testInstallMinorLeafOptional2() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
-    DepResolution.install(map(mdA100, mdA110, mdD100, mdD110), map(mdA100, mdD100), tml, false);
+    DepResolution.install(map(mdA100, mdA110, mdA111, mdD100, mdD110), map(mdA100, mdD100), tml, false);
     Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertUpgrade(tml, 0, mdA110, mdA100);
+    assertUpgrade(tml, 0, mdA111, mdA100);
     assertUpgrade(tml, 1, mdD110, mdD100);
   }
 
@@ -1281,6 +1286,50 @@ public class DepResolutionTest {
     Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
     assertEnable(tml, 0, mdA100);
     assertEnable(tml, 1, mdE100);
+  }
+
+  @Test
+  public void testCheckInterfaceDepAvailable() {
+    Map<String, ModuleDescriptor> available = new TreeMap<>();
+    available.put(mdA100.getId(), mdA110);
+    available.put(mdA111.getId(), mdA111);
+    available.put(mdA100.getId(), mdA100);
+    available.put(mdB.getId(), mdB);
+    InterfaceDescriptor req = new InterfaceDescriptor("int", "1.0");
+    Map<String,ModuleDescriptor> products = DepResolution.checkInterfaceDepAvailable(available, req);
+    Assert.assertEquals(2, products.size());
+    Assert.assertEquals(mdA111, products.get(mdA111.getProduct()));
+    Assert.assertEquals(mdB, products.get(mdB.getProduct()));
+
+    req = new InterfaceDescriptor("int", "1.1");
+    products = DepResolution.checkInterfaceDepAvailable(available, req);
+    Assert.assertEquals(1, products.size());
+    Assert.assertEquals(mdA111, products.get(mdA111.getProduct()));
+
+    mdA100.setReplaces(new String[] {mdB.getProduct()});
+    req = new InterfaceDescriptor("int", "1.0");
+    products = DepResolution.checkInterfaceDepAvailable(available, req);
+    Assert.assertEquals(1, products.size());
+    Assert.assertEquals(mdA111, products.get(mdA111.getProduct()));
+  }
+
+  @Test
+  public void testCheckInterfaceProvAvailable() {
+    Map<String, ModuleDescriptor> available = new TreeMap<>();
+    available.put(ot100.getId(), ot100);
+    available.put(mdE100.getId(), mdE100);
+    available.put(mdE110.getId(), mdE110);
+    available.put(mdE200.getId(), mdE200);
+    InterfaceDescriptor prov = new InterfaceDescriptor("int", "1.1");
+    Map<String,ModuleDescriptor> products = DepResolution.checkInterfaceProvAvailable(available, prov);
+    Assert.assertEquals(2, products.size());
+    Assert.assertEquals(mdE110, products.get(mdE110.getProduct()));
+    Assert.assertEquals(ot100, products.get(ot100.getProduct()));
+
+    mdE100.setReplaces(new String[] {ot100.getProduct()});
+    products = DepResolution.checkInterfaceProvAvailable(available, prov);
+    Assert.assertEquals(1, products.size());
+    Assert.assertEquals(mdE110, products.get(mdE110.getProduct()));
   }
 
   @Test
