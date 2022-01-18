@@ -87,12 +87,15 @@ public final class ModuleUtil {
     if (interfaces == null) {
       return false;
     }
+    String[] interfaceList = interfaceStr.split(",");
+    String[][] interfacePair = new String[interfaceList.length][];
+    for (int i = 0; i < interfaceList.length; i++) {
+      interfacePair[i] = interfaceList[i].split("=");
+    }
     for (InterfaceDescriptor pi : interfaces) {
       List<String> gotScope = pi.getScopeArray();
       if (scope == null || gotScope.contains(scope)) {
-        String[] interfaceList = interfaceStr.split(",");
-        for (String interfacePair : interfaceList) {
-          String[] kv = interfacePair.split("=");
+        for (String [] kv : interfacePair) {
           if (kv.length == 2) {
             InterfaceDescriptor req = new InterfaceDescriptor(kv[0], kv[1]);
             if (pi.isCompatible(req)) {
