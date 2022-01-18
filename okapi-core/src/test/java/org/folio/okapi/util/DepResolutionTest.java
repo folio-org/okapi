@@ -708,6 +708,9 @@ public class DepResolutionTest {
     modC.setProvides(i3);
     modC.setRequires(i2);
 
+    ModuleDescriptor modD = new ModuleDescriptor("modD-1.0.0");
+    modD.setOptional(i2);
+
     Assert.assertTrue(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1"), modA));
     Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1", "i2"), modB));
     Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1", "i2", "i3"), modC));
@@ -829,6 +832,46 @@ public class DepResolutionTest {
       Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
       assertDisable(tml, 0, modB);
       assertDisable(tml, 1, modA);
+    }
+
+    {
+      Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC, modD);
+      List<TenantModuleDescriptor> tml = enableList(modA, modD);
+      DepResolution.install(modsAvailable, map(), tml, false);
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
+      assertEnable(tml, 0, modA);
+      assertEnable(tml, 1, modD);
+    }
+
+    {
+      Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC, modD);
+      List<TenantModuleDescriptor> tml = enableList(modD, modA);
+      DepResolution.install(modsAvailable, map(), tml, false);
+      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
+      assertEnable(tml, 0, modD);
+      assertEnable(tml, 1, modA);
+    }
+
+    {
+      Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC, modD);
+      List<TenantModuleDescriptor> tml = enableList(modD, modB);
+      DepResolution.install(modsAvailable, map(), tml, false);
+      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
+      assertEnable(tml, 0, modA);
+      assertEnable(tml, 1, modB);
+      assertEnable(tml, 2, modD);
+    }
+
+    {
+      Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC, modD);
+      List<TenantModuleDescriptor> tml = enableList(modB, modD);
+      tml.addAll(createList(Action.suggest, modA));
+      DepResolution.install(modsAvailable, map(), tml, false);
+      Assert.assertEquals(Json.encodePrettily(tml), 4, tml.size());
+      assertEnable(tml, 0, modA);
+      assertEnable(tml, 1, modB);
+      assertEnable(tml, 2, modD);
+      assertAction(tml, 3, Action.suggest, modA, null);
     }
   }
 
