@@ -119,11 +119,18 @@ public final class DepResolution {
     }
   }
 
-  static boolean moduleDepProvided(List<ModuleDescriptor> modules, Set<String> providedInterfaces,
+  /**
+   * Check if module's required/optional interfaces are provided by set of modules.
+   * @param modules the modules that check against
+   * @param allProvided interfaces for all modules
+   * @param md module to check.
+   * @return
+   */
+  static boolean moduleDepProvided(List<ModuleDescriptor> modules, Set<String> allProvided,
       ModuleDescriptor md) {
 
     for (InterfaceDescriptor req : md.getRequiresOptionalList()) {
-      if (providedInterfaces.contains(req.getId())) {
+      if (allProvided.contains(req.getId())) {
         boolean found = false;
         for (ModuleDescriptor md1 : modules) {
           InterfaceDescriptor[] providesList = md1.getProvidesList();
@@ -144,11 +151,11 @@ public final class DepResolution {
   static void topoSort(List<ModuleDescriptor> modules) {
     List<ModuleDescriptor> result = new LinkedList<>();
 
-    Set<String> providedInterfaces = new HashSet<>();
+    Set<String> allProvided = new HashSet<>();
     for (ModuleDescriptor md: modules) {
       for (InterfaceDescriptor descriptor: md.getProvidesList()) {
         if (descriptor.isRegularHandler()) {
-          providedInterfaces.add(descriptor.getId());
+          allProvided.add(descriptor.getId());
         }
       }
     }
@@ -158,7 +165,7 @@ public final class DepResolution {
       Iterator<ModuleDescriptor> iterator = modules.iterator();
       while (iterator.hasNext()) {
         ModuleDescriptor md = iterator.next();
-        if (moduleDepProvided(result, providedInterfaces, md)) {
+        if (moduleDepProvided(result, allProvided, md)) {
           result.add(md);
           iterator.remove();
           more = true;
