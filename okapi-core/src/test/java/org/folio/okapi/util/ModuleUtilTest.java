@@ -44,7 +44,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     int sz = modulesList.size();
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(sz).isEqualTo(res.size());
+    assertThat(res).hasSize(sz);
   }
 
   @Test
@@ -61,7 +61,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "notify");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -69,7 +69,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "notify=2.0");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -77,7 +77,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "notify=2.1");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(0);
+    assertThat(res).hasSize(0);
   }
 
   @Test
@@ -85,7 +85,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "instance-storage");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(9);
+    assertThat(res).hasSize(9);
   }
 
   @Test
@@ -93,7 +93,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("provide", "instance-storage=4.0");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(0);
+    assertThat(res).hasSize(0);
   }
 
   @Test
@@ -101,7 +101,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("provide", "instance-storage=7.0");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -109,7 +109,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("provide", "instance-storage=7.4");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -117,7 +117,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("provide", "instance-storage=7.5");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(0);
+    assertThat(res).isEmpty();
   }
 
   @Test
@@ -125,7 +125,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "instance-storage=4.0");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -133,7 +133,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "instance-storage=7.0");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(7);
+    assertThat(res).hasSize(7);
   }
 
   @Test
@@ -141,7 +141,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "instance-storage=7.1");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(5);
+    assertThat(res).hasSize(5);
   }
 
   @Test
@@ -149,7 +149,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "instance-storage=7.2");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(5);
+    assertThat(res).hasSize(5);
   }
 
   @Test
@@ -157,7 +157,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "permissions");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(5);
+    assertThat(res).hasSize(5);
   }
 
   @Test
@@ -165,7 +165,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "notes");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(3);
+    assertThat(res).hasSize(3);
   }
 
   @Test
@@ -173,7 +173,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "notify,permissions");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(5);
+    assertThat(res).hasSize(5);
   }
 
   @Test
@@ -181,7 +181,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("provide", "codex");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(4);
+    assertThat(res).hasSize(4);
   }
 
   @Test
@@ -189,7 +189,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("provide", "permissions");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -197,7 +197,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("filter", "mod-permissions");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -205,7 +205,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("filter", "mod-permissions-5.11.4");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -213,7 +213,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("filter", "mod-permissions-5.11.0");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(0);
+    assertThat(res).isEmpty();
   }
 
   @Test
