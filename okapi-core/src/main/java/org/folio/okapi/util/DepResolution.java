@@ -119,20 +119,23 @@ public final class DepResolution {
     }
   }
 
-  static boolean moduleDepProvided(List<ModuleDescriptor> modules, ModuleDescriptor md) {
-    List<InterfaceDescriptor> requiresOptionalList = md.getRequiresOptionalList();
-    for (InterfaceDescriptor req : requiresOptionalList) {
-      boolean found = false;
-      for (ModuleDescriptor md1 : modules) {
-        InterfaceDescriptor[] providesList = md1.getProvidesList();
-        for (InterfaceDescriptor prov : providesList) {
-          if (prov.isCompatible(req)) {
-            found = true;
+  static boolean moduleDepProvided(List<ModuleDescriptor> modules, Set<String> providedInterfaces,
+      ModuleDescriptor md) {
+
+    for (InterfaceDescriptor req : md.getRequiresOptionalList()) {
+      if (providedInterfaces.contains(req.getId())) {
+        boolean found = false;
+        for (ModuleDescriptor md1 : modules) {
+          InterfaceDescriptor[] providesList = md1.getProvidesList();
+          for (InterfaceDescriptor prov : providesList) {
+            if (prov.isRegularHandler() && prov.getId().equals(req.getId())) {
+              found = true;
+            }
           }
         }
-      }
-      if (!found) {
-        return false;
+        if (!found) {
+          return false;
+        }
       }
     }
     return true;
@@ -141,20 +144,27 @@ public final class DepResolution {
   static void topoSort(List<ModuleDescriptor> modules) {
     List<ModuleDescriptor> result = new LinkedList<>();
 
+    Set<String> providedInterfaces = new HashSet<>();
+    for (ModuleDescriptor md: modules) {
+      for (InterfaceDescriptor descriptor: md.getProvidesList()) {
+        if (descriptor.isRegularHandler()) {
+          providedInterfaces.add(descriptor.getId());
+        }
+      }
+    }
     boolean more = true;
     while (more) {
       more = false;
       Iterator<ModuleDescriptor> iterator = modules.iterator();
       while (iterator.hasNext()) {
         ModuleDescriptor md = iterator.next();
-        if (moduleDepProvided(result, md)) {
+        if (moduleDepProvided(result, providedInterfaces, md)) {
           result.add(md);
           iterator.remove();
           more = true;
         }
       }
     }
-    // add remaining result to modules (such as modules with optional interfaces requirements
     modules.addAll(0, result);
   }
 
@@ -320,7 +330,7 @@ public final class DepResolution {
 
     List<TenantModuleDescriptor> tml2 = new ArrayList<>();
 
-    // go through disabled modules
+    // go through modules that need to be disabled
     Iterator<ModuleDescriptor> moduleIterator = sortedList.descendingIterator();
     while (moduleIterator.hasNext()) {
       ModuleDescriptor md = moduleIterator.next();
@@ -337,7 +347,7 @@ public final class DepResolution {
       }
     }
 
-    // go through enabled/updated modules
+    // go through modules that need to be enabled/updated
     moduleIterator = sortedList.iterator();
     while (moduleIterator.hasNext()) {
       ModuleDescriptor md = moduleIterator.next();

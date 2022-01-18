@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Collection;
+import java.util.Set;
 import java.util.TreeSet;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
@@ -690,6 +691,8 @@ public class DepResolutionTest {
 
   @Test
   public void testSorting() {
+    InterfaceDescriptor[] i0 = {new InterfaceDescriptor("i0", "1.0")};
+
     ModuleDescriptor modA = new ModuleDescriptor("modA-1.0.0");
     InterfaceDescriptor[] i1 = {new InterfaceDescriptor("i1", "1.0")};
     modA.setProvides(i1);
@@ -698,20 +701,21 @@ public class DepResolutionTest {
     InterfaceDescriptor[] i2 = {new InterfaceDescriptor("i2", "1.0")};
     modB.setProvides(i2);
     modB.setRequires(i1);
+    modB.setOptional(i0);
 
     ModuleDescriptor modC = new ModuleDescriptor("modC-1.0.0");
     InterfaceDescriptor[] i3 = {new InterfaceDescriptor("i3", "1.0")};
     modC.setProvides(i3);
     modC.setRequires(i2);
 
-    Assert.assertTrue(DepResolution.moduleDepProvided(Collections.emptyList(), modA));
-    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), modB));
-    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), modC));
+    Assert.assertTrue(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1"), modA));
+    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1", "i2"), modB));
+    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1", "i2", "i3"), modC));
 
-    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA), modB));
-    Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), modC));
-
-    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA, modB), modC));
+    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA), Set.of("i1"), modB));
+    Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), Set.of("i0", "i1"), modB));
+    Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), Set.of("i0", "i1", "i2", "i3"), modC));
+    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA, modB), Set.of("i1", "i2"), modC));
 
     List<ModuleDescriptor> l = new ArrayList<>(List.of(modC, modA, modB));
     DepResolution.topoSort(l);
