@@ -340,16 +340,13 @@ public final class DepResolution {
     // go through modules that need to be disabled
     Iterator<ModuleDescriptor> moduleIterator = sortedList.descendingIterator();
     while (moduleIterator.hasNext()) {
-      ModuleDescriptor md = moduleIterator.next();
+      String id = moduleIterator.next().getId();
       Iterator<TenantModuleDescriptor> iterator = tml.iterator();
       while (iterator.hasNext()) {
         TenantModuleDescriptor tm = iterator.next();
-        if (tm.getAction() == TenantModuleDescriptor.Action.disable) {
-          String id = tm.getId();
-          if (id.equals(md.getId())) {
-            tml2.add(tm);
-            iterator.remove();
-          }
+        if (tm.getId().equals(id) && tm.getAction() == TenantModuleDescriptor.Action.disable) {
+          tml2.add(tm);
+          iterator.remove();
         }
       }
     }
@@ -357,17 +354,15 @@ public final class DepResolution {
     // go through modules that need to be enabled/updated
     moduleIterator = sortedList.iterator();
     while (moduleIterator.hasNext()) {
-      ModuleDescriptor md = moduleIterator.next();
+      String id = moduleIterator.next().getId();
       Iterator<TenantModuleDescriptor> iterator = tml.iterator();
       while (iterator.hasNext()) {
         TenantModuleDescriptor tm = iterator.next();
-        if (tm.getAction() == TenantModuleDescriptor.Action.enable
-            || tm.getAction() == TenantModuleDescriptor.Action.uptodate) {
-          String id = tm.getId();
-          if (id.equals(md.getId())) {
-            tml2.add(tm);
-            iterator.remove();
-          }
+        if (tm.getId().equals(id)
+            && (tm.getAction() == TenantModuleDescriptor.Action.enable
+            || tm.getAction() == TenantModuleDescriptor.Action.uptodate)) {
+          tml2.add(tm);
+          iterator.remove();
         }
       }
     }
