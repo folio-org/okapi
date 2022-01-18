@@ -1,0 +1,17 @@
+# https://app.snyk.io/org/folio-org maintained by https://wiki.folio.org/display/SEC
+name: Snyk security scan
+on: push
+jobs:
+  maven:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: snyk/actions/maven-3-jdk-11@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --sarif-file-output=snyk.sarif
+      - uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: snyk.sarif
