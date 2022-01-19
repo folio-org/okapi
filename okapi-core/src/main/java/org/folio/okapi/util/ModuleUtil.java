@@ -80,7 +80,7 @@ public final class ModuleUtil {
   }
 
   /**
-   * Check if interface spec matches interface.
+   * Check if interface spec matches interface. The version must be exactly the same to match.
    * @param interfaces interfaces from a module
    * @param interfacesStr interfaces spec consisting of comma separated list of interface spec.
    *                      Each interspace spec is either an interface or an interface followed
