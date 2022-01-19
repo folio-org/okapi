@@ -8,6 +8,7 @@ import io.vertx.core.json.JsonArray;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.testing.UtilityClassTester;
 import org.junit.jupiter.api.BeforeAll;
@@ -44,7 +45,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     int sz = modulesList.size();
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(sz).isEqualTo(res.size());
+    assertThat(res).hasSize(sz);
   }
 
   @Test
@@ -61,7 +62,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "notify");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -69,7 +70,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "notify=2.0");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -77,15 +78,79 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "notify=2.1");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(0);
+    assertThat(res).hasSize(0);
   }
 
   @Test
-  void testFilterRequireNotify2() {
+  void testFilterRequireInstanceStorage() {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
-    params.set("require", "notify=2");
+    params.set("require", "instance-storage");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(0);
+    assertThat(res).hasSize(9);
+  }
+
+  @Test
+  void testFilterProvideInstanceStorage4_0() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("provide", "instance-storage=4.0");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res).hasSize(0);
+  }
+
+  @Test
+  void testFilterProvideInstanceStorage7_0() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("provide", "instance-storage=7.0");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res).hasSize(0);
+  }
+
+  @Test
+  void testFilterProvideInstanceStorage7_4() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("provide", "instance-storage=7.4");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res).hasSize(1);
+  }
+
+  @Test
+  void testFilterProvideInstanceStorage7_5() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("provide", "instance-storage=7.5");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res).hasSize(0);
+  }
+
+  @Test
+  void testFilterRequireInstanceStorage4_0() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("require", "instance-storage=4.0");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res).hasSize(1);
+  }
+
+  @Test
+  void testFilterRequireInstanceStorage7_0() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("require", "instance-storage=7.0");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res).hasSize(4);
+  }
+
+  @Test
+  void testFilterRequireInstanceStorage7_1() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("require", "instance-storage=7.1");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res).hasSize(0);
+  }
+
+  @Test
+  void testFilterRequireInstanceStorage7_2() {
+    MultiMap params = MultiMap.caseInsensitiveMultiMap();
+    params.set("require", "instance-storage=7.2");
+    List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
+    assertThat(res).hasSize(3);
   }
 
   @Test
@@ -93,7 +158,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "permissions");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(5);
+    assertThat(res).hasSize(5);
   }
 
   @Test
@@ -101,7 +166,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "notes");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(3);
+    assertThat(res).hasSize(3);
   }
 
   @Test
@@ -109,7 +174,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("require", "notify,permissions");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(5);
+    assertThat(res).hasSize(5);
   }
 
   @Test
@@ -117,7 +182,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("provide", "codex");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(4);
+    assertThat(res).hasSize(4);
   }
 
   @Test
@@ -125,7 +190,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("provide", "permissions");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -133,7 +198,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("filter", "mod-permissions");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -141,7 +206,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("filter", "mod-permissions-5.11.4");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(1);
+    assertThat(res).hasSize(1);
   }
 
   @Test
@@ -149,7 +214,7 @@ class ModuleUtilTest {
     MultiMap params = MultiMap.caseInsensitiveMultiMap();
     params.set("filter", "mod-permissions-5.11.0");
     List<ModuleDescriptor> res = ModuleUtil.filter(params, modulesList, false, false);
-    assertThat(res.size()).isEqualTo(0);
+    assertThat(res).isEmpty();
   }
 
   @Test
@@ -266,5 +331,33 @@ class ModuleUtilTest {
     assertThrows(DecodeException.class, () -> ModuleUtil.getParamInteger(params, "y", 1));
   }
 
+  @Test
+  void testTnterfaceCheckProvide() {
+    assertThat(ModuleUtil.interfaceCheck(null, "int", null)).isFalse();
+    InterfaceDescriptor [] interfaces = new InterfaceDescriptor[] {
+        new InterfaceDescriptor("int", "1.1 2.0")
+    };
+    assertThat(ModuleUtil.interfaceCheck(interfaces, null, null)).isTrue();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "int", null)).isTrue();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "no", null)).isFalse();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "int,no", null)).isTrue();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "no,int", null)).isTrue();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "int=0.9", null)).isFalse();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "int=1.1", null)).isTrue();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "int=1.0", null)).isFalse();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "int=1.2", null)).isFalse();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "int=3.0", null)).isFalse();
 
+    interfaces = new InterfaceDescriptor[] {
+        new InterfaceDescriptor("int", "1.1"),
+        new InterfaceDescriptor("ot", "1.0")
+    };
+    interfaces[0].setScope(new String [] {"scope1", "scope2"});
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "int", null)).isTrue();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "ot", null)).isTrue();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "int", "scope1")).isTrue();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "int", "scope2")).isTrue();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "int", "scope3")).isFalse();
+    assertThat(ModuleUtil.interfaceCheck(interfaces, "ot", "scope1")).isFalse();
+  }
 }

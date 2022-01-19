@@ -117,24 +117,46 @@ public class InterfaceDescriptor {
    * @param required interface that is required
    */
   public boolean isCompatible(InterfaceDescriptor required) {
+    int d = compare(required);
+    return d >= 0 && d <= 2;
+  }
+
+  /**
+   * Compare two interfaces.
+   * @param required required interface with possibly multiple versions
+   * @return 0=both are equal, 2/-2 minor differ, 1/-1 patch differ, Integer.MAX_VALUE otherwise
+   */
+  public int compare(InterfaceDescriptor required) {
     if (!this.getId().equals(required.getId())) {
-      return false; // not the same interface at all
+      return Integer.MAX_VALUE; // not the same interface at all
     }
     int[] t = InterfaceDescriptor.versionParts(this.version, 0);
-    if (t == null) {
-      return false;
-    }
     for (int idx = 0;; idx++) {
       int[] r = InterfaceDescriptor.versionParts(required.version, idx);
       if (r == null) {
         break;
       }
-      if (t[0] == r[0] && (t[1] > r[1] || (t[1] == r[1] && r[2] <= t[2]))) {
-        return true;
+      if (t[0] == r[0]) {
+        // could be a loop, but with only two it seems overkill.
+        int d = t[1] - r[1];
+        if (d > 0) {
+          return 2;
+        } else if (d < 0) {
+          return -2;
+        }
+        d = t[2] - r[2];
+        if (d > 0) {
+          return 1;
+        } else if (d < 0) {
+          return -1;
+        }
+        return 0;
       }
     }
-    return false;
+    return Integer.MAX_VALUE;
   }
+
+
 
   public String getInterfaceType() {
     return interfaceType;
