@@ -26,7 +26,7 @@ class InterfaceDescriptorTest {
     InterfaceDescriptor int2 = new InterfaceDescriptor("int", "2.1");
     InterfaceDescriptor d12 = new InterfaceDescriptor("d", "1.2");
     assertThat(d12.compare(int12)).isEqualTo(Integer.MAX_VALUE);
-    assertThat(int123.compare(int123)).isEqualTo(0);
+    assertThat(int123.compare(int123)).isZero();
     assertThat(int123.compare(int12)).isEqualTo(1);
     assertThat(int12.compare(int123)).isEqualTo(-1);
     assertThat(int123.compare(int12)).isEqualTo(1);
