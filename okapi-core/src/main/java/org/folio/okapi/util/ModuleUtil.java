@@ -109,8 +109,7 @@ public final class ModuleUtil {
         for (String [] kv : interfacePair) {
           if (kv.length == 2) {
             InterfaceDescriptor interfaceUser = new InterfaceDescriptor(kv[0], kv[1]);
-            int d = interfaceUser.compare(pi);
-            if (d == 0) {
+            if (interfaceUser.compare(pi) == 0) {
               return true;
             }
           } else if (pi.getId().equals(kv[0])) {
