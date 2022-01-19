@@ -79,15 +79,26 @@ public final class ModuleUtil {
     }
   }
 
-  private static boolean interfaceCheck(
-      InterfaceDescriptor[] interfaces, String interfaceStr, String scope) {
-    if (interfaceStr == null) {
+  /**
+   * Check if interface spec matches interface.
+   * @param interfaces interfaces from a module
+   * @param interfacesStr interfaces spec consisting of comma separated list of interface spec.
+   *                      Each interspace spec is either an interface or an interface followed
+   *                      by =, followed by version.
+   *
+   * @param scope null for all scopes; or scope to match against.
+   * @return true if scope and interface versions are the same of if interfaceStr is
+   *     null; false otherwise.
+   */
+  static boolean interfaceCheck(InterfaceDescriptor[] interfaces, String interfacesStr,
+      String scope) {
+    if (interfacesStr == null) {
       return true;
     }
     if (interfaces == null) {
       return false;
     }
-    String[] interfaceList = interfaceStr.split(",");
+    String[] interfaceList = interfacesStr.split(",");
     String[][] interfacePair = new String[interfaceList.length][];
     for (int i = 0; i < interfaceList.length; i++) {
       interfacePair[i] = interfaceList[i].split("=");
@@ -97,8 +108,9 @@ public final class ModuleUtil {
       if (scope == null || gotScope.contains(scope)) {
         for (String [] kv : interfacePair) {
           if (kv.length == 2) {
-            InterfaceDescriptor req = new InterfaceDescriptor(kv[0], kv[1]);
-            if (pi.isCompatible(req)) {
+            InterfaceDescriptor interfaceUser = new InterfaceDescriptor(kv[0], kv[1]);
+            int d = interfaceUser.compare(pi);
+            if (d == 0) {
               return true;
             }
           } else if (pi.getId().equals(kv[0])) {
