@@ -48,7 +48,7 @@ public class InstallTest {
   private int v1TenantPermissionsStatus = 200;
 
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
+  public static void setUpBeforeClass() {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
   }
@@ -187,9 +187,9 @@ public class InstallTest {
     createV1Module(context);
 
     JsonObject nodeObject = new JsonObject()
-        .put("instId", "localhost-" + Integer.toString(portModule))
+        .put("instId", "localhost-" + portModule)
         .put("srvcId", "init-v1-module-1.0.0")
-        .put("url", "http://localhost:" + Integer.toString(portModule));
+        .put("url", "http://localhost:" + portModule);
 
     c = api.createRestAssured3();
     c.given().header("Content-Type", "application/json")
@@ -303,10 +303,9 @@ public class InstallTest {
             .put("exec", "java -Dport=%p -jar ../okapi-test-module/target/okapi-unknown.jar"));
 
     c = api.createRestAssured3();
-    final String locationBasic_1_0_0 = c.given()
+    c.given()
         .header("Content-Type", "application/json")
-        .body(basic_1_0_0.encode()).post("/_/proxy/modules").then().statusCode(201)
-        .extract().header("Location");
+        .body(basic_1_0_0.encode()).post("/_/proxy/modules").then().statusCode(201);
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
@@ -378,10 +377,9 @@ public class InstallTest {
             .put("exec", "java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar"));
 
     c = api.createRestAssured3();
-    final String locationBasic_1_0_0 = c.given()
+    c.given()
         .header("Content-Type", "application/json")
-        .body(basic_1_0_0.encode()).post("/_/proxy/modules").then().statusCode(201)
-        .extract().header("Location");
+        .body(basic_1_0_0.encode()).post("/_/proxy/modules").then().statusCode(201);
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
