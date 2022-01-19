@@ -111,7 +111,6 @@ public class InstallTest {
   @Test
   public void installGetNotFound(TestContext context) {
     RestAssuredClient c = api.createRestAssured3();
-    Response r;
     final String okapiTenant = "roskilde";
 
     c = api.createRestAssured3();
@@ -136,7 +135,6 @@ public class InstallTest {
   @Test
   public void installDeleteNotFound(TestContext context) {
     RestAssuredClient c = api.createRestAssured3();
-    Response r;
     final String okapiTenant = "roskilde";
 
     c = api.createRestAssured3();
@@ -170,20 +168,19 @@ public class InstallTest {
     RestAssuredClient c = api.createRestAssured3();
 
     c = api.createRestAssured3();
-    Response r = c.given()
+    String location = c.given()
         .header("Content-Type", "application/json")
         .body(new JsonObject().put("id", tenant).encode()).post("/_/proxy/tenants")
-        .then().statusCode(201).extract().response();
+        .then().statusCode(201).extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    return r.getHeader("Location");
+    return location;
   }
 
   @Test
   public void installDeleteNotCompleter(TestContext context) {
-    RestAssuredClient c = api.createRestAssured3();
-    Response r;
+    RestAssuredClient c;
     final String okapiTenant = "roskilde";
 
     startV1Server().onComplete(context.asyncAssertSuccess(x -> httpServerV1 = x));
@@ -191,35 +188,35 @@ public class InstallTest {
     createTenant(context, okapiTenant);
     createV1Module(context);
 
-    final String nodeDoc1 = "{" + LS
-        + "  \"instId\" : \"localhost-" + Integer.toString(portModule) + "\"," + LS
-        + "  \"srvcId\" : \"init-v1-module-1.0.0\"," + LS
-        + "  \"url\" : \"http://localhost:" + Integer.toString(portModule) + "\"" + LS
-        + "}";
+    JsonObject nodeObject = new JsonObject()
+        .put("instId", "localhost-" + Integer.toString(portModule))
+        .put("srvcId", "init-v1-module-1.0.0")
+        .put("url", "http://localhost:" + Integer.toString(portModule))
+        ;
 
     c = api.createRestAssured3();
     c.given().header("Content-Type", "application/json")
-        .body(nodeDoc1).post("/_/discovery/modules")
+        .body(nodeObject.encode()).post("/_/discovery/modules")
         .then().statusCode(201);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
+    JsonArray installAr = new JsonArray().add(new JsonObject()
+                .put("id", "init-v1-module-1.0.0")
+                .put("action", "enable"));
+
     asyncV1 = context.async(); // make our module wait in tenant init ..
     c = api.createRestAssured3();
-    r = c.given()
+    final String locationInstallJob = c.given()
         .header("Content-Type", "application/json")
-        .body("[ {\"id\" : \"init-v1-module-1.0.0\", \"action\" : \"enable\"} ]")
+        .body(installAr.encode())
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true")
         .then().statusCode(201)
-        .body(equalTo("[ {" + LS
-            + "  \"id\" : \"init-v1-module-1.0.0\"," + LS
-            + "  \"action\" : \"enable\"" + LS
-            + "} ]"))
-        .extract().response();
+        .body(equalTo(installAr.encodePrettily()))
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    final String locationInstallJob = r.getHeader("Location");
 
     String uri = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
     c = api.createRestAssured3();
@@ -241,14 +238,15 @@ public class InstallTest {
     asyncV1 = null;
 
     JsonObject job = pollCompleteStrip(context, uri);
-    context.assertEquals("{" + LS
-        + "  \"complete\" : true," + LS
-        + "  \"modules\" : [ {" + LS
-        + "    \"id\" : \"init-v1-module-1.0.0\"," + LS
-        + "    \"action\" : \"enable\"," + LS
-        + "    \"stage\" : \"done\"" + LS
-        + "  } ]" + LS
-        + "}", job.encodePrettily());
+    JsonObject jobExpected = new JsonObject()
+        .put("complete", true)
+            .put("modules", new JsonArray()
+                .add(new JsonObject()
+                    .put("id", "init-v1-module-1.0.0")
+                    .put("action", "enable")
+                    .put("stage", "done")
+                ));
+    context.assertEquals(jobExpected, job);
 
     c = api.createRestAssured3();
     c.given()
@@ -276,9 +274,7 @@ public class InstallTest {
 
   @Test
   public void installDeployFail(TestContext context) {
-    RestAssuredClient c = api.createRestAssured3();
-    Response r;
-
+    RestAssuredClient c;
     final String okapiTenant = "roskilde";
 
     createTenant(context, okapiTenant);
@@ -307,17 +303,16 @@ public class InstallTest {
         + "  }" + LS
         + "}";
     c = api.createRestAssured3();
-    r = c.given()
+    final String locationBasic_1_0_0 = c.given()
         .header("Content-Type", "application/json")
         .body(docBasic_1_0_0).post("/_/proxy/modules").then().statusCode(201)
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    final String locationBasic_1_0_0 = r.getHeader("Location");
 
     c = api.createRestAssured3();
-    r = c.given()
+    final String locationInstallJob  = c.given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"basic-module-1.0.0\", \"action\" : \"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true&deploy=true")
@@ -326,14 +321,12 @@ public class InstallTest {
             + "  \"id\" : \"basic-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    final String locationInstallJob = r.getHeader("Location");
 
     String path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
-    String id = path.substring(path.lastIndexOf('/') + 1);
 
     JsonObject job = pollCompleteStrip(context, path);
     context.assertEquals("{" + LS
@@ -349,9 +342,7 @@ public class InstallTest {
 
   @Test
   public void installOK(TestContext context) {
-    RestAssuredClient c = api.createRestAssured3();
-    Response r;
-
+    RestAssuredClient c;
     final String okapiTenant = "roskilde";
 
     createTenant(context, okapiTenant);
@@ -380,17 +371,16 @@ public class InstallTest {
         + "  }" + LS
         + "}";
     c = api.createRestAssured3();
-    r = c.given()
+    final String locationBasic_1_0_0 = c.given()
         .header("Content-Type", "application/json")
         .body(docBasic_1_0_0).post("/_/proxy/modules").then().statusCode(201)
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    final String locationBasic_1_0_0 = r.getHeader("Location");
 
     c = api.createRestAssured3();
-    r = c.given()
+    String locationInstallJob  = c.given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"basic-module-1.0.0\", \"action\" : \"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true&deploy=true")
@@ -399,11 +389,10 @@ public class InstallTest {
             + "  \"id\" : \"basic-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    String locationInstallJob = r.getHeader("Location");
 
     String path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
@@ -418,17 +407,16 @@ public class InstallTest {
         + "}", job.encodePrettily());
 
     c = api.createRestAssured3();
-    r = c.given()
+    locationInstallJob  = c.given()
         .header("Content-Type", "application/json")
         .body("")
         .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?async=true&deploy=true")
         .then().statusCode(201)
         .body(equalTo("[ ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    locationInstallJob = r.getHeader("Location");
     path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
     job = pollCompleteStrip(context, path);
     context.assertEquals("{" + LS
@@ -580,7 +568,7 @@ public class InstallTest {
     createV1Module(context);
 
     c = api.createRestAssured3();
-    r = c.given()
+    String locationInstallJob = c.given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"init-v1-module-1.0.0\", \"action\" : \"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true&deploy=true")
@@ -589,11 +577,10 @@ public class InstallTest {
             + "  \"id\" : \"init-v1-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    String locationInstallJob = r.getHeader("Location");
     String path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
     c = api.createRestAssured3();
@@ -623,7 +610,7 @@ public class InstallTest {
         + "}", job.encodePrettily());
 
     c = api.createRestAssured3();
-    r = c.given()
+    locationInstallJob = c.given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"init-v1-module-1.0.0\", \"action\" : \"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true")
@@ -632,11 +619,10 @@ public class InstallTest {
             + "  \"id\" : \"init-v1-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    locationInstallJob = r.getHeader("Location");
     path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
     job = pollCompleteStrip(context, path);
@@ -677,7 +663,7 @@ public class InstallTest {
     v1TenantInitStatus = 403;
 
     c = api.createRestAssured3();
-    r = c.given()
+    locationInstallJob = c.given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"init-v1-module-1.0.0\", \"action\" : \"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true")
@@ -686,11 +672,10 @@ public class InstallTest {
             + "  \"id\" : \"init-v1-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    locationInstallJob = r.getHeader("Location");
     path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
     job = pollCompleteStrip(context, path);
@@ -708,7 +693,7 @@ public class InstallTest {
     v1TenantPermissionsStatus = 500;
 
     c = api.createRestAssured3();
-    r = c.given()
+    locationInstallJob = c.given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"init-v1-module-1.0.0\", \"action\" : \"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true")
@@ -717,11 +702,10 @@ public class InstallTest {
             + "  \"id\" : \"init-v1-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    locationInstallJob = r.getHeader("Location");
     path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
     job = pollCompleteStrip(context, path);
@@ -739,7 +723,7 @@ public class InstallTest {
     v1TenantPermissionsStatus = 200;
 
     c = api.createRestAssured3();
-    r = c.given()
+    locationInstallJob = c.given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"init-v1-module-1.0.0\", \"action\" : \"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true")
@@ -748,11 +732,10 @@ public class InstallTest {
             + "  \"id\" : \"init-v1-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    locationInstallJob = r.getHeader("Location");
     path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
     job = pollCompleteStrip(context, path);
@@ -774,7 +757,7 @@ public class InstallTest {
         .then().statusCode(200);
 
     c = api.createRestAssured3();
-    r = c.given()
+    locationInstallJob = c.given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"init-v1-module-1.0.0\", \"action\" : \"disable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true")
@@ -783,12 +766,11 @@ public class InstallTest {
             + "  \"id\" : \"init-v1-module-1.0.0\"," + LS
             + "  \"action\" : \"disable\"" + LS
             + "} ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
 
-    locationInstallJob = r.getHeader("Location");
     path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
     job = pollCompleteStrip(context, path);
@@ -803,7 +785,7 @@ public class InstallTest {
 
     v1TenantInitStatus = 401;
     c = api.createRestAssured3();
-    r = c.given()
+    locationInstallJob = c.given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"init-v1-module-1.0.0\", \"action\" : \"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true&ignoreErrors=true")
@@ -812,11 +794,10 @@ public class InstallTest {
             + "  \"id\" : \"init-v1-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    locationInstallJob = r.getHeader("Location");
     path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
     job = pollCompleteStrip(context, path);
@@ -906,7 +887,7 @@ public class InstallTest {
 
     v1TenantInitStatus = 401;
     c = api.createRestAssured3();
-    r = c.given()
+    locationInstallJob = c.given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"init-v1-module-1.0.0\", \"action\" : \"enable\"}, {\"id\":\"other-module-1.0.0\", \"action\":\"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true&ignoreErrors=true")
@@ -918,32 +899,34 @@ public class InstallTest {
             + "  \"id\" : \"other-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    locationInstallJob = r.getHeader("Location");
     path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
     job = pollCompleteStrip(context, path);
-    context.assertEquals("{" + LS
-        + "  \"complete\" : true," + LS
-        + "  \"modules\" : [ {" + LS
-        + "    \"id\" : \"init-v1-module-1.0.0\"," + LS
-        + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"POST request for init-v1-module-1.0.0 /_/tenant failed with 401: tenant response\"," + LS
-        + "    \"stage\" : \"invoke\"" + LS
-        + "  }, {" + LS
-        + "    \"id\" : \"other-module-1.0.0\"," + LS
-        + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"POST request for other-module-1.0.0 /_/tenant failed with 401: tenant response\"," + LS
-        + "    \"stage\" : \"invoke\"" + LS
-        + "  } ]" + LS
-        + "}", job.encodePrettily());
+    JsonObject jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "init-v1-module-1.0.0")
+                .put("action", "enable")
+                .put("message", "POST request for init-v1-module-1.0.0 /_/tenant failed with 401: tenant response")
+                .put("stage", "invoke")
+            )
+            .add(new JsonObject()
+                .put("id", "other-module-1.0.0")
+                .put("action", "enable")
+                .put("message", "POST request for other-module-1.0.0 /_/tenant failed with 401: tenant response")
+                .put("stage", "invoke")
+            )
+        );
+    context.assertEquals(jobExpected, job);
 
     v1TenantInitStatus = 401;
     c = api.createRestAssured3();
-    r = c.given()
+    locationInstallJob = c.given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"init-v1-module-1.0.0\", \"action\" : \"enable\"}, {\"id\":\"other-module-1.0.0\", \"action\":\"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true&ignoreErrors=false")
@@ -955,31 +938,33 @@ public class InstallTest {
             + "  \"id\" : \"other-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    locationInstallJob = r.getHeader("Location");
     path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
     job = pollCompleteStrip(context, path);
-    context.assertEquals("{" + LS
-        + "  \"complete\" : true," + LS
-        + "  \"modules\" : [ {" + LS
-        + "    \"id\" : \"init-v1-module-1.0.0\"," + LS
-        + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"POST request for init-v1-module-1.0.0 /_/tenant failed with 401: tenant response\"," + LS
-        + "    \"stage\" : \"invoke\"" + LS
-        + "  }, {" + LS
-        + "    \"id\" : \"other-module-1.0.0\"," + LS
-        + "    \"action\" : \"enable\"," + LS
-        + "    \"stage\" : \"pending\"" + LS
-        + "  } ]" + LS
-        + "}", job.encodePrettily());
+    jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "init-v1-module-1.0.0")
+                .put("action", "enable")
+                .put("message", "POST request for init-v1-module-1.0.0 /_/tenant failed with 401: tenant response")
+                .put("stage", "invoke")
+            )
+            .add(new JsonObject()
+                .put("id", "other-module-1.0.0")
+                .put("action", "enable")
+                .put("stage", "pending")
+            )
+        );
+    context.assertEquals(jobExpected, job);
 
     v1TenantInitStatus = 200;
     c = api.createRestAssured3();
-    r = c.given()
+    locationInstallJob = c.given()
         .header("Content-Type", "application/json")
         .body("[ {\"id\" : \"init-v1-module-1.0.0\", \"action\" : \"enable\"}, {\"id\":\"fail-module-1.0.0\", \"action\":\"enable\"} ]")
         .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true&ignoreErrors=false")
@@ -991,27 +976,29 @@ public class InstallTest {
             + "  \"id\" : \"fail-module-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "} ]"))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    locationInstallJob = r.getHeader("Location");
     path = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
 
     job = pollCompleteStrip(context, path);
-    context.assertEquals("{" + LS
-        + "  \"complete\" : true," + LS
-        + "  \"modules\" : [ {" + LS
-        + "    \"id\" : \"init-v1-module-1.0.0\"," + LS
-        + "    \"action\" : \"enable\"," + LS
-        + "    \"stage\" : \"done\"" + LS
-        + "  }, {" + LS
-        + "    \"id\" : \"fail-module-1.0.0\"," + LS
-        + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"POST request for fail-module-1.0.0 /_/badpath failed with 404: /_/badpath\"," + LS
-        + "    \"stage\" : \"invoke\"" + LS
-        + "  } ]" + LS
-        + "}", job.encodePrettily());
+    jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "init-v1-module-1.0.0")
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", "fail-module-1.0.0")
+                .put("action", "enable")
+                .put("message", "POST request for fail-module-1.0.0 /_/badpath failed with 404: /_/badpath")
+                .put("stage", "invoke")
+            )
+        );
+    context.assertEquals(jobExpected, job);
 
     // get all install jobs and test that they are returned with oldest first
     c = api.createRestAssured3();
@@ -1102,7 +1089,7 @@ public class InstallTest {
 
   JsonObject installAndWait(TestContext context, String tenant, String module, String action, String installParameters) {
     RestAssuredClient c = api.createRestAssured3();
-    Response r = c.given()
+    String location = c.given()
         .header("Content-Type", "application/json")
         .body(new JsonArray().add(new JsonObject()
             .put("id", module)
@@ -1112,13 +1099,11 @@ public class InstallTest {
         .then().statusCode(201)
         .body("[0].id", is(module))
         .body("[0].action", is(action))
-        .extract().response();
+        .extract().header("Location");
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    String path = r.getHeader("Location");
-
-    return pollCompleteStrip(context, path);
+    return pollCompleteStrip(context, location);
   }
 
   @Test
@@ -1307,16 +1292,16 @@ public class InstallTest {
     deployAsyncInitModule(context, module, portModule);
 
     JsonObject job = installAndWait(context, okapiTenant, module);
-    context.assertEquals("{" + LS
-        + "  \"complete\" : true," + LS
-        + "  \"modules\" : [ {" + LS
-        + "    \"id\" : \"" + module + "\"," + LS
-        + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"Unexpected Location header in response for module "
-        + module + ": POST /_/tenant\"," + LS
-        + "    \"stage\" : \"invoke\"" + LS
-        + "  } ]" + LS
-        + "}", job.encodePrettily());
+    JsonObject jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", module)
+                .put("action", "enable")
+                .put("message","Unexpected Location header in response for module " + module + ": POST /_/tenant")
+                .put("stage", "invoke")
+            ));
+    context.assertEquals(jobExpected, job);
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
@@ -1364,16 +1349,16 @@ public class InstallTest {
     deployAsyncInitModule(context, module, portModule);
 
     JsonObject job = installAndWait(context, okapiTenant, module);
-    context.assertEquals("{" + LS
-        + "  \"complete\" : true," + LS
-        + "  \"modules\" : [ {" + LS
-        + "    \"id\" : \"" + module + "\"," + LS
-        + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"Missing DELETE method for tenant interface version 2 for module "
-        + module + "\"," + LS
-        + "    \"stage\" : \"invoke\"" + LS
-        + "  } ]" + LS
-        + "}", job.encodePrettily());
+    JsonObject jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", module)
+                .put("action", "enable")
+                .put("message", "Missing DELETE method for tenant interface version 2 for module " + module)
+                .put("stage", "invoke")
+            ));
+    context.assertEquals(jobExpected, job);
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
@@ -1393,14 +1378,15 @@ public class InstallTest {
     deployAsyncInitModule(context, module, portModule);
 
     JsonObject job = installAndWait(context, okapiTenant, module);
-    context.assertEquals("{" + LS
-        + "  \"complete\" : true," + LS
-        + "  \"modules\" : [ {" + LS
-        + "    \"id\" : \"" + module + "\"," + LS
-        + "    \"action\" : \"enable\"," + LS
-        + "    \"stage\" : \"done\"" + LS
-        + "  } ]" + LS
-        + "}", job.encodePrettily());
+    JsonObject jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", module)
+                .put("action", "enable")
+                .put("stage", "done")
+            ));
+    context.assertEquals(jobExpected, job);
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
@@ -1420,16 +1406,18 @@ public class InstallTest {
     deployAsyncInitModule(context, module, portModule);
 
     JsonObject job = installAndWait(context, okapiTenant, module);
-    context.assertEquals("{" + LS
-        + "  \"complete\" : true," + LS
-        + "  \"modules\" : [ {" + LS
-        + "    \"id\" : \"" + module + "\"," + LS
-        + "    \"action\" : \"enable\"," + LS
-        + "    \"message\" : \"Missing id property in JSON response for module "
-        + module + ": POST /_/tenant\"," + LS
-        + "    \"stage\" : \"invoke\"" + LS
-        + "  } ]" + LS
-        + "}", job.encodePrettily());
+    JsonObject jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", module)
+                .put("action", "enable")
+                .put("message", "Missing id property in JSON response for module " + module + ": POST /_/tenant")
+                .put("stage", "invoke")
+            )
+        );
+    context.assertEquals(jobExpected, job);
+
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
