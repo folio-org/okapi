@@ -10,5 +10,5 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --all-projects
+          args: --org=folio-org --all-projects
           command: monitor
