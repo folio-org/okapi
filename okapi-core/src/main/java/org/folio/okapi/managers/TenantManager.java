@@ -235,6 +235,8 @@ public class TenantManager implements Liveness {
     if (modTo == null) {
       List<String> errors = DepResolution.checkEnabled(mods);
       if (!errors.isEmpty()) {
+        logger.warn("Skip check when disabling {} as dependencies are inconsistent already",
+            modFrom.getId());
         return Future.succeededFuture(); // failures even before we remove a module
       }
     }
