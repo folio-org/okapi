@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.folio.okapi.util.TenantModuleDescriptorMatcher.*;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 
@@ -160,15 +161,10 @@ public class DepResolutionTest {
     DepResolution.getLatestProducts(2, mdl);
 
     Assert.assertEquals(5, mdl.size());
-    Assert.assertEquals(mdE100, mdl.get(0));
-    Assert.assertEquals(mdC, mdl.get(1));
-    Assert.assertEquals(mdB, mdl.get(2));
-    Assert.assertEquals(mdA200, mdl.get(3));
-    Assert.assertEquals(mdA110, mdl.get(4));
+    assertThat(mdl, contains(mdE100, mdC, mdB, mdA200, mdA110));
 
     DepResolution.getLatestProducts(1, mdl);
-    Assert.assertEquals(4, mdl.size());
-    Assert.assertEquals(mdA200, mdl.get(3));
+    assertThat(mdl, contains(mdE100, mdC, mdB, mdA200));
   }
 
   @Test
@@ -1143,20 +1139,16 @@ public class DepResolutionTest {
     available.put(mdB.getId(), mdB);
     InterfaceDescriptor req = new InterfaceDescriptor("int", "1.0");
     Map<String,ModuleDescriptor> products = DepResolution.findModulesForRequiredInterface(available, req);
-    Assert.assertEquals(2, products.size());
-    Assert.assertEquals(mdA111, products.get(mdA111.getProduct()));
-    Assert.assertEquals(mdB, products.get(mdB.getProduct()));
+    assertThat(products, is(Map.of(mdA111.getProduct(), mdA111, mdB.getProduct(), mdB)));
 
     req = new InterfaceDescriptor("int", "1.1");
     products = DepResolution.findModulesForRequiredInterface(available, req);
-    Assert.assertEquals(1, products.size());
-    Assert.assertEquals(mdA111, products.get(mdA111.getProduct()));
+    assertThat(products, is(Map.of(mdA111.getProduct(), mdA111)));
 
     mdA100.setReplaces(new String[] {mdB.getProduct()});
     req = new InterfaceDescriptor("int", "1.0");
     products = DepResolution.findModulesForRequiredInterface(available, req);
-    Assert.assertEquals(1, products.size());
-    Assert.assertEquals(mdA111, products.get(mdA111.getProduct()));
+    assertThat(products, is(Map.of(mdA111.getProduct(), mdA111)));
   }
 
   @Test
@@ -1168,14 +1160,11 @@ public class DepResolutionTest {
     available.put(mdE200.getId(), mdE200);
     InterfaceDescriptor prov = new InterfaceDescriptor("int", "1.1");
     Map<String,ModuleDescriptor> products = DepResolution.findModuleWithProvidedInterface(available, prov);
-    Assert.assertEquals(2, products.size());
-    Assert.assertEquals(mdE110, products.get(mdE110.getProduct()));
-    Assert.assertEquals(ot100, products.get(ot100.getProduct()));
+    assertThat(products, is(Map.of(mdE110.getProduct(), mdE110, ot100.getProduct(), ot100)));
 
     mdE100.setReplaces(new String[] {ot100.getProduct()});
     products = DepResolution.findModuleWithProvidedInterface(available, prov);
-    Assert.assertEquals(1, products.size());
-    Assert.assertEquals(mdE110, products.get(mdE110.getProduct()));
+    assertThat(products, is(Map.of(mdE110.getProduct(), mdE110)));
   }
 
   @Test
