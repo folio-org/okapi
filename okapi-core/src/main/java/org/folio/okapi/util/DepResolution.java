@@ -84,7 +84,7 @@ public final class DepResolution {
    * @return list of errors ; empty list if not error(s)
    */
   public static List<String> checkEnabled(Map<String, ModuleDescriptor> modsEnabled) {
-    return interfaceCheck(modsEnabled, modsEnabled, Collections.emptyList(), false,
+    return checkEnabledModules(modsEnabled, modsEnabled, Collections.emptyList(), false,
         new HashSet<>());
   }
 
@@ -406,7 +406,22 @@ public final class DepResolution {
     tml.add(tm);
   }
 
-  static List<String> interfaceCheck(
+  /**
+   * Check that modules are consistent WRT interface dependencies.
+   *
+   * <p>This method should be called until non-null errors are returned.
+   *
+   * <p>There could be situations where dependencies could not be resolved
+   * even in cases of repeated calls.
+   *
+   * @param modsAvailable all known modules
+   * @param modsEnabled modules enabled for a tenant that is checked
+   * @param tml tenant modules list as given by install
+   * @param fix whether to modify modules to fix dependencies
+   * @param stickyModules modules that are not removed (because they are explicitly listed)
+   * @return list of errors and empty list for no errors; null if modules are fixed (call again)
+   */
+  static List<String> checkEnabledModules(
       Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml, boolean fix,
       Set<String> stickyModules) {
@@ -700,17 +715,24 @@ public final class DepResolution {
         }
       }
     }
+    if (!errors.isEmpty()) {
+      throw new OkapiError(ErrorType.USER, String.join(". ", errors));
+    }
     if (maxIterations == 0) {
-      errors = interfaceCheck(modsAvailable, modsEnabled, tml, false, stickyModules);
+      errors = checkEnabledModules(modsAvailable, modsEnabled, tml, false, stickyModules);
     } else {
-      for (int i = 0; i < maxIterations && (errors == null || errors.isEmpty()); i++) {
-        errors = interfaceCheck(modsAvailable, modsEnabled, tml, true, stickyModules);
+      int i = 0;
+      do {
+        errors = checkEnabledModules(modsAvailable, modsEnabled, tml, true, stickyModules);
+        i++;
+      } while (errors == null && i < maxIterations);
+      logger.info("Dependency resolution done in {} iterations", i);
+      if (errors == null) {
+        throw new OkapiError(ErrorType.INTERNAL,
+            "Dependency resolution not completing in " + maxIterations + " iterations");
       }
     }
-    if (errors == null) {
-      throw new OkapiError(ErrorType.INTERNAL,
-          "Dependency resolution not completing in " + maxIterations + " iterations");
-    } else if (!errors.isEmpty()) {
+    if (!errors.isEmpty()) {
       throw new OkapiError(ErrorType.USER, String.join(". ", errors));
     }
     sortTenantModules(tml, modsAvailable, modsEnabled);
