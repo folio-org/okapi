@@ -465,25 +465,26 @@ public final class DepResolution {
       Map<String, List<ModuleInterface>> providedInterfaces, Set<String> stickyModules) {
 
     for (Map.Entry<String, List<ModuleInterface>> entry : providedInterfaces.entrySet()) {
-      if (entry.getValue().size() > 1) {
-        logger.info("Interface {} is defined {} times",
-            entry.getKey(), entry.getValue().size());
-        if (fix) {
-          for (ModuleInterface ent : entry.getValue()) {
-            ModuleDescriptor md = ent.moduleDescriptor;
-            if (!stickyModules.contains(md.getId())) {
-              logger.info("Disable module {}", md.getId());
-              modsEnabled.remove(md.getId());
-              addTenantModule(tml, md.getId(), null, TenantModuleDescriptor.Action.disable);
-              return true;
-            }
+      if (entry.getValue().size() <= 1) {
+        continue;
+      }
+      logger.info("Interface {} is defined {} times",
+          entry.getKey(), entry.getValue().size());
+      if (fix) {
+        for (ModuleInterface ent : entry.getValue()) {
+          ModuleDescriptor md = ent.moduleDescriptor;
+          if (!stickyModules.contains(md.getId())) {
+            logger.info("Disable module {}", md.getId());
+            modsEnabled.remove(md.getId());
+            addTenantModule(tml, md.getId(), null, TenantModuleDescriptor.Action.disable);
+            return true;
           }
         }
-        String modules = entry.getValue().stream()
-            .map(x -> x.moduleDescriptor.getId())
-            .collect(Collectors.joining(", "));
-        errors.add(messages.getMessage("10213", modules, entry.getKey()));
       }
+      String modules = entry.getValue().stream()
+          .map(x -> x.moduleDescriptor.getId())
+          .collect(Collectors.joining(", "));
+      errors.add(messages.getMessage("10213", modules, entry.getKey()));
     }
     return false;
   }
@@ -496,34 +497,35 @@ public final class DepResolution {
 
     for (Map.Entry<String, List<ModuleInterface>> entry : requiredInterfaces.entrySet()) {
       List<ModuleInterface> providedModuleInterfaces = providedInterfaces.get(entry.getKey());
-      if (providedModuleInterfaces == null) {
-        logger.info("Interface {} undefined and required", entry.getKey());
-        for (ModuleInterface req : entry.getValue()) {
-          if (fix) {
-            Map<String, ModuleDescriptor> modules =
-                checkInterfaceDepAvailable(modsAvailable, req.interfaceDescriptor);
-            if (modules.size() > 1) {
-              errors.add(messages.getMessage("10210", entry.getKey(), req.moduleDescriptor.getId(),
-                  String.join(", ", modules.keySet())));
-              return false;
-            } else if (!modules.isEmpty()) {
-              ModuleDescriptor mdFound = modules.values().iterator().next();
-              String id = req.moduleDescriptor.getId();
-              if (stickyModules.contains(req.moduleDescriptor.getId())) {
-                logger.info("Enable {}", mdFound.getId());
-                modsEnabled.put(mdFound.getId(), mdFound);
-                addTenantModule(tml, mdFound.getId(), null, TenantModuleDescriptor.Action.enable);
-                stickyModules.add(mdFound.getId());
-              } else {
-                logger.info("Removing {}", id);
-                modsEnabled.remove(id);
-                addTenantModule(tml, id, null, TenantModuleDescriptor.Action.disable);
-              }
-              return true;
+      if (providedModuleInterfaces != null) {
+        continue;
+      }
+      logger.info("Interface {} undefined and required", entry.getKey());
+      for (ModuleInterface req : entry.getValue()) {
+        if (fix) {
+          Map<String, ModuleDescriptor> modules =
+              checkInterfaceDepAvailable(modsAvailable, req.interfaceDescriptor);
+          if (modules.size() > 1) {
+            errors.add(messages.getMessage("10210", entry.getKey(), req.moduleDescriptor.getId(),
+                String.join(", ", modules.keySet())));
+            return false;
+          } else if (!modules.isEmpty()) {
+            ModuleDescriptor mdFound = modules.values().iterator().next();
+            String id = req.moduleDescriptor.getId();
+            if (stickyModules.contains(req.moduleDescriptor.getId())) {
+              logger.info("Enable {}", mdFound.getId());
+              modsEnabled.put(mdFound.getId(), mdFound);
+              addTenantModule(tml, mdFound.getId(), null, TenantModuleDescriptor.Action.enable);
+              stickyModules.add(mdFound.getId());
+            } else {
+              logger.info("Removing {}", id);
+              modsEnabled.remove(id);
+              addTenantModule(tml, id, null, TenantModuleDescriptor.Action.disable);
             }
+            return true;
           }
-          errors.add(messages.getMessage("10211", entry.getKey(), req.moduleDescriptor.getId()));
         }
+        errors.add(messages.getMessage("10211", entry.getKey(), req.moduleDescriptor.getId()));
       }
     }
     return false;
@@ -537,68 +539,68 @@ public final class DepResolution {
 
     for (Map.Entry<String, List<ModuleInterface>> entry : requiredOptInterfaces.entrySet()) {
       List<ModuleInterface> providedModuleInterfaces = providedInterfaces.get(entry.getKey());
-      if (providedModuleInterfaces != null) {
-        ModuleInterface prov = providedModuleInterfaces.get(0);
-        for (ModuleInterface req : entry.getValue()) {
-          if (!prov.interfaceDescriptor.isCompatible(req.interfaceDescriptor)) {
-            logger.info("Interface prov={}:{}/{} req={}:{}/{} not compatible",
-                prov.interfaceDescriptor.getId(), prov.interfaceDescriptor.getVersion(),
-                prov.moduleDescriptor.getId(),
-                req.interfaceDescriptor.getId(), req.interfaceDescriptor.getVersion(),
-                req.moduleDescriptor.getId());
-            if (fix) {
-              if (!stickyModules.contains(prov.moduleDescriptor.getId())) {
-                // see if we can find a module that provides the required interface
-                Map<String, ModuleDescriptor> modules =
-                    checkInterfaceDepAvailable(modsAvailable, req.interfaceDescriptor);
-                if (modules.size() > 1) {
-                  errors.add(messages.getMessage("10210", entry.getKey(),
-                      req.moduleDescriptor.getId(),
-                      String.join(", ", modules.keySet())));
-                  return false;
-                } else if (!modules.isEmpty()) {
-                  ModuleDescriptor mdFound = modules.values().iterator().next();
-                  String from = prov.moduleDescriptor.getId();
-                  stickyModules.add(mdFound.getId());
-                  logger.info("Adding 1 to={} from={}", mdFound.getId(), from);
-                  modsEnabled.remove(from);
-                  modsEnabled.put(mdFound.getId(), mdFound);
-                  addTenantModule(tml, mdFound.getId(), from, TenantModuleDescriptor.Action.enable);
-                  return true;
-                }
-              }
-              if (!stickyModules.contains(req.moduleDescriptor.getId())) {
-                // see if we can find a module that require the provided interface
-                Map<String, ModuleDescriptor> modules =
-                    checkInterfaceProvAvailable(modsAvailable, prov.interfaceDescriptor);
-                if (modules.size() > 1) {
-                  errors.add(messages.getMessage("10210", entry.getKey(),
-                      req.moduleDescriptor.getId(),
-                      String.join(", ", modules.keySet())));
-                  return false;
-                } else if (!modules.isEmpty()) {
-                  ModuleDescriptor mdFound = modules.values().iterator().next();
-                  String from = req.moduleDescriptor.getId();
-                  stickyModules.add(mdFound.getId());
-                  logger.info("Adding 2 to={} from={}", mdFound.getId(), from);
-                  modsEnabled.remove(from);
-                  modsEnabled.put(mdFound.getId(), mdFound);
-                  addTenantModule(tml, mdFound.getId(), from,
-                      TenantModuleDescriptor.Action.enable);
-                  return true;
-                }
+      if (providedModuleInterfaces == null) {
+        continue;
+      }
+      ModuleInterface prov = providedModuleInterfaces.get(0);
+      for (ModuleInterface req : entry.getValue()) {
+        if (!prov.interfaceDescriptor.isCompatible(req.interfaceDescriptor)) {
+          logger.info("Interface prov={}:{}/{} req={}:{}/{} not compatible",
+              prov.interfaceDescriptor.getId(), prov.interfaceDescriptor.getVersion(),
+              prov.moduleDescriptor.getId(),
+              req.interfaceDescriptor.getId(), req.interfaceDescriptor.getVersion(),
+              req.moduleDescriptor.getId());
+          if (fix) {
+            if (!stickyModules.contains(prov.moduleDescriptor.getId())) {
+              // see if we can find a module that provides the required interface
+              Map<String, ModuleDescriptor> modules =
+                  checkInterfaceDepAvailable(modsAvailable, req.interfaceDescriptor);
+              if (modules.size() > 1) {
+                errors.add(messages.getMessage("10210", entry.getKey(),
+                    req.moduleDescriptor.getId(),
+                    String.join(", ", modules.keySet())));
+                return false;
+              } else if (!modules.isEmpty()) {
+                ModuleDescriptor mdFound = modules.values().iterator().next();
+                String from = prov.moduleDescriptor.getId();
+                stickyModules.add(mdFound.getId());
+                logger.info("Adding 1 to={} from={}", mdFound.getId(), from);
+                modsEnabled.remove(from);
+                modsEnabled.put(mdFound.getId(), mdFound);
+                addTenantModule(tml, mdFound.getId(), from, TenantModuleDescriptor.Action.enable);
+                return true;
               }
             }
-            errors.add(messages.getMessage("10201", req.moduleDescriptor.getId(), entry.getKey(),
-                req.interfaceDescriptor.getVersion(),
-                prov.interfaceDescriptor.getVersion() + "/" + prov.moduleDescriptor.getId()));
+            if (!stickyModules.contains(req.moduleDescriptor.getId())) {
+              // see if we can find a module that require the provided interface
+              Map<String, ModuleDescriptor> modules =
+                  checkInterfaceProvAvailable(modsAvailable, prov.interfaceDescriptor);
+              if (modules.size() > 1) {
+                errors.add(messages.getMessage("10210", entry.getKey(),
+                    req.moduleDescriptor.getId(),
+                    String.join(", ", modules.keySet())));
+                return false;
+              } else if (!modules.isEmpty()) {
+                ModuleDescriptor mdFound = modules.values().iterator().next();
+                String from = req.moduleDescriptor.getId();
+                stickyModules.add(mdFound.getId());
+                logger.info("Adding 2 to={} from={}", mdFound.getId(), from);
+                modsEnabled.remove(from);
+                modsEnabled.put(mdFound.getId(), mdFound);
+                addTenantModule(tml, mdFound.getId(), from,
+                    TenantModuleDescriptor.Action.enable);
+                return true;
+              }
+            }
           }
+          errors.add(messages.getMessage("10201", req.moduleDescriptor.getId(), entry.getKey(),
+              req.interfaceDescriptor.getVersion(),
+              prov.interfaceDescriptor.getVersion() + "/" + prov.moduleDescriptor.getId()));
         }
       }
     }
     return false;
   }
-
 
   /**
    * Install modules with dependency checking only.
