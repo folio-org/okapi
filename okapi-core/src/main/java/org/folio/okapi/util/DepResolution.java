@@ -448,13 +448,16 @@ public final class DepResolution {
   }
 
   /**
-   * For each entry in providedInterfaces with more than one ModuleInterface add an error message to errors.
-   * If fix is true and it is not listed in stickyModules also disable it by adding an disable entry to tml and
-   * by removing it from modsEnabled.
-   * 
-   * If a module gets disabled the method stops and returns true without checking the remaining interfaces.
+   * For each entry in providedInterfaces with more than one ModuleInterface add an error
+   * message to errors.
    *
-   * If all interfaces have been checked but no module has been disabled true is returned.
+   * <p>If fix is true and it is not listed in stickyModules also disable it by adding an
+   * disable entry to tml and by removing it from modsEnabled.
+   *
+   * <p>If a module gets disabled the method stops and returns true without checking the
+   * remaining interfaces.
+   *
+   * <p>If all interfaces have been checked but no module has been disabled true is returned.
    */
   private static boolean checkMultiple(
       Map<String, ModuleDescriptor> modsEnabled,
