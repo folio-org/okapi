@@ -627,30 +627,27 @@ public final class DepResolution {
         if (!moduleId.hasSemVer()) {
           id = moduleId.getLatest(modsAvailable.keySet());
           tm.setId(id);
-          stickyModules.add(id);
-        } else {
-          stickyModules.add(id);
         }
+        stickyModules.add(id);
         if (!modsAvailable.containsKey(id)) {
           errors.add(messages.getMessage("10801", id));
+        } else if (modsEnabled.containsKey(id) && !reinstall) {
+          tm.setAction(TenantModuleDescriptor.Action.uptodate);
         } else {
-          if (modsEnabled.containsKey(id) && !reinstall) {
-            tm.setAction(TenantModuleDescriptor.Action.uptodate);
-          } else {
-            String product = new ModuleId(id).getProduct();
-            for (String enabledId : modsEnabled.keySet()) {
-              String enabledProduct = new ModuleId(enabledId).getProduct();
-              if (enabledProduct.equals(product)) {
-                if (stickyModules.contains(enabledId) && !id.equals(enabledId)) {
-                  errors.add(messages.getMessage("10209", enabledId));
-                }
-                modsEnabled.remove(enabledId);
-                tm.setFrom(enabledId);
-                break;
+          // see if module is already enabled in which case we must turn it into an upgrade
+          String product = new ModuleId(id).getProduct();
+          for (String enabledId : modsEnabled.keySet()) {
+            String enabledProduct = new ModuleId(enabledId).getProduct();
+            if (enabledProduct.equals(product)) {
+              if (stickyModules.contains(enabledId) && !id.equals(enabledId)) {
+                errors.add(messages.getMessage("10209", enabledId));
               }
+              modsEnabled.remove(enabledId);
+              tm.setFrom(enabledId);
+              break;
             }
-            modsEnabled.put(id, modsAvailable.get(id));
           }
+          modsEnabled.put(id, modsAvailable.get(id));
         }
       }
       if (tm.getAction() == TenantModuleDescriptor.Action.disable) {
