@@ -103,7 +103,7 @@ public final class DepResolution {
   }
 
   /**
-   * Return top-N set of modules - in order of module ID.
+   * Sort mdl in descending order and remove all but the top-N for each product.
    *
    * @param limit max number for each module (Top-N)
    * @param mdl   modules to consider (will be modified!)
