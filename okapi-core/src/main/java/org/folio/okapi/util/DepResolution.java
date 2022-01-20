@@ -126,7 +126,10 @@ public final class DepResolution {
   }
 
   /**
-   * Check if module's required/optional interfaces are provided by set of modules.
+   * Check if md's required and optional interfaces are provided by set of modules.
+   * The interface version is not checked, only the interface name.
+   * Only interfaces listed in allProvided are checked, this allows to exclude some optional
+   * interfaces from the check.
    *
    * @param modules     the modules that check against
    * @param allProvided interfaces for all modules
