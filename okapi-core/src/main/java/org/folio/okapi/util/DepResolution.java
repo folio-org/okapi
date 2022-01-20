@@ -389,14 +389,15 @@ public final class DepResolution {
   private static void addTenantModule(
       List<TenantModuleDescriptor> tml, String id, String from,
       TenantModuleDescriptor.Action action) {
-    if (from != null && action == TenantModuleDescriptor.Action.enable && !id.equals(from)) {
-      if (!new ModuleId(id).getProduct().equals(new ModuleId(from).getProduct())) {
-        TenantModuleDescriptor tm = new TenantModuleDescriptor();
-        tm.setAction(TenantModuleDescriptor.Action.disable);
-        tm.setId(from);
-        tml.add(tm);
-        from = null;
-      }
+    if (action == TenantModuleDescriptor.Action.enable && from != null
+        && !new ModuleId(id).getProduct().equals(new ModuleId(from).getProduct())) {
+      // upgrading between two different products.. so this upgrade is turned into
+      // a disable, then en enable
+      TenantModuleDescriptor tm = new TenantModuleDescriptor();
+      tm.setAction(TenantModuleDescriptor.Action.disable);
+      tm.setId(from);
+      tml.add(tm);
+      from = null;
     }
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     tm.setId(id);
