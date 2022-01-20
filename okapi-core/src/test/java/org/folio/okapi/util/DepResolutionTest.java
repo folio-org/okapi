@@ -1,6 +1,5 @@
 package org.folio.okapi.util;
 
-import io.vertx.core.json.Json;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,6 +20,10 @@ import org.folio.okapi.testing.UtilityClassTester;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.folio.okapi.util.TenantModuleDescriptorMatcher.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 
 public class DepResolutionTest {
 
@@ -79,29 +82,6 @@ public class DepResolutionTest {
 
   private static List<TenantModuleDescriptor> enableList(ModuleDescriptor... array) {
     return createList(Action.enable, array);
-  }
-
-  static void assertEnable(List<TenantModuleDescriptor> tml, int idx, ModuleDescriptor md) {
-    assertUpgrade(tml, idx, md, null);
-  }
-
-  static void assertUpgrade(List<TenantModuleDescriptor> tml, int idx, ModuleDescriptor md, ModuleDescriptor from) {
-    assertAction(tml, idx, Action.enable, md, from);
-  }
-
-  static void assertDisable(List<TenantModuleDescriptor> tml, int idx, ModuleDescriptor md) {
-    assertAction(tml, idx, Action.disable, md, null);
-  }
-
-  static void assertUpToDate(List<TenantModuleDescriptor> tml, int idx, ModuleDescriptor md) {
-    assertAction(tml, idx, Action.uptodate, md, null);
-  }
-
-  static void assertAction(List<TenantModuleDescriptor> tml, int idx, Action action, ModuleDescriptor md, ModuleDescriptor from) {
-    TenantModuleDescriptor tm = tml.get(idx);
-    Assert.assertEquals(Json.encodePrettily(tml), action, tm.getAction());
-    Assert.assertEquals(Json.encodePrettily(tml), md.getId(), tm.getId());
-    Assert.assertEquals(Json.encodePrettily(tml), from != null ? from.getId() : null, tm.getFrom());
   }
 
   @Before
@@ -195,25 +175,21 @@ public class DepResolutionTest {
   public void testUpgradeUpToDate() {
     List<TenantModuleDescriptor> tml = enableList(mdA100);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdE110), map(mdA100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
-    assertUpToDate(tml, 0, mdA100);
+    assertThat(tml, contains(upToDate(mdA100)));
   }
 
   @Test
   public void testUpgradeReinstall() {
     List<TenantModuleDescriptor> tml = enableList(mdA100);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdE110), map(mdA100), tml, true);
-    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
-    assertAction(tml, 0, Action.enable, mdA100, mdA100);
+    assertThat(tml, contains(upgrade(mdA100, mdA100)));
   }
 
   @Test
   public void testUpgradeDifferentProduct() {
     List<TenantModuleDescriptor> tml = enableList(mdB);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertDisable(tml, 0, mdA100);
-    assertEnable(tml, 1, mdB);
+    assertThat(tml, contains(disable(mdA100), enable(mdB)));
   }
 
   @Test
@@ -237,26 +213,21 @@ public class DepResolutionTest {
   public void testUpgradeSameProduct() {
     List<TenantModuleDescriptor> tml = enableList(mdA110);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdD100), map(mdA100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
-    assertUpgrade(tml, 0, mdA110, mdA100);
+    assertThat(tml, contains(upgrade(mdA110, mdA100)));
   }
 
   @Test
   public void testUpgrade1() {
     List<TenantModuleDescriptor> tml = enableList(mdD200);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdA200, mdD100, mdD200), map(mdB), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
-    assertDisable(tml, 0, mdB);
-    assertEnable(tml, 1, mdA200);
-    assertEnable(tml, 2, mdD200);
+    assertThat(tml, contains(disable(mdB), enable(mdA200), enable(mdD200)));
   }
 
   @Test
   public void testUpgradeWithRequires() {
     List<TenantModuleDescriptor> tml = enableList(mdE100);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdD100, mdE100), map(mdA100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
-    assertEnable(tml, 0, mdE100);
+    assertThat(tml, contains(enable(mdE100)));
   }
 
   // install optional with no provided interface enabled
@@ -264,8 +235,7 @@ public class DepResolutionTest {
   public void testInstallOptional1() {
     List<TenantModuleDescriptor> tml = enableList(mdD100);
     DepResolution.install(map(mdA100, mdA110, mdD100, mdD110, mdE100), map(), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
-    assertEnable(tml, 0, mdD100);
+    assertThat(tml, contains(enable(mdD100)));
   }
 
   // install optional with a matched interface provided
@@ -273,8 +243,7 @@ public class DepResolutionTest {
   public void testInstallOptional2() {
     List<TenantModuleDescriptor> tml = enableList(mdD100);
     DepResolution.install(map(mdA100, mdA110, mdD100, mdE100), map(mdA100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
-    assertEnable(tml, 0, mdD100);
+    assertThat(tml, contains(enable(mdD100)));
   }
 
   // install optional with existing interface that is too low (error)
@@ -292,9 +261,7 @@ public class DepResolutionTest {
   public void testInstallMinorLeafOptional() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     DepResolution.install(map(mdA100, mdA110, mdA111, mdD100, mdD110, mdE100), map(mdA100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertUpgrade(tml, 0, mdA111, mdA100);
-    assertEnable(tml, 1, mdD110);
+    assertThat(tml, contains(upgrade(mdA111, mdA100), enable(mdD110)));
   }
 
   // upgrade base dependency which is still compatible with optional interface
@@ -302,8 +269,7 @@ public class DepResolutionTest {
   public void testInstallMinorBaseOptional() {
     List<TenantModuleDescriptor> tml = enableList(mdA110);
     DepResolution.install(map(mdA100, mdA110, mdD100, mdD110), map(mdA100, mdD100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
-    assertUpgrade(tml, 0, mdA110, mdA100);
+    assertThat(tml, contains(upgrade(mdA110, mdA100)));
   }
 
   // upgrade optional dependency which require upgrading base dependency
@@ -311,9 +277,7 @@ public class DepResolutionTest {
   public void testInstallMinorLeafOptional2() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     DepResolution.install(map(mdA100, mdA110, mdA111, mdD100, mdD110), map(mdA100, mdD100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertUpgrade(tml, 0, mdA111, mdA100);
-    assertUpgrade(tml, 1, mdD110, mdD100);
+    assertThat(tml, contains(upgrade(mdA111, mdA100), upgrade(mdD110, mdD100)));
   }
 
   // upgrade base dependency which is a major interface bump to optional interface
@@ -322,9 +286,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdA200);
     DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200),
         map(mdA100, mdD100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertUpgrade(tml, 0, mdA200, mdA100);
-    assertUpgrade(tml, 1, mdD200, mdD100);
+    assertThat(tml, contains(upgrade(mdA200, mdA100), upgrade(mdD200, mdD100)));
   }
 
   @Test
@@ -357,9 +319,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdD200);
     DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200, mdA200),
         map(mdA100, mdD100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertUpgrade(tml, 0, mdA200, mdA100);
-    assertUpgrade(tml, 1, mdD200, mdD100);
+    assertThat(tml, contains(upgrade(mdA200, mdA100), upgrade(mdD200, mdD100)));
   }
 
   // install optional with existing interface that needs upgrading, but
@@ -381,9 +341,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdA200);
     DepResolution.install(map(mdA100, mdA200, mdE100, mdE200),
         map(mdA100, mdE100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertUpgrade(tml, 0, mdA200, mdA100);
-    assertUpgrade(tml, 1, mdE200, mdE100);
+    assertThat(tml, contains(upgrade(mdA200, mdA100), upgrade(mdE200, mdE100)));
   }
 
   // upgrade both dependency which is a major interface bump to required interface
@@ -392,9 +350,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdA200, mdE200);
     DepResolution.install(map(mdA100, mdA200, mdE100, mdE200),
         map(mdA100, mdE100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertUpgrade(tml, 0, mdA200, mdA100);
-    assertUpgrade(tml, 1, mdE200, mdE100);
+    assertThat(tml, contains(upgrade(mdA200, mdA100), upgrade(mdE200, mdE100)));
   }
 
   // upgrade both dependency which is a major interface bump to required interface
@@ -403,9 +359,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdE200, mdA200);
     DepResolution.install(map(mdA100, mdA200, mdE100, mdE200),
         map(mdA100, mdE100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertUpgrade(tml, 0, mdA200, mdA100);
-    assertUpgrade(tml, 1, mdE200, mdE100);
+    assertThat(tml, contains(upgrade(mdA200, mdA100), upgrade(mdE200, mdE100)));
   }
 
   // upgrade module with major dependency upgrade
@@ -413,36 +367,28 @@ public class DepResolutionTest {
   public void testInstallMajorLeafRequired() {
     List<TenantModuleDescriptor> tml = enableList(mdE200);
     DepResolution.install(map(mdA100, mdA200, mdE100, mdE200), map(mdA100, mdE100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertUpgrade(tml, 0, mdA200, mdA100);
-    assertUpgrade(tml, 1, mdE200, mdE100);
+    assertThat(tml, contains(upgrade(mdA200, mdA100), upgrade(mdE200, mdE100)));
   }
 
   @Test
   public void testInstallNew1() {
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdA100);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertEnable(tml, 0, mdA100);
-    assertEnable(tml, 1, mdE100);
+    assertThat(tml, contains(enable(mdA100), enable(mdE100)));
   }
 
   @Test
   public void testInstallNew2() {
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdB);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertEnable(tml, 0, mdB);
-    assertEnable(tml, 1, mdE100);
+    assertThat(tml, contains(enable(mdB), enable(mdE100)));
   }
 
   @Test
   public void testInstallNewProduct() {
     List<TenantModuleDescriptor> tml = createList(Action.enable, true, mdE100, mdB);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdE100), map(), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertEnable(tml, 0, mdB);
-    assertEnable(tml, 1, mdE100);
+    assertThat(tml, contains(enable(mdB), enable(mdE100)));
   }
 
   @Test
@@ -478,9 +424,7 @@ public class DepResolutionTest {
     mdB.setReplaces(new String[]{mdA100.getProduct()});
     List<TenantModuleDescriptor> tml = enableList(mdE100);
     DepResolution.install(map(mdA100, mdA110, mdB, mdE100), map(), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertEnable(tml, 0, mdB);
-    assertEnable(tml, 1, mdE100);
+    assertThat(tml, contains(enable(mdB), enable(mdE100)));
   }
 
   @Test
@@ -490,9 +434,7 @@ public class DepResolutionTest {
 
     List<TenantModuleDescriptor> tml = enableList(mdE100);
     DepResolution.install(map(mdA100, mdA110, mdB, mdC, mdE100), map(), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertEnable(tml, 0, mdC);
-    assertEnable(tml, 1, mdE100);
+    assertThat(tml, contains(enable(mdC), enable(mdE100)));
   }
 
   @Test
@@ -515,62 +457,49 @@ public class DepResolutionTest {
   public void testDisable1() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100);
     DepResolution.install(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertDisable(tml, 0, mdE100);
-    assertDisable(tml, 1, mdA100);
+    assertThat(tml, contains(disable(mdE100), disable(mdA100)));
   }
 
   @Test
   public void testDisableProduct() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, true, mdA100);
     DepResolution.install(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertDisable(tml, 0, mdE100);
-    assertDisable(tml, 1, mdA100);
+    assertThat(tml, contains(disable(mdE100), disable(mdA100)));
   }
 
   @Test
   public void testDisable2() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdE100, mdA100);
     DepResolution.install(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertDisable(tml, 0, mdE100);
-    assertDisable(tml, 1, mdA100);
+    assertThat(tml, contains(disable(mdE100), disable(mdA100)));
   }
 
   @Test
   public void testDisable3() {
     List<TenantModuleDescriptor> tml = createList(Action.disable, mdA100, mdE100);
     DepResolution.install(map(mdA100, mdA110, mdE100), map(mdA100, mdE100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertDisable(tml, 0, mdE100);
-    assertDisable(tml, 1, mdA100);
+    assertThat(tml, contains(disable(mdE100), disable(mdA100)));
   }
 
   @Test
   public void testUpToDate1() {
     List<TenantModuleDescriptor> tml = createList(Action.uptodate, mdA100);
     DepResolution.install(map(mdA100), map(mdA100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 1, tml.size());
-    assertUpToDate(tml, 0, mdA100);
+    assertThat(tml, contains(upToDate(mdA100)));
   }
 
   @Test
   public void testUpToDate2() {
     List<TenantModuleDescriptor> tml = enableList(mdA100, mdA100);
     DepResolution.install(map(mdA100), map(mdA100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertUpToDate(tml, 0, mdA100);
-    assertUpToDate(tml, 1, mdA100);
+    assertThat(tml, contains(upToDate(mdA100), upToDate(mdA100)));
   }
 
   @Test
   public void testUpToDate3() {
     List<TenantModuleDescriptor> tml = enableList(mdA100, mdA100);
     DepResolution.install(map(mdA100), map(), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertEnable(tml, 0, mdA100);
-    assertUpToDate(tml, 1, mdA100);
+    assertThat(tml, contains(enable(mdA100), upToDate(mdA100)));
   }
 
   @Test
@@ -656,18 +585,14 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100);
       List<TenantModuleDescriptor> tml = enableList(req1_100);
       DepResolution.install(modsAvailable, map(), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertEnable(tml, 0, prov100);
-      assertEnable(tml, 1, req1_100);
+      assertThat(tml, contains(enable(prov100), enable(req1_100)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100);
       List<TenantModuleDescriptor> tml = enableList(req2_100);
       DepResolution.install(modsAvailable, map(), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertEnable(tml, 0, prov200);
-      assertEnable(tml, 1, req2_100);
+      assertThat(tml, contains(enable(prov200), enable(req2_100)));
     }
 
     ModuleDescriptor req1or2 = new ModuleDescriptor("req1or2-1.0.0");
@@ -684,23 +609,14 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100, req1or2, reqI1or2);
       List<TenantModuleDescriptor> tml = enableList(reqI1or2, req1_100);
       DepResolution.install(modsAvailable, map(), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 4, tml.size());
-      assertEnable(tml, 0, prov100);
-      assertEnable(tml, 1, req1or2);
-      assertEnable(tml, 2, reqI1or2);
-      assertEnable(tml, 3, req1_100);
+      assertThat(tml, contains(enable(prov100), enable(req1or2), enable(reqI1or2), enable(req1_100)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100, req1or2, reqI1or2);
       List<TenantModuleDescriptor> tml = enableList(req1_100, reqI1or2);
       DepResolution.install(modsAvailable, map(), tml, false);
-      logger.debug("tml result = " + Json.encodePrettily(tml));
-      Assert.assertEquals(Json.encodePrettily(tml), 4, tml.size());
-      assertEnable(tml, 0, prov100);
-      assertEnable(tml, 1, req1or2);
-      assertEnable(tml, 2, req1_100);
-      assertEnable(tml, 3, reqI1or2);
+      assertThat(tml, contains(enable(prov100), enable(req1or2), enable(req1_100), enable(reqI1or2)));
     }
   }
 
@@ -747,134 +663,98 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modA, modB, modC);
       DepResolution.install(modsAvailable, map(), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
-      assertEnable(tml, 0, modA);
-      assertEnable(tml, 1, modB);
-      assertEnable(tml, 2, modC);
+      assertThat(tml, contains(enable(modA), enable(modB), enable(modC)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modC, modB, modA);
       DepResolution.install(modsAvailable, map(), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
-      assertEnable(tml, 0, modA);
-      assertEnable(tml, 1, modB);
-      assertEnable(tml, 2, modC);
+      assertThat(tml, contains(enable(modA), enable(modB), enable(modC)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modC, modA, modB);
       DepResolution.install(modsAvailable, map(), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
-      assertEnable(tml, 0, modA);
-      assertEnable(tml, 1, modB);
-      assertEnable(tml, 2, modC);
+      assertThat(tml, contains(enable(modA), enable(modB), enable(modC)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modB, modC, modA);
       DepResolution.install(modsAvailable, map(), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
-      assertEnable(tml, 0, modA);
-      assertEnable(tml, 1, modB);
-      assertEnable(tml, 2, modC);
+      assertThat(tml, contains(enable(modA), enable(modB), enable(modC)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = enableList(modC, modB);
       DepResolution.install(modsAvailable, map(modA), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertEnable(tml, 0, modB);
-      assertEnable(tml, 1, modC);
+      assertThat(tml, contains(enable(modB), enable(modC)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB, modC, modA);
       DepResolution.install(modsAvailable, map(modA, modB, modC), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
-      assertDisable(tml, 0, modC);
-      assertDisable(tml, 1, modB);
-      assertDisable(tml, 2, modA);
+      assertThat(tml, contains(disable(modC), disable(modB), disable(modA)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB, modA, modC);
       DepResolution.install(modsAvailable, map(modA, modB, modC), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
-      assertDisable(tml, 0, modC);
-      assertDisable(tml, 1, modB);
-      assertDisable(tml, 2, modA);
+      assertThat(tml, contains(disable(modC), disable(modB), disable(modA)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB, modC, modA);
       DepResolution.install(modsAvailable, map(modA, modB, modC), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
-      assertDisable(tml, 0, modC);
-      assertDisable(tml, 1, modB);
-      assertDisable(tml, 2, modA);
+      assertThat(tml, contains(disable(modC), disable(modB), disable(modA)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB);
       DepResolution.install(modsAvailable, map(modA, modB, modC), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertDisable(tml, 0, modC);
-      assertDisable(tml, 1, modB);
+      assertThat(tml, contains(disable(modC), disable(modB)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modB, modC);
       DepResolution.install(modsAvailable, map(modA, modB, modC), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertDisable(tml, 0, modC);
-      assertDisable(tml, 1, modB);
+      assertThat(tml, contains(disable(modC), disable(modB)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
       List<TenantModuleDescriptor> tml = createList(Action.disable, modA);
       DepResolution.install(modsAvailable, map(modA, modB), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertDisable(tml, 0, modB);
-      assertDisable(tml, 1, modA);
+      assertThat(tml, contains(disable(modB), disable(modA)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC, modD);
       List<TenantModuleDescriptor> tml = enableList(modA, modD);
       DepResolution.install(modsAvailable, map(), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertEnable(tml, 0, modA);
-      assertEnable(tml, 1, modD);
+      assertThat(tml, contains(enable(modA), enable(modD)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC, modD);
       List<TenantModuleDescriptor> tml = enableList(modD, modA);
       DepResolution.install(modsAvailable, map(), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertEnable(tml, 0, modD);
-      assertEnable(tml, 1, modA);
+      assertThat(tml, contains(enable(modD), enable(modA)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC, modD);
       List<TenantModuleDescriptor> tml = enableList(modD, modB);
       DepResolution.install(modsAvailable, map(), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
-      assertEnable(tml, 0, modA);
-      assertEnable(tml, 1, modB);
-      assertEnable(tml, 2, modD);
+      assertThat(tml, contains(enable(modA), enable(modB), enable(modD)));
     }
 
     {
@@ -882,11 +762,7 @@ public class DepResolutionTest {
       List<TenantModuleDescriptor> tml = enableList(modB, modD);
       tml.addAll(createList(Action.suggest, modA));
       DepResolution.install(modsAvailable, map(), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 4, tml.size());
-      assertEnable(tml, 0, modA);
-      assertEnable(tml, 1, modB);
-      assertEnable(tml, 2, modD);
-      assertAction(tml, 3, Action.suggest, modA, null);
+      assertThat(tml, contains(enable(modA), enable(modB), enable(modD), new TenantModuleDescriptorMatcher(Action.suggest, modA, null)));
     }
   }
 
@@ -1008,9 +884,7 @@ public class DepResolutionTest {
     {
       List<TenantModuleDescriptor> tml = enableList(ot101);
       DepResolution.install(map(st100, st101, ot100, ot101), map(ot100, st100), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertUpgrade(tml, 0, st101, st100);
-      assertUpgrade(tml, 1, ot101, ot100);
+      assertThat(tml, contains(upgrade(st101, st100), upgrade(ot101, ot100)));
     }
 
     // patch to higher version with st given
@@ -1018,9 +892,7 @@ public class DepResolutionTest {
       List<TenantModuleDescriptor> tml = enableList(st101);
       DepResolution.install(map(st100, st101, ot100, ot101),
           map(ot100, st100), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertUpgrade(tml, 0, st101, st100);
-      assertUpgrade(tml, 1, ot101, ot100);
+      assertThat(tml, contains(upgrade(st101, st100), upgrade(ot101, ot100)));
     }
     // patch to higher version with st given, but no fixup
     {
@@ -1053,20 +925,17 @@ public class DepResolutionTest {
     {
       List<TenantModuleDescriptor> tml = enableList(ot101, st101);
       DepResolution.install(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertUpgrade(tml, 0, st101, st100);
-      assertUpgrade(tml, 1, ot101, ot100);
+      assertThat(tml, contains(upgrade(st101, st100), upgrade(ot101, ot100)));
     }
 
     // patch to higher version with both given 2/2
     {
       List<TenantModuleDescriptor> tml = enableList(st101, ot101);
       DepResolution.install(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertUpgrade(tml, 0, st101, st100);
-      assertUpgrade(tml, 1, ot101, ot100);
+      assertThat(tml, contains(upgrade(st101, st100), upgrade(ot101, ot100)));
     }
   }
+
   @Test
   public void testUpgradeWithProduct() {
     Map<String, ModuleDescriptor> modsAvailable = map(st100, st101, ot100, ot101);
@@ -1075,27 +944,21 @@ public class DepResolutionTest {
     {
       List<TenantModuleDescriptor> tml = createList(Action.enable, true, st101, ot100);
       DepResolution.install(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertUpgrade(tml, 0, st101, st100);
-      assertUpgrade(tml, 1, ot101, ot100);
+      assertThat(tml, contains(upgrade(st101, st100), upgrade(ot101, ot100)));
     }
 
     // patch to higher version with products for ot
     {
       List<TenantModuleDescriptor> tml = createList(Action.enable, true, ot100);
       DepResolution.install(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertUpgrade(tml, 0, st101, st100);
-      assertUpgrade(tml, 1, ot101, ot100);
+      assertThat(tml, contains(upgrade(st101, st100), upgrade(ot101, ot100)));
     }
 
     // patch to higher version with products for st
     {
       List<TenantModuleDescriptor> tml = createList(Action.enable, true, st100);
       DepResolution.install(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertUpgrade(tml, 0, st101, st100);
-      assertUpgrade(tml, 1, ot101, ot100);
+      assertThat(tml, contains(upgrade(st101, st100), upgrade(ot101, ot100)));
     }
   }
 
@@ -1127,27 +990,21 @@ public class DepResolutionTest {
     {
       List<TenantModuleDescriptor> tml = enableList(ot100, st100);
       DepResolution.install(modsAvailable, map(ot101, st101), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertUpgrade(tml, 0, st100, st101);
-      assertUpgrade(tml, 1, ot100, ot101);
+      assertThat(tml, contains(upgrade(st100, st101), upgrade(ot100, ot101)));
     }
 
     // patch to lower version with ot given
     {
       List<TenantModuleDescriptor> tml = enableList(ot100);
       DepResolution.install(modsAvailable, map(ot101, st101), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertUpgrade(tml, 0, st100, st101);
-      assertUpgrade(tml, 1, ot100, ot101);
+      assertThat(tml, contains(upgrade(st100, st101), upgrade(ot100, ot101)));
     }
 
     // patch to lower version with st given
     {
       List<TenantModuleDescriptor> tml = enableList(st100);
       DepResolution.install(modsAvailable, map(ot101, st101), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertUpgrade(tml, 0, st100, st101);
-      assertUpgrade(tml, 1, ot100, ot101);
+      assertThat(tml, contains(upgrade(st100, st101), upgrade(ot100, ot101)));
     }
   }
 
@@ -1230,17 +1087,12 @@ public class DepResolutionTest {
     {
       List<TenantModuleDescriptor> tml = enableList(st101, ot101);
       DepResolution.install(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-      assertUpgrade(tml, 0, st101, st100);
-      assertUpgrade(tml, 1, ot101, ot100);
+      assertThat(tml, contains(upgrade(st101, st100), upgrade(ot101, ot100)));
     }
     {
       List<TenantModuleDescriptor> tml = enableList(st101);
       DepResolution.install(modsAvailable, map(ot100, st100), tml, false);
-      Assert.assertEquals(Json.encodePrettily(tml), 3, tml.size());
-      assertUpgrade(tml, 0, st101, st100);
-      assertEnable(tml, 1, p100);
-      assertUpgrade(tml, 2, ot102, ot100);
+      assertThat(tml, contains(upgrade(st101, st100), enable(p100), upgrade(ot102, ot100)));
     }
   }
 
@@ -1263,9 +1115,7 @@ public class DepResolutionTest {
   public void testDepOrderSwapEnable() {
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdA100);
     DepResolution.install(map(mdA100, mdA110, mdE100, mdE110), map(), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertEnable(tml, 0, mdA100);
-    assertEnable(tml, 1, mdE100);
+    assertThat(tml, contains(enable(mdA100), enable(mdE100)));
   }
 
   // see that order is right. mdE requires mdA (so mdA must be upgraded first)
@@ -1273,9 +1123,7 @@ public class DepResolutionTest {
   public void testDepOrderSwapUpgrade() {
     List<TenantModuleDescriptor> tml = enableList(mdE110, mdA110);
     DepResolution.install(map(mdA100, mdA110, mdE100, mdE110), map(mdE100, mdA100), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertUpgrade(tml, 0, mdA110, mdA100);
-    assertUpgrade(tml, 1, mdE110, mdE100);
+    assertThat(tml, contains(upgrade(mdA110, mdA100), upgrade(mdE110, mdE100)));
   }
 
   // see that order is right. mdE requires mdA (so mdA must be enabled first)
@@ -1283,15 +1131,13 @@ public class DepResolutionTest {
   public void testDepOrderAlready() {
     List<TenantModuleDescriptor> tml = enableList(mdA100, mdE100);
     DepResolution.install(map(mdA100, mdA110, mdE100, mdE110), map(), tml, false);
-    Assert.assertEquals(Json.encodePrettily(tml), 2, tml.size());
-    assertEnable(tml, 0, mdA100);
-    assertEnable(tml, 1, mdE100);
+    assertThat(tml, contains(enable(mdA100), enable(mdE100)));
   }
 
   @Test
   public void testCheckInterfaceDepAvailable() {
     Map<String, ModuleDescriptor> available = new TreeMap<>();
-    available.put(mdA100.getId(), mdA110);
+    available.put(mdA110.getId(), mdA110);
     available.put(mdA111.getId(), mdA111);
     available.put(mdA100.getId(), mdA100);
     available.put(mdB.getId(), mdB);
