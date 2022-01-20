@@ -1296,19 +1296,19 @@ public class DepResolutionTest {
     available.put(mdA100.getId(), mdA100);
     available.put(mdB.getId(), mdB);
     InterfaceDescriptor req = new InterfaceDescriptor("int", "1.0");
-    Map<String,ModuleDescriptor> products = DepResolution.checkInterfaceDepAvailable(available, req);
+    Map<String,ModuleDescriptor> products = DepResolution.findModulesForRequiredInterface(available, req);
     Assert.assertEquals(2, products.size());
     Assert.assertEquals(mdA111, products.get(mdA111.getProduct()));
     Assert.assertEquals(mdB, products.get(mdB.getProduct()));
 
     req = new InterfaceDescriptor("int", "1.1");
-    products = DepResolution.checkInterfaceDepAvailable(available, req);
+    products = DepResolution.findModulesForRequiredInterface(available, req);
     Assert.assertEquals(1, products.size());
     Assert.assertEquals(mdA111, products.get(mdA111.getProduct()));
 
     mdA100.setReplaces(new String[] {mdB.getProduct()});
     req = new InterfaceDescriptor("int", "1.0");
-    products = DepResolution.checkInterfaceDepAvailable(available, req);
+    products = DepResolution.findModulesForRequiredInterface(available, req);
     Assert.assertEquals(1, products.size());
     Assert.assertEquals(mdA111, products.get(mdA111.getProduct()));
   }
@@ -1321,13 +1321,13 @@ public class DepResolutionTest {
     available.put(mdE110.getId(), mdE110);
     available.put(mdE200.getId(), mdE200);
     InterfaceDescriptor prov = new InterfaceDescriptor("int", "1.1");
-    Map<String,ModuleDescriptor> products = DepResolution.checkInterfaceProvAvailable(available, prov);
+    Map<String,ModuleDescriptor> products = DepResolution.findModuleWithProvidedInterface(available, prov);
     Assert.assertEquals(2, products.size());
     Assert.assertEquals(mdE110, products.get(mdE110.getProduct()));
     Assert.assertEquals(ot100, products.get(ot100.getProduct()));
 
     mdE100.setReplaces(new String[] {ot100.getProduct()});
-    products = DepResolution.checkInterfaceProvAvailable(available, prov);
+    products = DepResolution.findModuleWithProvidedInterface(available, prov);
     Assert.assertEquals(1, products.size());
     Assert.assertEquals(mdE110, products.get(mdE110.getProduct()));
   }

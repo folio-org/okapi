@@ -1,6 +1,7 @@
 package org.folio.okapi.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -504,7 +505,7 @@ public final class DepResolution {
       for (ModuleInterface req : entry.getValue()) {
         if (fix) {
           Map<String, ModuleDescriptor> modules =
-              checkInterfaceDepAvailable(modsAvailable, req.interfaceDescriptor);
+              findModulesForRequiredInterface(modsAvailable, req.interfaceDescriptor);
           if (modules.size() > 1) {
             errors.add(messages.getMessage("10210", entry.getKey(), req.moduleDescriptor.getId(),
                 String.join(", ", modules.keySet())));
@@ -554,7 +555,7 @@ public final class DepResolution {
             if (!stickyModules.contains(prov.moduleDescriptor.getId())) {
               // see if we can find a module that provides the required interface
               Map<String, ModuleDescriptor> modules =
-                  checkInterfaceDepAvailable(modsAvailable, req.interfaceDescriptor);
+                  findModulesForRequiredInterface(modsAvailable, req.interfaceDescriptor);
               if (modules.size() > 1) {
                 errors.add(messages.getMessage("10210", entry.getKey(),
                     req.moduleDescriptor.getId(),
@@ -574,7 +575,7 @@ public final class DepResolution {
             if (!stickyModules.contains(req.moduleDescriptor.getId())) {
               // see if we can find a module that require the provided interface
               Map<String, ModuleDescriptor> modules =
-                  checkInterfaceProvAvailable(modsAvailable, prov.interfaceDescriptor);
+                  findModuleWithProvidedInterface(modsAvailable, prov.interfaceDescriptor);
               if (modules.size() > 1) {
                 errors.add(messages.getMessage("10210", entry.getKey(),
                     req.moduleDescriptor.getId(),
@@ -679,15 +680,28 @@ public final class DepResolution {
     sortTenantModules(tml, modsAvailable, modsEnabled);
   }
 
-  static Map<String, ModuleDescriptor> checkInterfaceDepAvailable(
-      Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor req) {
+  /**
+   * Find modules that satisfies interface dependency.
+   * @param modsAvailable all modules known
+   * @param testInterface interface to check. Either a required interface or a provided interface
+   * @param provide true: testInterface is a provided interface;
+   *                false: testInterface is a required interface
+   * @return newest modules that meets the requirements; empty if no modules are found.
+   */
+  private static Map<String, ModuleDescriptor> findModulesForInterface(
+      Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor testInterface,
+      boolean provide) {
+
     Set<String> replaceProducts = new HashSet<>();
     Map<String, ModuleDescriptor> productMd = new HashMap<>();
     for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
       ModuleDescriptor md = entry.getValue();
       String product = md.getProduct();
-      for (InterfaceDescriptor pi : md.getProvidesList()) {
-        if (pi.isRegularHandler() && pi.isCompatible(req)) {
+      List<InterfaceDescriptor> list = provide
+          ? md.getRequiresOptionalList() : Arrays.asList(md.getProvidesList());
+      for (InterfaceDescriptor pi : list) {
+        if (pi.isRegularHandler() && (provide
+            ? testInterface.isCompatible(pi) : pi.isCompatible(testInterface))) {
           if (md.getReplaces() != null) {
             Collections.addAll(replaceProducts, md.getReplaces());
           }
@@ -708,33 +722,16 @@ public final class DepResolution {
     return productMd;
   }
 
-  static Map<String, ModuleDescriptor> checkInterfaceProvAvailable(
+
+  static Map<String, ModuleDescriptor> findModulesForRequiredInterface(
+      Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor req) {
+
+    return findModulesForInterface(modsAvailable, req, false);
+  }
+
+  static Map<String, ModuleDescriptor> findModuleWithProvidedInterface(
       Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor prov) {
 
-    Set<String> replaceProducts = new HashSet<>();
-    Map<String, ModuleDescriptor> productMd = new HashMap<>();
-    for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
-      ModuleDescriptor md = entry.getValue();
-      String product = md.getProduct();
-      for (InterfaceDescriptor pi : md.getRequiresOptionalList()) {
-        if (prov.isRegularHandler() && prov.isCompatible(pi)) {
-          if (md.getReplaces() != null) {
-            Collections.addAll(replaceProducts, md.getReplaces());
-          }
-          if (productMd.containsKey(product)) {
-            ModuleDescriptor md2 = productMd.get(product);
-            if (md.compareTo(md2) > 0) {
-              productMd.put(product, md);
-            }
-          } else {
-            productMd.put(product, md);
-          }
-        }
-      }
-    }
-    for (String replaceProduct : replaceProducts) {
-      productMd.remove(replaceProduct);
-    }
-    return productMd;
+    return findModulesForInterface(modsAvailable, prov, true);
   }
 }
