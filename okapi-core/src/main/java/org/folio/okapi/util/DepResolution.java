@@ -720,13 +720,24 @@ public final class DepResolution {
     return productMd;
   }
 
-
+  /**
+   * Find modules that provide a required interface.
+   * @param modsAvailable all modules known
+   * @param req required interface to check.
+   * @return newest modules that meets the requirements; empty if no modules are found.
+   */
   static Map<String, ModuleDescriptor> findModulesForRequiredInterface(
       Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor req) {
 
     return findModulesForInterface(modsAvailable, req, false);
   }
 
+  /**
+   * Find modules that require a provided interface.
+   * @param modsAvailable all modules known
+   * @param prov provided interface to check.
+   * @return newest modules that meets the requirements; empty if no modules are found.
+   */
   static Map<String, ModuleDescriptor> findModuleWithProvidedInterface(
       Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor prov) {
 
