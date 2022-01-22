@@ -347,10 +347,9 @@ public class TenantManager implements Liveness {
       ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
       ProxyContext pc) {
 
-    Future<Void> future;
+    Future<ModuleDescriptor> future;
     if (mdTo != null && options.getPurge()) {
       // enable with purge is turned into purge on its own, followed by regular enable
-      mdFrom = null;
       future = invokeTenantInterface1(tenant, options, mdTo, null, pc)
           .otherwise(res -> {
             logger.info("Tenant purge error for module {} ignored: {}",
@@ -362,10 +361,9 @@ public class TenantManager implements Liveness {
             return null;
           });
     } else {
-      future = Future.succeededFuture();
+      future = Future.succeededFuture(mdFrom);
     }
-    final ModuleDescriptor mdFromFinal = mdFrom;
-    return future.compose(x -> invokeTenantInterface1(tenant, options, mdFromFinal, mdTo, pc));
+    return future.compose(from -> invokeTenantInterface1(tenant, options, from, mdTo, pc));
   }
 
   private Future<Void> invokeTenantInterface1(Tenant tenant, TenantInstallOptions options,
