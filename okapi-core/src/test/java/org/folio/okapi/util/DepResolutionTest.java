@@ -160,7 +160,6 @@ public class DepResolutionTest {
 
     DepResolution.getLatestProducts(2, mdl);
 
-    Assert.assertEquals(5, mdl.size());
     assertThat(mdl, contains(mdE100, mdC, mdB, mdA200, mdA110));
 
     DepResolution.getLatestProducts(1, mdl);
