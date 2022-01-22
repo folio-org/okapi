@@ -121,7 +121,7 @@ public class ModuleManager {
         }
       }
       if (check) {
-        String res = DepResolution.checkDependencies(tempList.values(), newList,
+        String res = DepResolution.checkAvailable(tempList.values(), newList,
             removeIfMissingDep);
         if (!res.isEmpty()) {
           return Future.failedFuture(new OkapiError(ErrorType.USER, res));
@@ -147,7 +147,7 @@ public class ModuleManager {
             availableBeforeDepCheck.add(md);
             availableAfterDepCheck.add(md);
           }
-          String msg = DepResolution.checkDependencies(ares.values(), availableAfterDepCheck,
+          String msg = DepResolution.checkAvailable(ares.values(), availableAfterDepCheck,
               removeDeps);
           if (!msg.isEmpty()) {
             return Future.failedFuture(new OkapiError(ErrorType.USER,
@@ -206,7 +206,7 @@ public class ModuleManager {
           new OkapiError(ErrorType.NOT_FOUND, messages.getMessage("10207", id)));
     }
     mods.remove(id);
-    String res = DepResolution.checkAllDependencies(mods);
+    String res = DepResolution.checkAvailable(mods);
     if (!res.isEmpty()) {
       return Future.failedFuture(new OkapiError(ErrorType.USER,
           messages.getMessage("10208", id, res)));
