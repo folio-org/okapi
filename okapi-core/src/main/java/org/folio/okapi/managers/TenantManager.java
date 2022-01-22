@@ -359,6 +359,7 @@ public class TenantManager implements Liveness {
             return null;
           })
           .map(x -> {
+            // from this point, enable (no upgrade) and no purge
             options.setPurge(false);
             return null;
           });
