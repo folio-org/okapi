@@ -2891,6 +2891,11 @@ For example, to enable the JSON based logging, one could use:
   java -Dlog4j.configurationFile=log4j2-json.properties -jar okapi-core-fat.jar dev
 ```
 
+Okapi uses [AsyncLoggerContextSelector](https://logging.apache.org/log4j/2.x/manual/async.html)
+by default. Use
+`-Dlog4j2.contextSelector=org.apache.logging.log4j.core.osgi.BundleContextSelector`
+to switch back to log4j2's default synchronous logger.
+
 ### Environment Variables
 
 Okapi offers a concept: environment variables. These are system-wide
