@@ -9,33 +9,38 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 public class ModuleTenantInitAsync implements ModuleHandle {
   private static final Logger logger = OkapiLogger.get();
 
   private Vertx vertx;
-  private String id;
   private int port;
   private HttpServer server;
   private boolean omitIdInResponse = false;
   private boolean omitLocationInResponse = false;
   private boolean badJsonResponse = false;
   private int getStatusCode = 200;
+  private boolean purgeFail = false;
   private String errorMessage;
   private JsonArray additionalMessages;
   private Map<String,JsonObject> jobs = new HashMap<>();
+  private List<JsonObject> operations = new LinkedList<>();
 
   public ModuleTenantInitAsync(Vertx vertx, String id, int port) {
     this.vertx = vertx;
-    this.id = id;
     this.port = port;
+  }
+
+  public List<JsonObject> getOperations() {
+    return operations;
   }
 
   public void setOmitIdInResponse(boolean omitIdInResponse) {
@@ -44,6 +49,10 @@ public class ModuleTenantInitAsync implements ModuleHandle {
 
   public void setOmitLocationInResponse(boolean omitLocationInResponse) {
     this.omitLocationInResponse = omitLocationInResponse;
+  }
+
+  public void setPurgeFail(boolean purgeFail) {
+    this.purgeFail = purgeFail;
   }
 
   public void setBadJsonResponse(boolean badJsonResponse) {
@@ -59,19 +68,31 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     this.additionalMessages = additionalMessages;
   }
 
-  public void tenantPost(RoutingContext ctx) {
+  void tenantPost(RoutingContext ctx) {
     HttpMethod method = ctx.request().method();
     String path = ctx.request().path();
     if (HttpMethod.POST.equals(method) && path.equals("/_/tenant")) {
-      ctx.response().setStatusCode(201);
+      JsonObject tenantSchema = ctx.getBodyAsJson();
+      operations.add(tenantSchema);
+      if (tenantSchema.getBoolean("purge", false))
+        if (purgeFail) {
+          ctx.response().putHeader("Content-Type", "text/plain");
+          ctx.response().setStatusCode(400);
+          ctx.response().end("purge failed");
+        } else {
+          ctx.response().setStatusCode(204);
+          ctx.response().end();
+        return;
+      }
       JsonObject obj = ctx.getBodyAsJson();
-      obj.put("count", 3);
+      obj.put("count", 2);
       obj.put("complete", Boolean.FALSE);
       String id = UUID.randomUUID().toString();
       if (!omitIdInResponse) {
         obj.put("id", id);
       }
       jobs.put(id, obj);
+      ctx.response().setStatusCode(201);
       ctx.response().putHeader("Content-Type", "application/json");
       if (!omitLocationInResponse) {
         ctx.response().putHeader("Location", "/_/tenant/" + id);
@@ -84,7 +105,7 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     }
   }
 
-  public void tenantGet(RoutingContext ctx) {
+  void tenantGet(RoutingContext ctx) {
     HttpMethod method = ctx.request().method();
     String path = ctx.request().path();
     String id = path.substring(path.lastIndexOf('/') + 1);
@@ -110,7 +131,7 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     ctx.end(obj.encodePrettily());
   }
 
-  public void tenantDelete(RoutingContext ctx) {
+  void tenantDelete(RoutingContext ctx) {
     HttpMethod method = ctx.request().method();
     String path = ctx.request().path();
     String id = path.substring(path.lastIndexOf('/') + 1);
