@@ -233,8 +233,10 @@ public class TenantManager implements Liveness {
       mods.put(md.getId(), md);
     }
     if (modTo == null) {
-      String deps = DepResolution.checkAllDependencies(mods);
-      if (!deps.isEmpty()) {
+      List<String> errors = DepResolution.checkEnabled(mods);
+      if (!errors.isEmpty()) {
+        logger.warn("Skip check when disabling {} as dependencies are inconsistent already",
+            modFrom.getId());
         return Future.succeededFuture(); // failures even before we remove a module
       }
     }
@@ -249,10 +251,10 @@ public class TenantManager implements Liveness {
       }
       mods.put(modTo.getId(), modTo);
     }
-    String conflicts = DepResolution.checkAllConflicts(mods);
-    String deps = DepResolution.checkAllDependencies(mods);
-    if (!conflicts.isEmpty() || !deps.isEmpty()) {
-      return Future.failedFuture(new OkapiError(ErrorType.USER, conflicts + " " + deps));
+
+    List<String> errors = DepResolution.checkEnabled(mods);
+    if (!errors.isEmpty()) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, String.join(". ", errors)));
     }
     return Future.succeededFuture();
   }
@@ -924,14 +926,12 @@ public class TenantManager implements Liveness {
       Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     List<TenantModuleDescriptor> tml = job.getModules();
-    return DepResolution.installSimulate(modsAvailable, modsEnabled, tml, options.getReinstall())
-        .compose(res -> {
-          if (options.getSimulate()) {
-            return Future.succeededFuture(tml);
-          }
-          return jobs.add(t.getId(), job.getId(), job)
-              .compose(res2 -> runJob(t, pc, options, tml, modsAvailable, job));
-        });
+    DepResolution.install(modsAvailable, modsEnabled, tml, options.getReinstall());
+    if (options.getSimulate()) {
+      return Future.succeededFuture(tml);
+    }
+    return jobs.add(t.getId(), job.getId(), job)
+        .compose(res2 -> runJob(t, pc, options, tml, modsAvailable, job));
   }
 
   private Future<List<TenantModuleDescriptor>> runJob(
