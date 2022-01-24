@@ -346,8 +346,32 @@ public class TenantManager implements Liveness {
    * @return fut future
    */
   private Future<Void> invokeTenantInterface(Tenant tenant, TenantInstallOptions options,
-                                             ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
-                                             ProxyContext pc) {
+      ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+      ProxyContext pc) {
+
+    Future<ModuleDescriptor> future;
+    if (mdTo != null && options.getPurge()) {
+      // enable with purge is turned into purge on its own, followed by regular enable
+      future = invokeTenantInterface1(tenant, options, mdTo, null, pc)
+          .otherwise(res -> {
+            logger.info("Tenant purge error for module {} ignored: {}",
+                mdTo.getId(), res.getMessage());
+            return null;
+          })
+          .map(x -> {
+            // from this point, enable (no upgrade) and no purge
+            options.setPurge(false);
+            return null;
+          });
+    } else {
+      future = Future.succeededFuture(mdFrom);
+    }
+    return future.compose(from -> invokeTenantInterface1(tenant, options, from, mdTo, pc));
+  }
+
+  private Future<Void> invokeTenantInterface1(Tenant tenant, TenantInstallOptions options,
+      ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+      ProxyContext pc) {
     JsonObject jo = new JsonObject();
     if (mdTo != null) {
       jo.put("module_to", mdTo.getId());
@@ -1183,7 +1207,7 @@ public class TenantManager implements Liveness {
    */
   public Future<List<ModuleDescriptor>> getEnabledModules(String tenantId) {
     return tenants.getNotFound(tenantId)
-        .map(tenant -> getEnabledModules(tenant));
+        .map(this::getEnabledModules);
   }
 
   /**
