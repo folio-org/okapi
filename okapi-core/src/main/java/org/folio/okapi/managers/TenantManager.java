@@ -233,8 +233,10 @@ public class TenantManager implements Liveness {
       mods.put(md.getId(), md);
     }
     if (modTo == null) {
-      String deps = DepResolution.checkAllDependencies(mods);
-      if (!deps.isEmpty()) {
+      List<String> errors = DepResolution.checkEnabled(mods);
+      if (!errors.isEmpty()) {
+        logger.warn("Skip check when disabling {} as dependencies are inconsistent already",
+            modFrom.getId());
         return Future.succeededFuture(); // failures even before we remove a module
       }
     }
@@ -249,10 +251,10 @@ public class TenantManager implements Liveness {
       }
       mods.put(modTo.getId(), modTo);
     }
-    String conflicts = DepResolution.checkAllConflicts(mods);
-    String deps = DepResolution.checkAllDependencies(mods);
-    if (!conflicts.isEmpty() || !deps.isEmpty()) {
-      return Future.failedFuture(new OkapiError(ErrorType.USER, conflicts + " " + deps));
+
+    List<String> errors = DepResolution.checkEnabled(mods);
+    if (!errors.isEmpty()) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, String.join(". ", errors)));
     }
     return Future.succeededFuture();
   }
@@ -344,8 +346,32 @@ public class TenantManager implements Liveness {
    * @return fut future
    */
   private Future<Void> invokeTenantInterface(Tenant tenant, TenantInstallOptions options,
-                                             ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
-                                             ProxyContext pc) {
+      ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+      ProxyContext pc) {
+
+    Future<ModuleDescriptor> future;
+    if (mdTo != null && options.getPurge()) {
+      // enable with purge is turned into purge on its own, followed by regular enable
+      future = invokeTenantInterface1(tenant, options, mdTo, null, pc)
+          .otherwise(res -> {
+            logger.info("Tenant purge error for module {} ignored: {}",
+                mdTo.getId(), res.getMessage());
+            return null;
+          })
+          .map(x -> {
+            // from this point, enable (no upgrade) and no purge
+            options.setPurge(false);
+            return null;
+          });
+    } else {
+      future = Future.succeededFuture(mdFrom);
+    }
+    return future.compose(from -> invokeTenantInterface1(tenant, options, from, mdTo, pc));
+  }
+
+  private Future<Void> invokeTenantInterface1(Tenant tenant, TenantInstallOptions options,
+      ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+      ProxyContext pc) {
     JsonObject jo = new JsonObject();
     if (mdTo != null) {
       jo.put("module_to", mdTo.getId());
@@ -924,14 +950,12 @@ public class TenantManager implements Liveness {
       Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     List<TenantModuleDescriptor> tml = job.getModules();
-    return DepResolution.installSimulate(modsAvailable, modsEnabled, tml, options.getReinstall())
-        .compose(res -> {
-          if (options.getSimulate()) {
-            return Future.succeededFuture(tml);
-          }
-          return jobs.add(t.getId(), job.getId(), job)
-              .compose(res2 -> runJob(t, pc, options, tml, modsAvailable, job));
-        });
+    DepResolution.install(modsAvailable, modsEnabled, tml, options.getReinstall());
+    if (options.getSimulate()) {
+      return Future.succeededFuture(tml);
+    }
+    return jobs.add(t.getId(), job.getId(), job)
+        .compose(res2 -> runJob(t, pc, options, tml, modsAvailable, job));
   }
 
   private Future<List<TenantModuleDescriptor>> runJob(
@@ -1183,7 +1207,7 @@ public class TenantManager implements Liveness {
    */
   public Future<List<ModuleDescriptor>> getEnabledModules(String tenantId) {
     return tenants.getNotFound(tenantId)
-        .map(tenant -> getEnabledModules(tenant));
+        .map(this::getEnabledModules);
   }
 
   /**

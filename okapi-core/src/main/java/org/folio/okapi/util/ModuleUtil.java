@@ -79,27 +79,46 @@ public final class ModuleUtil {
     }
   }
 
-  private static boolean interfaceCheck(
-      InterfaceDescriptor[] interfaces, String interfaceStr, String scope) {
-    if (interfaceStr == null) {
+  /**
+   * Check if interface spec matches interface. The version must be exactly the same to match.
+   * @param interfaces interfaces from a module
+   * @param interfacesStr interfaces spec consisting of comma separated list of interface spec.
+   *                      Each interspace spec is either an interface or an interface followed
+   *                      by =, followed by version.
+   *
+   * @param scope null for all scopes; or scope to match against.
+   * @return true if scope and interface versions are the same of if interfaceStr is
+   *     null; false otherwise.
+   */
+  static boolean interfaceCheck(InterfaceDescriptor[] interfaces, String interfacesStr,
+      String scope) {
+    if (interfacesStr == null) {
       return true;
-    } else {
-      if (interfaces != null) {
-        for (InterfaceDescriptor pi : interfaces) {
-          String[] interfaceList = interfaceStr.split(",");
-          for (String interfacePair : interfaceList) {
-            String[] kv = interfacePair.split("=");
-            List<String> gotScope = pi.getScopeArray();
-            if (pi.getId().equals(kv[0])
-                && (kv.length != 2 || pi.getVersion().equals(kv[1]))
-                && (scope == null || gotScope.contains(scope))) {
+    }
+    if (interfaces == null) {
+      return false;
+    }
+    String[] interfaceList = interfacesStr.split(",");
+    String[][] interfacePair = new String[interfaceList.length][];
+    for (int i = 0; i < interfaceList.length; i++) {
+      interfacePair[i] = interfaceList[i].split("=");
+    }
+    for (InterfaceDescriptor pi : interfaces) {
+      List<String> gotScope = pi.getScopeArray();
+      if (scope == null || gotScope.contains(scope)) {
+        for (String [] kv : interfacePair) {
+          if (kv.length == 2) {
+            InterfaceDescriptor interfaceUser = new InterfaceDescriptor(kv[0], kv[1]);
+            if (interfaceUser.compare(pi) == 0) {
               return true;
             }
+          } else if (pi.getId().equals(kv[0])) {
+            return true;
           }
         }
       }
-      return false;
     }
+    return false;
   }
 
   /**
