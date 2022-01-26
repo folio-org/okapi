@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.bean.Permission;
+import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
@@ -732,6 +734,10 @@ public final class DepResolution {
             "Dependency resolution not completing in " + maxIterations + " iterations");
       }
     }
+    List<String> permErrors = checkPermissionNames(modsEnabled);
+    if (!permErrors.isEmpty()) {
+      logger.warn("permission name errors\n{}", String.join("\n", permErrors));
+    }
     if (!errors.isEmpty()) {
       throw new OkapiError(ErrorType.USER, String.join(". ", errors));
     }
@@ -802,5 +808,58 @@ public final class DepResolution {
       Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor prov) {
 
     return findModulesForInterface(modsAvailable, prov, true);
+  }
+
+  static List<String> checkPermissionNames(Map<String, ModuleDescriptor> modsEnabled) {
+    Map<String, Set<ModuleDescriptor>> defined = new HashMap<>();
+    Map<String, Set<ModuleDescriptor>> required = new HashMap<>();
+
+    List<String> errors = new ArrayList<>();
+    for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
+      ModuleDescriptor md = entry.getValue();
+      for (InterfaceDescriptor descriptor : md.getProvidesList()) {
+        if (descriptor.isRegularHandler()) {
+          for (RoutingEntry re : descriptor.getHandlers()) {
+            String[] modulePermissions = re.getModulePermissions();
+            if (modulePermissions != null) {
+              for (String modulePermission : modulePermissions) {
+                required.computeIfAbsent(modulePermission, k -> new HashSet<>()).add(md);
+              }
+            }
+            for (String requiredPermission : re.getPermissionsRequired()) {
+              defined.computeIfAbsent(requiredPermission, k -> new HashSet<>()).add(md);
+            }
+          }
+        }
+      }
+      Permission[] permissionSets = md.getPermissionSets();
+      if (permissionSets != null) {
+        for (Permission permission: permissionSets) {
+          defined.computeIfAbsent(permission.getPermissionName(), k -> new HashSet<>()).add(md);
+          String[] subPermissions = permission.getSubPermissions();
+          if (subPermissions != null) {
+            for (String subPermission : subPermissions) {
+              defined.computeIfAbsent(subPermission, k -> new HashSet<>()).add(md);
+            }
+          }
+        }
+      }
+    }
+    for (String permissionName : required.keySet()) {
+      Set<ModuleDescriptor> modulesProvided = defined.get(permissionName);
+      if (modulesProvided == null) {
+        String names = required.get(permissionName)
+            .stream().map(x -> x.getId()).collect(Collectors.joining(", "));
+        errors.add("Undefined permission " + permissionName + ". Referred to from " + names);
+      }
+    }
+    for (Map.Entry<String,Set<ModuleDescriptor>> entry: defined.entrySet()) {
+      if (entry.getValue().size() > 1) {
+        String names = entry.getValue()
+            .stream().map(x -> x.getId()).collect(Collectors.joining(", "));
+        errors.add("Multiple modules define permission " + entry.getKey() + ": " + names);
+      }
+    }
+    return errors;
   }
 }
