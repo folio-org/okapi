@@ -819,7 +819,11 @@ public final class DepResolution {
       ModuleDescriptor md = entry.getValue();
       for (InterfaceDescriptor descriptor : md.getProvidesList()) {
         if (descriptor.isRegularHandler()) {
-          for (RoutingEntry re : descriptor.getHandlers()) {
+          RoutingEntry[] handlers = descriptor.getHandlers();
+          if (handlers == null) {
+            continue;
+          }
+          for (RoutingEntry re : handlers) {
             String[] modulePermissions = re.getModulePermissions();
             if (modulePermissions != null) {
               for (String modulePermission : modulePermissions) {
