@@ -170,7 +170,7 @@ public class MainVerticle extends AbstractVerticle {
       PullManager pullManager = new PullManager(vertx, moduleManager);
       InternalModule internalModule = new InternalModule(moduleManager,
           tenantManager, deploymentManager, discoveryManager,
-          envManager, pullManager, okapiVersion);
+          envManager, pullManager, kubernetesManager, okapiVersion);
       proxyService = new ProxyService(vertx, tenantManager, discoveryManager, internalModule,
           okapiUrl, config);
       tenantManager.setProxyService(proxyService);
@@ -182,7 +182,7 @@ public class MainVerticle extends AbstractVerticle {
       discoveryManager.setModuleManager(moduleManager);
       InternalModule internalModule = new InternalModule(
           null, null, deploymentManager, null,
-          envManager, null, okapiVersion);
+          envManager, null, null, okapiVersion);
       // no modules, tenants, or discovery. Only deployment and env.
       proxyService = new ProxyService(vertx, tenantManager, discoveryManager, internalModule,
           okapiUrl, config);

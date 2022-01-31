@@ -56,6 +56,7 @@ public class InternalModule {
   private final DeploymentManager deploymentManager;
   private final DiscoveryManager discoveryManager;
   private final EnvManager envManager;
+  private final KubernetesManager kubernetesManager;
   private final PullManager pullManager;
   private final String okapiVersion;
   private static final String INTERFACE_VERSION = "1.9";
@@ -70,17 +71,21 @@ public class InternalModule {
    * @param discoveryManager discovery manager
    * @param envManager event manager
    * @param pullManager pull manager
+   * @param kubernetesManager kubernetes manager
    * @param okapiVersion Okapi version
    */
   public InternalModule(ModuleManager modules, TenantManager tenantManager,
-                        DeploymentManager deploymentManager, DiscoveryManager discoveryManager,
-                        EnvManager envManager, PullManager pullManager, String okapiVersion) {
+      DeploymentManager deploymentManager, DiscoveryManager discoveryManager,
+      EnvManager envManager, PullManager pullManager,
+      KubernetesManager kubernetesManager,
+      String okapiVersion) {
     this.moduleManager = modules;
     this.tenantManager = tenantManager;
     this.deploymentManager = deploymentManager;
     this.discoveryManager = discoveryManager;
     this.envManager = envManager;
     this.pullManager = pullManager;
+    this.kubernetesManager = kubernetesManager;
     this.okapiVersion = okapiVersion;
     logger.info("InternalModule starting okapiversion={}", okapiVersion);
   }
@@ -1124,6 +1129,9 @@ public class InternalModule {
   }
 
   private Future<String> listDiscoveryModules() {
+    if (kubernetesManager != null) {
+      kubernetesManager.getServices().onSuccess(res -> logger.info("{}", res.encodePrettily()));
+    }
     return discoveryManager.get()
         .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
