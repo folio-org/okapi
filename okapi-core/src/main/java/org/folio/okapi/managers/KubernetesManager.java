@@ -8,9 +8,11 @@ import static org.folio.okapi.ConfNames.KUBE_TOKEN;
 import io.vertx.config.yaml.YamlProcessor;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
@@ -40,15 +42,35 @@ public class KubernetesManager {
   }
 
   JsonObject findNameInJsonArray(JsonObject o, String arName, String name) {
-    logger.info("findNameInJsonArray 1");
     JsonArray ar = o.getJsonArray(arName + "s");
-    logger.info("findNameInJsonArray 2");
     for (int i = 0; i < ar.size(); i++) {
       if (ar.getJsonObject(i).getString("name").equals(name)) {
         return ar.getJsonObject(i).getJsonObject(arName);
       }
     }
     throw new RuntimeException("No property with name '" + name + "' in array '" + arName + "s'");
+  }
+
+  Future<Void> readKubeConfig(Vertx vertx, String fname) {
+    if (fname == null) {
+      return Future.succeededFuture();
+    }
+    FileSystem fs = vertx.fileSystem();
+    return fs.readFile(fname).compose(content -> {
+      YamlProcessor yamlProcessor = new YamlProcessor();
+      return yamlProcessor.process(vertx, null, content);
+    }).map(conf -> {
+      JsonObject context = findNameInJsonArray(conf, "context", conf.getString("current-context"));
+      if (token == null) {
+        JsonObject user = findNameInJsonArray(conf, "user", context.getString("user"));
+        token = user.getString("token");
+      }
+      if (server == null) {
+        JsonObject cluster = findNameInJsonArray(conf, "cluster", context.getString("cluster"));
+        server = cluster.getString("server");
+      }
+      return null;
+    });
   }
 
   /**
@@ -61,31 +83,11 @@ public class KubernetesManager {
         .setVerifyHost(false)
         .setTrustAll(true);
     webClient = WebClient.create(vertx, webClientOptions);
-    if (fname == null) {
-      if (server != null && token != null) {
+
+    return readKubeConfig(vertx, fname).onSuccess(x -> {
+      if (server != null) {
         logger.info("Enable Kubernetes config server {} namespace {}", server, namespace);
       }
-      return Future.succeededFuture();
-    }
-    logger.info("AD: 0");
-    FileSystem fs = vertx.fileSystem();
-    return fs.readFile(fname).compose(content -> {
-      YamlProcessor yamlProcessor = new YamlProcessor();
-      return yamlProcessor.process(vertx, null, content);
-    }).map(conf -> {
-      logger.info("AD: 1");
-      JsonObject context = findNameInJsonArray(conf, "context", conf.getString("current-context"));
-      logger.info("AD: 2");
-      if (token == null) {
-        JsonObject user = findNameInJsonArray(conf, "user", context.getString("user"));
-        token = user.getString("token");
-      }
-      if (server == null) {
-        JsonObject cluster = findNameInJsonArray(conf, "cluster", context.getString("cluster"));
-        server = cluster.getString("server");
-      }
-      logger.info("Enable Kubernetes config server {} namespace {}", server, namespace);
-      return null;
     });
   }
 
@@ -144,13 +146,15 @@ public class KubernetesManager {
    * @return endpoints in JSON object.
    */
   public Future<JsonArray> getServices() {
-    if (server == null || token == null) {
+    if (server == null) {
       return Future.succeededFuture(new JsonArray());
     }
     String uri = server + "/api/v1/namespaces/" + namespace + "/services";
-    return webClient.getAbs(uri)
-        .putHeader("Authorization", "Bearer " + token)
-        .putHeader("Accept", "application/json")
+    HttpRequest<Buffer> abs = webClient.getAbs(uri);
+    if (token != null) {
+      abs.putHeader("Authorization", "Bearer " + token);
+    }
+    return abs.putHeader("Accept", "application/json")
         .expect(ResponsePredicate.SC_OK)
         .send().map(res -> parseServices(res.bodyAsJsonObject()));
   }

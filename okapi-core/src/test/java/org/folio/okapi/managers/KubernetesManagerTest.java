@@ -109,6 +109,17 @@ public class KubernetesManagerTest {
     }));
   }
 
+  @Test
+  void testConfigServer(Vertx vertx, VertxTestContext context) {
+    JsonObject config = new JsonObject();
+    config.put(KUBE_SERVER, "http://localhost:9100");
+    KubernetesManager kubernetesManager = new KubernetesManager(config);
+    kubernetesManager.init(vertx).onComplete(context.succeeding(res -> {
+      assertThat(kubernetesManager.token).isNull();
+      assertThat(kubernetesManager.server).isEqualTo("http://localhost:9100");
+      context.completeNow();
+    }));
+  }
 
   @Test
   void testConfigTokenServer(Vertx vertx, VertxTestContext context) {
@@ -124,5 +135,6 @@ public class KubernetesManagerTest {
       context.completeNow();
     }));
   }
+
 
 }
