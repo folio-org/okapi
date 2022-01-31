@@ -29,12 +29,14 @@ public class KubernetesManager {
   String server;
   final String namespace;
   WebClient webClient;
+  final DiscoveryManager discoveryManager;
 
   /**
    * Construct Kubernetes manager.
    * @param config configuration.
    */
-  public KubernetesManager(JsonObject config) {
+  public KubernetesManager(DiscoveryManager discoveryManager, JsonObject config) {
+    this.discoveryManager = discoveryManager;
     fname = Config.getSysConf(KUBE_CONFIG, null, config);
     token = Config.getSysConf(KUBE_TOKEN, null, config);
     server = Config.getSysConf(KUBE_SERVER, null, config);
@@ -158,4 +160,5 @@ public class KubernetesManager {
         .expect(ResponsePredicate.SC_OK)
         .send().map(res -> parseServices(res.bodyAsJsonObject()));
   }
+
 }

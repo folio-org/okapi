@@ -142,6 +142,7 @@ public class MainVerticle extends AbstractVerticle {
     if (clusterManager != null) {
       discoveryManager.setClusterManager(clusterManager);
     }
+    kubernetesManager = new KubernetesManager(discoveryManager, config);
     if (enableDeployment) {
       deploymentManager = new DeploymentManager(vertx, discoveryManager, envManager,
           host, port, nodeName, config);
@@ -159,7 +160,6 @@ public class MainVerticle extends AbstractVerticle {
         }
       }));
     }
-    kubernetesManager = new KubernetesManager(config);
     if (enableProxy) {
       ModuleStore moduleStore = storage.getModuleStore();
       moduleManager = new ModuleManager(moduleStore, false);
