@@ -91,9 +91,9 @@ public class KubernetesManager {
    * @return future result.
    */
   public Future<Void> init(Vertx vertx) {
-    WebClientOptions webClientOptions = new WebClientOptions();
-    //  .setVerifyHost(false)
-    //  .setTrustAll(true)
+    WebClientOptions webClientOptions = new WebClientOptions()
+        .setVerifyHost(false)
+        .setTrustAll(true);
     webClient = WebClient.create(vertx, webClientOptions);
 
     return readKubeConfig(vertx, fname).onSuccess(x -> {
