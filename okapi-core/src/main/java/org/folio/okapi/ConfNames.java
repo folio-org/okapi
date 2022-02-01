@@ -20,6 +20,7 @@ public final class ConfNames {
   public static final String KUBE_TOKEN = "kube_token";
   public static final String KUBE_SERVER = "kube_server";
   public static final String KUBE_NAMESPACE = "kube_namespace";
+  public static final String KUBE_REFRESH_INTERVAL = "kube_refresh_interval";
 
   private ConfNames() {
     throw new UnsupportedOperationException("Cannot instantiate utility class.");

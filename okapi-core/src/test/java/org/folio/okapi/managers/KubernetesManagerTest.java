@@ -4,6 +4,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import java.util.ArrayList;
+import java.util.List;
+import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.service.impl.DeploymentStoreNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -146,5 +149,38 @@ public class KubernetesManagerTest {
     }));
   }
 
+  @Test
+    void testGetDiffs() {
+    DeploymentDescriptor dd_a = new DeploymentDescriptor("kube_10.0.0.1:10000", "a-1.0.0",
+        "http://localhost:10.0.0.1:10000", null, null);
+    DeploymentDescriptor dd_b = new DeploymentDescriptor("kube_10.0.0.1:10001", "b-1.0.0",
+        "http://localhost:10.0.0.1:10001", null, null);
+    DeploymentDescriptor dd_c = new DeploymentDescriptor("10.0.0.1:10002", "c-1.0.0",
+        "http://localhost:10.0.0.1:10002", null, null);
+
+    List<DeploymentDescriptor> removeList = new ArrayList<>();
+    List<DeploymentDescriptor> addList = new ArrayList<>();
+    KubernetesManager.getDiffs(List.of(), List.of(dd_a, dd_b), removeList, addList);
+    assertThat(removeList).isEmpty();
+    assertThat(addList).contains(dd_a, dd_b);
+
+    removeList = new ArrayList<>();
+    addList = new ArrayList<>();
+    KubernetesManager.getDiffs(List.of(dd_a, dd_b, dd_c), List.of(dd_a), removeList, addList);
+    assertThat(removeList).contains(dd_b);
+    assertThat(addList).isEmpty();
+
+    removeList = new ArrayList<>();
+    addList = new ArrayList<>();
+    KubernetesManager.getDiffs(List.of(dd_a, dd_c), List.of(dd_b), removeList, addList);
+    assertThat(removeList).contains(dd_a);
+    assertThat(addList).contains(dd_b);
+
+    removeList = new ArrayList<>();
+    addList = new ArrayList<>();
+    KubernetesManager.getDiffs(List.of(dd_a, dd_b, dd_c), List.of(), removeList, addList);
+    assertThat(removeList).contains(dd_a, dd_b);
+    assertThat(addList).isEmpty();
+  }
 
 }

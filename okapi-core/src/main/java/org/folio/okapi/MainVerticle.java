@@ -209,13 +209,13 @@ public class MainVerticle extends AbstractVerticle {
             logger.warn("event bus check failed {}", cause.getMessage());
             return Future.succeededFuture();
           }));
-      fut = fut.compose(x -> kubernetesManager.init(vertx));
       fut = fut.compose(x -> startModuleManager());
       fut = fut.compose(x -> startTenants());
       fut = fut.compose(x -> checkInternalModules());
       fut = fut.compose(x -> startEnv());
       fut = fut.compose(x -> startDiscovery());
       fut = fut.compose(x -> startDeployment());
+      fut = fut.compose(x -> kubernetesManager.init(vertx));
       fut = fut.compose(x -> startListening());
       fut = fut.compose(x -> startRedeploy());
       fut = fut.compose(x -> startTimers());

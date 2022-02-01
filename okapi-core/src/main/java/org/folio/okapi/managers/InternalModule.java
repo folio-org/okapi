@@ -810,7 +810,6 @@ public class InternalModule {
   }
 
   private Future<String> installTenantModulesPost(ProxyContext pc, String tenantId, String body) {
-
     try {
       TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
 
@@ -819,16 +818,17 @@ public class InternalModule {
       List<TenantModuleDescriptor> tm = new LinkedList<>();
       Collections.addAll(tm, tml);
       UUID installId = UUID.randomUUID();
-      return tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, tm)
-          .map(res -> {
-            String jsonResponse = Json.encodePrettily(res);
-            logger.info("installTenantModulesPost returns: {}", jsonResponse);
-            if (options.getAsync()) {
-              return location(pc, installId.toString(), null, jsonResponse);
-            } else {
-              return jsonResponse;
-            }
-          });
+      return kubernetesManager.refresh().compose(x ->
+          tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, tm)
+              .map(res -> {
+                String jsonResponse = Json.encodePrettily(res);
+                logger.info("installTenantModulesPost returns: {}", jsonResponse);
+                if (options.getAsync()) {
+                  return location(pc, installId.toString(), null, jsonResponse);
+                } else {
+                  return jsonResponse;
+                }
+              }));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
@@ -1129,10 +1129,8 @@ public class InternalModule {
   }
 
   private Future<String> listDiscoveryModules() {
-    if (kubernetesManager != null) {
-      kubernetesManager.getServices().onSuccess(res -> logger.info("{}", res.encodePrettily()));
-    }
-    return discoveryManager.get()
+    return kubernetesManager.refresh()
+        .compose(x -> discoveryManager.get())
         .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
