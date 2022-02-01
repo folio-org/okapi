@@ -91,9 +91,9 @@ public class KubernetesManager {
    * @return future result.
    */
   public Future<Void> init(Vertx vertx) {
-    WebClientOptions webClientOptions = new WebClientOptions()
-        .setVerifyHost(false)
-        .setTrustAll(true);
+    WebClientOptions webClientOptions = new WebClientOptions();
+    //  .setVerifyHost(false)
+    //  .setTrustAll(true)
     webClient = WebClient.create(vertx, webClientOptions);
 
     return readKubeConfig(vertx, fname).onSuccess(x -> {
@@ -113,12 +113,12 @@ public class KubernetesManager {
       if (name == null) {
         logger.warn("No app.kubernetes.io/name property for {}",
             metadata.encodePrettily());
-        return null;
+        return dds;
       }
       String version = labels.getString("app.kubernetes.io/version");
       if (version == null) {
         logger.warn("No app.kubernetes.io/version property");
-        return null;
+        return dds;
       }
       ModuleId moduleId = new ModuleId(name + "-" + version);
       JsonObject spec = item.getJsonObject("spec");
@@ -135,7 +135,7 @@ public class KubernetesManager {
           DeploymentDescriptor dd = new DeploymentDescriptor();
           dd.setSrvcId(moduleId.toString());
           dd.setUrl(transport + "://" + clusterIPs.getString(k) + ":" + portNumber);
-          dd.setInstId(KUBE_INST_PREFIX + clusterIPs  + ":" + portNumber);
+          dd.setInstId(KUBE_INST_PREFIX + clusterIPs.getString(k)  + ":" + portNumber);
           dds.add(dd);
         }
       }
@@ -167,6 +167,7 @@ public class KubernetesManager {
     }
     return abs.putHeader("Accept", "application/json")
         .expect(ResponsePredicate.SC_OK)
+        .expect(ResponsePredicate.JSON)
         .send().map(res -> parseServices(res.bodyAsJsonObject()));
   }
 
