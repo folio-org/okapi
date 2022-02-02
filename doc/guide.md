@@ -3044,7 +3044,7 @@ that services otherwise manually added to the Okapi are preserved by the
 refresh operation.
 
 The refresh operation happens periodically and at certain important stages,
-such as when before an install operation takes place and when Okapi starts.
+such as before an install operation takes place and when Okapi starts.
 
 Only services
 with [labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/)
