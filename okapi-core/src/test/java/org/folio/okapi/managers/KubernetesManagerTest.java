@@ -360,6 +360,27 @@ public class KubernetesManagerTest {
   }
 
   @Test
+  void testParseServiceNoPorts() {
+    List<DeploymentDescriptor> dds = KubernetesManager.parseEndpoint(new JsonObject()
+        .put("apiVersion", "v1")
+        .put("kind", "Service")
+        .put("metadata", new JsonObject()
+            .put("labels", new JsonObject()
+                .put("app.kubernetes.io/name", "mod-users")
+                .put("app.kubernetes.io/version", "5.0.0")
+            )
+        )
+        .put("subsets", new JsonArray()
+            .add(new JsonObject()
+                .put("addresses", new JsonArray()
+                    .add(new JsonObject().put("ip", "10.1.2.1"))
+                )
+            )
+        ));
+    assertThat(dds).isEmpty();
+  }
+
+  @Test
   void testParseServiceEmptyPorts() {
     List<DeploymentDescriptor> dds = KubernetesManager.parseEndpoint(new JsonObject()
         .put("apiVersion", "v1")
@@ -375,6 +396,7 @@ public class KubernetesManagerTest {
                 .put("addresses", new JsonArray()
                     .add(new JsonObject().put("ip", "10.1.2.1"))
                 )
+                .put("ports", new JsonArray())
             )
         ));
     assertThat(dds).isEmpty();
