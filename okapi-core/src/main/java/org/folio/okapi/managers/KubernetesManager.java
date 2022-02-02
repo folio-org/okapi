@@ -105,7 +105,7 @@ public class KubernetesManager {
     });
   }
 
-  static List<DeploymentDescriptor> parseService(JsonObject item) {
+  static List<DeploymentDescriptor> parseEndpoint(JsonObject item) {
     List<DeploymentDescriptor> dds = new ArrayList<>();
     try {
       JsonObject metadata = item.getJsonObject("metadata");
@@ -122,34 +122,37 @@ public class KubernetesManager {
         return dds;
       }
       ModuleId moduleId = new ModuleId(name + "-" + version);
-      JsonObject spec = item.getJsonObject("spec");
-      if (spec == null) {
+      JsonArray subsets = item.getJsonArray("subsets");
+      if (subsets == null) {
         return dds;
       }
-      JsonArray ports = spec.getJsonArray("ports");
-      if (ports == null || ports.isEmpty()) {
-        return dds;
-      }
-      Integer portNumber = null;
-      for (int i = 0; i < ports.size(); i++) {
-        JsonObject port = ports.getJsonObject(i);
-        if ("http".equals(port.getString("name"))) {
-          portNumber = port.getInteger("port");
-          break; // pick first http port
+      for (int k = 0; k < subsets.size(); k++) {
+        JsonObject subset = subsets.getJsonObject(k);
+        JsonArray ports = subset.getJsonArray("ports");
+        if (ports == null || ports.isEmpty()) {
+          return dds;
         }
-      }
-      if (portNumber == null) {
-        logger.warn("No http port for {}", metadataName);
-        return dds; // no http port
-      }
-      JsonArray clusterIPs = spec.getJsonArray("clusterIPs");
-      for (int i = 0; i < clusterIPs.size(); i++) {
-        String clusterIP = clusterIPs.getString(i);
-        DeploymentDescriptor dd = new DeploymentDescriptor();
-        dd.setSrvcId(moduleId.toString());
-        dd.setUrl("http://" + clusterIP + ":" + portNumber);
-        dd.setInstId(KUBE_INST_PREFIX + clusterIP  + ":" + portNumber);
-        dds.add(dd);
+        Integer portNumber = null;
+        for (int i = 0; i < ports.size(); i++) {
+          JsonObject port = ports.getJsonObject(i);
+          if ("http".equals(port.getString("name"))) {
+            portNumber = port.getInteger("port");
+            break; // pick first http port
+          }
+        }
+        if (portNumber == null) {
+          continue;
+        }
+        JsonArray addresses = subset.getJsonArray("addresses");
+        for (int i = 0; i < addresses.size(); i++) {
+          JsonObject address = addresses.getJsonObject(i);
+          String ip = address.getString("ip");
+          DeploymentDescriptor dd = new DeploymentDescriptor();
+          dd.setSrvcId(moduleId.toString());
+          dd.setUrl("http://" + ip + ":" + portNumber);
+          dd.setInstId(KUBE_INST_PREFIX + ip + ":" + portNumber);
+          dds.add(dd);
+        }
       }
       return dds;
     } catch (Exception e) {
@@ -158,21 +161,21 @@ public class KubernetesManager {
     }
   }
 
-  static List<DeploymentDescriptor> parseServices(JsonObject response) {
+  static List<DeploymentDescriptor> parseItems(JsonObject response) {
     List<DeploymentDescriptor> res = new ArrayList<>();
     JsonArray items = response.getJsonArray("items");
     for (int i = 0; i < items.size(); i++) {
-      res.addAll(parseService(items.getJsonObject(i)));
+      res.addAll(parseEndpoint(items.getJsonObject(i)));
     }
     return res;
   }
 
   /**
-   * Get Services from Kubernetes cluster.
-   * @return endpoints in JSON object.
+   * Get endpoints from Kubernetes cluster.
+   * @return deployment descriptors list.
    */
-  Future<List<DeploymentDescriptor>> getServices() {
-    String uri = server + "/api/v1/namespaces/" + namespace + "/services";
+  Future<List<DeploymentDescriptor>> getEndpoints() {
+    String uri = server + "/api/v1/namespaces/" + namespace + "/endpoints";
     HttpRequest<Buffer> abs = webClient.getAbs(uri);
     if (token != null) {
       abs.putHeader("Authorization", "Bearer " + token);
@@ -180,7 +183,7 @@ public class KubernetesManager {
     return abs.putHeader("Accept", "application/json")
         .expect(ResponsePredicate.SC_OK)
         .expect(ResponsePredicate.JSON)
-        .send().map(res -> parseServices(res.bodyAsJsonObject()));
+        .send().map(res -> parseItems(res.bodyAsJsonObject()));
   }
 
   private void refreshLoop(Vertx vertx) {
@@ -199,7 +202,7 @@ public class KubernetesManager {
       return Future.succeededFuture();
     }
     return discoveryManager.get().compose(existing ->
-            getServices().compose(incoming -> {
+            getEndpoints().compose(incoming -> {
               List<DeploymentDescriptor> removeList = new ArrayList<>();
               List<DeploymentDescriptor> addList = new ArrayList<>();
               getDiffs(existing, incoming, removeList, addList);
@@ -215,8 +218,8 @@ public class KubernetesManager {
               }
               return future;
             }))
-        .onSuccess(x -> logger.info("Kubernetes service refresh OK"))
-        .onFailure(x -> logger.info("Kubernetes service refresh failed {}", x.getMessage(), x));
+        .onSuccess(x -> logger.info("Kubernetes refresh OK"))
+        .onFailure(x -> logger.info("Kubernetes refresh failed {}", x.getMessage(), x));
   }
 
   static void getDiffs(List<DeploymentDescriptor> existing, List<DeploymentDescriptor> incoming,
