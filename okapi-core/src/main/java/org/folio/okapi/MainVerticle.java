@@ -218,6 +218,7 @@ public class MainVerticle extends AbstractVerticle {
       fut = fut.compose(x -> kubernetesManager.init(vertx));
       fut = fut.compose(x -> startListening());
       fut = fut.compose(x -> startRedeploy());
+      fut = fut.compose(x -> tenantManager.prepareModules(okapiVersion));
       fut = fut.compose(x -> startTimers());
       fut = fut.compose(x -> healthManager.init(vertx, Collections.singletonList(tenantManager)));
     }
@@ -348,12 +349,9 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startTimers() {
-    return tenantManager.prepareModules(okapiVersion)
-        .compose(x -> {
-          if (timerManager == null) {
-            return Future.succeededFuture();
-          }
-          return timerManager.init(vertx, tenantManager, discoveryManager, proxyService);
-        });
+    if (timerManager == null) {
+      return Future.succeededFuture();
+    }
+    return timerManager.init(vertx, tenantManager, discoveryManager, proxyService);
   }
 }

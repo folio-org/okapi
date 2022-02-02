@@ -940,37 +940,40 @@ public class ModuleTest {
     // post it again with slight modification
     c = api.createRestAssured3();
     c.given()
-      .header("Content-Type", "application/json")
-      .body(docSampleModule.replace("sample.extra\"", "sample.foo\""))
-      .post("/_/proxy/modules")
-      .then()
-      .statusCode(400)
-      .extract().response();
+        .header("Content-Type", "application/json")
+        .body(docSampleModule.replace("sample.extra\"", "sample.foo\""))
+        .post("/_/proxy/modules")
+        .then()
+        .statusCode(400)
+        .body(equalTo("create: module sample-module-1+1 already exists"));
     assertEmptyReport(c);
 
     given()
-      .header("Content-Type", "application/json")
-      .body("{}")
-      .post("/_/discovery/modules")
-      .then()
-      .statusCode(400);
+        .header("Content-Type", "application/json")
+        .body("{}")
+        .post("/_/discovery/modules")
+        .then()
+        .statusCode(400)
+        .body(equalTo("Needs srvcId"));
 
     c = api.createRestAssured3();
     c.given()
-      .header("Content-Type", "application/json")
-      .body("{\"srvcId\" : \"\"}")
-      .post("/_/discovery/modules")
-      .then()
-      .statusCode(400);
+        .header("Content-Type", "application/json")
+        .body("{\"srvcId\" : \"\"}")
+        .post("/_/discovery/modules")
+        .then()
+        .statusCode(400)
+        .body(containsString("Empty srvcId not allowed"));
     assertEmptyReport(c);
 
     c = api.createRestAssured3();
     c.given()
-      .header("Content-Type", "application/json")
-      .body("{\"srvcId\" : \"1\"}")
-      .post("/_/discovery/modules")
-      .then()
-      .statusCode(404);
+        .header("Content-Type", "application/json")
+        .body("{\"srvcId\" : \"1\"}")
+        .post("/_/discovery/modules")
+        .then()
+        .statusCode(400)
+        .body(equalTo("Needs instId"));
     assertEmptyReport(c);
 
     c = api.createRestAssured3();

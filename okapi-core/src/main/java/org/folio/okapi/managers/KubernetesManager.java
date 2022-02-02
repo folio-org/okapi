@@ -96,11 +96,12 @@ public class KubernetesManager {
         .setTrustAll(true);
     webClient = WebClient.create(vertx, webClientOptions);
 
-    return readKubeConfig(vertx, fname).onSuccess(x -> {
-      if (server != null) {
-        logger.info("Enable Kubernetes config server {} namespace {}", server, namespace);
-        refreshLoop(vertx);
+    return readKubeConfig(vertx, fname).compose(x -> {
+      if (server == null) {
+        return Future.succeededFuture();
       }
+      logger.info("Enable Kubernetes config server {} namespace {}", server, namespace);
+      return refresh().onComplete(y -> refreshLoop(vertx));
     });
   }
 
@@ -122,22 +123,26 @@ public class KubernetesManager {
       }
       ModuleId moduleId = new ModuleId(name + "-" + version);
       JsonObject spec = item.getJsonObject("spec");
+      if (spec == null) {
+        return dds;
+      }
       JsonArray ports = spec.getJsonArray("ports");
-      if (!ports.isEmpty()) {
-        JsonObject port = ports.getJsonObject(0);
-        String transport = port.getString("name");
-        if (!"http".equals(transport) && !"https".equals(transport)) {
-          transport = "http";
-        }
-        Integer portNumber = port.getInteger("port");
-        JsonArray clusterIPs = spec.getJsonArray("clusterIPs");
-        for (int k = 0; k < clusterIPs.size(); k++) {
-          DeploymentDescriptor dd = new DeploymentDescriptor();
-          dd.setSrvcId(moduleId.toString());
-          dd.setUrl(transport + "://" + clusterIPs.getString(k) + ":" + portNumber);
-          dd.setInstId(KUBE_INST_PREFIX + clusterIPs.getString(k)  + ":" + portNumber);
-          dds.add(dd);
-        }
+      if (ports == null || ports.isEmpty()) {
+        return dds;
+      }
+      JsonObject port = ports.getJsonObject(0);
+      String transport = port.getString("name");
+      if (!"http".equals(transport) && !"https".equals(transport)) {
+        transport = "http";
+      }
+      Integer portNumber = port.getInteger("port");
+      JsonArray clusterIPs = spec.getJsonArray("clusterIPs");
+      for (int k = 0; k < clusterIPs.size(); k++) {
+        DeploymentDescriptor dd = new DeploymentDescriptor();
+        dd.setSrvcId(moduleId.toString());
+        dd.setUrl(transport + "://" + clusterIPs.getString(k) + ":" + portNumber);
+        dd.setInstId(KUBE_INST_PREFIX + clusterIPs.getString(k)  + ":" + portNumber);
+        dds.add(dd);
       }
       return dds;
     } catch (Exception e) {
@@ -171,12 +176,11 @@ public class KubernetesManager {
         .send().map(res -> parseServices(res.bodyAsJsonObject()));
   }
 
-  void refreshLoop(Vertx vertx) {
-    refresh().onComplete(x -> vertx.setTimer(refreshInterval, y -> {
-      if (discoveryManager.isLeader()) {
-        refreshLoop(vertx);
-      }
-    }));
+  private void refreshLoop(Vertx vertx) {
+    vertx.setTimer(refreshInterval, y -> {
+      Future<Void> f = discoveryManager.isLeader() ? refresh() : Future.succeededFuture();
+      f.onComplete(x -> refreshLoop(vertx));
+    });
   }
 
   /**

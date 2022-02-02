@@ -150,18 +150,12 @@ public class DiscoveryManager implements NodeListener {
    * </p>
    */
   private Future<DeploymentDescriptor> addAndDeploy0(DeploymentDescriptor dd) {
-
     String tmp = Json.encodePrettily(dd);
     logger.info("addAndDeploy: {}", tmp);
-    final String modId = dd.getSrvcId();
-    if (modId == null) {
+    final String id = dd.getSrvcId();
+    if (id == null) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10800")));
     }
-    return moduleManager.get(modId).compose(gres -> addAndDeploy1(dd, gres));
-  }
-
-  private Future<DeploymentDescriptor> addAndDeploy1(DeploymentDescriptor dd, ModuleDescriptor md) {
-
     LaunchDescriptor launchDesc = dd.getDescriptor();
     final String nodeId = dd.getNodeId();
     if (nodeId == null) {
@@ -176,7 +170,7 @@ public class DiscoveryManager implements NodeListener {
       }
     } else {
       if (launchDesc == null) {
-        return addAndDeploy2(dd, md, nodeId);
+        return moduleManager.get(id).compose(md -> addAndDeploy2(dd, md, nodeId));
       } else { // Have a launch descriptor already in dd
         return callDeploy(nodeId, dd);
       }

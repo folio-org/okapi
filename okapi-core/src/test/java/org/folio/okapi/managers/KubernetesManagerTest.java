@@ -26,11 +26,15 @@ public class KubernetesManagerTest {
 
   static final int KUBE_MOCK_PORT = 9235;
   static final String KUBE_MOCK_SERVER = "http://localhost:" + KUBE_MOCK_PORT;
+
+  // server and token in test/resources/kube-config.yaml
+  static final String KUBE_FILE_SERVER = "http://localhost:9236";
+  static final String KUBE_FILE_TOKEN = "kubeconfig-u-k2zqca6scw:kpzqbctgnbl9s8znnp5bpt9rrdf8xpdhtwhmhz58zqh9lz7k9fpd91";
   static JsonObject mockServicesResponse;
   static DiscoveryManager discoveryManager;
 
   @BeforeAll
-  static void beforeEach(Vertx vertx, VertxTestContext context) {
+  static void beforeAll(Vertx vertx, VertxTestContext context) {
     mockServicesResponse = new JsonObject();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     Router router = Router.router(vertx);
@@ -57,7 +61,7 @@ public class KubernetesManagerTest {
   }
 
   @BeforeEach
-  void beforeEach() {
+  void beforeEach(Vertx vertx, VertxTestContext context) {
     mockServicesResponse = new JsonObject()
         .put("apiVersion", "v1")
         .put("items", new JsonArray()
@@ -111,6 +115,7 @@ public class KubernetesManagerTest {
                 )
             )
         );
+    discoveryManager.removeAndUndeploy().onComplete(context.succeeding(res -> context.completeNow()));
   }
 
   @Test
@@ -162,9 +167,7 @@ public class KubernetesManagerTest {
     JsonObject config = new JsonObject();
     config.put(KUBE_CONFIG, "kube-config-no-contexts.yaml");
     KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
-    kubernetesManager.init(vertx).onComplete(context.failing(e -> {
-      context.completeNow();
-    }));
+    kubernetesManager.init(vertx).onComplete(context.failing(e -> context.completeNow()));
   }
 
   @Test
@@ -172,9 +175,9 @@ public class KubernetesManagerTest {
     JsonObject config = new JsonObject();
     config.put(KUBE_CONFIG, "kube-config.yaml");
     KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
-    kubernetesManager.init(vertx).onComplete(context.succeeding(res -> {
-      assertThat(kubernetesManager.server).isEqualTo("https://rancher.dev.folio.org/k8s/clusters/c-479xv");
-      assertThat(kubernetesManager.token).isEqualTo("kubeconfig-u-k2zqca6scw:kpzqbctgnbl9s8znnp5bpt9rrdf8xpdhtwhmhz58zqh9lz7k9fpd91");
+    kubernetesManager.init(vertx).onComplete(context.failing(res -> {
+      assertThat(kubernetesManager.server).isEqualTo(KUBE_FILE_SERVER);
+      assertThat(kubernetesManager.token).isEqualTo(KUBE_FILE_TOKEN);
       context.completeNow();
     }));
   }
@@ -186,8 +189,8 @@ public class KubernetesManagerTest {
     config.put(KUBE_TOKEN, "1234");
     config.put(KUBE_NAMESPACE, "folio-1");
     KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
-    kubernetesManager.init(vertx).onComplete(context.succeeding(res -> {
-      assertThat(kubernetesManager.server).isEqualTo("https://rancher.dev.folio.org/k8s/clusters/c-479xv");
+    kubernetesManager.init(vertx).onComplete(context.failing(res -> {
+      assertThat(kubernetesManager.server).isEqualTo(KUBE_FILE_SERVER);
       assertThat(kubernetesManager.token).isEqualTo("1234");
       assertThat(kubernetesManager.namespace).isEqualTo("folio-1");
       context.completeNow();
@@ -203,7 +206,7 @@ public class KubernetesManagerTest {
     KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
     kubernetesManager.init(vertx).onComplete(context.succeeding(res -> {
       assertThat(kubernetesManager.server).isEqualTo(KUBE_MOCK_SERVER);
-      assertThat(kubernetesManager.token).isEqualTo("kubeconfig-u-k2zqca6scw:kpzqbctgnbl9s8znnp5bpt9rrdf8xpdhtwhmhz58zqh9lz7k9fpd91");
+      assertThat(kubernetesManager.token).isEqualTo(KUBE_FILE_TOKEN);
       assertThat(kubernetesManager.namespace).isEqualTo("folio-1");
       context.completeNow();
     }));
@@ -214,7 +217,7 @@ public class KubernetesManagerTest {
     JsonObject config = new JsonObject();
     config.put(KUBE_SERVER, KUBE_MOCK_SERVER);
     KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
-    kubernetesManager.init(vertx).onComplete(context.succeeding(res -> {
+    kubernetesManager.init(vertx).onComplete(context.failing(res -> {
       assertThat(kubernetesManager.token).isNull();
       assertThat(kubernetesManager.server).isEqualTo(KUBE_MOCK_SERVER);
       context.completeNow();
@@ -222,8 +225,38 @@ public class KubernetesManagerTest {
   }
 
   @Test
-  void testParseService() {
+  void testConfigTokenServer(Vertx vertx, VertxTestContext context) {
+    JsonObject config = new JsonObject();
+    config.put(KUBE_SERVER, KUBE_MOCK_SERVER);
+    config.put(KUBE_TOKEN, "1234");
+    config.put(KUBE_NAMESPACE, "folio-1");
+    KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
+
+    // include in discovery a module already discovered with Kubernetes
+    DeploymentDescriptor ddInitial = new DeploymentDescriptor(KubernetesManager.KUBE_INST_PREFIX + "mod",
+        "mod-initial-1.0.0", "http://localhost", null, null);
+    discoveryManager.addAndDeploy(ddInitial)
+        .compose(x -> kubernetesManager.init(vertx))
+        .compose(x -> discoveryManager.get())
+        .onComplete(context.succeeding(res -> {
+          // kubernetes.init will refresh and remove initial and add mod-users instead
+          assertThat(res).hasSize(2);
+          assertThat(res.get(0).getSrvcId()).isEqualTo("mod-users-5.0.0");
+          assertThat(res.get(1).getSrvcId()).isEqualTo("mod-users-5.0.0");
+          assertThat(kubernetesManager.server).isEqualTo(KUBE_MOCK_SERVER);
+          assertThat(kubernetesManager.token).isEqualTo("1234");
+          assertThat(kubernetesManager.namespace).isEqualTo("folio-1");
+          context.completeNow();
+        }));
+  }
+
+  @Test
+  void testParseServiceEmpty() {
     assertThat(KubernetesManager.parseService(new JsonObject())).isEmpty();
+  }
+
+  @Test
+  void testParseServiceKubernetesApiServer() {
     assertThat(KubernetesManager.parseService(new JsonObject()
         .put("apiVersion", "v1")
         .put("kind", "Service")
@@ -247,25 +280,10 @@ public class KubernetesManagerTest {
                 )
             )
         ))).isEmpty();
-    assertThat(KubernetesManager.parseService(new JsonObject()
-                .put("apiVersion", "v1")
-                .put("kind", "Service")
-                .put("metadata", new JsonObject()
-                    .put("labels", new JsonObject()
-                        .put("app.kubernetes.io/name", "mod-other")
-                    )
-                )
-            )).isEmpty();
-    assertThat(KubernetesManager.parseService(new JsonObject()
-            .put("apiVersion", "v1")
-            .put("kind", "Service")
-            .put("metadata", new JsonObject()
-                .put("labels", new JsonObject()
-                    .put("app.kubernetes.io/name", "mod-no-ports")
-                    .put("app.kubernetes.io/version", "1.0.0")
-                )
-            )
-        )).isEmpty();
+  }
+
+  @Test
+  void testParseServiceHttp() {
     List<DeploymentDescriptor> dds = KubernetesManager.parseService(new JsonObject()
         .put("apiVersion", "v1")
         .put("kind", "Service")
@@ -295,8 +313,44 @@ public class KubernetesManagerTest {
     assertThat(dds.get(0).getUrl()).isEqualTo("http://10.1.2.1:8099");
     assertThat(dds.get(1).getSrvcId()).isEqualTo("mod-users-5.0.0");
     assertThat(dds.get(1).getUrl()).isEqualTo("http://10.1.2.2:8099");
+  }
 
-    dds = KubernetesManager.parseService(new JsonObject()
+  @Test
+  void testParseServiceHttps() {
+    List<DeploymentDescriptor> dds = KubernetesManager.parseService(new JsonObject()
+        .put("apiVersion", "v1")
+        .put("kind", "Service")
+        .put("metadata", new JsonObject()
+            .put("labels", new JsonObject()
+                .put("app.kubernetes.io/name", "mod-users")
+                .put("app.kubernetes.io/version", "5.0.0")
+            )
+        )
+        .put("spec", new JsonObject()
+            .put("clusterIP", "10.1.2.1")
+            .put("clusterIPs", new JsonArray()
+                .add("10.1.2.1")
+                .add("10.1.2.2")
+            )
+            .put("ports", new JsonArray()
+                .add(new JsonObject()
+                    .put("name", "https")
+                    .put("port", 443)
+                    .put("protocol", "TCP")
+                    .put("targetPort", 8099)
+                )
+            )
+        ));
+    assertThat(dds).hasSize(2);
+    assertThat(dds.get(0).getSrvcId()).isEqualTo("mod-users-5.0.0");
+    assertThat(dds.get(0).getUrl()).isEqualTo("https://10.1.2.1:443");
+    assertThat(dds.get(1).getSrvcId()).isEqualTo("mod-users-5.0.0");
+    assertThat(dds.get(1).getUrl()).isEqualTo("https://10.1.2.2:443");
+  }
+
+  @Test
+  void testParseServiceNoTransport() {
+    List<DeploymentDescriptor> dds = KubernetesManager.parseService(new JsonObject()
         .put("apiVersion", "v1")
         .put("kind", "Service")
         .put("metadata", new JsonObject()
@@ -322,6 +376,66 @@ public class KubernetesManagerTest {
   }
 
   @Test
+  void testParseServiceEmptyPorts() {
+    List<DeploymentDescriptor> dds = KubernetesManager.parseService(new JsonObject()
+        .put("apiVersion", "v1")
+        .put("kind", "Service")
+        .put("metadata", new JsonObject()
+            .put("labels", new JsonObject()
+                .put("app.kubernetes.io/name", "mod-users")
+                .put("app.kubernetes.io/version", "5.0.0")
+            )
+        )
+        .put("spec", new JsonObject()
+            .put("clusterIP", "10.1.2.1")
+            .put("clusterIPs", new JsonArray().add("10.1.2.1"))
+            .put("ports", new JsonArray())
+        ));
+    assertThat(dds).isEmpty();
+  }
+
+  @Test
+  void testParseServiceNoPorts() {
+    List<DeploymentDescriptor> dds = KubernetesManager.parseService(new JsonObject()
+        .put("apiVersion", "v1")
+        .put("kind", "Service")
+        .put("metadata", new JsonObject()
+            .put("labels", new JsonObject()
+                .put("app.kubernetes.io/name", "mod-users")
+                .put("app.kubernetes.io/version", "5.0.0")
+            )
+        )
+        .put("spec", new JsonObject()
+            .put("clusterIP", "10.1.2.1")
+            .put("clusterIPs", new JsonArray().add("10.1.2.1"))
+        ));
+    assertThat(dds).isEmpty();
+  }
+
+  @Test
+  void testParseServiceNoSpec() {
+    assertThat(KubernetesManager.parseService(new JsonObject()
+        .put("apiVersion", "v1")
+        .put("kind", "Service")
+        .put("metadata", new JsonObject()
+            .put("labels", new JsonObject()
+                .put("app.kubernetes.io/name", "mod-other")
+            )
+        )
+    )).isEmpty();
+    assertThat(KubernetesManager.parseService(new JsonObject()
+        .put("apiVersion", "v1")
+        .put("kind", "Service")
+        .put("metadata", new JsonObject()
+            .put("labels", new JsonObject()
+                .put("app.kubernetes.io/name", "mod-no-ports")
+                .put("app.kubernetes.io/version", "1.0.0")
+            )
+        )
+    )).isEmpty();
+  }
+
+  @Test
   void testParseServices() {
     JsonObject config = new JsonObject();
     config.put(KUBE_SERVER, KUBE_MOCK_SERVER);
@@ -333,21 +447,6 @@ public class KubernetesManagerTest {
     assertThat(dds.get(0).getSrvcId()).isEqualTo("mod-users-5.0.0");
     assertThat(dds.get(1).getUrl()).isEqualTo("http://10.1.2.2:8099");
     assertThat(dds.get(1).getSrvcId()).isEqualTo("mod-users-5.0.0");
-  }
-
-  @Test
-  void testConfigTokenServer(Vertx vertx, VertxTestContext context) {
-    JsonObject config = new JsonObject();
-    config.put(KUBE_SERVER, KUBE_MOCK_SERVER);
-    config.put(KUBE_TOKEN, "1234");
-    config.put(KUBE_NAMESPACE, "folio-1");
-    KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
-    kubernetesManager.init(vertx).onComplete(context.succeeding(res -> {
-      assertThat(kubernetesManager.server).isEqualTo(KUBE_MOCK_SERVER);
-      assertThat(kubernetesManager.token).isEqualTo("1234");
-      assertThat(kubernetesManager.namespace).isEqualTo("folio-1");
-      context.completeNow();
-    }));
   }
 
   @Test

@@ -6,7 +6,7 @@ clusters:
     server: "https://rancher.dev.folio.org/k8s/clusters/a-479xv"
 - name: "folio-eks-2-us-west-2"
   cluster:
-    server: "https://rancher.dev.folio.org/k8s/clusters/c-479xv"
+    server: "http://localhost:9236"
 
 users:
 - name: "folio-eks-2-us-west-2"
