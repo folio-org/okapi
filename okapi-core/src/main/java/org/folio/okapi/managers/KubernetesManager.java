@@ -29,7 +29,7 @@ import org.folio.okapi.common.OkapiLogger;
 
 public class KubernetesManager {
 
-  private final Logger logger = OkapiLogger.get();
+  private static final Logger logger = OkapiLogger.get();
 
   static final String KUBE_INST_PREFIX = "kube_";
   final String fname;
@@ -104,7 +104,7 @@ public class KubernetesManager {
     });
   }
 
-  List<DeploymentDescriptor> parseService(JsonObject item) {
+  static List<DeploymentDescriptor> parseService(JsonObject item) {
     List<DeploymentDescriptor> dds = new ArrayList<>();
     try {
       JsonObject metadata = item.getJsonObject("metadata");
@@ -146,7 +146,7 @@ public class KubernetesManager {
     }
   }
 
-  List<DeploymentDescriptor> parseServices(JsonObject response) {
+  static List<DeploymentDescriptor> parseServices(JsonObject response) {
     List<DeploymentDescriptor> res = new ArrayList<>();
     JsonArray items = response.getJsonArray("items");
     for (int i = 0; i < items.size(); i++) {
@@ -159,7 +159,7 @@ public class KubernetesManager {
    * Get Services from Kubernetes cluster.
    * @return endpoints in JSON object.
    */
-  public Future<List<DeploymentDescriptor>> getServices() {
+  Future<List<DeploymentDescriptor>> getServices() {
     String uri = server + "/api/v1/namespaces/" + namespace + "/services";
     HttpRequest<Buffer> abs = webClient.getAbs(uri);
     if (token != null) {
@@ -172,7 +172,11 @@ public class KubernetesManager {
   }
 
   void refreshLoop(Vertx vertx) {
-    refresh().onComplete(x -> vertx.setTimer(refreshInterval, y -> refreshLoop(vertx)));
+    refresh().onComplete(x -> vertx.setTimer(refreshInterval, y -> {
+      if (discoveryManager.isLeader()) {
+        refreshLoop(vertx);
+      }
+    }));
   }
 
   /**

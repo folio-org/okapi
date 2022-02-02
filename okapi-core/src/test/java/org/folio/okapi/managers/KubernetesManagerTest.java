@@ -223,12 +223,111 @@ public class KubernetesManagerTest {
 
   @Test
   void testParseService() {
+    assertThat(KubernetesManager.parseService(new JsonObject())).isEmpty();
+    assertThat(KubernetesManager.parseService(new JsonObject()
+        .put("apiVersion", "v1")
+        .put("kind", "Service")
+        .put("metadata", new JsonObject()
+            .put("labels", new JsonObject()
+                .put("component", "apiserver")
+                .put("provider", "kubernetes")
+            )
+        )
+        .put("spec", new JsonObject()
+            .put("clusterIP", "10.1.1.1")
+            .put("clusterIPs", new JsonArray()
+                .add("10.1.1.1")
+            )
+            .put("ports", new JsonArray()
+                .add(new JsonObject()
+                    .put("name", "https")
+                    .put("port", 443)
+                    .put("protocol", "TCP")
+                    .put("targetPort", 16443)
+                )
+            )
+        ))).isEmpty();
+    assertThat(KubernetesManager.parseService(new JsonObject()
+                .put("apiVersion", "v1")
+                .put("kind", "Service")
+                .put("metadata", new JsonObject()
+                    .put("labels", new JsonObject()
+                        .put("app.kubernetes.io/name", "mod-other")
+                    )
+                )
+            )).isEmpty();
+    assertThat(KubernetesManager.parseService(new JsonObject()
+            .put("apiVersion", "v1")
+            .put("kind", "Service")
+            .put("metadata", new JsonObject()
+                .put("labels", new JsonObject()
+                    .put("app.kubernetes.io/name", "mod-no-ports")
+                    .put("app.kubernetes.io/version", "1.0.0")
+                )
+            )
+        )).isEmpty();
+    List<DeploymentDescriptor> dds = KubernetesManager.parseService(new JsonObject()
+        .put("apiVersion", "v1")
+        .put("kind", "Service")
+        .put("metadata", new JsonObject()
+            .put("labels", new JsonObject()
+                .put("app.kubernetes.io/name", "mod-users")
+                .put("app.kubernetes.io/version", "5.0.0")
+            )
+        )
+        .put("spec", new JsonObject()
+            .put("clusterIP", "10.1.2.1")
+            .put("clusterIPs", new JsonArray()
+                .add("10.1.2.1")
+                .add("10.1.2.2")
+            )
+            .put("ports", new JsonArray()
+                .add(new JsonObject()
+                    .put("name", "http")
+                    .put("port", 8099)
+                    .put("protocol", "TCP")
+                    .put("targetPort", 8099)
+                )
+            )
+        ));
+    assertThat(dds).hasSize(2);
+    assertThat(dds.get(0).getSrvcId()).isEqualTo("mod-users-5.0.0");
+    assertThat(dds.get(0).getUrl()).isEqualTo("http://10.1.2.1:8099");
+    assertThat(dds.get(1).getSrvcId()).isEqualTo("mod-users-5.0.0");
+    assertThat(dds.get(1).getUrl()).isEqualTo("http://10.1.2.2:8099");
+
+    dds = KubernetesManager.parseService(new JsonObject()
+        .put("apiVersion", "v1")
+        .put("kind", "Service")
+        .put("metadata", new JsonObject()
+            .put("labels", new JsonObject()
+                .put("app.kubernetes.io/name", "mod-users")
+                .put("app.kubernetes.io/version", "5.0.0")
+            )
+        )
+        .put("spec", new JsonObject()
+            .put("clusterIP", "10.1.2.1")
+            .put("clusterIPs", new JsonArray().add("10.1.2.1"))
+            .put("ports", new JsonArray()
+                .add(new JsonObject()
+                    .put("port", 8099)
+                    .put("protocol", "TCP")
+                    .put("targetPort", 8099)
+                )
+            )
+        ));
+    assertThat(dds).hasSize(1);
+    assertThat(dds.get(0).getSrvcId()).isEqualTo("mod-users-5.0.0");
+    assertThat(dds.get(0).getUrl()).isEqualTo("http://10.1.2.1:8099");
+  }
+
+  @Test
+  void testParseServices() {
     JsonObject config = new JsonObject();
     config.put(KUBE_SERVER, KUBE_MOCK_SERVER);
     config.put(KUBE_TOKEN, "1234");
     config.put(KUBE_NAMESPACE, "folio-1");
-    KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
-    List<DeploymentDescriptor> dds = kubernetesManager.parseServices(mockServicesResponse);
+    List<DeploymentDescriptor> dds = KubernetesManager.parseServices(mockServicesResponse);
     assertThat(dds).hasSize(2);
     assertThat(dds.get(0).getUrl()).isEqualTo("http://10.1.2.1:8099");
     assertThat(dds.get(0).getSrvcId()).isEqualTo("mod-users-5.0.0");
