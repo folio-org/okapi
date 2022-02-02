@@ -303,51 +303,30 @@ public class KubernetesManagerTest {
             )
             .put("ports", new JsonArray()
                 .add(new JsonObject()
-                    .put("name", "http")
-                    .put("port", 8099)
-                    .put("protocol", "TCP")
-                    .put("targetPort", 8099)
-                )
-            )
-        ));
-    assertThat(dds).hasSize(2);
-    assertThat(dds.get(0).getSrvcId()).isEqualTo("mod-users-5.0.0");
-    assertThat(dds.get(0).getUrl()).isEqualTo("http://10.1.2.1:8099");
-    assertThat(dds.get(1).getSrvcId()).isEqualTo("mod-users-5.0.0");
-    assertThat(dds.get(1).getUrl()).isEqualTo("http://10.1.2.2:8099");
-  }
-
-  @Test
-  void testParseServiceHttps() {
-    List<DeploymentDescriptor> dds = KubernetesManager.parseService(new JsonObject()
-        .put("apiVersion", "v1")
-        .put("kind", "Service")
-        .put("metadata", new JsonObject()
-            .put("labels", new JsonObject()
-                .put("app.kubernetes.io/name", "mod-users")
-                .put("app.kubernetes.io/version", "5.0.0")
-            )
-        )
-        .put("spec", new JsonObject()
-            .put("clusterIP", "10.1.2.1")
-            .put("clusterIPs", new JsonArray()
-                .add("10.1.2.1")
-                .add("10.1.2.2")
-            )
-            .put("ports", new JsonArray()
-                .add(new JsonObject()
                     .put("name", "https")
                     .put("port", 443)
                     .put("protocol", "TCP")
-                    .put("targetPort", 8099)
+                    .put("targetPort", 443)
+                )
+                .add(new JsonObject()
+                    .put("name", "http")
+                    .put("port", 8001)
+                    .put("protocol", "TCP")
+                    .put("targetPort", 12000)
+                )
+                .add(new JsonObject()
+                    .put("name", "http")
+                    .put("port", 8002)
+                    .put("protocol", "TCP")
+                    .put("targetPort", 12001)
                 )
             )
         ));
     assertThat(dds).hasSize(2);
     assertThat(dds.get(0).getSrvcId()).isEqualTo("mod-users-5.0.0");
-    assertThat(dds.get(0).getUrl()).isEqualTo("https://10.1.2.1:443");
+    assertThat(dds.get(0).getUrl()).isEqualTo("http://10.1.2.1:8001");
     assertThat(dds.get(1).getSrvcId()).isEqualTo("mod-users-5.0.0");
-    assertThat(dds.get(1).getUrl()).isEqualTo("https://10.1.2.2:443");
+    assertThat(dds.get(1).getUrl()).isEqualTo("http://10.1.2.2:8001");
   }
 
   @Test
@@ -372,9 +351,7 @@ public class KubernetesManagerTest {
                 )
             )
         ));
-    assertThat(dds).hasSize(1);
-    assertThat(dds.get(0).getSrvcId()).isEqualTo("mod-users-5.0.0");
-    assertThat(dds.get(0).getUrl()).isEqualTo("http://10.1.2.1:8099");
+    assertThat(dds).isEmpty();
   }
 
   @Test
@@ -483,6 +460,15 @@ public class KubernetesManagerTest {
     KubernetesManager.getDiffs(List.of(dd_a, dd_b, dd_c), List.of(), removeList, addList);
     assertThat(removeList).contains(dd_a, dd_b);
     assertThat(addList).isEmpty();
+
+    removeList = new ArrayList<>();
+    addList = new ArrayList<>();
+    DeploymentDescriptor dd_a_101 = new DeploymentDescriptor("kube_10.0.0.1:10000", "a-1.0.1",
+        "http://localhost:10.0.0.1:10000", null, null);
+    KubernetesManager.getDiffs(List.of(dd_a), List.of(dd_a_101), removeList, addList);
+    assertThat(removeList).contains(dd_a);
+    assertThat(addList).contains(dd_a_101);
+
   }
 
 }

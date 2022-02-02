@@ -109,16 +109,16 @@ public class KubernetesManager {
     List<DeploymentDescriptor> dds = new ArrayList<>();
     try {
       JsonObject metadata = item.getJsonObject("metadata");
+      String metadataName = metadata.getString("name");
       JsonObject labels = metadata.getJsonObject("labels");
       String name = labels.getString("app.kubernetes.io/name");
       if (name == null) {
-        logger.warn("No app.kubernetes.io/name property for {}",
-            metadata.encodePrettily());
+        logger.warn("No app.kubernetes.io/name property for {}", metadataName);
         return dds;
       }
       String version = labels.getString("app.kubernetes.io/version");
       if (version == null) {
-        logger.warn("No app.kubernetes.io/version property");
+        logger.warn("No app.kubernetes.io/version property for {}", metadataName);
         return dds;
       }
       ModuleId moduleId = new ModuleId(name + "-" + version);
@@ -130,18 +130,25 @@ public class KubernetesManager {
       if (ports == null || ports.isEmpty()) {
         return dds;
       }
-      JsonObject port = ports.getJsonObject(0);
-      String transport = port.getString("name");
-      if (!"http".equals(transport) && !"https".equals(transport)) {
-        transport = "http";
+      Integer portNumber = null;
+      for (int i = 0; i < ports.size(); i++) {
+        JsonObject port = ports.getJsonObject(i);
+        if ("http".equals(port.getString("name"))) {
+          portNumber = port.getInteger("port");
+          break; // pick first http port
+        }
       }
-      Integer portNumber = port.getInteger("port");
+      if (portNumber == null) {
+        logger.warn("No http port for {}", metadataName);
+        return dds; // no http port
+      }
       JsonArray clusterIPs = spec.getJsonArray("clusterIPs");
-      for (int k = 0; k < clusterIPs.size(); k++) {
+      for (int i = 0; i < clusterIPs.size(); i++) {
+        String clusterIP = clusterIPs.getString(i);
         DeploymentDescriptor dd = new DeploymentDescriptor();
         dd.setSrvcId(moduleId.toString());
-        dd.setUrl(transport + "://" + clusterIPs.getString(k) + ":" + portNumber);
-        dd.setInstId(KUBE_INST_PREFIX + clusterIPs.getString(k)  + ":" + portNumber);
+        dd.setUrl("http://" + clusterIP + ":" + portNumber);
+        dd.setInstId(KUBE_INST_PREFIX + clusterIP  + ":" + portNumber);
         dds.add(dd);
       }
       return dds;
@@ -198,9 +205,11 @@ public class KubernetesManager {
               getDiffs(existing, incoming, removeList, addList);
               Future<Void> future = Future.succeededFuture();
               for (DeploymentDescriptor dd : addList) {
+                logger.info("Kubernetes: add {} {}", dd.getSrvcId(), dd.getUrl());
                 future = future.compose(x -> discoveryManager.add(dd));
               }
               for (DeploymentDescriptor dd : removeList) {
+                logger.info("Kubernetes: remove {} {}", dd.getSrvcId(), dd.getUrl());
                 future = future.compose(x -> discoveryManager.removeAndUndeploy(
                     dd.getSrvcId(), dd.getInstId()));
               }
@@ -215,19 +224,21 @@ public class KubernetesManager {
 
     Set<String> instances = new HashSet<>();
     for (DeploymentDescriptor dd : incoming) {
-      instances.add(dd.getInstId());
+      String key = dd.getSrvcId() + "-" + dd.getInstId();
+      instances.add(key);
     }
     for (DeploymentDescriptor dd : existing) {
       String instId = dd.getInstId();
       if (instId.startsWith(KUBE_INST_PREFIX)) {
-        if (!instances.contains(dd.getInstId())) {
+        String key = dd.getSrvcId() + "-" + dd.getInstId();
+        if (!instances.remove(key)) {
           removeList.add(dd);
         }
-        instances.remove(dd.getInstId());
       }
     }
     for (DeploymentDescriptor dd : incoming) {
-      if (instances.contains(dd.getInstId())) {
+      String key = dd.getSrvcId() + "-" + dd.getInstId();
+      if (instances.contains(key)) {
         addList.add(dd);
       }
     }
