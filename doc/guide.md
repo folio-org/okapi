@@ -3030,7 +3030,7 @@ systemctl restart docker
 
 ### Kubernetes integration
 
-Okapi 4.13.0 has support for service discovery with Kubernetes.
+Since version 4.13.0 Okapi has support for service discovery with Kubernetes.
 
 The Kubernetes service discovery is enabled as soon as a Kubernetes server is
 specified. This can be given implicitly by a reference to a Kubernetes config
