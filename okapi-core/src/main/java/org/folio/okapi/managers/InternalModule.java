@@ -794,11 +794,12 @@ public class InternalModule {
 
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
-      return tenantManager.enableAndDisableModule(tenantId, options, null, td, pc)
+      return kubernetesManager.refresh()
+          .compose(x -> tenantManager.enableAndDisableModule(tenantId, options, null, td, pc)
           .map(eres -> {
             td.setId(eres);
             return location(pc, td.getId(), null, Json.encodePrettily(td));
-          });
+          }));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
@@ -817,14 +818,14 @@ public class InternalModule {
           TenantModuleDescriptor[].class);
       List<TenantModuleDescriptor> tm = new LinkedList<>();
       Collections.addAll(tm, tml);
-      UUID installId = UUID.randomUUID();
+      String installId = UUID.randomUUID().toString();
       return kubernetesManager.refresh().compose(x ->
-          tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, tm)
+          tenantManager.installUpgradeCreate(tenantId, installId, pc, options, tm)
               .map(res -> {
                 String jsonResponse = Json.encodePrettily(res);
                 logger.info("installTenantModulesPost returns: {}", jsonResponse);
                 if (options.getAsync()) {
-                  return location(pc, installId.toString(), null, jsonResponse);
+                  return location(pc, installId, null, jsonResponse);
                 } else {
                   return jsonResponse;
                 }
@@ -860,18 +861,19 @@ public class InternalModule {
           + "to specify which version to upgrade to.");
     }
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
-    UUID installId = UUID.randomUUID();
-    return tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, null)
+    String installId = UUID.randomUUID().toString();
+    return kubernetesManager.refresh()
+        .compose(x -> tenantManager.installUpgradeCreate(tenantId, installId, pc, options, null)
         .map(res -> {
           String jsonResponse = Json.encodePrettily(res);
           if (options.getAsync()) {
             // using same location as install
             String baseUri = pc.getCtx().request().uri().replace("/upgrade", "/install");
-            return location(pc, installId.toString(), baseUri, jsonResponse);
+            return location(pc, installId, baseUri, jsonResponse);
           } else {
             return jsonResponse;
           }
-        });
+        }));
   }
 
   private Future<String> upgradeModuleForTenant(ProxyContext pc, String tenantId,
