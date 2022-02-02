@@ -188,6 +188,8 @@ public class KubernetesManager {
 
   void refreshLoop(Vertx vertx) {
     vertx.setTimer(refreshInterval, y -> {
+      // only need to refresh in one instance in the cluster - as that information is
+      // shared with Hazelcast anyway.
       Future<Void> f = discoveryManager.isLeader() ? refresh() : Future.succeededFuture();
       f.onComplete(x -> refreshLoop(vertx));
     });
