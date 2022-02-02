@@ -18,6 +18,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.folio.okapi.ConfNames.*;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(VertxExtension.class)
 public class KubernetesManagerTest {
@@ -241,6 +246,32 @@ public class KubernetesManagerTest {
           assertThat(kubernetesManager.namespace).isEqualTo("folio-1");
           context.completeNow();
         }));
+  }
+
+  @Test
+  void testRefreshLoopLeaderFalse(Vertx vertx, VertxTestContext context) {
+    JsonObject config = new JsonObject().put(KUBE_REFRESH_INTERVAL, 1);
+    DiscoveryManager dd = mock(DiscoveryManager.class, RETURNS_DEEP_STUBS);
+    when(dd.isLeader()).thenReturn(false);
+    KubernetesManager kubernetesManager = new KubernetesManager(dd, config);
+    kubernetesManager.refreshLoop(vertx);
+    vertx.setTimer(10, x -> {
+      verify(dd, atLeastOnce());
+      context.completeNow();
+    });
+  }
+
+  @Test
+  void testRefreshLoopLeaderTrue(Vertx vertx, VertxTestContext context) {
+    JsonObject config = new JsonObject().put(KUBE_REFRESH_INTERVAL, 1);
+    DiscoveryManager dd = mock(DiscoveryManager.class, RETURNS_DEEP_STUBS);
+    when(dd.isLeader()).thenReturn(true);
+    KubernetesManager kubernetesManager = new KubernetesManager(dd, config);
+    kubernetesManager.refreshLoop(vertx);
+    vertx.setTimer(10, x -> {
+      verify(dd, atLeastOnce());
+      context.completeNow();
+    });
   }
 
   @Test

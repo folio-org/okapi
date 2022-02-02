@@ -186,7 +186,7 @@ public class KubernetesManager {
         .send().map(res -> parseItems(res.bodyAsJsonObject()));
   }
 
-  private void refreshLoop(Vertx vertx) {
+  void refreshLoop(Vertx vertx) {
     vertx.setTimer(refreshInterval, y -> {
       Future<Void> f = discoveryManager.isLeader() ? refresh() : Future.succeededFuture();
       f.onComplete(x -> refreshLoop(vertx));
