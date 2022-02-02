@@ -1,11 +1,5 @@
 package org.folio.okapi.managers;
 
-import static org.folio.okapi.ConfNames.KUBE_CONFIG;
-import static org.folio.okapi.ConfNames.KUBE_NAMESPACE;
-import static org.folio.okapi.ConfNames.KUBE_REFRESH_INTERVAL;
-import static org.folio.okapi.ConfNames.KUBE_SERVER;
-import static org.folio.okapi.ConfNames.KUBE_TOKEN;
-
 import io.vertx.config.yaml.YamlProcessor;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -22,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.ConfNames;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ModuleId;
@@ -38,6 +33,7 @@ public class KubernetesManager {
   String server;
   final String namespace;
   WebClient webClient;
+  final WebClientOptions webClientOptions;
   final DiscoveryManager discoveryManager;
 
   /**
@@ -46,11 +42,13 @@ public class KubernetesManager {
    */
   public KubernetesManager(DiscoveryManager discoveryManager, JsonObject config) {
     this.discoveryManager = discoveryManager;
-    refreshInterval = Config.getSysConfInteger(KUBE_REFRESH_INTERVAL, 30000, config);
-    fname = Config.getSysConf(KUBE_CONFIG, null, config);
-    token = Config.getSysConf(KUBE_TOKEN, null, config);
-    server = Config.getSysConf(KUBE_SERVER, null, config);
-    namespace = Config.getSysConf(KUBE_NAMESPACE, "default", config);
+    refreshInterval = Config.getSysConfInteger(ConfNames.KUBE_REFRESH_INTERVAL, 30000, config);
+    fname = Config.getSysConf(ConfNames.KUBE_CONFIG, null, config);
+    token = Config.getSysConf(ConfNames.KUBE_TOKEN, null, config);
+    server = Config.getSysConf(ConfNames.KUBE_SERVER, null, config);
+    namespace = Config.getSysConf(ConfNames.KUBE_NAMESPACE, "default", config);
+    webClientOptions = new WebClientOptions()
+        .setTrustAll(Config.getSysConfBoolean(ConfNames.HTTP_CLIENT_TRUST_ALL, false, config));
   }
 
   JsonObject findNameInJsonArray(JsonObject o, String arName, String name) {
@@ -91,11 +89,7 @@ public class KubernetesManager {
    * @return future result.
    */
   public Future<Void> init(Vertx vertx) {
-    WebClientOptions webClientOptions = new WebClientOptions()
-        .setVerifyHost(false)
-        .setTrustAll(true);
     webClient = WebClient.create(vertx, webClientOptions);
-
     return readKubeConfig(vertx, fname).compose(x -> {
       if (server == null) {
         return Future.succeededFuture();
@@ -103,6 +97,20 @@ public class KubernetesManager {
       logger.info("Enable Kubernetes config server {} namespace {}", server, namespace);
       return refresh().onComplete(y -> refreshLoop(vertx));
     });
+  }
+
+  static JsonObject getFirstPort(JsonArray ports) {
+    if (ports == null) {
+      return null;
+    }
+    for (int i = 0; i < ports.size(); i++) {
+      JsonObject port = ports.getJsonObject(i);
+      String portName = port.getString("name");
+      if ("http".equals(portName) || "https".equals(portName)) {
+        return port; // pick first http/https port
+      }
+    }
+    return null;
   }
 
   static List<DeploymentDescriptor> parseEndpoint(JsonObject item) {
@@ -128,28 +136,19 @@ public class KubernetesManager {
       }
       for (int k = 0; k < subsets.size(); k++) {
         JsonObject subset = subsets.getJsonObject(k);
-        JsonArray ports = subset.getJsonArray("ports");
-        if (ports == null || ports.isEmpty()) {
-          return dds;
-        }
-        Integer portNumber = null;
-        for (int i = 0; i < ports.size(); i++) {
-          JsonObject port = ports.getJsonObject(i);
-          if ("http".equals(port.getString("name"))) {
-            portNumber = port.getInteger("port");
-            break; // pick first http port
-          }
-        }
-        if (portNumber == null) {
+        JsonObject port = getFirstPort(subset.getJsonArray("ports"));
+        if (port == null) {
           continue;
         }
+        Integer portNumber = port.getInteger("port");
+        String transport = port.getString("name");
         JsonArray addresses = subset.getJsonArray("addresses");
         for (int i = 0; i < addresses.size(); i++) {
           JsonObject address = addresses.getJsonObject(i);
           String ip = address.getString("ip");
           DeploymentDescriptor dd = new DeploymentDescriptor();
           dd.setSrvcId(moduleId.toString());
-          dd.setUrl("http://" + ip + ":" + portNumber);
+          dd.setUrl(transport + "://" + ip + ":" + portNumber);
           dd.setInstId(KUBE_INST_PREFIX + ip + ":" + portNumber);
           dds.add(dd);
         }

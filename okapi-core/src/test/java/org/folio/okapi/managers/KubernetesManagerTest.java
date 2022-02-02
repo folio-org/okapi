@@ -307,7 +307,7 @@ public class KubernetesManagerTest {
   }
 
   @Test
-  void testParseServiceHttp() {
+  void testParseServiceHttps() {
     List<DeploymentDescriptor> dds = KubernetesManager.parseEndpoint(new JsonObject()
         .put("apiVersion", "v1")
         .put("kind", "Service")
@@ -341,12 +341,26 @@ public class KubernetesManagerTest {
                     )
                 )
             )
+            .add(new JsonObject()
+                .put("addresses", new JsonArray()
+                    .add(new JsonObject().put("ip", "10.1.2.3"))
+                )
+                .put("ports", new JsonArray()
+                    .add(new JsonObject()
+                        .put("name", "http")
+                        .put("port", 8080)
+                        .put("protocol", "TCP")
+                    )
+                )
+            )
         ));
-    assertThat(dds).hasSize(2);
+    assertThat(dds).hasSize(3);
     assertThat(dds.get(0).getSrvcId()).isEqualTo("mod-users-5.0.0");
-    assertThat(dds.get(0).getUrl()).isEqualTo("http://10.1.2.1:8001");
+    assertThat(dds.get(0).getUrl()).isEqualTo("https://10.1.2.1:443");
     assertThat(dds.get(1).getSrvcId()).isEqualTo("mod-users-5.0.0");
-    assertThat(dds.get(1).getUrl()).isEqualTo("http://10.1.2.2:8001");
+    assertThat(dds.get(1).getUrl()).isEqualTo("https://10.1.2.2:443");
+    assertThat(dds.get(2).getSrvcId()).isEqualTo("mod-users-5.0.0");
+    assertThat(dds.get(2).getUrl()).isEqualTo("http://10.1.2.3:8080");
   }
 
   @Test
