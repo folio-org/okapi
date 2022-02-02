@@ -3076,8 +3076,8 @@ spec:
 ```
 
 
-The first http based port is used. At this stage if there modules that are
-https based, that's unsupported.
+The first http based port is used. At this stage https based modules are
+unsupported.
 
 ### System Interfaces
 
