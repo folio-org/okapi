@@ -121,12 +121,14 @@ public class KubernetesManagerTest {
   @Test
   void testNoConfig(Vertx vertx, VertxTestContext context) {
     KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, new JsonObject());
-    kubernetesManager.init(vertx).onComplete(context.succeeding(res -> {
-      assertThat(kubernetesManager.server).isNull();
-      assertThat(kubernetesManager.token).isNull();
-      assertThat(kubernetesManager.namespace).isEqualTo("default");
-      context.completeNow();
-    }));
+    kubernetesManager.init(vertx)
+        .compose(x -> kubernetesManager.refresh())
+        .onComplete(context.succeeding(res -> {
+          assertThat(kubernetesManager.server).isNull();
+          assertThat(kubernetesManager.token).isNull();
+          assertThat(kubernetesManager.namespace).isEqualTo("default");
+          context.completeNow();
+        }));
   }
 
   @Test
