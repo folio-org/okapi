@@ -53,7 +53,7 @@ public class KubernetesManagerTest {
           discoveryManager = new DiscoveryManager(new DeploymentStoreNull());
           return discoveryManager.init(vertx);
         })
-        .onComplete(context.succeeding(res -> context.completeNow()));
+        .onComplete(context.succeedingThenComplete());
   }
 
   @BeforeEach
@@ -111,7 +111,7 @@ public class KubernetesManagerTest {
                 )
             )
         );
-    discoveryManager.removeAndUndeploy().onComplete(context.succeeding(res -> context.completeNow()));
+    discoveryManager.removeAndUndeploy().onComplete(context.succeedingThenComplete());
   }
 
   @Test
@@ -165,7 +165,7 @@ public class KubernetesManagerTest {
     JsonObject config = new JsonObject();
     config.put(KUBE_CONFIG, "kube-config-no-contexts.yaml");
     KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
-    kubernetesManager.init(vertx).onComplete(context.failing(e -> context.completeNow()));
+    kubernetesManager.init(vertx).onComplete(context.failingThenComplete());
   }
 
   @Test

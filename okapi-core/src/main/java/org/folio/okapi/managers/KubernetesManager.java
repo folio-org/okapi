@@ -4,7 +4,6 @@ import io.vertx.config.yaml.YamlProcessor;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.file.FileSystem;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
@@ -12,9 +11,9 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.ConfNames;
 import org.folio.okapi.bean.DeploymentDescriptor;
@@ -65,22 +64,21 @@ public class KubernetesManager {
     if (fname == null) {
       return Future.succeededFuture();
     }
-    FileSystem fs = vertx.fileSystem();
-    return fs.readFile(fname).compose(content -> {
-      YamlProcessor yamlProcessor = new YamlProcessor();
-      return yamlProcessor.process(vertx, null, content);
-    }).map(conf -> {
-      JsonObject context = findNameInJsonArray(conf, "context", conf.getString("current-context"));
-      if (token == null) {
-        JsonObject user = findNameInJsonArray(conf, "user", context.getString("user"));
-        token = user.getString("token");
-      }
-      if (server == null) {
-        JsonObject cluster = findNameInJsonArray(conf, "cluster", context.getString("cluster"));
-        server = cluster.getString("server");
-      }
-      return null;
-    });
+    return vertx.fileSystem().readFile(fname)
+        .compose(content -> new YamlProcessor().process(vertx, null, content))
+        .map(conf -> {
+          JsonObject context = findNameInJsonArray(conf, "context",
+              conf.getString("current-context"));
+          if (token == null) {
+            JsonObject user = findNameInJsonArray(conf, "user", context.getString("user"));
+            token = user.getString("token");
+          }
+          if (server == null) {
+            JsonObject cluster = findNameInJsonArray(conf, "cluster", context.getString("cluster"));
+            server = cluster.getString("server");
+          }
+          return null;
+        });
   }
 
   /**
@@ -182,7 +180,8 @@ public class KubernetesManager {
     return abs.putHeader("Accept", "application/json")
         .expect(ResponsePredicate.SC_OK)
         .expect(ResponsePredicate.JSON)
-        .send().map(res -> parseItems(res.bodyAsJsonObject()));
+        .send()
+        .map(res -> parseItems(res.bodyAsJsonObject()));
   }
 
   void refreshLoop(Vertx vertx) {
@@ -226,25 +225,20 @@ public class KubernetesManager {
   static void getDiffs(List<DeploymentDescriptor> existing, List<DeploymentDescriptor> incoming,
       List<DeploymentDescriptor> removeList, List<DeploymentDescriptor> addList) {
 
-    Set<String> instances = new HashSet<>();
+    Map<String, DeploymentDescriptor> instances = new HashMap<>(incoming.size());
     for (DeploymentDescriptor dd : incoming) {
       String key = dd.getSrvcId() + "-" + dd.getInstId();
-      instances.add(key);
+      instances.put(key, dd);
     }
     for (DeploymentDescriptor dd : existing) {
       String instId = dd.getInstId();
       if (instId.startsWith(KUBE_INST_PREFIX)) {
         String key = dd.getSrvcId() + "-" + dd.getInstId();
-        if (!instances.remove(key)) {
+        if (instances.remove(key) == null) {
           removeList.add(dd);
         }
       }
     }
-    for (DeploymentDescriptor dd : incoming) {
-      String key = dd.getSrvcId() + "-" + dd.getInstId();
-      if (instances.contains(key)) {
-        addList.add(dd);
-      }
-    }
+    addList.addAll(instances.values());
   }
 }
