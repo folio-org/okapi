@@ -172,6 +172,7 @@ public class KubernetesManagerTest {
   void testConfigOK(Vertx vertx, VertxTestContext context) {
     JsonObject config = new JsonObject();
     config.put(KUBE_CONFIG, "kube-config.yaml");
+    config.put(KUBE_SERVER_PEM, "fake.pem"); // coverage, but the file is apparently not loaded unless https is used
     KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
     kubernetesManager.init(vertx).onComplete(context.failing(res -> {
       assertThat(kubernetesManager.server).isEqualTo(KUBE_FILE_SERVER);
