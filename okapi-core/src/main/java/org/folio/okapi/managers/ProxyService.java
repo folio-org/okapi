@@ -110,7 +110,6 @@ public class ProxyService {
     enableSystemAuth = Config.getSysConfBoolean(ConfNames.ENABLE_SYSTEM_AUTH, true, config);
     enableTraceHeaders = Config.getSysConfBoolean(ConfNames.ENABLE_TRACE_HEADERS, false, config);
     HttpClientOptions opt = new HttpClientOptions();
-    opt.setTrustAll(Config.getSysConfBoolean(ConfNames.HTTP_CLIENT_TRUST_ALL, false, config));
     opt.setMaxPoolSize(1000);
     httpClient = new FuturisedHttpClient(vertx, opt);
 

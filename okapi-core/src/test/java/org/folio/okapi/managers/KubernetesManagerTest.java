@@ -199,7 +199,7 @@ public class KubernetesManagerTest {
   void testConfigOKServerOverride(Vertx vertx, VertxTestContext context) {
     JsonObject config = new JsonObject();
     config.put(KUBE_CONFIG, "kube-config.yaml");
-    config.put(KUBE_SERVER, KUBE_MOCK_SERVER);
+    config.put(KUBE_SERVER_URL, KUBE_MOCK_SERVER);
     config.put(KUBE_NAMESPACE, "folio-1");
     KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
     kubernetesManager.init(vertx).onComplete(context.succeeding(res -> {
@@ -213,7 +213,7 @@ public class KubernetesManagerTest {
   @Test
   void testConfigServer(Vertx vertx, VertxTestContext context) {
     JsonObject config = new JsonObject();
-    config.put(KUBE_SERVER, KUBE_MOCK_SERVER);
+    config.put(KUBE_SERVER_URL, KUBE_MOCK_SERVER);
     KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
     kubernetesManager.init(vertx).onComplete(context.failing(res -> {
       assertThat(kubernetesManager.token).isNull();
@@ -225,7 +225,7 @@ public class KubernetesManagerTest {
   @Test
   void testConfigTokenServer(Vertx vertx, VertxTestContext context) {
     JsonObject config = new JsonObject();
-    config.put(KUBE_SERVER, KUBE_MOCK_SERVER);
+    config.put(KUBE_SERVER_URL, KUBE_MOCK_SERVER);
     config.put(KUBE_TOKEN, "1234");
     config.put(KUBE_NAMESPACE, "folio-1");
     KubernetesManager kubernetesManager = new KubernetesManager(discoveryManager, config);
@@ -466,7 +466,7 @@ public class KubernetesManagerTest {
   @Test
   void testParseServices() {
     JsonObject config = new JsonObject();
-    config.put(KUBE_SERVER, KUBE_MOCK_SERVER);
+    config.put(KUBE_SERVER_URL, KUBE_MOCK_SERVER);
     config.put(KUBE_TOKEN, "1234");
     config.put(KUBE_NAMESPACE, "folio-1");
     List<DeploymentDescriptor> dds = KubernetesManager.parseItems(mockEndpointsResponse);

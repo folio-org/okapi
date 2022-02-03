@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.PemTrustOptions;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -44,10 +45,13 @@ public class KubernetesManager {
     refreshInterval = Config.getSysConfInteger(ConfNames.KUBE_REFRESH_INTERVAL, 30000, config);
     fname = Config.getSysConf(ConfNames.KUBE_CONFIG, null, config);
     token = Config.getSysConf(ConfNames.KUBE_TOKEN, null, config);
-    server = Config.getSysConf(ConfNames.KUBE_SERVER, null, config);
+    server = Config.getSysConf(ConfNames.KUBE_SERVER_URL, null, config);
     namespace = Config.getSysConf(ConfNames.KUBE_NAMESPACE, "default", config);
-    webClientOptions = new WebClientOptions()
-        .setTrustAll(Config.getSysConfBoolean(ConfNames.HTTP_CLIENT_TRUST_ALL, false, config));
+    webClientOptions = new WebClientOptions();
+    String kubeServerPem = Config.getSysConf(ConfNames.KUBE_SERVER_PEM, null, config);
+    if (kubeServerPem != null) {
+      webClientOptions.setPemTrustOptions(new PemTrustOptions().addCertPath(kubeServerPem));
+    }
   }
 
   JsonObject findNameInJsonArray(JsonObject o, String arName, String name) {

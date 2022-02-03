@@ -2853,17 +2853,15 @@ before 4.10.0.
 * `enable_system_auth`: Controls whether Okapi checks token by calling Auth module
 when invoking system interfaces such as `_tenant`.
 The value is a boolean - `true` for enable, `false` for disable.  Default is `true`.
-* `http_client_trust_all`: whether HTTP client should trust SSL connections (no checks).
-Default value is `false`. This flag is passed
-to [HttpClientOptions](https://vertx.io/docs/apidocs/io/vertx/core/net/ClientOptionsBase.html#setTrustAll-boolean-).
 * `kube_config`: Filename/resource which is the Kubernetes configuration
 to use for Kubernetes integration. If defined, Okapi will perform
 service discovery using Kubernetes.
 See [kubernetes](#kubernetes-integration) section.
-* `kube_server`: Kubernetes API server URL. If defined, Okapi will perform
+* `kube_server_url`: Kubernetes API server URL. If defined, Okapi will perform
 service discovery using Kubernetes.
 see [kubernetes](#kubernetes-integration) section.
-* `kube_token`: Kubenetes API token. If unset, no Autorization will be provided.
+* `kube_server_pem`: PEM file representing server certificate for Kube API server.
+* `kube_token`: Kubernetes API token. If unset, no Autorization will be provided.
 * `kube_namespace`: Kubernetes namespace to use. If omitted, `default` is used.
 * `kube_refresh_interval`: Time in milliseconds between Kubernetes endpoints
 poll. Default is 30000 (30 seconds).
@@ -3037,11 +3035,11 @@ Since version 4.13.0 Okapi has support for service discovery with Kubernetes.
 
 The Kubernetes service discovery is enabled as soon as a Kubernetes server is
 specified. This can be given implicitly by a reference to a Kubernetes config
-file with option `kube_config` or as config option `kube_server`.
+file with option `kube_config` or as config option `kube_server_url`.
 
-Note: in cases where there's no certificate for a HTTPS based
-Kubernetes API, then for Okapi to trust the server, configuration
-`http_client_trust_all` must be set to `true`.
+In some cases, it's necessary to specify server cerficate for the Kubernetes
+API server. This is done by `kube_server_pem`. With microk8s
+that's `/var/snap/microk8s/current/certs/server.crt`.
 
 Okapi uses the Kubernetes service API to get information about endpoints
 of modules. These endpoints will be populated to Okapi discovery sub-system
