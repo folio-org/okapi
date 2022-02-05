@@ -2861,7 +2861,7 @@ See [kubernetes](#kubernetes-integration) section.
 service discovery using Kubernetes.
 see [kubernetes](#kubernetes-integration) section.
 * `kube_server_pem`: PEM file representing server certificate for Kube API server.
-* `kube_token`: Kubernetes API token. If unset, no Autorization will be provided.
+* `kube_token`: Kubernetes API token. If unset, no Authorization will be provided.
 * `kube_namespace`: Kubernetes namespace to use. If omitted, `default` is used.
 * `kube_refresh_interval`: Time in milliseconds between Kubernetes endpoints
 poll. Default is 30000 (30 seconds).
