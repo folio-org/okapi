@@ -49,6 +49,7 @@ managing and running microservices.
     * [Internal Module](#internal-module)
     * [Deployment](#deployment)
     * [Docker](#docker)
+    * [Kubernetes integration](#kubernetes-integration)
     * [System Interfaces](#system-interfaces)
     * [Timer management](#timer-management)
     * [Instrumentation](#instrumentation)
@@ -2852,6 +2853,18 @@ before 4.10.0.
 * `enable_system_auth`: Controls whether Okapi checks token by calling Auth module
 when invoking system interfaces such as `_tenant`.
 The value is a boolean - `true` for enable, `false` for disable.  Default is `true`.
+* `kube_config`: Filename/resource which is the Kubernetes configuration
+to use for Kubernetes integration. If defined, Okapi will perform
+service discovery using Kubernetes.
+See [kubernetes](#kubernetes-integration) section.
+* `kube_server_url`: Kubernetes API server URL. If defined, Okapi will perform
+service discovery using Kubernetes.
+see [kubernetes](#kubernetes-integration) section.
+* `kube_server_pem`: PEM file representing server certificate for Kube API server.
+* `kube_token`: Kubernetes API token. If unset, no Authorization will be provided.
+* `kube_namespace`: Kubernetes namespace to use. If omitted, `default` is used.
+* `kube_refresh_interval`: Time in milliseconds between Kubernetes endpoints
+poll. Default is 30000 (30 seconds).
 
 #### Command
 
@@ -3014,6 +3027,63 @@ vi /lib/systemd/system/docker.service
 systemctl daemon-reload
 systemctl restart docker
 ```
+
+
+### Kubernetes integration
+
+Since version 4.13.0 Okapi has support for service discovery with Kubernetes.
+
+The Kubernetes service discovery is enabled as soon as a Kubernetes server is
+specified. This can be given implicitly by a reference to a Kubernetes config
+file with option `kube_config` or as config option `kube_server_url`.
+
+In some cases, it's necessary to specify server cerficate for the Kubernetes
+API server. This is done by `kube_server_pem`. With microk8s
+that's `/var/snap/microk8s/current/certs/server.crt`.
+
+Okapi uses the Kubernetes service API to get information about endpoints
+of modules. These endpoints will be populated to Okapi discovery sub-system
+in a "refresh" operation. The refresh operation removes and adds relevant
+services. The Kubernetes discovered services have instId `kube_` prefix, so
+that services otherwise manually added to the Okapi are preserved by the
+refresh operation.
+
+The refresh operation happens periodically and at certain important stages,
+such as before an install operation takes place and when Okapi starts.
+
+Only services
+with [labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/)
+`app.kubernetes.io/name` and `app.kubernetes.io/version` are considered.
+Other entries are ignored.  Okapi may discover services that are not
+Okapi modules with this strategy. In principle Okapi discovery
+could be populated with non-Okapi modules with this way, but they will
+never be used for anything as no tenant would be enabled for a non-existing
+module.
+
+Example of service that would be considered by Okapi:
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: mod-users
+  labels:
+    run: mod-users
+    app.kubernetes.io/name: mod-users
+    app.kubernetes.io/version: 18.1.0
+spec:
+  ports:
+    - name: http
+      port: 8081
+      protocol: TCP
+  selector:
+    app: mod-users
+```
+
+
+The first port with name `http`/`https` is used in discovery. Remaining
+ports are not considered, the assumption being that the module
+is listening on other ports for other "non-API" services.
 
 ### System Interfaces
 
