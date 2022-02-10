@@ -386,7 +386,7 @@ public class TenantManager implements Liveness {
       return Future.succeededFuture();
     }
     long startTime = System.nanoTime();
-    logger.info("Starting activation of module {} for tenant {}", md.getId(), tenant.getId());
+    logger.info("Starting activation of module '{}' for tenant '{}'", md.getId(), tenant.getId());
     return getTenantInstanceForModule(md, mdFrom, mdTo, jo, tenantParameters, purge)
         .compose(instances -> {
           if (instances.isEmpty()) {
@@ -425,10 +425,10 @@ public class TenantManager implements Liveness {
               });
         })
         .onSuccess(res -> logger.info(
-            "Activation of module {} for tenant {} completed successfully in {} seconds",
+            "Activation of module '{}' for tenant '{}' completed successfully in {} seconds",
             md.getId(), tenant.getId(), (System.nanoTime() - startTime) / 1000000000L))
         .onFailure(e -> logger.warn(
-            "Activation of module {} for tenant {} failed: {}", md.getId(), tenant.getId(),
+            "Activation of module '{}' for tenant '{}' failed: {}", md.getId(), tenant.getId(),
             e.getMessage()));
   }
 
