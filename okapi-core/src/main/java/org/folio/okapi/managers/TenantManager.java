@@ -10,6 +10,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -958,18 +959,20 @@ public class TenantManager implements Liveness {
       Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     List<TenantModuleDescriptor> tml = job.getModules();
+    Map<String, ModuleDescriptor> modsStart = new HashMap<>(modsEnabled);
     DepResolution.install(modsAvailable, modsEnabled, tml, options.getReinstall());
     if (options.getSimulate()) {
       return Future.succeededFuture(tml);
     }
     return jobs.add(t.getId(), job.getId(), job)
-        .compose(res2 -> runJob(t, pc, options, tml, modsAvailable, job));
+        .compose(res2 -> runJob(t, pc, options, tml, modsAvailable, modsEnabled, modsStart, job));
   }
 
   private Future<List<TenantModuleDescriptor>> runJob(
       Tenant t, ProxyContext pc, TenantInstallOptions options,
-      List<TenantModuleDescriptor> tml,
-      Map<String, ModuleDescriptor> modsAvailable, InstallJob job) {
+      List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, Map<String, ModuleDescriptor> modsStart,
+      InstallJob job) {
 
     Promise<List<TenantModuleDescriptor>> promise = Promise.promise();
     Future<Void> future = Future.succeededFuture();
@@ -989,7 +992,8 @@ public class TenantManager implements Liveness {
     if (options.getDeploy()) {
       future = future.compose(x -> autoDeploy(t, job, modsAvailable, tml));
     }
-    future = future.compose(x -> jobInvokeSequental(t, pc, options, tml, modsAvailable, job));
+    future = future.compose(x ->
+        jobInvokeParallel(t, pc, options, tml, modsAvailable, modsEnabled, modsStart, job));
     // if we are really upgrading permissions do a refresh last
     for (TenantModuleDescriptor tm : tml) {
       if (tm.getAction() == Action.enable && tm.getFrom() != null) {
@@ -1029,6 +1033,69 @@ public class TenantManager implements Liveness {
       promise.complete(tml2);
     });
     return promise.future();
+  }
+
+  private boolean depsOK(TenantModuleDescriptor tm, Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsCurrent, Set<String> allProvided) {
+
+    ModuleDescriptor md = modsAvailable.get(tm.getId());
+    if (tm.getAction().equals(Action.disable)) {
+      modsCurrent.remove(tm.getId());
+      return true;
+    }
+    if (DepResolution.moduleDepProvided(modsCurrent.values(), allProvided, md)) {
+      modsCurrent.put(md.getId(), md);
+      if (tm.getFrom() != null) {
+        modsCurrent.remove(tm.getFrom());
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private void jobRunPending(Tenant t, ProxyContext pc, TenantInstallOptions options,
+      List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, Map<String, ModuleDescriptor> modsCurrent,
+      Set<String> allProvided, InstallJob job, Promise<Void> promise) {
+
+    boolean more = true;
+    while (more) {
+      more = false;
+      for (TenantModuleDescriptor tm : tml) {
+        if ((tm.getStage().equals(TenantModuleDescriptor.Stage.pending)
+            || tm.getStage().equals(TenantModuleDescriptor.Stage.deploy))
+            && depsOK(tm, modsAvailable, modsCurrent, allProvided)) {
+          more = true;
+          jobInvokeSingle(t, pc, options, tm, modsAvailable, job)
+              .onFailure(x -> promise.tryFail(x))
+              .onSuccess(x -> jobRunPending(t, pc, options, tml, modsAvailable, modsEnabled,
+                  modsCurrent, allProvided, job, promise));
+        }
+      }
+    }
+    for (TenantModuleDescriptor tm : tml) {
+      if (!tm.getStage().equals(TenantModuleDescriptor.Stage.done) && tm.getMessage() == null) {
+        return;
+      }
+    }
+    promise.tryComplete();
+  }
+
+  private Future<Void> jobInvokeParallel(Tenant t, ProxyContext pc, TenantInstallOptions options,
+      List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, Map<String, ModuleDescriptor> modsStart,
+      InstallJob job) {
+
+    Set<String> allProvided = new HashSet<>();
+    for (ModuleDescriptor md1 : modsEnabled.values()) {
+      for (InterfaceDescriptor descriptor : md1.getProvidesList()) {
+        if (descriptor.isRegularHandler()) {
+          allProvided.add(descriptor.getId());
+        }
+      }
+    }
+    return Future.future(f -> jobRunPending(t, pc, options, tml, modsAvailable, modsEnabled,
+        modsStart, allProvided, job, f));
   }
 
   private Future<Void> jobInvokeSequental(Tenant t, ProxyContext pc, TenantInstallOptions options,

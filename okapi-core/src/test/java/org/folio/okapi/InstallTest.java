@@ -988,7 +988,7 @@ public class InstallTest {
             .add(new JsonObject()
                 .put("id", "other-module-1.0.0")
                 .put("action", "enable")
-                .put("stage", "pending")
+                .put("stage", "invoke") // was: pending
             )
         );
     context.assertEquals(jobExpected, job);

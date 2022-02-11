@@ -137,8 +137,8 @@ public final class DepResolution {
    * @param md          module to check.
    * @return            true if interface requirements are met
    */
-  static boolean moduleDepProvided(
-      List<ModuleDescriptor> modules, Set<String> allProvided,
+  public static boolean moduleDepProvided(
+      Collection<ModuleDescriptor> modules, Set<String> allProvided,
       ModuleDescriptor md) {
 
     for (InterfaceDescriptor req : md.getRequiresOptionalList()) {
@@ -147,7 +147,7 @@ public final class DepResolution {
         for (ModuleDescriptor md1 : modules) {
           InterfaceDescriptor[] providesList = md1.getProvidesList();
           for (InterfaceDescriptor prov : providesList) {
-            if (prov.isRegularHandler() && prov.getId().equals(req.getId())) {
+            if (prov.isRegularHandler() && prov.isCompatible(req)) {
               found = true;
             }
           }
@@ -335,6 +335,11 @@ public final class DepResolution {
         added.add(md.getId());
       }
     }
+    logger.info("Topo sort before {}", () ->
+        sortedList.stream()
+            .map(ModuleDescriptor::getId)
+            .collect(Collectors.joining(", ")));
+
     topoSort(sortedList);
     // we now have a list where things mentioned in the install comes first.. Thus, if
     // for cases where there are different orders satisfying dependencies, the order in the
