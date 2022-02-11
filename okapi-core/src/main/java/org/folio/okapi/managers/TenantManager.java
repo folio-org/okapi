@@ -427,7 +427,7 @@ public class TenantManager implements Liveness {
         })
         .onSuccess(res -> logger.info(
             "Activation of module '{}' for tenant '{}' completed successfully in {} seconds",
-            md.getId(), tenant.getId(), (System.nanoTime() - startTime) / 1000L))
+            md.getId(), tenant.getId(), (System.currentTimeMillis() - startTime) / 1000L))
         .onFailure(e -> logger.warn(
             "Activation of module '{}' for tenant '{}' failed: {}", md.getId(), tenant.getId(),
             e.getMessage()));
