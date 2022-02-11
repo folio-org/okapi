@@ -989,26 +989,7 @@ public class TenantManager implements Liveness {
     if (options.getDeploy()) {
       future = future.compose(x -> autoDeploy(t, job, modsAvailable, tml));
     }
-    for (TenantModuleDescriptor tm : tml) {
-      future = future.compose(x -> {
-        tm.setStage(TenantModuleDescriptor.Stage.invoke);
-        return jobs.put(t.getId(), job.getId(), job);
-      });
-      future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
-      if (options.getIgnoreErrors()) {
-        future = future.otherwise(e -> {
-          logger.warn("Ignoring error for tenant {} module {}", t.getId(), tm.getId(), e);
-          return null;
-        });
-      }
-      future = future.compose(x -> {
-        if (tm.getMessage() != null) {
-          return Future.succeededFuture();
-        }
-        tm.setStage(TenantModuleDescriptor.Stage.done);
-        return jobs.put(t.getId(), job.getId(), job);
-      });
-    }
+    future = future.compose(x -> jobInvokeSequental(t, pc, options, tml, modsAvailable, job));
     // if we are really upgrading permissions do a refresh last
     for (TenantModuleDescriptor tm : tml) {
       if (tm.getAction() == Action.enable && tm.getFrom() != null) {
@@ -1048,6 +1029,38 @@ public class TenantManager implements Liveness {
       promise.complete(tml2);
     });
     return promise.future();
+  }
+
+  private Future<Void> jobInvokeSequental(Tenant t, ProxyContext pc, TenantInstallOptions options,
+      List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
+      InstallJob job) {
+
+    Future<Void> future = Future.succeededFuture();
+    for (TenantModuleDescriptor tm : tml) {
+      future = future.compose(x -> jobInvokeSingle(t, pc, options, tm, modsAvailable, job));
+    }
+    return future;
+  }
+
+  private Future<Void> jobInvokeSingle(Tenant t, ProxyContext pc, TenantInstallOptions options,
+      TenantModuleDescriptor tm, Map<String, ModuleDescriptor> modsAvailable, InstallJob job) {
+
+    tm.setStage(TenantModuleDescriptor.Stage.invoke);
+    Future<Void> future = jobs.put(t.getId(), job.getId(), job);
+    future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
+    if (options.getIgnoreErrors()) {
+      future = future.otherwise(e -> {
+        logger.warn("Ignoring error for tenant {} module {}", t.getId(), tm.getId(), e);
+        return null;
+      });
+    }
+    return future.compose(x -> {
+      if (tm.getMessage() != null) {
+        return Future.succeededFuture();
+      }
+      tm.setStage(TenantModuleDescriptor.Stage.done);
+      return jobs.put(t.getId(), job.getId(), job);
+    });
   }
 
   private Future<Void> autoDeploy(Tenant tenant, InstallJob job, Map<String,
