@@ -1055,8 +1055,8 @@ public class TenantManager implements Liveness {
 
   private void jobRunPending(Tenant t, ProxyContext pc, TenantInstallOptions options,
       List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
-      Map<String, ModuleDescriptor> modsEnabled, Map<String, ModuleDescriptor> modsCurrent,
-      Set<String> allProvided, InstallJob job, Promise<Void> promise) {
+      Map<String, ModuleDescriptor> modsCurrent, Set<String> allProvided, InstallJob job,
+      Promise<Void> promise) {
 
     boolean more = true;
     while (more) {
@@ -1068,7 +1068,7 @@ public class TenantManager implements Liveness {
           more = true;
           jobInvokeSingle(t, pc, options, tm, modsAvailable, job)
               .onFailure(x -> promise.tryFail(x))
-              .onSuccess(x -> jobRunPending(t, pc, options, tml, modsAvailable, modsEnabled,
+              .onSuccess(x -> jobRunPending(t, pc, options, tml, modsAvailable,
                   modsCurrent, allProvided, job, promise));
         }
       }
@@ -1094,7 +1094,7 @@ public class TenantManager implements Liveness {
         }
       }
     }
-    return Future.future(f -> jobRunPending(t, pc, options, tml, modsAvailable, modsEnabled,
+    return Future.future(f -> jobRunPending(t, pc, options, tml, modsAvailable,
         modsStart, allProvided, job, f));
   }
 
