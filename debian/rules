@@ -65,7 +65,8 @@ install-stamp: build
 	$(INSTALLDIR)  $(OKAPIROOT)/etc/default
 	$(INSTALLFILE) dist/okapi.conf $(OKAPICONF)/
 	$(INSTALLFILE) dist/hazelcast.xml $(OKAPICONF)/
-	$(INSTALLFILE) dist/log4j2.properties $(OKAPICONF)/
+	$(INSTALLFILE) okapi-core/src/main/resources/log4j2.properties $(OKAPICONF)/
+	$(INSTALLFILE) okapi-core/src/main/resources/log4j2-json.properties $(OKAPICONF)/
 	$(INSTALLFILE) dist/okapi.env $(OKAPIROOT)/etc/default/okapi
 	$(INSTALLFILE) debian/okapi.service $(OKAPISYSD)/
 
