@@ -1040,13 +1040,13 @@ public class TenantManager implements Liveness {
   }
 
   private boolean depsOK(TenantModuleDescriptor tm, Map<String, ModuleDescriptor> modsAvailable,
-      Map<String, ModuleDescriptor> modsCurrent, Set<String> allProvided) {
+      Collection<ModuleDescriptor> modules, Set<String> allProvided) {
 
     ModuleDescriptor md = modsAvailable.get(tm.getId());
     if (tm.getAction().equals(Action.disable)) {
       return true;
     }
-    if (DepResolution.moduleDepProvided(modsCurrent.values(), allProvided, md)) {
+    if (DepResolution.moduleDepProvided(modules, allProvided, md)) {
       return true;
     }
     return false;
@@ -1056,36 +1056,27 @@ public class TenantManager implements Liveness {
       List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
       Set<String> allProvided, InstallJob job, Promise<Void> promise) {
 
-    tenants.getNotFound(t.getId())
-        .onFailure(promise::fail)
-        .onSuccess(tenant1 -> {
-          Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
-          for (String id : tenant1.getEnabled().keySet()) {
-            modsEnabled.put(id, modsAvailable.get(id));
-          }
-          boolean more = true;
-          while (more) {
-            more = false;
-            for (TenantModuleDescriptor tm : tml) {
-              if ((tm.getStage().equals(TenantModuleDescriptor.Stage.pending)
-                  || tm.getStage().equals(TenantModuleDescriptor.Stage.deploy))
-                  && depsOK(tm, modsAvailable, modsEnabled, allProvided)) {
-                more = true;
-                jobInvokeSingle(t, pc, options, tm, modsAvailable, job)
-                    .onFailure(x -> promise.tryFail(x))
-                    .onSuccess(x -> jobRunPending(t, pc, options, tml, modsAvailable, allProvided,
-                        job, promise));
-              }
-            }
-          }
-          for (TenantModuleDescriptor tm : tml) {
-            if (!tm.getStage().equals(TenantModuleDescriptor.Stage.done)
-                && tm.getMessage() == null) {
-              return;
-            }
-          }
-          promise.tryComplete();
-        });
+    boolean more = true;
+    while (more) {
+      more = false;
+      for (TenantModuleDescriptor tm : tml) {
+        if ((tm.getStage().equals(TenantModuleDescriptor.Stage.pending)
+            || tm.getStage().equals(TenantModuleDescriptor.Stage.deploy))
+            && depsOK(tm, modsAvailable, getEnabledModules(t), allProvided)) {
+          more = true;
+          jobInvokeSingle(t, pc, options, tm, modsAvailable, job)
+              .onFailure(x -> promise.tryFail(x))
+              .onSuccess(x -> jobRunPending(t, pc, options, tml, modsAvailable,
+                  allProvided, job, promise));
+        }
+      }
+    }
+    for (TenantModuleDescriptor tm : tml) {
+      if (!tm.getStage().equals(TenantModuleDescriptor.Stage.done) && tm.getMessage() == null) {
+        return;
+      }
+    }
+    promise.tryComplete();
   }
 
   private Future<Void> jobInvokeParallel(Tenant t, ProxyContext pc, TenantInstallOptions options,
