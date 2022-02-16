@@ -15,7 +15,6 @@ OKAPISYSD = $(OKAPIROOT)/lib/systemd/system
 
 # okapi fat jars
 OKAPICORE   = $(CURDIR)/okapi-core/target/okapi-core-fat.jar
-OKAPICOMMON = $(CURDIR)/okapi-common/target/okapi-common-fat.jar
 OKAPIAUTH   = $(CURDIR)/okapi-test-auth-module/target/okapi-test-auth-module-fat.jar
 OKAPITEST   = $(CURDIR)/okapi-test-module/target/okapi-test-module-fat.jar
 OKAPIHEADER = $(CURDIR)/okapi-test-header-module/target/okapi-test-header-module-fat.jar
@@ -53,7 +52,6 @@ install-stamp: build
 	$(INSTALLDIR) $(OKAPIHOME)/lib
 	$(INSTALLDIR) $(OKAPIHOME)/bin
 	$(INSTALLFILE)  $(OKAPICORE) $(OKAPIHOME)/lib/
-	$(INSTALLFILE)  $(OKAPICOMMON) $(OKAPIHOME)/lib/
 	$(INSTALLFILE)  $(OKAPIAUTH) $(OKAPIHOME)/lib/
 	$(INSTALLFILE)  $(OKAPITEST) $(OKAPIHOME)/lib/
 	$(INSTALLFILE) $(OKAPIHEADER) $(OKAPIHOME)/lib/
