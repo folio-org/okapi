@@ -1093,17 +1093,6 @@ public class TenantManager implements Liveness {
         allProvided, job, f));
   }
 
-  private Future<Void> jobInvokeSequental(Tenant t, ProxyContext pc, TenantInstallOptions options,
-      List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
-      InstallJob job) {
-
-    Future<Void> future = Future.succeededFuture();
-    for (TenantModuleDescriptor tm : tml) {
-      future = future.compose(x -> jobInvokeSingle(t, pc, options, tm, modsAvailable, job));
-    }
-    return future;
-  }
-
   private Future<Void> jobInvokeSingle(Tenant t, ProxyContext pc, TenantInstallOptions options,
       TenantModuleDescriptor tm, Map<String, ModuleDescriptor> modsAvailable, InstallJob job) {
 
