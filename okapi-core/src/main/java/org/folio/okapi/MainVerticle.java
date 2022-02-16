@@ -32,6 +32,7 @@ import org.folio.okapi.managers.DiscoveryManager;
 import org.folio.okapi.managers.EnvManager;
 import org.folio.okapi.managers.HealthManager;
 import org.folio.okapi.managers.InternalModule;
+import org.folio.okapi.managers.KubernetesManager;
 import org.folio.okapi.managers.ModuleManager;
 import org.folio.okapi.managers.ProxyService;
 import org.folio.okapi.managers.PullManager;
@@ -62,6 +63,7 @@ public class MainVerticle extends AbstractVerticle {
   private DiscoveryManager discoveryManager;
   private ClusterManager clusterManager;
   private HealthManager healthManager;
+  private KubernetesManager kubernetesManager;
   private Storage storage;
   private Storage.InitMode initMode = InitMode.NORMAL;
   private int port;
@@ -79,7 +81,6 @@ public class MainVerticle extends AbstractVerticle {
     ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-core");
     okapiVersion = m.getVersion();
     m.logStart();
-
 
     boolean enableDeployment = false;
 
@@ -141,6 +142,7 @@ public class MainVerticle extends AbstractVerticle {
     if (clusterManager != null) {
       discoveryManager.setClusterManager(clusterManager);
     }
+    kubernetesManager = new KubernetesManager(discoveryManager, config);
     if (enableDeployment) {
       deploymentManager = new DeploymentManager(vertx, discoveryManager, envManager,
           host, port, nodeName, config);
@@ -168,7 +170,7 @@ public class MainVerticle extends AbstractVerticle {
       PullManager pullManager = new PullManager(vertx, moduleManager);
       InternalModule internalModule = new InternalModule(moduleManager,
           tenantManager, deploymentManager, discoveryManager,
-          envManager, pullManager, okapiVersion);
+          envManager, pullManager, kubernetesManager, okapiVersion);
       proxyService = new ProxyService(vertx, tenantManager, discoveryManager, internalModule,
           okapiUrl, config);
       tenantManager.setProxyService(proxyService);
@@ -180,7 +182,7 @@ public class MainVerticle extends AbstractVerticle {
       discoveryManager.setModuleManager(moduleManager);
       InternalModule internalModule = new InternalModule(
           null, null, deploymentManager, null,
-          envManager, null, okapiVersion);
+          envManager, null, null, okapiVersion);
       // no modules, tenants, or discovery. Only deployment and env.
       proxyService = new ProxyService(vertx, tenantManager, discoveryManager, internalModule,
           okapiUrl, config);
@@ -213,8 +215,10 @@ public class MainVerticle extends AbstractVerticle {
       fut = fut.compose(x -> startEnv());
       fut = fut.compose(x -> startDiscovery());
       fut = fut.compose(x -> startDeployment());
+      fut = fut.compose(x -> kubernetesManager.init(vertx));
       fut = fut.compose(x -> startListening());
       fut = fut.compose(x -> startRedeploy());
+      fut = fut.compose(x -> tenantManager.prepareModules(okapiVersion));
       fut = fut.compose(x -> startTimers());
       fut = fut.compose(x -> healthManager.init(vertx, Collections.singletonList(tenantManager)));
     }
@@ -345,12 +349,9 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startTimers() {
-    return tenantManager.prepareModules(okapiVersion)
-        .compose(x -> {
-          if (timerManager == null) {
-            return Future.succeededFuture();
-          }
-          return timerManager.init(vertx, tenantManager, discoveryManager, proxyService);
-        });
+    if (timerManager == null) {
+      return Future.succeededFuture();
+    }
+    return timerManager.init(vertx, tenantManager, discoveryManager, proxyService);
   }
 }

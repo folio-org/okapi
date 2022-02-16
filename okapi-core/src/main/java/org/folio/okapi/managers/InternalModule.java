@@ -56,6 +56,7 @@ public class InternalModule {
   private final DeploymentManager deploymentManager;
   private final DiscoveryManager discoveryManager;
   private final EnvManager envManager;
+  private final KubernetesManager kubernetesManager;
   private final PullManager pullManager;
   private final String okapiVersion;
   private static final String INTERFACE_VERSION = "1.9";
@@ -70,17 +71,21 @@ public class InternalModule {
    * @param discoveryManager discovery manager
    * @param envManager event manager
    * @param pullManager pull manager
+   * @param kubernetesManager kubernetes manager
    * @param okapiVersion Okapi version
    */
   public InternalModule(ModuleManager modules, TenantManager tenantManager,
-                        DeploymentManager deploymentManager, DiscoveryManager discoveryManager,
-                        EnvManager envManager, PullManager pullManager, String okapiVersion) {
+      DeploymentManager deploymentManager, DiscoveryManager discoveryManager,
+      EnvManager envManager, PullManager pullManager,
+      KubernetesManager kubernetesManager,
+      String okapiVersion) {
     this.moduleManager = modules;
     this.tenantManager = tenantManager;
     this.deploymentManager = deploymentManager;
     this.discoveryManager = discoveryManager;
     this.envManager = envManager;
     this.pullManager = pullManager;
+    this.kubernetesManager = kubernetesManager;
     this.okapiVersion = okapiVersion;
     logger.info("InternalModule starting okapiversion={}", okapiVersion);
   }
@@ -789,11 +794,12 @@ public class InternalModule {
 
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
-      return tenantManager.enableAndDisableModule(tenantId, options, null, td, pc)
+      return kubernetesManager.refresh()
+          .compose(x -> tenantManager.enableAndDisableModule(tenantId, options, null, td, pc)
           .map(eres -> {
             td.setId(eres);
             return location(pc, td.getId(), null, Json.encodePrettily(td));
-          });
+          }));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
@@ -805,7 +811,6 @@ public class InternalModule {
   }
 
   private Future<String> installTenantModulesPost(ProxyContext pc, String tenantId, String body) {
-
     try {
       TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
 
@@ -813,17 +818,18 @@ public class InternalModule {
           TenantModuleDescriptor[].class);
       List<TenantModuleDescriptor> tm = new LinkedList<>();
       Collections.addAll(tm, tml);
-      UUID installId = UUID.randomUUID();
-      return tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, tm)
-          .map(res -> {
-            String jsonResponse = Json.encodePrettily(res);
-            logger.info("installTenantModulesPost returns: {}", jsonResponse);
-            if (options.getAsync()) {
-              return location(pc, installId.toString(), null, jsonResponse);
-            } else {
-              return jsonResponse;
-            }
-          });
+      String installId = UUID.randomUUID().toString();
+      return kubernetesManager.refresh().compose(x ->
+          tenantManager.installUpgradeCreate(tenantId, installId, pc, options, tm)
+              .map(res -> {
+                String jsonResponse = Json.encodePrettily(res);
+                logger.info("installTenantModulesPost returns: {}", jsonResponse);
+                if (options.getAsync()) {
+                  return location(pc, installId, null, jsonResponse);
+                } else {
+                  return jsonResponse;
+                }
+              }));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
@@ -855,18 +861,19 @@ public class InternalModule {
           + "to specify which version to upgrade to.");
     }
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
-    UUID installId = UUID.randomUUID();
-    return tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, null)
+    String installId = UUID.randomUUID().toString();
+    return kubernetesManager.refresh()
+        .compose(x -> tenantManager.installUpgradeCreate(tenantId, installId, pc, options, null)
         .map(res -> {
           String jsonResponse = Json.encodePrettily(res);
           if (options.getAsync()) {
             // using same location as install
             String baseUri = pc.getCtx().request().uri().replace("/upgrade", "/install");
-            return location(pc, installId.toString(), baseUri, jsonResponse);
+            return location(pc, installId, baseUri, jsonResponse);
           } else {
             return jsonResponse;
           }
-        });
+        }));
   }
 
   private Future<String> upgradeModuleForTenant(ProxyContext pc, String tenantId,
@@ -1124,7 +1131,8 @@ public class InternalModule {
   }
 
   private Future<String> listDiscoveryModules() {
-    return discoveryManager.get()
+    return kubernetesManager.refresh()
+        .compose(x -> discoveryManager.get())
         .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
