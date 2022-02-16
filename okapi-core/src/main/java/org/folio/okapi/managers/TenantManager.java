@@ -1046,10 +1046,7 @@ public class TenantManager implements Liveness {
     if (tm.getAction().equals(Action.disable)) {
       return true;
     }
-    if (DepResolution.moduleDepProvided(modules, allProvided, md)) {
-      return true;
-    }
-    return false;
+    return DepResolution.moduleDepProvided(modules, allProvided, md);
   }
 
   private void jobRunPending(Tenant t, ProxyContext pc, TenantInstallOptions options,
