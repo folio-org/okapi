@@ -1608,6 +1608,52 @@ public class InstallTest {
     context.assertEquals(jobExpected, job);
     context.assertTrue(tModule.getEndTime(moda.getString("id")).isBefore(tModule.getStartTime(mid.getString("id"))));
     context.assertTrue(tModule.getEndTime(modb.getString("id")).isBefore(tModule.getStartTime(mid.getString("id"))));
+
+    installOp = new JsonArray()
+        .add(new JsonObject()
+            .put("id", moda.getString("id"))
+            .put("action", "disable")
+        )
+        .add(new JsonObject()
+            .put("id", modb.getString("id"))
+            .put("action", "disable")
+        )
+        .add(new JsonObject()
+            .put("id", mid.getString("id"))
+            .put("action", "disable")
+        );
+    location = given()
+        .header("Content-Type", "application/json")
+        .body(installOp.encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true")
+        .then().statusCode(201)
+        .extract().header("Location");
+    job = pollCompleteStrip(context, location);
+    jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", mid.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", modb.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", moda.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+        );
+    context.assertEquals(jobExpected, job);
+    context.assertTrue(tModule.getEndTime(mid.getString("id")).isBefore(tModule.getStartTime(moda.getString("id"))));
+    context.assertTrue(tModule.getEndTime(mid.getString("id")).isBefore(tModule.getStartTime(modb.getString("id"))));
+
     tModule.stop().onComplete(context.asyncAssertSuccess());
+
+
   }
 }

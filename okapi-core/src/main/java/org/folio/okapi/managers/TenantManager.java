@@ -1044,7 +1044,7 @@ public class TenantManager implements Liveness {
 
     ModuleDescriptor md = modsAvailable.get(tm.getId());
     if (tm.getAction().equals(Action.disable)) {
-      return true;
+      return DepResolution.moduleDepRequired(modules, md);
     }
     return DepResolution.moduleDepProvided(modules, allProvided, md);
   }

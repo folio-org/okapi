@@ -646,6 +646,17 @@ public class DepResolutionTest {
     Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), Set.of("i0", "i1", "i2", "i3"), modC));
     Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA, modB), Set.of("i1", "i2"), modC));
 
+    Assert.assertTrue(DepResolution.moduleDepRequired(Collections.emptyList(), modA));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA), modA));
+    Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB), modA));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB), modB));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modB), modB));
+
+    Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modA));
+    Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD),modB));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modC));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modD));
+
     List<ModuleDescriptor> l = new ArrayList<>(List.of(modC, modA, modB));
     DepResolution.topoSort(l);
     Assert.assertArrayEquals(new ModuleDescriptor[]{modA, modB, modC}, l.toArray());

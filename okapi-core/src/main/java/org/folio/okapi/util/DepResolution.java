@@ -128,7 +128,6 @@ public final class DepResolution {
 
   /**
    * Check if md's required and optional interfaces are provided by set of modules.
-   * The interface version is not checked, only the interface name.
    * Only interfaces listed in allProvided are checked, this allows to exclude some optional
    * interfaces from the check.
    *
@@ -142,18 +141,47 @@ public final class DepResolution {
       ModuleDescriptor md) {
 
     for (InterfaceDescriptor req : md.getRequiresOptionalList()) {
-      if (allProvided.contains(req.getId())) {
-        boolean found = false;
-        for (ModuleDescriptor md1 : modules) {
-          InterfaceDescriptor[] providesList = md1.getProvidesList();
-          for (InterfaceDescriptor prov : providesList) {
-            if (prov.isRegularHandler() && prov.isCompatible(req)) {
-              found = true;
-            }
+      if (!allProvided.contains(req.getId())) {
+        continue;
+      }
+      boolean found = false;
+      for (ModuleDescriptor md1 : modules) {
+        InterfaceDescriptor[] providesList = md1.getProvidesList();
+        for (InterfaceDescriptor prov : providesList) {
+          if (prov.isRegularHandler() && prov.isCompatible(req)) {
+            found = true;
           }
         }
-        if (!found) {
-          return false;
+      }
+      if (!found) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Check if md's provided interfaces are required by any of modules.
+   * Only interfaces listed in allProvided are checked, this allows to exclude some optional
+   * interfaces from the check.
+   *
+   * @param modules     the modules that check against
+   * @param md          module to check.
+   * @return            true if modules do not use any of the provided interfaces; false otherwise
+   */
+  public static boolean moduleDepRequired(Collection<ModuleDescriptor> modules,
+      ModuleDescriptor md) {
+
+    for (InterfaceDescriptor prov : md.getProvidesList()) {
+      if (!prov.isRegularHandler()) {
+        continue;
+      }
+      for (ModuleDescriptor md1 : modules) {
+        List<InterfaceDescriptor> requiresList = md1.getRequiresOptionalList();
+        for (InterfaceDescriptor req : requiresList) {
+          if (prov.isCompatible(req)) {
+            return false;
+          }
         }
       }
     }
