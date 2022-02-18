@@ -10,6 +10,8 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import io.vertx.core.json.Json;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -184,7 +186,7 @@ public class DepResolutionTest {
   public void testUpgradeDifferentProduct() {
     List<TenantModuleDescriptor> tml = enableList(mdB);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false);
-    assertThat(tml, contains(disable(mdA100), enable(mdB)));
+    assertThat(tml, contains(enable(mdB), disable(mdA100)));
   }
 
   @Test
@@ -604,14 +606,14 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100, req1or2, reqI1or2);
       List<TenantModuleDescriptor> tml = enableList(reqI1or2, req1_100);
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(enable(prov100), enable(req1or2), enable(reqI1or2), enable(req1_100)));
+      assertThat(tml, contains(enable(prov100), enable(req1_100), enable(req1or2), enable(reqI1or2)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100, req1or2, reqI1or2);
       List<TenantModuleDescriptor> tml = enableList(req1_100, reqI1or2);
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(enable(prov100), enable(req1or2), enable(req1_100), enable(reqI1or2)));
+      assertThat(tml, contains(enable(prov100), enable(req1_100), enable(req1or2), enable(reqI1or2)));
     }
   }
 
@@ -656,14 +658,6 @@ public class DepResolutionTest {
     Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD),modB));
     Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modC));
     Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modD));
-
-    List<ModuleDescriptor> l = new ArrayList<>(List.of(modC, modA, modB));
-    DepResolution.topoSort(l);
-    Assert.assertArrayEquals(new ModuleDescriptor[]{modA, modB, modC}, l.toArray());
-
-    l = new ArrayList<>(List.of(modB, modA, modC));
-    DepResolution.topoSort(l);
-    Assert.assertArrayEquals(new ModuleDescriptor[]{modA, modB, modC}, l.toArray());
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
@@ -768,7 +762,7 @@ public class DepResolutionTest {
       List<TenantModuleDescriptor> tml = enableList(modB, modD);
       tml.addAll(createList(Action.suggest, modA));
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(enable(modA), enable(modB), enable(modD), new TenantModuleDescriptorMatcher(Action.suggest, modA, null)));
+      assertThat(tml, contains(new TenantModuleDescriptorMatcher(Action.suggest, modA, null), enable(modA), enable(modB), enable(modD)));
     }
   }
 

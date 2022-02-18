@@ -1,5 +1,6 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.json.Json;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -188,33 +189,6 @@ public final class DepResolution {
     return true;
   }
 
-  static void topoSort(List<ModuleDescriptor> modules) {
-    List<ModuleDescriptor> result = new LinkedList<>();
-
-    Set<String> allProvided = new HashSet<>();
-    for (ModuleDescriptor md : modules) {
-      for (InterfaceDescriptor descriptor : md.getProvidesList()) {
-        if (descriptor.isRegularHandler()) {
-          allProvided.add(descriptor.getId());
-        }
-      }
-    }
-    boolean more = true;
-    while (more) {
-      more = false;
-      Iterator<ModuleDescriptor> iterator = modules.iterator();
-      while (iterator.hasNext()) {
-        ModuleDescriptor md = iterator.next();
-        if (moduleDepProvided(result, allProvided, md)) {
-          result.add(md);
-          iterator.remove();
-          more = true;
-        }
-      }
-    }
-    modules.addAll(0, result);
-  }
-
   private static Map<String, InterfaceDescriptor> checkPresenceDependency(
       ModuleDescriptor md, InterfaceDescriptor req,
       Map<String, List<InterfaceDescriptor>> ints) {
@@ -339,84 +313,6 @@ public final class DepResolution {
       this.moduleDescriptor = md;
       this.interfaceDescriptor = id;
     }
-  }
-
-
-  private static void sortTenantModules(
-      List<TenantModuleDescriptor> tml,
-      Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled) {
-
-    Set<String> added = new HashSet<>();
-    // make a list of all modules involved.. also those removed.
-    LinkedList<ModuleDescriptor> sortedList = new LinkedList<>();
-    for (TenantModuleDescriptor tm : tml) {
-      if (tm.getAction() == TenantModuleDescriptor.Action.enable
-          || tm.getAction() == TenantModuleDescriptor.Action.uptodate
-          || tm.getAction() == TenantModuleDescriptor.Action.disable) {
-        sortedList.add(modsAvailable.get(tm.getId()));
-        added.add(tm.getId());
-      }
-    }
-    for (ModuleDescriptor md : modsEnabled.values()) {
-      if (!added.contains(md.getId())) {
-        sortedList.add(md);
-        added.add(md.getId());
-      }
-    }
-    logger.info("Topo sort before {}", () ->
-        sortedList.stream()
-            .map(ModuleDescriptor::getId)
-            .collect(Collectors.joining(", ")));
-
-    topoSort(sortedList);
-    // we now have a list where things mentioned in the install comes first.. Thus, if
-    // for cases where there are different orders satisfying dependencies, the order in the
-    // install is honored and will be listed first.
-    logger.info("Topo sort result {}", () ->
-        sortedList.stream()
-            .map(ModuleDescriptor::getId)
-            .collect(Collectors.joining(", ")));
-
-    logger.info("Input install list {}", () ->
-        tml.stream()
-            .map(TenantModuleDescriptor::getId)
-            .collect(Collectors.joining(", ")));
-
-    List<TenantModuleDescriptor> tml2 = new ArrayList<>();
-
-    // go through modules that need to be disabled
-    Iterator<ModuleDescriptor> moduleIterator = sortedList.descendingIterator();
-    while (moduleIterator.hasNext()) {
-      String id = moduleIterator.next().getId();
-      Iterator<TenantModuleDescriptor> iterator = tml.iterator();
-      while (iterator.hasNext()) {
-        TenantModuleDescriptor tm = iterator.next();
-        if (tm.getId().equals(id) && tm.getAction() == TenantModuleDescriptor.Action.disable) {
-          tml2.add(tm);
-          iterator.remove();
-        }
-      }
-    }
-
-    // go through modules that need to be enabled/updated
-    moduleIterator = sortedList.iterator();
-    while (moduleIterator.hasNext()) {
-      String id = moduleIterator.next().getId();
-      Iterator<TenantModuleDescriptor> iterator = tml.iterator();
-      while (iterator.hasNext()) {
-        TenantModuleDescriptor tm = iterator.next();
-        if (tm.getId().equals(id)
-            && (tm.getAction() == TenantModuleDescriptor.Action.enable
-            || tm.getAction() == TenantModuleDescriptor.Action.uptodate)) {
-          tml2.add(tm);
-          iterator.remove();
-        }
-      }
-    }
-    tml2.addAll(tml);
-    // result in tml2.. transfer to tml
-    tml.clear();
-    tml.addAll(tml2);
   }
 
   private static void addTenantModule(
@@ -704,6 +600,8 @@ public final class DepResolution {
       Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
       boolean reinstall, int maxIterations) {
 
+    final Collection<ModuleDescriptor> enabledModules = new LinkedList<>(modsEnabled.values());
+
     List<String> errors = new LinkedList<>();
     Set<String> stickyModules = new HashSet<>();
     for (TenantModuleDescriptor tm : tml) {
@@ -768,7 +666,62 @@ public final class DepResolution {
     if (!errors.isEmpty()) {
       throw new OkapiError(ErrorType.USER, String.join(". ", errors));
     }
-    sortTenantModules(tml, modsAvailable, modsEnabled);
+    // in reality this is not required as install sort as well
+    sortTenantModules(tml, modsAvailable, enabledModules, modsEnabled);
+  }
+
+  static void sortTenantModules(List<TenantModuleDescriptor> tml,
+      Map<String, ModuleDescriptor> modsAvailable, Collection<ModuleDescriptor> modules,
+      Map<String, ModuleDescriptor> modsEnabled) {
+
+    Set<String> allProvided = new HashSet<>();
+    for (ModuleDescriptor md1 : modsEnabled.values()) {
+      for (InterfaceDescriptor descriptor : md1.getProvidesList()) {
+        if (descriptor.isRegularHandler()) {
+          allProvided.add(descriptor.getId());
+        }
+      }
+    }
+    logger.info("Tenant list {}",
+        tml.stream().map(TenantModuleDescriptor::getId).collect(Collectors.joining(", ")));
+    List<TenantModuleDescriptor> result = new ArrayList<>();
+    Iterator<TenantModuleDescriptor> iterator = tml.iterator();
+    while (iterator.hasNext()) {
+      TenantModuleDescriptor tm = iterator.next();
+      ModuleDescriptor md = modsAvailable.get(tm.getId());
+      if (tm.getAction().equals(TenantModuleDescriptor.Action.disable)) {
+        logger.info("See if module {} can be removed from existing list of modules {}",
+            md.getId(), modules.stream().map(ModuleDescriptor::getId)
+                .collect(Collectors.joining(", ")));
+        if (DepResolution.moduleDepRequired(modules, md)) {
+          logger.info("Yes");
+          iterator.remove();
+          iterator = tml.iterator();
+          result.add(tm);
+          modules.remove(md);
+        }
+      } else if (tm.getAction().equals(TenantModuleDescriptor.Action.enable)) {
+        logger.info("See if module {} can be added to existing list of modules {}",
+            md.getId(), modules.stream().map(ModuleDescriptor::getId)
+                .collect(Collectors.joining(", ")));
+        if (DepResolution.moduleDepProvided(modules, allProvided, md)) {
+          logger.info("Yes");
+          iterator.remove();
+          iterator = tml.iterator();
+          result.add(tm);
+          modules.add(md);
+          String moduleFrom = tm.getFrom();
+          if (moduleFrom != null) {
+            modules.remove(modsAvailable.get(moduleFrom));
+          }
+        }
+      } else {
+        iterator.remove();
+        iterator = tml.iterator();
+        result.add(tm);
+      }
+    }
+    tml.addAll(result);
   }
 
   /**
