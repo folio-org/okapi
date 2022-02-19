@@ -989,7 +989,7 @@ public class InstallTest {
             .add(new JsonObject()
                 .put("id", "other-module-1.0.0")
                 .put("action", "enable")
-                .put("stage", "invoke") // was: pending
+                .put("stage", "pending")
             )
         );
     context.assertEquals(jobExpected, job);
@@ -1527,8 +1527,7 @@ public class InstallTest {
             .put("id", "a")
             .put("version", "1.0")
         );
-    RestAssuredClient c = api.createRestAssured3();
-    c.given()
+    given()
         .header("Content-Type", "application/json")
         .body(moda.encode()).post("/_/proxy/modules").then().statusCode(201);
 
@@ -1538,8 +1537,7 @@ public class InstallTest {
             .put("id", "b")
             .put("version", "1.0")
         );
-    c = api.createRestAssured3();
-    c.given()
+    given()
         .header("Content-Type", "application/json")
         .body(modb.encode()).post("/_/proxy/modules").then().statusCode(201);
 
@@ -1553,8 +1551,7 @@ public class InstallTest {
             .put("id", "b")
             .put("version", "1.0")
         );
-    c = api.createRestAssured3();
-    c.given()
+    given()
         .header("Content-Type", "application/json")
         .body(mid.encode()).post("/_/proxy/modules").then().statusCode(201);
 
@@ -1579,12 +1576,18 @@ public class InstallTest {
             .put("id", mid.getString("id"))
             .put("action", "enable")
         );
-    String location = given()
+    RestAssuredClient c = api.createRestAssured3();
+    c = api.createRestAssured3();
+    String location = c.given()
         .header("Content-Type", "application/json")
         .body(installOp.encode())
-        .post("/_/proxy/tenants/" + tenant + "/install?async=true")
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true&parallel=5")
         .then().statusCode(201)
         .extract().header("Location");
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
     JsonObject job = pollCompleteStrip(context, location);
     JsonObject jobExpected = new JsonObject()
         .put("complete", true)
@@ -1606,6 +1609,10 @@ public class InstallTest {
             )
         );
     context.assertEquals(jobExpected, job);
+    // moda , modb running in parallel
+    context.assertTrue(tModule.getStartTime(moda.getString("id")).isBefore(tModule.getEndTime(modb.getString("id"))));
+    context.assertTrue(tModule.getStartTime(modb.getString("id")).isBefore(tModule.getEndTime(moda.getString("id"))));
+    // midb comes after
     context.assertTrue(tModule.getEndTime(moda.getString("id")).isBefore(tModule.getStartTime(mid.getString("id"))));
     context.assertTrue(tModule.getEndTime(modb.getString("id")).isBefore(tModule.getStartTime(mid.getString("id"))));
 
@@ -1625,7 +1632,7 @@ public class InstallTest {
     location = given()
         .header("Content-Type", "application/json")
         .body(installOp.encode())
-        .post("/_/proxy/tenants/" + tenant + "/install?async=true")
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true&parallel=5")
         .then().statusCode(201)
         .extract().header("Location");
     job = pollCompleteStrip(context, location);
@@ -1649,11 +1656,13 @@ public class InstallTest {
             )
         );
     context.assertEquals(jobExpected, job);
+    // mid disabled first
     context.assertTrue(tModule.getEndTime(mid.getString("id")).isBefore(tModule.getStartTime(moda.getString("id"))));
     context.assertTrue(tModule.getEndTime(mid.getString("id")).isBefore(tModule.getStartTime(modb.getString("id"))));
+    // moda , modb running in parallel
+    context.assertTrue(tModule.getStartTime(moda.getString("id")).isBefore(tModule.getEndTime(modb.getString("id"))));
+    context.assertTrue(tModule.getStartTime(modb.getString("id")).isBefore(tModule.getEndTime(moda.getString("id"))));
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
-
-
   }
 }

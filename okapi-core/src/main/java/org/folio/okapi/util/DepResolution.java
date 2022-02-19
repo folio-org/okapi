@@ -1,6 +1,5 @@
 package org.folio.okapi.util;
 
-import io.vertx.core.json.Json;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;

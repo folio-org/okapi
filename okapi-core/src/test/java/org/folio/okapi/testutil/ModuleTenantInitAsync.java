@@ -98,6 +98,7 @@ public class ModuleTenantInitAsync implements ModuleHandle {
       JsonObject obj = ctx.getBodyAsJson();
       String module = obj.getString("module_to", obj.getString("module_from"));
       if (module != null) {
+        logger.info("Tenant begin for module {}", module);
         startTime.put(module, Instant.now());
       }
       obj.put("count", 2);
@@ -135,10 +136,8 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     obj.put("complete", count <= 0);
 
     String module = obj.getString("module_to", obj.getString("module_from"));
-    if (module != null) {
-      startTime.put(module, Instant.now());
-    }
     if (module != null && count <= 0) {
+      logger.info("Tenant complete for module {}", module);
       endTime.put(module, Instant.now());
     }
     if (errorMessage != null) {

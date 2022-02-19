@@ -14,11 +14,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InstallJob;
@@ -958,20 +960,18 @@ public class TenantManager implements Liveness {
       Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     List<TenantModuleDescriptor> tml = job.getModules();
-    Map<String, ModuleDescriptor> modsStart = new HashMap<>(modsEnabled);
     DepResolution.install(modsAvailable, modsEnabled, tml, options.getReinstall());
     if (options.getSimulate()) {
       return Future.succeededFuture(tml);
     }
     return jobs.add(t.getId(), job.getId(), job)
-        .compose(res2 -> runJob(t, pc, options, tml, modsAvailable, modsEnabled, modsStart, job));
+        .compose(res2 -> runJob(t, pc, options, tml, modsAvailable, modsEnabled, job));
   }
 
   private Future<List<TenantModuleDescriptor>> runJob(
       Tenant t, ProxyContext pc, TenantInstallOptions options,
       List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
-      Map<String, ModuleDescriptor> modsEnabled, Map<String, ModuleDescriptor> modsStart,
-      InstallJob job) {
+      Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     Promise<List<TenantModuleDescriptor>> promise = Promise.promise();
     Future<Void> future = Future.succeededFuture();
@@ -991,12 +991,7 @@ public class TenantManager implements Liveness {
     if (options.getDeploy()) {
       future = future.compose(x -> autoDeploy(t, job, modsAvailable, tml));
     }
-    future = future.compose(x ->
-        jobInvokeParallel(t, pc, options, tml, modsAvailable, modsEnabled, modsStart, job));
-    /*
-    future = future.compose(x ->
-        jobInvokeSequental(t, pc, options, tml, modsAvailable, job));
-     */
+    future = future.compose(x -> jobInvoke(t, pc, options, tml, modsAvailable, modsEnabled, job));
 
     // if we are really upgrading permissions do a refresh last
     for (TenantModuleDescriptor tm : tml) {
@@ -1051,21 +1046,26 @@ public class TenantManager implements Liveness {
 
   private void jobRunPending(Tenant t, ProxyContext pc, TenantInstallOptions options,
       List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
-      Set<String> allProvided, InstallJob job, Promise<Void> promise) {
+      Set<String> allProvided, InstallJob job, AtomicInteger running, Promise<Void> promise) {
 
-    boolean more = true;
-    while (more) {
-      more = false;
-      for (TenantModuleDescriptor tm : tml) {
-        if ((tm.getStage().equals(TenantModuleDescriptor.Stage.pending)
-            || tm.getStage().equals(TenantModuleDescriptor.Stage.deploy))
-            && depsOK(tm, modsAvailable, getEnabledModules(t), allProvided)) {
-          more = true;
-          jobInvokeSingle(t, pc, options, tm, modsAvailable, job)
-              .onFailure(x -> promise.tryFail(x))
-              .onSuccess(x -> jobRunPending(t, pc, options, tml, modsAvailable,
-                  allProvided, job, promise));
-        }
+    Iterator<TenantModuleDescriptor> iterator = tml.iterator();
+    while (iterator.hasNext() && running.get() < options.getMaxParallel()) {
+      TenantModuleDescriptor tm = iterator.next();
+      if ((tm.getStage().equals(TenantModuleDescriptor.Stage.pending)
+          || tm.getStage().equals(TenantModuleDescriptor.Stage.deploy))
+          && depsOK(tm, modsAvailable, getEnabledModules(t), allProvided)) {
+        running.incrementAndGet();
+        jobInvokeSingle(t, pc, options, tm, modsAvailable, job)
+            .onFailure(x -> {
+              running.decrementAndGet();
+              promise.tryFail(x);
+            })
+            .onSuccess(x -> {
+              running.decrementAndGet();
+              jobRunPending(t, pc, options, tml, modsAvailable,
+                  allProvided, job, running, promise);
+            });
+        iterator = tml.iterator();
       }
     }
     for (TenantModuleDescriptor tm : tml) {
@@ -1076,21 +1076,20 @@ public class TenantManager implements Liveness {
     promise.tryComplete();
   }
 
-  private Future<Void> jobInvokeParallel(Tenant t, ProxyContext pc, TenantInstallOptions options,
+  private Future<Void> jobInvoke(Tenant t, ProxyContext pc, TenantInstallOptions options,
       List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
-      Map<String, ModuleDescriptor> modsEnabled, Map<String, ModuleDescriptor> modsStart,
-      InstallJob job) {
+      Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     Set<String> allProvided = new HashSet<>();
-    for (ModuleDescriptor md1 : modsEnabled.values()) {
-      for (InterfaceDescriptor descriptor : md1.getProvidesList()) {
+    for (ModuleDescriptor md : modsEnabled.values()) {
+      for (InterfaceDescriptor descriptor : md.getProvidesList()) {
         if (descriptor.isRegularHandler()) {
           allProvided.add(descriptor.getId());
         }
       }
     }
     return Future.future(f -> jobRunPending(t, pc, options, tml, modsAvailable,
-        allProvided, job, f));
+        allProvided, job, new AtomicInteger(), f));
   }
 
   private Future<Void> jobInvokeSingle(Tenant t, ProxyContext pc, TenantInstallOptions options,

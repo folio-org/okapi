@@ -12,6 +12,7 @@ public class TenantInstallOptions {
   private boolean async = false;
   private boolean ignoreErrors = false;
   private boolean reinstall = false;
+  private int maxParallel = 1;
 
   public void setModuleVersionFilter(ModuleVersionFilter v) {
     moduleVersionFilter = v;
@@ -102,5 +103,13 @@ public class TenantInstallOptions {
 
   public void setReinstall(boolean reinstall) {
     this.reinstall = reinstall;
+  }
+
+  public int getMaxParallel() {
+    return maxParallel;
+  }
+
+  public void setMaxParallel(int maxParallel) {
+    this.maxParallel = maxParallel;
   }
 }
