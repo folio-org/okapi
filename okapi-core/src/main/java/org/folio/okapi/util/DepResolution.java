@@ -674,8 +674,8 @@ public final class DepResolution {
       Map<String, ModuleDescriptor> modsEnabled) {
 
     Set<String> allProvided = new HashSet<>();
-    for (ModuleDescriptor md1 : modsEnabled.values()) {
-      for (InterfaceDescriptor descriptor : md1.getProvidesList()) {
+    for (ModuleDescriptor md : modsEnabled.values()) {
+      for (InterfaceDescriptor descriptor : md.getProvidesList()) {
         if (descriptor.isRegularHandler()) {
           allProvided.add(descriptor.getId());
         }
