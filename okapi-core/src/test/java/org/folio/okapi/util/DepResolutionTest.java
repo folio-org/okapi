@@ -3,6 +3,7 @@ package org.folio.okapi.util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +12,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import io.vertx.core.json.Json;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -1192,5 +1192,21 @@ public class DepResolutionTest {
     OkapiError error = Assert.assertThrows(OkapiError.class,
         () -> DepResolution.installMaxIterations(available, map(), tml1, false, numberOfModules - 1));
     Assert.assertEquals("Dependency resolution not completing in " + (numberOfModules - 1) + " iterations", error.getMessage());
+  }
+
+  @Test
+  public void sortTenantModulesUnsatisfied() {
+    // this should never happen as dependencies are checked before sorting starts
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    ModuleDescriptor md = new ModuleDescriptor("mod-1.0.0");
+    md.setRequires("int", "1.0");
+    tm.setId(md.getId());
+    tm.setAction(Action.enable);
+    List<TenantModuleDescriptor> tml = new ArrayList<>();
+    tml.add(tm);
+    Map<String,ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(md.getId(), md);
+    DepResolution.sortTenantModules(tml, modsAvailable, new HashSet<>(), Set.of("int"));
+    assertThat(tml, contains(tm));
   }
 }

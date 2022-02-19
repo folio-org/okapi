@@ -681,6 +681,13 @@ public final class DepResolution {
         }
       }
     }
+    sortTenantModules(tml, modsAvailable, modules, allProvided);
+  }
+
+  static void sortTenantModules(List<TenantModuleDescriptor> tml,
+      Map<String, ModuleDescriptor> modsAvailable, Collection<ModuleDescriptor> modules,
+      Set<String> allProvided) {
+
     logger.info("Tenant list {}",
         tml.stream().map(TenantModuleDescriptor::getId).collect(Collectors.joining(", ")));
     List<TenantModuleDescriptor> result = new ArrayList<>();
