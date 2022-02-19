@@ -80,10 +80,13 @@ traits:
         required: false
         default: "true"
       parallel:
-        description: Number of migrations to perform in parallel.
+        description: |
+          Number of parallel calls to tenant interfaces of modules.
+          A value of 1 means calls are happending in sequence.
         type: integer
         required: false
         default: 1
+        minimum: 1
       purge:
         description: Disabled modules will also be purged.
         type: boolean

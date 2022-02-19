@@ -984,7 +984,7 @@ public class ProxyService {
             }
           });
     } catch (Exception e) {
-      pc.responseError(ErrorType.INTERNAL, e);
+      pc.responseError(OkapiError.getType(e), e);
     }
   }
 

@@ -1,5 +1,7 @@
 package org.folio.okapi.util;
 
+import org.folio.okapi.common.ErrorType;
+
 public class TenantInstallOptions {
 
   private ModuleVersionFilter moduleVersionFilter = new ModuleVersionFilter();
@@ -109,7 +111,14 @@ public class TenantInstallOptions {
     return maxParallel;
   }
 
+  /**
+   * Set max parallel tenant invocations.
+   * @param maxParallel positive integer
+   */
   public void setMaxParallel(int maxParallel) {
+    if (maxParallel < 1) {
+      throw new OkapiError(ErrorType.USER, "parallel must be 1 or higher");
+    }
     this.maxParallel = maxParallel;
   }
 }

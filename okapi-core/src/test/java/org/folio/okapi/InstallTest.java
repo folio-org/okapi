@@ -4,6 +4,7 @@ import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
 import io.vertx.core.DeploymentOptions;
@@ -1576,8 +1577,15 @@ public class InstallTest {
             .put("id", mid.getString("id"))
             .put("action", "enable")
         );
+
+    given()
+        .header("Content-Type", "application/json")
+        .body(installOp.encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true&parallel=0")
+        .then().statusCode(400)
+        .body(containsString("parallel must be 1 or higher"));
+
     RestAssuredClient c = api.createRestAssured3();
-    c = api.createRestAssured3();
     String location = c.given()
         .header("Content-Type", "application/json")
         .body(installOp.encode())
