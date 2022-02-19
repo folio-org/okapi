@@ -688,7 +688,7 @@ public final class DepResolution {
       Map<String, ModuleDescriptor> modsAvailable, Collection<ModuleDescriptor> modules,
       Set<String> allProvided) {
 
-    logger.info("Tenant list {}",
+    logger.info("sortTenantModules with list {}",
         tml.stream().map(TenantModuleDescriptor::getId).collect(Collectors.joining(", ")));
     List<TenantModuleDescriptor> result = new ArrayList<>();
     Iterator<TenantModuleDescriptor> iterator = tml.iterator();
@@ -700,7 +700,7 @@ public final class DepResolution {
             md.getId(), modules.stream().map(ModuleDescriptor::getId)
                 .collect(Collectors.joining(", ")));
         if (DepResolution.moduleDepRequired(modules, md)) {
-          logger.info("Yes");
+          logger.info("yes: removing {}", md.getId());
           iterator.remove();
           iterator = tml.iterator();
           result.add(tm);
@@ -711,13 +711,14 @@ public final class DepResolution {
             md.getId(), modules.stream().map(ModuleDescriptor::getId)
                 .collect(Collectors.joining(", ")));
         if (DepResolution.moduleDepProvided(modules, allProvided, md)) {
-          logger.info("Yes");
+          logger.info("yes: adding {}", md.getId());
           iterator.remove();
           iterator = tml.iterator();
           result.add(tm);
           modules.add(md);
           String moduleFrom = tm.getFrom();
           if (moduleFrom != null) {
+            logger.info("yes: removing from {}", moduleFrom);
             modules.remove(modsAvailable.get(moduleFrom));
           }
         }
