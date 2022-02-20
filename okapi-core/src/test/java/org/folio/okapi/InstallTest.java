@@ -1672,4 +1672,200 @@ public class InstallTest {
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
+
+  @Test
+  public void installParallelPermissions(TestContext context) {
+    JsonObject moda = createAsyncInitModule("mod-a-1.0.0");
+    moda.getJsonArray("provides")
+        .add(new JsonObject()
+            .put("id", "a")
+            .put("version", "1.0")
+        );
+    given()
+        .header("Content-Type", "application/json")
+        .body(moda.encode()).post("/_/proxy/modules").then().statusCode(201);
+
+    JsonObject modb = createAsyncInitModule("mod-b-1.0.0");
+    modb.getJsonArray("provides")
+        .add(new JsonObject()
+            .put("id", "b")
+            .put("version", "1.0")
+        );
+    given()
+        .header("Content-Type", "application/json")
+        .body(modb.encode()).post("/_/proxy/modules").then().statusCode(201);
+
+    JsonObject modp = createAsyncInitModule("mod-p-1.0.0");
+    modp.getJsonArray("provides")
+        .add(new JsonObject()
+            .put("id", "_tenantPermissions")
+            .put("interfaceType", "system")
+            .put("version", "1.0")
+            .put("handlers", new JsonArray()
+                .add(new JsonObject()
+                    .put("methods", new JsonArray().add("POST"))
+                    .put("pathPattern", "/permissions")
+                    .put("permissionsRequired", new JsonArray())
+                )
+            )
+        );
+    given()
+        .header("Content-Type", "application/json")
+        .body(modp.encode()).post("/_/proxy/modules").then().statusCode(201);
+
+    JsonObject mid = createAsyncInitModule("mod-m-1.0.0");
+    mid.getJsonArray("requires")
+        .add(new JsonObject()
+            .put("id", "a")
+            .put("version", "1.0")
+        )
+        .add(new JsonObject()
+            .put("id", "b")
+            .put("version", "1.0")
+        );
+    given()
+        .header("Content-Type", "application/json")
+        .body(mid.encode()).post("/_/proxy/modules").then().statusCode(201);
+
+    final String tenant = "roskilde";
+    createTenant(context, tenant);
+    deployAsyncInitModule(context, moda.getString("id"), portModule);
+    deployAsyncInitModule(context, modb.getString("id"), portModule);
+    deployAsyncInitModule(context, modp.getString("id"), portModule);
+    deployAsyncInitModule(context, mid.getString("id"), portModule);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
+    tModule.start().onComplete(context.asyncAssertSuccess());
+
+    JsonArray installOp = new JsonArray()
+        .add(new JsonObject()
+            .put("id", moda.getString("id"))
+            .put("action", "enable")
+        )
+        .add(new JsonObject()
+            .put("id", modb.getString("id"))
+            .put("action", "enable")
+        )
+        .add(new JsonObject()
+            .put("id", modp.getString("id"))
+            .put("action", "enable")
+        )
+        .add(new JsonObject()
+            .put("id", mid.getString("id"))
+            .put("action", "enable")
+        );
+
+    given()
+        .header("Content-Type", "application/json")
+        .body(installOp.encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true&parallel=0")
+        .then().statusCode(400)
+        .body(containsString("parallel must be 1 or higher"));
+
+    RestAssuredClient c = api.createRestAssured3();
+    String location = c.given()
+        .header("Content-Type", "application/json")
+        .body(installOp.encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true&parallel=5")
+        .then().statusCode(201)
+        .extract().header("Location");
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    JsonObject job = pollCompleteStrip(context, location);
+    JsonObject jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", moda.getString("id"))
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", modb.getString("id"))
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", modp.getString("id"))
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", mid.getString("id"))
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+        );
+    context.assertEquals(jobExpected, job);
+    // moda , modb running in parallel
+    context.assertTrue(tModule.getStartTime(moda.getString("id")).isBefore(tModule.getEndTime(modb.getString("id"))));
+    context.assertTrue(tModule.getStartTime(modb.getString("id")).isBefore(tModule.getEndTime(moda.getString("id"))));
+    // modp comes after
+    context.assertTrue(tModule.getEndTime(moda.getString("id")).isBefore(tModule.getStartTime(modp.getString("id"))));
+    context.assertTrue(tModule.getEndTime(modb.getString("id")).isBefore(tModule.getStartTime(modp.getString("id"))));
+    // mid comes after
+    context.assertTrue(tModule.getEndTime(modp.getString("id")).isBefore(tModule.getStartTime(mid.getString("id"))));
+
+    installOp = new JsonArray()
+        .add(new JsonObject()
+            .put("id", moda.getString("id"))
+            .put("action", "disable")
+        )
+        .add(new JsonObject()
+            .put("id", modb.getString("id"))
+            .put("action", "disable")
+        )
+        .add(new JsonObject()
+            .put("id", modp.getString("id"))
+            .put("action", "disable")
+        )
+        .add(new JsonObject()
+            .put("id", mid.getString("id"))
+            .put("action", "disable")
+        );
+    location = given()
+        .header("Content-Type", "application/json")
+        .body(installOp.encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true&parallel=5")
+        .then().statusCode(201)
+        .extract().header("Location");
+    job = pollCompleteStrip(context, location);
+    jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", modp.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", mid.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", moda.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", modb.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+        );
+    context.assertEquals(jobExpected, job);
+    // modp disabled first
+    context.assertTrue(tModule.getEndTime(modp.getString("id")).isBefore(tModule.getStartTime(mid.getString("id"))));
+    // mid disabled next
+    context.assertTrue(tModule.getEndTime(mid.getString("id")).isBefore(tModule.getStartTime(moda.getString("id"))));
+    context.assertTrue(tModule.getEndTime(mid.getString("id")).isBefore(tModule.getStartTime(modb.getString("id"))));
+    // moda , modb running in parallel
+    context.assertTrue(tModule.getStartTime(moda.getString("id")).isBefore(tModule.getEndTime(modb.getString("id"))));
+    context.assertTrue(tModule.getStartTime(modb.getString("id")).isBefore(tModule.getEndTime(moda.getString("id"))));
+
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
 }

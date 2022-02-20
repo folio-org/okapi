@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.apache.logging.log4j.Logger;
@@ -1034,10 +1035,14 @@ public class TenantManager implements Liveness {
     return promise.future();
   }
 
-  private boolean depsOK(TenantModuleDescriptor tm, Map<String, ModuleDescriptor> modsAvailable,
+  private boolean isExclusive(ModuleDescriptor md) {
+    return md.getSystemInterface("_tenantPermissions") != null
+        || md.getAuthRoutingEntry() != null;
+  }
+
+  private boolean depsOK(TenantModuleDescriptor tm, ModuleDescriptor md,
       Collection<ModuleDescriptor> modules, Set<String> allProvided) {
 
-    ModuleDescriptor md = modsAvailable.get(tm.getId());
     if (tm.getAction().equals(Action.disable)) {
       return DepResolution.moduleDepRequired(modules, md);
     }
@@ -1046,24 +1051,34 @@ public class TenantManager implements Liveness {
 
   private void jobRunPending(Tenant t, ProxyContext pc, TenantInstallOptions options,
       List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
-      Set<String> allProvided, InstallJob job, AtomicInteger running, Promise<Void> promise) {
+      Set<String> allProvided, InstallJob job, AtomicInteger running, AtomicBoolean exclusive,
+      Promise<Void> promise) {
 
     Iterator<TenantModuleDescriptor> iterator = tml.iterator();
-    while (iterator.hasNext() && running.get() < options.getMaxParallel()) {
+    while (iterator.hasNext() && running.get() < options.getMaxParallel() && !exclusive.get()) {
       TenantModuleDescriptor tm = iterator.next();
+      ModuleDescriptor md = modsAvailable.get(tm.getId());
       if ((tm.getStage().equals(TenantModuleDescriptor.Stage.pending)
           || tm.getStage().equals(TenantModuleDescriptor.Stage.deploy))
-          && depsOK(tm, modsAvailable, getEnabledModules(t), allProvided)) {
+          && depsOK(tm, md, getEnabledModules(t), allProvided)
+          && (!isExclusive(md) || running.get() == 0)) {
+        if (isExclusive(md)) {
+          exclusive.set(Boolean.TRUE);
+        }
         running.incrementAndGet();
         jobInvokeSingle(t, pc, options, tm, modsAvailable, job)
-            .onFailure(x -> {
+            .onComplete(x -> {
               running.decrementAndGet();
-              promise.tryFail(x);
-            })
-            .onSuccess(x -> {
-              running.decrementAndGet();
-              jobRunPending(t, pc, options, tml, modsAvailable,
-                  allProvided, job, running, promise);
+              if (isExclusive(md)) {
+                exclusive.set(Boolean.FALSE);
+              }
+              if (x.failed()) {
+                promise.tryFail(x.cause());
+              } else {
+                jobRunPending(t, pc, options, tml, modsAvailable,
+                    allProvided, job, running, exclusive, promise);
+
+              }
             });
         iterator = tml.iterator();
       }
@@ -1089,7 +1104,7 @@ public class TenantManager implements Liveness {
       }
     }
     return Future.future(f -> jobRunPending(t, pc, options, tml, modsAvailable,
-        allProvided, job, new AtomicInteger(), f));
+        allProvided, job, new AtomicInteger(), new AtomicBoolean(), f));
   }
 
   private Future<Void> jobInvokeSingle(Tenant t, ProxyContext pc, TenantInstallOptions options,

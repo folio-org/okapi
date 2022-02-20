@@ -80,6 +80,10 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     this.additionalMessages = additionalMessages;
   }
 
+  void permissionsPost(RoutingContext ctx) {
+    ctx.response().setStatusCode(200).end();
+  }
+
   void tenantPost(RoutingContext ctx) {
     String path = ctx.request().path();
     if (path.equals("/_/tenant")) {
@@ -173,6 +177,8 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     router.post("/_/tenant").handler(this::tenantPost);
     router.getWithRegex("/_/tenant/.*").handler(this::tenantGet);
     router.deleteWithRegex("/_/tenant/.*").handler(this::tenantDelete);
+    router.post("/permissions").handler(BodyHandler.create());
+    router.post("/permissions").handler(this::permissionsPost);
 
     return vertx.createHttpServer()
         .requestHandler(router)
