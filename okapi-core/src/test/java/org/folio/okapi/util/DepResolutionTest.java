@@ -900,7 +900,7 @@ public class DepResolutionTest {
 
     // patch to higher version with st given, but with multiple products to support it
     {
-      ModuleDescriptor ot101_alt = new ModuleDescriptor("ot-1.0.1");
+      ModuleDescriptor ot101_alt = new ModuleDescriptor("otA-1.0.1");
       ot101_alt.setRequires(ot101.getRequires());
 
       ModuleDescriptor os101_alt = new ModuleDescriptor("os-1.0.1");
