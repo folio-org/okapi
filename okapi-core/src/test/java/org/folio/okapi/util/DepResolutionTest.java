@@ -288,10 +288,9 @@ public class DepResolutionTest {
   public void testInstallMajorBaseOptionalError() {
     List<TenantModuleDescriptor> tml = enableList(mdA200);
     // note that mdD200 is not part of the lsit
-    OkapiError error = Assert.assertThrows(OkapiError.class,
-        () -> DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110),
-        map(mdA100, mdD100), tml, false));
-    Assert.assertEquals("Incompatible version for module moduleD-1.0.0 interface int. Need 1.0. Have 2.0/moduleA-2.0.0", error.getMessage());
+    DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110),
+        map(mdA100, mdD100), tml, false);
+    assertThat(tml, contains(disable(mdD100), upgrade(mdA200, mdA100)));
   }
 
   // upgrade base dependency and pull in module with unknown interface (results in error)
@@ -905,11 +904,9 @@ public class DepResolutionTest {
       ot101_alt.setRequires(ot101.getRequires());
 
       List<TenantModuleDescriptor> tml = enableList(st101);
-      OkapiError error = Assert.assertThrows(OkapiError.class,
-          () -> DepResolution.install(map(st100, st101, ot100, ot101, ot101_alt),
-              map(ot100, st100), tml, false));
-      Assert.assertEquals("interface int required by module ot-1.0.0 is provided by multiple products: ot, otA",
-          error.getMessage());
+      DepResolution.install(map(st100, st101, ot100, ot101, ot101_alt),
+              map(ot100, st100), tml, false);
+      assertThat(tml, contains(upgrade(st101, st100), upgrade(ot101, ot100)));
     }
   }
 
