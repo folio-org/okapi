@@ -239,9 +239,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    */
   @JsonIgnore
   public RoutingEntry getAuthRoutingEntry() {
-    RoutingEntry[] filters = getFilters();
     if (filters != null) {
-      for (RoutingEntry filt : filters) {
+      for (RoutingEntry filt: filters) {
         if (XOkapiHeaders.FILTER_AUTH.equals(filt.getPhase())) {
           return filt;
         }
