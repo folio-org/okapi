@@ -284,7 +284,7 @@ public class DepResolutionTest {
   @Test
   public void testInstallMajorBaseOptionalDisable() {
     List<TenantModuleDescriptor> tml = enableList(mdA200);
-    // note that mdD200 is not part of the lsit
+    // note that mdD200 is not part of the list
     DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110),
         map(mdA100, mdD100), tml, false);
     assertThat(tml, contains(upgrade(mdA200, mdA100), disable(mdD100)));
