@@ -696,29 +696,29 @@ public final class DepResolution {
       TenantModuleDescriptor tm = iterator.next();
       ModuleDescriptor md = modsAvailable.get(tm.getId());
       if (tm.getAction().equals(TenantModuleDescriptor.Action.disable)) {
-        logger.info("See if module {} can be removed from existing list of modules {}",
+        logger.debug("See if module {} can be removed from existing list of modules {}",
             md.getId(), modules.stream().map(ModuleDescriptor::getId)
                 .collect(Collectors.joining(", ")));
         if (DepResolution.moduleDepRequired(modules, md)) {
-          logger.info("yes: removing {}", md.getId());
+          logger.debug("yes: removing {}", md.getId());
           iterator.remove();
           iterator = tml.iterator();
           result.add(tm);
           modules.remove(md);
         }
       } else if (tm.getAction().equals(TenantModuleDescriptor.Action.enable)) {
-        logger.info("See if module {} can be added to existing list of modules {}",
+        logger.debug("See if module {} can be added to existing list of modules {}",
             md.getId(), modules.stream().map(ModuleDescriptor::getId)
                 .collect(Collectors.joining(", ")));
         if (DepResolution.moduleDepProvided(modules, allProvided, md)) {
-          logger.info("yes: adding {}", md.getId());
+          logger.debug("yes: adding {}", md.getId());
           iterator.remove();
           iterator = tml.iterator();
           result.add(tm);
           modules.add(md);
           String moduleFrom = tm.getFrom();
           if (moduleFrom != null) {
-            logger.info("yes: removing from {}", moduleFrom);
+            logger.debug("yes: removing from {}", moduleFrom);
             modules.remove(modsAvailable.get(moduleFrom));
           }
         }

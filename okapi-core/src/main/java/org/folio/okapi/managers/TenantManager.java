@@ -1043,7 +1043,7 @@ public class TenantManager implements Liveness {
   private boolean depsOK(TenantModuleDescriptor tm, ModuleDescriptor md,
       Collection<ModuleDescriptor> modules, Set<String> allProvided) {
 
-    if (tm.getAction().equals(Action.disable)) {
+    if (tm.getAction() == Action.disable) {
       return DepResolution.moduleDepRequired(modules, md);
     }
     return DepResolution.moduleDepProvided(modules, allProvided, md);
@@ -1057,34 +1057,39 @@ public class TenantManager implements Liveness {
     Iterator<TenantModuleDescriptor> iterator = tml.iterator();
     while (iterator.hasNext() && running.get() < options.getMaxParallel() && !exclusive.get()) {
       TenantModuleDescriptor tm = iterator.next();
-      ModuleDescriptor md = modsAvailable.get(tm.getId());
-      if ((tm.getStage().equals(TenantModuleDescriptor.Stage.pending)
-          || tm.getStage().equals(TenantModuleDescriptor.Stage.deploy))
-          && depsOK(tm, md, getEnabledModules(t), allProvided)
-          && (!isExclusive(md) || running.get() == 0)) {
-        if (isExclusive(md)) {
-          exclusive.set(Boolean.TRUE);
-        }
-        running.incrementAndGet();
-        jobInvokeSingle(t, pc, options, tm, modsAvailable, job)
-            .onComplete(x -> {
-              running.decrementAndGet();
-              if (isExclusive(md)) {
-                exclusive.set(Boolean.FALSE);
-              }
-              if (x.failed()) {
-                promise.tryFail(x.cause());
-              } else {
-                jobRunPending(t, pc, options, tml, modsAvailable,
-                    allProvided, job, running, exclusive, promise);
-
-              }
-            });
-        iterator = tml.iterator();
+      if (tm.getStage() != TenantModuleDescriptor.Stage.pending
+          && tm.getStage() != TenantModuleDescriptor.Stage.deploy) {
+        continue;
       }
+      ModuleDescriptor md = modsAvailable.get(tm.getId());
+      if (!depsOK(tm, md, getEnabledModules(t), allProvided)) {
+        continue;
+      }
+      if (isExclusive(md)) {
+        if (running.get() > 0) {
+          continue;
+        }
+        exclusive.set(Boolean.TRUE);
+      }
+      running.incrementAndGet();
+      jobInvokeSingle(t, pc, options, tm, modsAvailable, job)
+          .onComplete(x -> {
+            running.decrementAndGet();
+            if (isExclusive(md)) {
+              exclusive.set(Boolean.FALSE);
+            }
+            if (x.failed()) {
+              promise.tryFail(x.cause());
+              return;
+            } else {
+              jobRunPending(t, pc, options, tml, modsAvailable, allProvided, job,
+                  running, exclusive, promise);
+            }
+          });
+      iterator = tml.iterator();
     }
     for (TenantModuleDescriptor tm : tml) {
-      if (!tm.getStage().equals(TenantModuleDescriptor.Stage.done) && tm.getMessage() == null) {
+      if (tm.getStage() != TenantModuleDescriptor.Stage.done && tm.getMessage() == null) {
         return;
       }
     }
