@@ -75,14 +75,14 @@ traits:
          Whether to invoke for tenant init/permissions/purge. Use
           "true" to invoke, "false" to not invoke. Any other value
           is a regular expression that is matched against the module ID.
-          If that pattern matches, invoke is performed (same as "true)".
+          If that pattern matches, invoke is performed (same as "true").
         type: string
         required: false
         default: "true"
       parallel:
         description: |
           Number of parallel calls to tenant interfaces of modules.
-          A value of 1 means calls are happending in sequence.
+          A value of 1 means calls are happening in sequence.
         type: integer
         required: false
         default: 1
