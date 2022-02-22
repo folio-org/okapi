@@ -128,10 +128,10 @@ public final class DepResolution {
 
   /**
    * Check if md's required and optional interfaces are provided by set of modules.
-   * Only interfaces listed in allProvided are checked, this allows to exclude some optional
-   * interfaces from the check.
+   * Only interfaces listed in allProvided are checked, this allows for the exclusion of
+   * some optional interfaces from the check.
    *
-   * @param modules     the modules that check against
+   * @param modules     the modules to check against
    * @param allProvided interfaces for all modules
    * @param md          module to check.
    * @return            true if interface requirements are met
@@ -161,12 +161,12 @@ public final class DepResolution {
   }
 
   /**
-   * Check if md's provided interfaces are required by any of modules.
-   * Only interfaces listed in allProvided are checked, this allows to exclude some optional
-   * interfaces from the check.
+   * Check if md's provided interfaces are required by any of the modules.
+   * Only interfaces listed in allProvided are checked, this allows for the exclusion of
+   * some optional interfaces from the check.
    *
-   * @param modules     the modules that check against
-   * @param md          module to check.
+   * @param modules     the modules to check against
+   * @param md          module to check
    * @return            true if modules do not use any of the provided interfaces; false otherwise
    */
   public static boolean moduleDepRequired(Collection<ModuleDescriptor> modules,
@@ -411,11 +411,11 @@ public final class DepResolution {
    *
    * @param modsEnabled moddules enabled for a tenant
    * @param tml tenant module list (install)
-   * @param fix whether to disable modules when multiple interfaces are provided.
+   * @param fix whether to disable modules when multiple interfaces are provided
    * @param errors errors list (empty if no errors)
    * @param providedInterfaces provided interfaces for enabled modules
    * @param stickyModules modules that are never removed/enabled
-   * @return true if modsEnabled was altered (call again), false if modsEnabled was unchanged.
+   * @return true if modsEnabled was altered (call again), false if modsEnabled was unchanged
    */
   private static boolean checkMultiple(
       Map<String, ModuleDescriptor> modsEnabled,
@@ -592,7 +592,7 @@ public final class DepResolution {
    * @param modsEnabled   enabled modules (for some tenant)
    * @param tml           install list with actions
    * @param reinstall     whether to re-install
-   * @param maxIterations how many iterations to allow fixup of list.
+   * @param maxIterations how many fixup iterations
    */
   static void installMaxIterations(
       Map<String, ModuleDescriptor> modsAvailable,
@@ -737,7 +737,7 @@ public final class DepResolution {
    * @param testInterface interface to check. Either a required interface or a provided interface
    * @param provide true: testInterface is a provided interface;
    *                false: testInterface is a required interface
-   * @return newest modules that meets the requirements; empty if no modules are found.
+   * @return newest modules that meets the requirements; empty if no modules are found
    */
   private static Map<String, ModuleDescriptor> findModulesForInterface(
       Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor testInterface,
@@ -776,8 +776,8 @@ public final class DepResolution {
   /**
    * Find modules that provide a required interface.
    * @param modsAvailable all modules known
-   * @param req required interface to check.
-   * @return newest modules that meets the requirements; empty if no modules are found.
+   * @param req required interface to check
+   * @return newest modules that meets the requirements; empty if no modules are found
    */
   static Map<String, ModuleDescriptor> findModulesForRequiredInterface(
       Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor req) {
@@ -788,7 +788,7 @@ public final class DepResolution {
   /**
    * Find modules that require a provided interface.
    * @param modsAvailable all modules known
-   * @param prov provided interface to check.
+   * @param prov provided interface to check
    * @return newest modules that meets the requirements; empty if no modules are found.
    */
   static Map<String, ModuleDescriptor> findModuleWithProvidedInterface(

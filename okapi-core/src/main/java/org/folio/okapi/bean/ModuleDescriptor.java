@@ -234,8 +234,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   /**
-   * Get auth routing entry if such exist for module.
-   * @return entry for auth; null if no such filter exist for module.
+   * Get auth routing entry if such exists for module.
+   * @return entry for auth; null if no such filter exists for module.
    */
   @JsonIgnore
   public RoutingEntry getAuthRoutingEntry() {
