@@ -819,7 +819,7 @@ public class DepResolutionTest {
     testList.add(mdC);
     Assert.assertEquals("",
         DepResolution.checkAvailable(available.values(), testList, true));
-    Assert.assertTrue(testList.containsAll(List.of(mdC)));
+    Assert.assertTrue(testList.contains(mdC));
 
     Assert.assertEquals("", DepResolution.checkAvailable(map(mdC, mdD)));
 
