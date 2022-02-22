@@ -9,6 +9,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,10 +35,20 @@ public class ModuleTenantInitAsync implements ModuleHandle {
   private JsonArray additionalMessages;
   private Map<String,JsonObject> jobs = new HashMap<>();
   private List<JsonObject> operations = new LinkedList<>();
+  private Map<String, Instant> startTime = new HashMap<>();
+  private Map<String, Instant> endTime = new HashMap<>();
 
-  public ModuleTenantInitAsync(Vertx vertx, String id, int port) {
+  public ModuleTenantInitAsync(Vertx vertx, int port) {
     this.vertx = vertx;
     this.port = port;
+  }
+
+  public Instant getStartTime(String module) {
+    return startTime.get(module);
+  }
+
+  public Instant getEndTime(String module) {
+    return endTime.get(module);
   }
 
   public List<JsonObject> getOperations() {
@@ -68,10 +80,13 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     this.additionalMessages = additionalMessages;
   }
 
+  void permissionsPost(RoutingContext ctx) {
+    ctx.response().setStatusCode(200).end();
+  }
+
   void tenantPost(RoutingContext ctx) {
-    HttpMethod method = ctx.request().method();
     String path = ctx.request().path();
-    if (HttpMethod.POST.equals(method) && path.equals("/_/tenant")) {
+    if (path.equals("/_/tenant")) {
       JsonObject tenantSchema = ctx.getBodyAsJson();
       operations.add(tenantSchema);
       if (tenantSchema.getBoolean("purge", false))
@@ -85,6 +100,11 @@ public class ModuleTenantInitAsync implements ModuleHandle {
         return;
       }
       JsonObject obj = ctx.getBodyAsJson();
+      String module = obj.getString("module_to", obj.getString("module_from"));
+      if (module != null) {
+        logger.info("Tenant begin for module {}", module);
+        startTime.put(module, Instant.now());
+      }
       obj.put("count", 2);
       obj.put("complete", Boolean.FALSE);
       String id = UUID.randomUUID().toString();
@@ -106,7 +126,6 @@ public class ModuleTenantInitAsync implements ModuleHandle {
   }
 
   void tenantGet(RoutingContext ctx) {
-    HttpMethod method = ctx.request().method();
     String path = ctx.request().path();
     String id = path.substring(path.lastIndexOf('/') + 1);
     JsonObject obj = jobs.get(id);
@@ -119,6 +138,12 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     int count = obj.getInteger("count");
     obj.put("count", --count);
     obj.put("complete", count <= 0);
+
+    String module = obj.getString("module_to", obj.getString("module_from"));
+    if (module != null && count <= 0) {
+      logger.info("Tenant complete for module {}", module);
+      endTime.put(module, Instant.now());
+    }
     if (errorMessage != null) {
       obj.put("error", errorMessage);
     }
@@ -132,7 +157,6 @@ public class ModuleTenantInitAsync implements ModuleHandle {
   }
 
   void tenantDelete(RoutingContext ctx) {
-    HttpMethod method = ctx.request().method();
     String path = ctx.request().path();
     String id = path.substring(path.lastIndexOf('/') + 1);
     if (jobs.remove(id) == null) {
@@ -153,6 +177,8 @@ public class ModuleTenantInitAsync implements ModuleHandle {
     router.post("/_/tenant").handler(this::tenantPost);
     router.getWithRegex("/_/tenant/.*").handler(this::tenantGet);
     router.deleteWithRegex("/_/tenant/.*").handler(this::tenantDelete);
+    router.post("/permissions").handler(BodyHandler.create());
+    router.post("/permissions").handler(this::permissionsPost);
 
     return vertx.createHttpServer()
         .requestHandler(router)

@@ -3,6 +3,7 @@ package org.folio.okapi.util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -184,7 +186,7 @@ public class DepResolutionTest {
   public void testUpgradeDifferentProduct() {
     List<TenantModuleDescriptor> tml = enableList(mdB);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false);
-    assertThat(tml, contains(disable(mdA100), enable(mdB)));
+    assertThat(tml, contains(enable(mdB), disable(mdA100)));
   }
 
   @Test
@@ -604,14 +606,14 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100, req1or2, reqI1or2);
       List<TenantModuleDescriptor> tml = enableList(reqI1or2, req1_100);
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(enable(prov100), enable(req1or2), enable(reqI1or2), enable(req1_100)));
+      assertThat(tml, contains(enable(prov100), enable(req1_100), enable(req1or2), enable(reqI1or2)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100, req1or2, reqI1or2);
       List<TenantModuleDescriptor> tml = enableList(req1_100, reqI1or2);
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(enable(prov100), enable(req1or2), enable(req1_100), enable(reqI1or2)));
+      assertThat(tml, contains(enable(prov100), enable(req1_100), enable(req1or2), enable(reqI1or2)));
     }
   }
 
@@ -646,13 +648,16 @@ public class DepResolutionTest {
     Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), Set.of("i0", "i1", "i2", "i3"), modC));
     Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA, modB), Set.of("i1", "i2"), modC));
 
-    List<ModuleDescriptor> l = new ArrayList<>(List.of(modC, modA, modB));
-    DepResolution.topoSort(l);
-    Assert.assertArrayEquals(new ModuleDescriptor[]{modA, modB, modC}, l.toArray());
+    Assert.assertTrue(DepResolution.moduleDepRequired(Collections.emptyList(), modA));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA), modA));
+    Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB), modA));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB), modB));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modB), modB));
 
-    l = new ArrayList<>(List.of(modB, modA, modC));
-    DepResolution.topoSort(l);
-    Assert.assertArrayEquals(new ModuleDescriptor[]{modA, modB, modC}, l.toArray());
+    Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modA));
+    Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD),modB));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modC));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modD));
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
@@ -757,7 +762,7 @@ public class DepResolutionTest {
       List<TenantModuleDescriptor> tml = enableList(modB, modD);
       tml.addAll(createList(Action.suggest, modA));
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(enable(modA), enable(modB), enable(modD), new TenantModuleDescriptorMatcher(Action.suggest, modA, null)));
+      assertThat(tml, contains(new TenantModuleDescriptorMatcher(Action.suggest, modA, null), enable(modA), enable(modB), enable(modD)));
     }
   }
 
@@ -1187,5 +1192,21 @@ public class DepResolutionTest {
     OkapiError error = Assert.assertThrows(OkapiError.class,
         () -> DepResolution.installMaxIterations(available, map(), tml1, false, numberOfModules - 1));
     Assert.assertEquals("Dependency resolution not completing in " + (numberOfModules - 1) + " iterations", error.getMessage());
+  }
+
+  @Test
+  public void sortTenantModulesUnsatisfied() {
+    // this should never happen as dependencies are checked before sorting starts
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    ModuleDescriptor md = new ModuleDescriptor("mod-1.0.0");
+    md.setRequires("int", "1.0");
+    tm.setId(md.getId());
+    tm.setAction(Action.enable);
+    List<TenantModuleDescriptor> tml = new ArrayList<>();
+    tml.add(tm);
+    Map<String,ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(md.getId(), md);
+    DepResolution.sortTenantModules(tml, modsAvailable, new HashSet<>(), Set.of("int"));
+    assertThat(tml, contains(tm));
   }
 }
