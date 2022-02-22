@@ -124,11 +124,14 @@ public class InterfaceDescriptor {
   /**
    * Compare two interfaces.
    * @param required required interface with possibly multiple versions
-   * @return 0=both are equal, 2/-2 minor differ, 1/-1 patch differ, Integer.MAX_VALUE otherwise
+   * @return 0=equal, 1/-1 patch differ, 2/-2 minor differ, 3/-3 major differ, 4/-4 id differ
    */
   public int compare(InterfaceDescriptor required) {
-    if (!this.getId().equals(required.getId())) {
-      return Integer.MAX_VALUE; // not the same interface at all
+    int d = this.getId().compareTo(required.getId());
+    if (d < 0) {
+      return -4;
+    } else if (d > 0) {
+      return 4;
     }
     int[] t = InterfaceDescriptor.versionParts(this.version, 0);
     for (int idx = 0;; idx++) {
@@ -136,9 +139,14 @@ public class InterfaceDescriptor {
       if (r == null) {
         break;
       }
-      if (t[0] == r[0]) {
+      d = t[0] - r[0];
+      if (d > 0) {
+        d = 3;
+      } else if (d < 0) {
+        d = -3;
+      } else {
         // could be a loop, but with only two it seems overkill.
-        int d = t[1] - r[1];
+        d = t[1] - r[1];
         if (d > 0) {
           return 2;
         } else if (d < 0) {
@@ -153,7 +161,7 @@ public class InterfaceDescriptor {
         return 0;
       }
     }
-    return Integer.MAX_VALUE;
+    return d;
   }
 
 
