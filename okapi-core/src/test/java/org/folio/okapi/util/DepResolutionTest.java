@@ -40,7 +40,6 @@ public class DepResolutionTest {
   private ModuleDescriptor mdD100;
   private ModuleDescriptor mdD110;
   private ModuleDescriptor mdD200;
-  private ModuleDescriptor mdDA200;
   private ModuleDescriptor mdE100;
   private ModuleDescriptor mdE110;
   private ModuleDescriptor mdE200;
@@ -122,10 +121,6 @@ public class DepResolutionTest {
 
     mdD200 = new ModuleDescriptor("moduleD-2.0.0");
     mdD200.setOptional(int20a);
-
-    mdDA200 = new ModuleDescriptor("moduleDA-2.0.0");
-    mdDA200.setOptional(int20a);
-    mdDA200.setRequires(new InterfaceDescriptor[]{new InterfaceDescriptor("unknown-interface", "2.0")});
 
     mdE100 = new ModuleDescriptor("moduleE-1.0.0");
     mdE100.setRequires(int10a);
