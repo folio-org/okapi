@@ -1,3 +1,41 @@
+## 4.13.0 2022-02-23
+
+Fixes:
+
+No major fixes in Okapi iself. Mostly just updates for dependency
+libraries.
+
+ * [OKAPI-1074](https://issues.folio.org/browse/OKAPI-1074) Vert.x 4.2.5
+ * [OKAPI-1069](https://issues.folio.org/browse/OKAPI-1069) Hazelcast security warning
+ * [OKAPI-1066](https://issues.folio.org/browse/OKAPI-1066) Filter require=version does
+not work with multiple versions
+ * [OKAPI-1063](https://issues.folio.org/browse/OKAPI-1063) Log4j 2.17.1
+
+Features:
+
+ * [OKAPI-1072](https://issues.folio.org/browse/OKAPI-1072) Additional tracing info of module acticvation
+ * [OKAPI-1068](https://issues.folio.org/browse/OKAPI-1068) Asynchronous Loggers (Log4j2 + Disruptor)
+ * [OKAPI-1065](https://issues.folio.org/browse/OKAPI-1065) Allow Okapi to consider preRelease
+and npmSnapshot only
+ * [OKAPI-1064](https://issues.folio.org/browse/OKAPI-1064) Install enable=enable with purge
+ * [OKAPI-1062](https://issues.folio.org/browse/OKAPI-1062) Add OkapiToken.getPayloadWithoutValidation
+ * [OKAPI-1045](https://issues.folio.org/browse/OKAPI-1045) Discovery via Kubernetes API
+ * [OKAPI-939](https://issues.folio.org/browse/OKAPI-939) Parallel (concurrent) migration of modules
+ * [OKAPI-902](https://issues.folio.org/browse/OKAPI-902) Update log4j2 configuration in Debian package
+ * [OKAPI-662](https://issues.folio.org/browse/OKAPI-662) Enhance install endpoint to report all
+version incompatible issues (not just the first)
+
+Warning:
+
+This version of Okapi happens to make a different order of modules during
+install as part of [OKAPI-662](https://issues.folio.org/browse/OKAPI-662) work.
+This is not an error, as multiple orders are ok as far as interface dependnecies
+are concerned. Module mod-data-export-spring may break because of this.
+See [MODEXPS-67](https://issues.folio.org/browse/MODEXPS-67). For this
+reason do not use this version Okapi with unless mod-data-export-spring
+includes the fix (at this time, no fix of mod-data-export-spring has been
+released).
+
 ## 4.12.0 2021-12-20
 
 Features:
