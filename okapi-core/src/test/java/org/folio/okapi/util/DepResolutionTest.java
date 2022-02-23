@@ -285,7 +285,7 @@ public class DepResolutionTest {
     // note that mdD200 is not part of the list
     DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110),
         map(mdA100, mdD100), tml, false);
-    assertThat(tml, contains(upgrade(mdA200, mdA100), disable(mdD100)));
+    assertThat(tml,  contains(disable(mdD100), upgrade(mdA200, mdA100)));
   }
 
   // upgrade base dependency and pull in module with unknown interface (results in error)
