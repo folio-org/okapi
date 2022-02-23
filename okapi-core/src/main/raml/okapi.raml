@@ -46,66 +46,6 @@ traits:
         enum: ["true","false","only"]
         required: false
         default: "true"
-  installParameters:
-    queryParameters:
-      async:
-        description: Whether to install in the background
-        type: boolean
-        required: false
-        default: false
-      deploy:
-        description: Whether to deploy (or undeploy if disabling)
-        type: boolean
-        required: false
-        default: false
-      ignoreErrors:
-        description: |
-          Okapi 4.2.0 and later, it is possible to ignore errors during the
-          install operation. This is done by supplying parameter `ignoreErrors=true`.
-          In this case, Okapi will try to upgrade all
-          modules in the modules list, regardless if one of them fails. However,
-          for individual modules, if they fail, their upgrade will not be commited.
-          This is an experimental parameter which was added to be able to inspect
-          all problem(s) with module upgrade(s).
-        type: boolean
-        required: false
-        default: false
-      invoke:
-        description: |
-         Whether to invoke for tenant init/permissions/purge. Use
-          "true" to invoke, "false" to not invoke. Any other value
-          is a regular expression that is matched against the module ID.
-          If that pattern matches, invoke is performed (same as "true").
-        type: string
-        required: false
-        default: "true"
-      parallel:
-        description: |
-          Number of parallel calls to tenant interfaces of modules.
-          A value of 1 means calls are happening in sequence.
-        type: integer
-        required: false
-        default: 1
-        minimum: 1
-      purge:
-        description: Disabled modules will also be purged.
-        type: boolean
-        required: false
-        default: false
-      reinstall:
-        description: Whether to install modules even if up-to-update
-        type: boolean
-        required: false
-        default: false
-      simulate:
-        description: Whether the installation is simulated
-        type: boolean
-        required: false
-        default: false
-      tenantParameters:
-        description: Parameters for Tenant init
-        type: string
-        required: false
 
 /_/deployment/modules:
   description: |
@@ -1022,8 +962,7 @@ traits:
               text/plain:
       post:
         is: [
-          versionFilters,
-          installParameters
+          versionFilters
         ]
         description: Enable, disable or upgrade one or more modules for
           tenant. The request body and response body is of the same type
@@ -1037,6 +976,57 @@ traits:
           For simulate=true, the response, can be viewed as a recipe for what
           must be deployed (optionally) and enabled/disabled by the existing
           tenants-modules CRUD service.
+        queryParameters:
+          async:
+            description: Whether to install in the background
+            type: boolean
+            required: false
+            default: false
+          deploy:
+            description: Whether to deploy (or undeploy if disabling)
+            type: boolean
+            required: false
+            default: false
+          ignoreErrors:
+            description: |
+              Okapi 4.2.0 and later, it is possible to ignore errors during the
+              install operation. This is done by supplying parameter `ignoreErrors=true`.
+              In this case, Okapi will try to upgrade all
+              modules in the modules list, regardless if one of them fails. However,
+              for individual modules, if they fail, their upgrade will not be commited.
+              This is an experimental parameter which was added to be able to inspect
+              all problem(s) with module upgrade(s).
+            type: boolean
+            required: false
+            default: false
+          invoke:
+            description: |
+              Whether to invoke for tenant init/permissions/purge. Use
+              "true" to invoke, "false" to not invoke. Any other value
+              is a regular expression that is matched against the module ID.
+              If that pattern matches, invoke is performed (same as "true)".
+            type: string
+            required: false
+            default: "true"
+          purge:
+            description: Disabled modules will also be purged.
+            type: boolean
+            required: false
+            default: false
+          reinstall:
+            description: Whether to install modules even if up-to-update
+            type: boolean
+            required: false
+            default: false
+          simulate:
+            description: Whether the installation is simulated
+            type: boolean
+            required: false
+            default: false
+          tenantParameters:
+            description: Parameters for Tenant init
+            type: string
+            required: false
         body:
           application/json:
             type: TenantModuleDescriptorList
@@ -1121,14 +1111,66 @@ traits:
                 text/plain:
     /upgrade:
       post:
-        is: [
-          versionFilters,
-          installParameters
-        ]
         description: Upgrade each module to the latest version. The upgrade is
           rejected if it would violate the interface dependencies of the modules.
           The response is a list of modules that have been enabled, disabled
           or upgraded to perform the upgrade.
+        queryParameters:
+          async:
+            description: Whether to upgrade in the background
+            type: boolean
+            required: false
+            default: false
+          deploy:
+            description: Whether to deploy (or undeploy if disabling)
+            type: boolean
+            required: false
+            default: false
+          ignoreErrors:
+            description: |
+              Okapi 4.2.0 and later, it is possible to ignore errors during the
+              upgrade operation. This is done by supplying parameter `ignoreErrors=true`.
+              In this case, Okapi will try to upgrade all
+              modules in the modules list, regardless if one of them fails. However,
+              for individual modules, if they fail, their upgrade will not be commited.
+              This is an experimental parameter which was added to be able to inspect
+              all problem(s) with module upgrade(s).
+            type: boolean
+            required: false
+            default: false
+          invoke:
+            description: |
+              Whether to invoke for tenant init/permissions/purge. Use
+              "true" to invoke, "false" to not invoke. Any other value
+              is a regular expression that is matched against the module ID.
+              If that pattern matches, invoke is performed (same as "true)".
+            type: string
+            required: false
+            default: "true"
+          preRelease:
+            description: Whether pre-releases should be considered for installation.
+            type: boolean
+            required: false
+            default: true
+          purge:
+            description: Disabled modules will also be purged
+            type: boolean
+            required: false
+            default: false
+          reinstall:
+            description: Whether to install modules even if up-to-update
+            type: boolean
+            required: false
+            default: false
+          simulate:
+            description: Whether the upgrade is simulated
+            type: boolean
+            required: false
+            default: false
+          tenantParameters:
+            description: Parameters for Tenant init
+            type: string
+            required: false
         responses:
           200:
             description: OK

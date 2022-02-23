@@ -2010,14 +2010,14 @@ public class ProxyTest {
         .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
         .then().statusCode(200).log().ifValidationFails()
         .body(equalTo("[ {" + LS
+            + "  \"id\" : \"request-only-1.0.0\"," + LS
+            + "  \"action\" : \"disable\"" + LS
+            + "}, {" + LS
             + "  \"id\" : \"request-pre-1.0.0\"," + LS
             + "  \"action\" : \"enable\"" + LS
             + "}, {" + LS
             + "  \"id\" : \"auth-f-module-1\"," + LS
             + "  \"action\" : \"enable\"" + LS
-            + "}, {" + LS
-            + "  \"id\" : \"request-only-1.0.0\"," + LS
-            + "  \"action\" : \"disable\"" + LS
             + "} ]"));
 
     // login and get token
@@ -3316,10 +3316,10 @@ public class ProxyTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"timer-module-2.0.0\"," + LS
+        + "  \"id\" : \"business-module-1.0.0\"," + LS
         + "  \"action\" : \"disable\"" + LS
         + "}, {" + LS
-        + "  \"id\" : \"business-module-1.0.0\"," + LS
+        + "  \"id\" : \"timer-module-2.0.0\"," + LS
         + "  \"action\" : \"disable\"" + LS
         + "} ]"));
 
