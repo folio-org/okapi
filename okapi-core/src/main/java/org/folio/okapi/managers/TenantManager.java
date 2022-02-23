@@ -992,7 +992,13 @@ public class TenantManager implements Liveness {
     if (options.getDeploy()) {
       future = future.compose(x -> autoDeploy(t, job, modsAvailable, tml));
     }
-    future = future.compose(x -> jobInvoke(t, pc, options, tml, modsAvailable, modsEnabled, job));
+    if (options.getMaxParallel() == 1) {
+      for (TenantModuleDescriptor tm : tml) {
+        future = future.compose(x -> jobInvokeSingle(t, pc, options, tm, modsAvailable, job));
+      }
+    } else {
+      future = future.compose(x -> jobInvoke(t, pc, options, tml, modsAvailable, modsEnabled, job));
+    }
 
     // if we are really upgrading permissions do a refresh last
     for (TenantModuleDescriptor tm : tml) {
