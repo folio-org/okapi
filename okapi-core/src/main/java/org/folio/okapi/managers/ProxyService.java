@@ -984,7 +984,7 @@ public class ProxyService {
             }
           });
     } catch (Exception e) {
-      pc.responseError(OkapiError.getType(e), e);
+      pc.responseError(ErrorType.INTERNAL, e);
     }
   }
 
@@ -1142,7 +1142,7 @@ public class ProxyService {
   }
 
   Future<OkapiClient> callSystemInterface(MultiMap headersIn, String tenantId,
-      ModuleInstance inst, String request) {
+                                          ModuleInstance inst, String request) {
 
     if (!headersIn.contains(XOkapiHeaders.URL)) {
       headersIn.set(XOkapiHeaders.URL, okapiUrl);
@@ -1156,10 +1156,14 @@ public class ProxyService {
     }
     return tenantManager.getEnabledModules(tenantId).compose(enabledModules -> {
       for (ModuleDescriptor md : enabledModules) {
-        RoutingEntry filt = md.getAuthRoutingEntry();
-        if (filt != null) {
-          logger.debug("callSystemInterface: Found auth filter in {}", md.getId());
-          return authForSystemInterface(md, filt, tenantId, inst, request, headersIn);
+        RoutingEntry[] filters = md.getFilters();
+        if (filters != null) {
+          for (RoutingEntry filt : filters) {
+            if (XOkapiHeaders.FILTER_AUTH.equals(filt.getPhase())) {
+              logger.debug("callSystemInterface: Found auth filter in {}", md.getId());
+              return authForSystemInterface(md, filt, tenantId, inst, request, headersIn);
+            }
+          }
         }
       }
       logger.debug("callSystemInterface: No auth for {} calling with "

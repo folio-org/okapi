@@ -35,7 +35,6 @@ public final class ModuleUtil {
     options.setAsync(getParamBoolean(params, "async", false));
     options.setIgnoreErrors(getParamBoolean(params, "ignoreErrors", false));
     options.setReinstall(getParamBoolean(params, "reinstall", false));
-    options.setMaxParallel(getParamInteger(params, "parallel", 1));
     return options;
   }
 
