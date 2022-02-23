@@ -132,18 +132,13 @@ public final class DepResolution {
    * some optional interfaces from the check.
    *
    * @param modules     the modules to check against
-   * @param allProvided interfaces for all modules
    * @param md          module to check.
    * @return            true if interface requirements are met
    */
   public static boolean moduleDepProvided(
-      Collection<ModuleDescriptor> modules, Set<String> allProvided,
-      ModuleDescriptor md) {
+      Collection<ModuleDescriptor> modules, ModuleDescriptor md) {
 
-    for (InterfaceDescriptor req : md.getRequiresOptionalList()) {
-      if (!allProvided.contains(req.getId())) {
-        continue;
-      }
+    for (InterfaceDescriptor req : md.getRequiresList()) {
       boolean found = false;
       for (ModuleDescriptor md1 : modules) {
         InterfaceDescriptor[] providesList = md1.getProvidesList();
@@ -666,28 +661,12 @@ public final class DepResolution {
     if (!errors.isEmpty()) {
       throw new OkapiError(ErrorType.USER, String.join(". ", errors));
     }
-    // in reality this is not required as install sort as well
-    sortTenantModules(tml, modsAvailable, enabledModules, modsEnabled);
+    sortTenantModules(tml, modsAvailable, enabledModules);
+
   }
 
   static void sortTenantModules(List<TenantModuleDescriptor> tml,
-      Map<String, ModuleDescriptor> modsAvailable, Collection<ModuleDescriptor> modules,
-      Map<String, ModuleDescriptor> modsEnabled) {
-
-    Set<String> allProvided = new HashSet<>();
-    for (ModuleDescriptor md : modsEnabled.values()) {
-      for (InterfaceDescriptor descriptor : md.getProvidesList()) {
-        if (descriptor.isRegularHandler()) {
-          allProvided.add(descriptor.getId());
-        }
-      }
-    }
-    sortTenantModules(tml, modsAvailable, modules, allProvided);
-  }
-
-  static void sortTenantModules(List<TenantModuleDescriptor> tml,
-      Map<String, ModuleDescriptor> modsAvailable, Collection<ModuleDescriptor> modules,
-      Set<String> allProvided) {
+      Map<String, ModuleDescriptor> modsAvailable, Collection<ModuleDescriptor> modules) {
 
     logger.info("sortTenantModules with list {}",
         tml.stream().map(TenantModuleDescriptor::getId).collect(Collectors.joining(", ")));
@@ -711,7 +690,7 @@ public final class DepResolution {
         logger.debug("See if module {} can be added to existing list of modules {}",
             md.getId(), modules.stream().map(ModuleDescriptor::getId)
                 .collect(Collectors.joining(", ")));
-        if (DepResolution.moduleDepProvided(modules, allProvided, md)) {
+        if (DepResolution.moduleDepProvided(modules, md)) {
           logger.debug("yes: adding {}", md.getId());
           iterator.remove();
           iterator = tml.iterator();
@@ -728,6 +707,10 @@ public final class DepResolution {
         iterator = tml.iterator();
         result.add(tm);
       }
+    }
+    if (!tml.isEmpty()) {
+      throw new OkapiError(ErrorType.USER, "Some modules cannot be topological sorted: "
+          + tml.stream().map(TenantModuleDescriptor::getId).collect(Collectors.joining(", ")));
     }
     tml.addAll(result);
   }

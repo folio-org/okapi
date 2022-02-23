@@ -1,6 +1,5 @@
 package org.folio.okapi.util;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -212,7 +211,7 @@ public class DepResolutionTest {
   public void testUpgrade1() {
     List<TenantModuleDescriptor> tml = enableList(mdD200);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdA200, mdD100, mdD200), map(mdB), tml, false);
-    assertThat(tml, contains(disable(mdB), enable(mdA200), enable(mdD200)));
+    assertThat(tml, contains(enable(mdD200), disable(mdB), enable(mdA200)));
   }
 
   @Test
@@ -253,7 +252,7 @@ public class DepResolutionTest {
   public void testInstallMinorLeafOptional() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     DepResolution.install(map(mdA100, mdA110, mdA111, mdD100, mdD110, mdE100), map(mdA100), tml, false);
-    assertThat(tml, contains(upgrade(mdA111, mdA100), enable(mdD110)));
+    assertThat(tml, contains(enable(mdD110), upgrade(mdA111, mdA100)));
   }
 
   // upgrade base dependency which is still compatible with optional interface
@@ -269,7 +268,7 @@ public class DepResolutionTest {
   public void testInstallMinorLeafOptional2() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     DepResolution.install(map(mdA100, mdA110, mdA111, mdD100, mdD110), map(mdA100, mdD100), tml, false);
-    assertThat(tml, contains(upgrade(mdA111, mdA100), upgrade(mdD110, mdD100)));
+    assertThat(tml, contains(upgrade(mdD110, mdD100), upgrade(mdA111, mdA100)));
   }
 
   // upgrade base dependency which is a major interface bump to optional interface
@@ -310,7 +309,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdD200);
     DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200, mdA200),
         map(mdA100, mdD100), tml, false);
-    assertThat(tml, contains(upgrade(mdA200, mdA100), upgrade(mdD200, mdD100)));
+    assertThat(tml, contains(upgrade(mdD200, mdD100), upgrade(mdA200, mdA100)));
   }
 
   // install optional with existing interface that needs upgrading, but
@@ -633,14 +632,14 @@ public class DepResolutionTest {
     ModuleDescriptor modD = new ModuleDescriptor("modD-1.0.0");
     modD.setOptional(i2);
 
-    Assert.assertTrue(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1"), modA));
-    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1", "i2"), modB));
-    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1", "i2", "i3"), modC));
+    Assert.assertTrue(DepResolution.moduleDepProvided(Collections.emptyList(), modA));
+    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), modB));
+    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), modC));
 
-    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA), Set.of("i1"), modB));
-    Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), Set.of("i0", "i1"), modB));
-    Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), Set.of("i0", "i1", "i2", "i3"), modC));
-    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA, modB), Set.of("i1", "i2"), modC));
+    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA), modB));
+    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA), modB));
+    Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), modC));
+    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA, modB), modC));
 
     Assert.assertTrue(DepResolution.moduleDepRequired(Collections.emptyList(), modA));
     Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA), modA));
@@ -748,7 +747,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC, modD);
       List<TenantModuleDescriptor> tml = enableList(modD, modB);
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(enable(modA), enable(modB), enable(modD)));
+      assertThat(tml, contains(enable(modD), enable(modA), enable(modB)));
     }
 
     {
@@ -756,7 +755,7 @@ public class DepResolutionTest {
       List<TenantModuleDescriptor> tml = enableList(modB, modD);
       tml.addAll(createList(Action.suggest, modA));
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(new TenantModuleDescriptorMatcher(Action.suggest, modA, null), enable(modA), enable(modB), enable(modD)));
+      assertThat(tml, contains(enable(modD), new TenantModuleDescriptorMatcher(Action.suggest, modA, null), enable(modA), enable(modB)));
     }
   }
 
@@ -1195,13 +1194,48 @@ public class DepResolutionTest {
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     ModuleDescriptor md = new ModuleDescriptor("mod-1.0.0");
     md.setRequires("int", "1.0");
-    tm.setId(md.getId());
-    tm.setAction(Action.enable);
-    List<TenantModuleDescriptor> tml = new ArrayList<>();
-    tml.add(tm);
+    List<TenantModuleDescriptor> tml = enableList(md);
     Map<String,ModuleDescriptor> modsAvailable = new HashMap<>();
     modsAvailable.put(md.getId(), md);
-    DepResolution.sortTenantModules(tml, modsAvailable, new HashSet<>(), Set.of("int"));
-    assertThat(tml, contains(tm));
+    OkapiError error = Assert.assertThrows(OkapiError.class, () ->
+        DepResolution.sortTenantModules(tml, modsAvailable, new HashSet<>()));
+    Assert.assertEquals("Some modules cannot be topological sorted: mod-1.0.0", error.getMessage());
+  }
+
+  @Test
+  public void circularRequire() {
+    InterfaceDescriptor inta = new InterfaceDescriptor("inta", "1.0");
+    InterfaceDescriptor intb = new InterfaceDescriptor("intb", "1.0");
+
+    ModuleDescriptor mdA = new ModuleDescriptor("modA-1.0.0");
+    mdA.setProvides(new InterfaceDescriptor[] {inta});
+    mdA.setRequires(new InterfaceDescriptor[] {intb});
+
+    ModuleDescriptor mdB = new ModuleDescriptor("modB-1.0.0");
+    mdB.setProvides(new InterfaceDescriptor[] {intb});
+    mdB.setRequires(new InterfaceDescriptor[] {inta});
+
+    List<TenantModuleDescriptor> tml = enableList(mdA, mdB);
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.install(map(mdA, mdB), map(), tml, false));
+    Assert.assertEquals("Some modules cannot be topological sorted: modA-1.0.0, modB-1.0.0", error.getMessage());
+  }
+
+  @Test
+  public void circularOptional() {
+    InterfaceDescriptor inta = new InterfaceDescriptor("inta", "1.0");
+    InterfaceDescriptor intb = new InterfaceDescriptor("intb", "1.0");
+
+    ModuleDescriptor mdA = new ModuleDescriptor("modA-1.0.0");
+    mdA.setProvides(new InterfaceDescriptor[] {inta});
+    mdA.setOptional(new InterfaceDescriptor[] {intb});
+
+    ModuleDescriptor mdB = new ModuleDescriptor("modB-1.0.0");
+    mdB.setProvides(new InterfaceDescriptor[] {intb});
+    mdB.setRequires(new InterfaceDescriptor[] {inta});
+
+    List<TenantModuleDescriptor> tml = enableList(mdA, mdB);
+    DepResolution.install(map(mdA, mdB), map(), tml, false);
+    assertThat(tml, contains(enable(mdA), enable(mdB)));
   }
 }
