@@ -14,11 +14,13 @@ import org.apache.logging.log4j.core.lookup.StrLookup;
  * and can be used in log4j log lines by using
  * {@link org.apache.logging.log4j.core.lookup.StrLookup StrLookup}
  *
- * <p>Usage example in log4j2.properties:</p>
- *
- * <p>appender.console.layout.requestId.type = KeyValuePair
+ * <p>Usage example in log4j2.properties:
+ * <pre>{@code
+ * appender.console.layout.requestId.type = KeyValuePair
  * appender.console.layout.requestId.key = requestId
- * appender.console.layout.requestId.value = $${FolioLoggingContext:requestid}</p>
+ * appender.console.layout.requestId.value = $${FolioLoggingContext:requestid}
+ * }
+ * </pre>
  */
 @Plugin(name = "FolioLoggingContext", category = StrLookup.CATEGORY)
 public class FolioLoggingContext implements StrLookup {
