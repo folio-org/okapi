@@ -665,10 +665,11 @@ public final class DepResolution {
    * <p>This is topological sort where nodes represent modules and arcs represent
    * interface dependencies.
    * </p>
+   * @see <a href="https://en.wikipedia.org/wiki/Topological_sorting">Topological sorting</a>
    * @param tml the module list with actions and the resulting sorted list afterwards.
    * @param modsAvailable all known modules
    * @param modules the existing list of modules and current list as we go on
-   * @throws OkapiError if dependencies can not be satisfied - including circular dependencies.
+   * @throws OkapiError if dependencies can not be satisfied - including circular dependencies
    */
   static void sortTenantModules(List<TenantModuleDescriptor> tml,
       Map<String, ModuleDescriptor> modsAvailable, Collection<ModuleDescriptor> modules) {
