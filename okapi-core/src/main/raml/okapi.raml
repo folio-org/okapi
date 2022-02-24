@@ -35,26 +35,26 @@ traits:
       preRelease:
         description:
           Whether to use pre-release in operation. "true"&#58; use all
-          modules; "false"&#58; releases (no pre-releases); "only"&#58; only pre-releases
+          modules; "false"&#58; releases (no pre-releases); "only"&#58; only pre-releases.
         enum: ["true","false","only"]
         required: false
         default: "true"
       npmSnapshot:
         description:
           Whether to use NPM module snapshots in operation. "true"&#58; use all
-          modules; "false"&#58; releases (no NPM snapshots); "only"&#58; only NPM snapshots
+          modules; "false"&#58; releases (no NPM snapshots); "only"&#58; only NPM snapshots.
         enum: ["true","false","only"]
         required: false
         default: "true"
   installParameters:
     queryParameters:
       async:
-        description: Whether to install in the background
+        description: Whether to install in the background.
         type: boolean
         required: false
         default: false
       deploy:
-        description: Whether to deploy (or undeploy if disabling)
+        description: Whether to deploy (or undeploy if disabling).
         type: boolean
         required: false
         default: false
@@ -62,11 +62,10 @@ traits:
         description: |
           Okapi 4.2.0 and later, it is possible to ignore errors during the
           install operation. This is done by supplying parameter `ignoreErrors=true`.
-          In this case, Okapi will try to upgrade all
-          modules in the modules list, regardless if one of them fails. However,
-          for individual modules, if they fail, their upgrade will not be commited.
-          This is an experimental parameter which was added to be able to inspect
-          all problem(s) with module upgrade(s).
+          In this case, Okapi will try to upgrade all modules in the modules list,
+          regardless if one of them fails. However, for individual modules, if they
+          fail, their upgrade will not be committed. This is an experimental parameter
+          which was added to be able to inspect all problem(s) with module upgrade(s).
         type: boolean
         required: false
         default: false
@@ -93,7 +92,7 @@ traits:
         required: false
         default: false
       reinstall:
-        description: Whether to install modules even if up-to-update
+        description: Whether to install modules even if up-to-update.
         type: boolean
         required: false
         default: false
@@ -103,7 +102,7 @@ traits:
         required: false
         default: false
       tenantParameters:
-        description: Parameters for Tenant init
+        description: Parameters for tenant init
         type: string
         required: false
 
@@ -479,8 +478,8 @@ traits:
   description: Proxy modules service, clean up obsolete snapshot modules
   post:
     description: Remove module snapshot modules descriptors that are obsolete. A module is
-      considered obsolete if it is part of a release that is earlier than N latest releases (saveReleases) and
-      not part of the M latest snapshots in that release.
+      considered obsolete if it is part of a release that is earlier than N latest releases
+      (saveReleases) and not part of the M latest snapshots in that release.
     queryParameters:
       removeDependencies:
         description: Force removal of modules that depend on obsolete snapshots
@@ -890,10 +889,9 @@ traits:
               body:
                 text/plain:
         post:
-          description: Upgrade a module for a tenant. Enable new module and
-            disable current module with new module ID in body and existing ID
-            in path.
-            This call will eventually be replaced by the 'install' service.
+          description: Upgrade a module for a tenant. Enable new module and disable current module
+            with new module ID in body and existing ID in path. This call will eventually be
+            replaced by the 'install' service.
           queryParameters:
             invoke:
               description: |
@@ -1025,18 +1023,14 @@ traits:
           versionFilters,
           installParameters
         ]
-        description: Enable, disable or upgrade one or more modules for
-          tenant. The request body and response body is of the same type
-          TenantModuleDescriptorList. This list includes one or more
-          modules to be enabled, disabled or upgraded. The request is the
-          initial desired changes and the response is the list of changes
-          that must be fulfilled to satisfy dependencies.
-          This service will eventually partially replace
-          /_/proxy/tenants/{tenant}/modules . It also allows
-          enabling multiple modules in one transaction.
-          For simulate=true, the response, can be viewed as a recipe for what
-          must be deployed (optionally) and enabled/disabled by the existing
-          tenants-modules CRUD service.
+        description: Enable, disable or upgrade one or more modules for tenant.
+          The request body and response body is of the same type TenantModuleDescriptorList.
+          This list includes one or more modules to be enabled, disabled or upgraded.
+          The request is the initial desired changes and the response is the list of changes
+          that must be fulfilled to satisfy dependencies. This service will eventually partially replace
+          /_/proxy/tenants/{tenant}/modules . It also allows enabling multiple modules in one transaction.
+          For simulate=true, the response, can be viewed as a recipe for what must be deployed
+          (optionally) and enabled/disabled by the existing tenants-modules CRUD service.
         body:
           application/json:
             type: TenantModuleDescriptorList
@@ -1199,7 +1193,8 @@ traits:
       /{interface_id}:
         get:
           description: Get all modules that provide the specified interface ID
-            DEPRECATED. Use /_/proxy/tenants/{tenant_id}/modules?provide={interface_id} instead
+            DEPRECATED. Use /_/proxy/tenants/{tenant_id}/modules?provide={interface_id}
+            instead.
           queryParameters:
             type:
               description: Limit by interfaceType
@@ -1488,9 +1483,9 @@ traits:
 
 /_/invoke/tenant/{id}:
   description: |
-    Call module with Tenant ID in path. This
-    service offers support for systems that need to "call-back" Okapi and
-    don't allow setting the Tenant ID in the HTTP header.
+    Call module with Tenant ID in path. This service offers support for
+    systems that need to "call-back" Okapi and don't allow setting the
+    Tenant ID in the HTTP header.
   get:
     description: Invoke any service (the rest of the path, any method,
       any response).

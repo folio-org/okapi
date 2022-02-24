@@ -127,38 +127,32 @@ public final class DepResolution {
   }
 
   /**
-   * Check if md's required and optional interfaces are provided by set of modules.
-   * Only interfaces listed in allProvided are checked, this allows for the exclusion of
-   * some optional interfaces from the check.
+   * Check if md's required interfaces are provided by set of modules.
    *
    * @param modules     the modules to check against
    * @param md          module to check.
-   * @return            true if interface requirements are met
+   * @return            true if interface requirements are met; false otherwise
    */
   public static boolean moduleDepProvided(
       Collection<ModuleDescriptor> modules, ModuleDescriptor md) {
 
+    interfaceDescriptor:
     for (InterfaceDescriptor req : md.getRequiresList()) {
-      boolean found = false;
       for (ModuleDescriptor md1 : modules) {
         InterfaceDescriptor[] providesList = md1.getProvidesList();
         for (InterfaceDescriptor prov : providesList) {
           if (prov.isRegularHandler() && prov.isCompatible(req)) {
-            found = true;
+            continue interfaceDescriptor;
           }
         }
       }
-      if (!found) {
-        return false;
-      }
+      return false;
     }
     return true;
   }
 
   /**
-   * Check if md's provided interfaces are required by any of the modules.
-   * Only interfaces listed in allProvided are checked, this allows for the exclusion of
-   * some optional interfaces from the check.
+   * Check if at least one of md's provided interfaces is a required or optional dependency of any of the modules.
    *
    * @param modules     the modules to check against
    * @param md          module to check
@@ -665,10 +659,20 @@ public final class DepResolution {
 
   }
 
+  /**
+   * Sort the modules honoring enable/disable actions.
+   * <p>This is topological sort where nodes represent modules and arcs represent
+   * interface dependencies.
+   * </p>
+   * @param tml the module list with actions and the resulting sorted list afterwards.
+   * @param modsAvailable all known modules
+   * @param modules the existing list of modules and current list as we go on
+   * @throws OkapiError if dependencies can not be satisfied - including circular dependencies.
+   */
   static void sortTenantModules(List<TenantModuleDescriptor> tml,
       Map<String, ModuleDescriptor> modsAvailable, Collection<ModuleDescriptor> modules) {
 
-    logger.info("sortTenantModules with list {}",
+    logger.info("sortTenantModules with list {}", () ->
         tml.stream().map(TenantModuleDescriptor::getId).collect(Collectors.joining(", ")));
     List<TenantModuleDescriptor> result = new ArrayList<>();
     Iterator<TenantModuleDescriptor> iterator = tml.iterator();
@@ -709,6 +713,7 @@ public final class DepResolution {
       }
     }
     if (!tml.isEmpty()) {
+      // it would be good to analyze this further with the interfaces that are problematic
       throw new OkapiError(ErrorType.USER, "Some modules cannot be topological sorted: "
           + tml.stream().map(TenantModuleDescriptor::getId).collect(Collectors.joining(", ")));
     }
@@ -761,7 +766,7 @@ public final class DepResolution {
    * Find modules that provide a required interface.
    * @param modsAvailable all modules known
    * @param req required interface to check
-   * @return newest modules that meets the requirements; empty if no modules are found
+   * @return newest modules that meet the requirements; empty if no modules are found
    */
   static Map<String, ModuleDescriptor> findModulesForRequiredInterface(
       Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor req) {
