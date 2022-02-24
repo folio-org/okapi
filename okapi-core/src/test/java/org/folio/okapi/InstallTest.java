@@ -23,6 +23,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.testutil.ModuleTenantInitAsync;
 import org.junit.After;
 import org.junit.Assert;
@@ -31,6 +32,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 @RunWith(VertxUnitRunner.class)
@@ -76,6 +78,12 @@ public class InstallTest {
 
     c.given().delete("/_/discovery/modules").then().statusCode(204);
     vertx.close(context.asyncAssertSuccess());
+  }
+
+  static void startModule(ModuleHandle moduleHandle, TestContext context) {
+    Async start = context.async();
+    moduleHandle.start().onComplete(context.asyncAssertSuccess(x -> start.complete()));
+    start.await();
   }
 
   JsonObject pollComplete(TestContext context, String path) {
@@ -1062,7 +1070,7 @@ public class InstallTest {
     httpServerV1.close();
   }
 
-  void createAsyncInitModule(TestContext context, String module) {
+  JsonObject createAsyncInitModule(String module) {
     final JsonObject md = new JsonObject()
         .put("id", module)
         .put("name", "async tenant init module")
@@ -1086,15 +1094,19 @@ public class InstallTest {
             )
         )
         .put("requires", new JsonArray());
+    return md;
+  }
+
+  void postAsyncInitModule(TestContext context, String module) {
     RestAssuredClient c = api.createRestAssured3();
     c.given()
         .header("Content-Type", "application/json")
-        .body(md.encode()).post("/_/proxy/modules").then().statusCode(201);
+        .body(createAsyncInitModule(module).encode()).post("/_/proxy/modules").then().statusCode(201);
   }
 
   void deployAsyncInitModule(TestContext context, String module, int port) {
     JsonObject node = new JsonObject()
-        .put("instId", "localhost-" + port)
+        .put("instId", module + "-localhost-" + port)
         .put("srvcId", module)
         .put("url", "http://localhost:" + port);
 
@@ -1135,10 +1147,9 @@ public class InstallTest {
     final String module1 = "v2-module-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context, module1);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module1, portModule);
-
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    postAsyncInitModule(context, module1);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module1, portModule);
     JsonObject job = installAndWait(context, okapiTenant, module1, "enable", "?async=true");
@@ -1153,9 +1164,9 @@ public class InstallTest {
         ), job);
 
     final String module2 = "v2-module-1.0.1";
-    createAsyncInitModule(context, module2);
-    ModuleTenantInitAsync tModule2 = new ModuleTenantInitAsync(vertx, module2, portModule2);
-    tModule2.start().onComplete(context.asyncAssertSuccess());
+    postAsyncInitModule(context, module2);
+    ModuleTenantInitAsync tModule2 = new ModuleTenantInitAsync(vertx, portModule2);
+    startModule(tModule2, context);
 
     deployAsyncInitModule(context, module2, portModule2);
     job = installAndWait(context, okapiTenant, module2, "enable", "?async=true");
@@ -1210,10 +1221,9 @@ public class InstallTest {
     final String module = "init-v2-module-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context, module);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
-
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    postAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
     JsonObject job = installAndWait(context, okapiTenant, module, "enable", "?async=true&purge=true");
@@ -1244,10 +1254,10 @@ public class InstallTest {
     final String module = "init-v2-module-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context, module);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
+    postAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
 
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
     tModule.setPurgeFail(true);
     deployAsyncInitModule(context, module, portModule);
     JsonObject job = installAndWait(context, okapiTenant, module, "enable", "?async=true&purge=true");
@@ -1308,9 +1318,8 @@ public class InstallTest {
         .header("Content-Type", "application/json")
         .body(md.encode()).post("/_/proxy/modules").then().statusCode(201);
 
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
-
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1365,9 +1374,8 @@ public class InstallTest {
         .header("Content-Type", "application/json")
         .body(md.encode()).post("/_/proxy/modules").then().statusCode(201);
 
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
-
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1392,11 +1400,11 @@ public class InstallTest {
     String module = "init-v2-module-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context, module);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
+    postAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
 
     tModule.setOmitLocationInResponse(true);
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1420,11 +1428,11 @@ public class InstallTest {
     final String module ="init-v2-module-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context, module);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
+    postAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
 
     tModule.setOmitIdInResponse(true);
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1451,11 +1459,11 @@ public class InstallTest {
     final String module = "init-v2-module-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context, module);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
+    postAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
 
     tModule.setBadJsonResponse(true);
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1472,11 +1480,11 @@ public class InstallTest {
     final String module = "init-v2-module-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context, module);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
+    postAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
 
     tModule.setGetStatusResponse(400);
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1493,11 +1501,11 @@ public class InstallTest {
     final String module = "init-v2-module-1.0.0";
 
     createTenant(context, okapiTenant);
-    createAsyncInitModule(context, module);
-    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, module, portModule);
+    postAsyncInitModule(context, module);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
 
     tModule.setErrorMessage("foo bar error", null);
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1510,6 +1518,354 @@ public class InstallTest {
     job = installAndWait(context, okapiTenant, module);
     context.assertEquals("Tenant operation failed for module init-v2-module-1.0.0: foo bar error\nmsg1\nmsg2", job.getJsonArray("modules")
         .getJsonObject(0).getString("message"));
+
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
+  void assertParallelRun(ModuleTenantInitAsync tModule, JsonObject moda, JsonObject modb) {
+    Assert.assertTrue(tModule.getStartTime(moda.getString("id")).isBefore(tModule.getEndTime(modb.getString("id"))));
+    Assert.assertTrue(tModule.getStartTime(modb.getString("id")).isBefore(tModule.getEndTime(moda.getString("id"))));
+  }
+
+  void assertSequenceRun(ModuleTenantInitAsync tModule, JsonObject moda, JsonObject modb) {
+    Assert.assertTrue(tModule.getEndTime(moda.getString("id")).isBefore(tModule.getStartTime(modb.getString("id"))));
+  }
+
+  @Test
+  public void parallelMigration(TestContext context) {
+    JsonObject moda = createAsyncInitModule("mod-a-1.0.0");
+    moda.getJsonArray("provides")
+        .add(new JsonObject()
+            .put("id", "a")
+            .put("version", "1.0")
+        );
+    given()
+        .header("Content-Type", "application/json")
+        .body(moda.encode()).post("/_/proxy/modules").then().statusCode(201);
+
+    JsonObject modb = createAsyncInitModule("mod-b-1.0.0");
+    modb.getJsonArray("provides")
+        .add(new JsonObject()
+            .put("id", "b")
+            .put("version", "1.0")
+        );
+    given()
+        .header("Content-Type", "application/json")
+        .body(modb.encode()).post("/_/proxy/modules").then().statusCode(201);
+
+    JsonObject mid = createAsyncInitModule("mod-m-1.0.0");
+    mid.getJsonArray("requires")
+        .add(new JsonObject()
+            .put("id", "a")
+            .put("version", "1.0")
+        )
+        .add(new JsonObject()
+            .put("id", "b")
+            .put("version", "1.0")
+        );
+    given()
+        .header("Content-Type", "application/json")
+        .body(mid.encode()).post("/_/proxy/modules").then().statusCode(201);
+
+    final String tenant = "roskilde";
+    createTenant(context, tenant);
+    deployAsyncInitModule(context, moda.getString("id"), portModule);
+    deployAsyncInitModule(context, modb.getString("id"), portModule);
+    deployAsyncInitModule(context, mid.getString("id"), portModule);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
+    startModule(tModule, context);
+
+    JsonArray installOp = new JsonArray()
+        .add(new JsonObject()
+            .put("id", moda.getString("id"))
+            .put("action", "enable")
+        )
+        .add(new JsonObject()
+            .put("id", modb.getString("id"))
+            .put("action", "enable")
+        )
+        .add(new JsonObject()
+            .put("id", mid.getString("id"))
+            .put("action", "enable")
+        );
+
+    given()
+        .header("Content-Type", "application/json")
+        .body(installOp.encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true&parallel=0")
+        .then().statusCode(400)
+        .body(containsString("parallel must be 1 or higher"));
+
+    RestAssuredClient c = api.createRestAssured3();
+    String location = c.given()
+        .header("Content-Type", "application/json")
+        .body(installOp.encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true&parallel=5")
+        .then().statusCode(201)
+        .extract().header("Location");
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    JsonObject job = pollCompleteStrip(context, location);
+    JsonObject jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", moda.getString("id"))
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", modb.getString("id"))
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", mid.getString("id"))
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+        );
+    context.assertEquals(jobExpected, job);
+    assertParallelRun(tModule, moda, modb);
+    assertSequenceRun(tModule, moda, mid);
+    assertSequenceRun(tModule, modb, mid);
+
+    installOp = new JsonArray()
+        .add(new JsonObject()
+            .put("id", moda.getString("id"))
+            .put("action", "disable")
+        )
+        .add(new JsonObject()
+            .put("id", modb.getString("id"))
+            .put("action", "disable")
+        )
+        .add(new JsonObject()
+            .put("id", mid.getString("id"))
+            .put("action", "disable")
+        );
+    location = given()
+        .header("Content-Type", "application/json")
+        .body(installOp.encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true&parallel=5")
+        .then().statusCode(201)
+        .extract().header("Location");
+    job = pollCompleteStrip(context, location);
+    jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", mid.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", moda.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", modb.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+        );
+    context.assertEquals(jobExpected, job);
+    // mid disabled first
+    assertSequenceRun(tModule, mid, moda);
+    assertSequenceRun(tModule, mid, modb);
+    // then mode, modb
+    assertParallelRun(tModule, moda, modb);
+
+    tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
+  @Test
+  public void installParallelPermissions(TestContext context) {
+    JsonObject moda = createAsyncInitModule("mod-a-1.0.0");
+    moda.getJsonArray("provides")
+        .add(new JsonObject()
+            .put("id", "a")
+            .put("version", "1.0")
+        );
+    given()
+        .header("Content-Type", "application/json")
+        .body(moda.encode()).post("/_/proxy/modules").then().statusCode(201);
+
+    JsonObject modb = createAsyncInitModule("mod-b-1.0.0");
+    modb.getJsonArray("provides")
+        .add(new JsonObject()
+            .put("id", "b")
+            .put("version", "1.0")
+        );
+    given()
+        .header("Content-Type", "application/json")
+        .body(modb.encode()).post("/_/proxy/modules").then().statusCode(201);
+
+    JsonObject modp = createAsyncInitModule("mod-p-1.0.0");
+    modp.getJsonArray("provides")
+        .add(new JsonObject()
+            .put("id", "_tenantPermissions")
+            .put("interfaceType", "system")
+            .put("version", "1.0")
+            .put("handlers", new JsonArray()
+                .add(new JsonObject()
+                    .put("methods", new JsonArray().add("POST"))
+                    .put("pathPattern", "/permissions")
+                    .put("permissionsRequired", new JsonArray())
+                )
+            )
+        );
+    given()
+        .header("Content-Type", "application/json")
+        .body(modp.encode()).post("/_/proxy/modules").then().statusCode(201);
+
+    JsonObject mid = createAsyncInitModule("mod-m-1.0.0");
+    mid.getJsonArray("requires")
+        .add(new JsonObject()
+            .put("id", "a")
+            .put("version", "1.0")
+        )
+        .add(new JsonObject()
+            .put("id", "b")
+            .put("version", "1.0")
+        );
+    given()
+        .header("Content-Type", "application/json")
+        .body(mid.encode()).post("/_/proxy/modules").then().statusCode(201);
+
+    final String tenant = "roskilde";
+    createTenant(context, tenant);
+    deployAsyncInitModule(context, moda.getString("id"), portModule);
+    deployAsyncInitModule(context, modb.getString("id"), portModule);
+    deployAsyncInitModule(context, modp.getString("id"), portModule);
+    deployAsyncInitModule(context, mid.getString("id"), portModule);
+    ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
+    startModule(tModule, context);
+
+    JsonArray installOp = new JsonArray()
+        .add(new JsonObject()
+            .put("id", moda.getString("id"))
+            .put("action", "enable")
+        )
+        .add(new JsonObject()
+            .put("id", modb.getString("id"))
+            .put("action", "enable")
+        )
+        .add(new JsonObject()
+            .put("id", modp.getString("id"))
+            .put("action", "enable")
+        )
+        .add(new JsonObject()
+            .put("id", mid.getString("id"))
+            .put("action", "enable")
+        );
+
+    given()
+        .header("Content-Type", "application/json")
+        .body(installOp.encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true&parallel=0")
+        .then().statusCode(400)
+        .body(containsString("parallel must be 1 or higher"));
+
+    RestAssuredClient c = api.createRestAssured3();
+    String location = c.given()
+        .header("Content-Type", "application/json")
+        .body(installOp.encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true&parallel=5")
+        .then().statusCode(201)
+        .extract().header("Location");
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    JsonObject job = pollCompleteStrip(context, location);
+    JsonObject jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", moda.getString("id"))
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", modb.getString("id"))
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", modp.getString("id"))
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", mid.getString("id"))
+                .put("action", "enable")
+                .put("stage", "done")
+            )
+        );
+    context.assertEquals(jobExpected, job);
+
+    assertParallelRun(tModule, moda, modb);
+    assertSequenceRun(tModule, moda, modp);
+    assertSequenceRun(tModule, modb, modp);
+    assertSequenceRun(tModule, modp, mid);
+
+    installOp = new JsonArray()
+        .add(new JsonObject()
+            .put("id", moda.getString("id"))
+            .put("action", "disable")
+        )
+        .add(new JsonObject()
+            .put("id", modb.getString("id"))
+            .put("action", "disable")
+        )
+        .add(new JsonObject()
+            .put("id", modp.getString("id"))
+            .put("action", "disable")
+        )
+        .add(new JsonObject()
+            .put("id", mid.getString("id"))
+            .put("action", "disable")
+        );
+    location = given()
+        .header("Content-Type", "application/json")
+        .body(installOp.encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?async=true&parallel=5")
+        .then().statusCode(201)
+        .extract().header("Location");
+    job = pollCompleteStrip(context, location);
+    jobExpected = new JsonObject()
+        .put("complete", true)
+        .put("modules", new JsonArray()
+            .add(new JsonObject()
+                .put("id", modp.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", mid.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", moda.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+            .add(new JsonObject()
+                .put("id", modb.getString("id"))
+                .put("action", "disable")
+                .put("stage", "done")
+            )
+        );
+    context.assertEquals(jobExpected, job);
+
+    assertSequenceRun(tModule, modp, mid);
+    assertSequenceRun(tModule, modp, moda);
+    assertSequenceRun(tModule, modp, modb);
+    assertParallelRun(tModule, moda, modb);
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }

@@ -127,64 +127,56 @@ public final class DepResolution {
   }
 
   /**
-   * Check if md's required and optional interfaces are provided by set of modules.
-   * The interface version is not checked, only the interface name.
-   * Only interfaces listed in allProvided are checked, this allows to exclude some optional
-   * interfaces from the check.
+   * Check if md's required interfaces are provided by set of modules.
    *
-   * @param modules     the modules that check against
-   * @param allProvided interfaces for all modules
+   * @param modules     the modules to check against
    * @param md          module to check.
-   * @return            true if interface requirements are met
+   * @return            true if interface requirements are met; false otherwise
    */
-  static boolean moduleDepProvided(
-      List<ModuleDescriptor> modules, Set<String> allProvided,
-      ModuleDescriptor md) {
+  public static boolean moduleDepProvided(
+      Collection<ModuleDescriptor> modules, ModuleDescriptor md) {
 
-    for (InterfaceDescriptor req : md.getRequiresOptionalList()) {
-      if (allProvided.contains(req.getId())) {
-        boolean found = false;
-        for (ModuleDescriptor md1 : modules) {
-          InterfaceDescriptor[] providesList = md1.getProvidesList();
-          for (InterfaceDescriptor prov : providesList) {
-            if (prov.isRegularHandler() && prov.getId().equals(req.getId())) {
-              found = true;
-            }
+    interfaceDescriptor:
+    for (InterfaceDescriptor req : md.getRequiresList()) {
+      for (ModuleDescriptor md1 : modules) {
+        InterfaceDescriptor[] providesList = md1.getProvidesList();
+        for (InterfaceDescriptor prov : providesList) {
+          if (prov.isRegularHandler() && prov.isCompatible(req)) {
+            continue interfaceDescriptor;
           }
         }
-        if (!found) {
-          return false;
-        }
       }
+      return false;
     }
     return true;
   }
 
-  static void topoSort(List<ModuleDescriptor> modules) {
-    List<ModuleDescriptor> result = new LinkedList<>();
+  /**
+   * Check if any of md's provided interfaces are used by any of the modules.
+   *
+   * <p>A interface is used if it's a required or optional interface dependency.
+   *
+   * @param modules     the modules to check against
+   * @param md          module to check
+   * @return            true if modules do not use any of the provided interfaces; false otherwise
+   */
+  public static boolean moduleDepRequired(Collection<ModuleDescriptor> modules,
+      ModuleDescriptor md) {
 
-    Set<String> allProvided = new HashSet<>();
-    for (ModuleDescriptor md : modules) {
-      for (InterfaceDescriptor descriptor : md.getProvidesList()) {
-        if (descriptor.isRegularHandler()) {
-          allProvided.add(descriptor.getId());
+    for (InterfaceDescriptor prov : md.getProvidesList()) {
+      if (!prov.isRegularHandler()) {
+        continue;
+      }
+      for (ModuleDescriptor md1 : modules) {
+        List<InterfaceDescriptor> requiresList = md1.getRequiresOptionalList();
+        for (InterfaceDescriptor req : requiresList) {
+          if (prov.isCompatible(req)) {
+            return false;
+          }
         }
       }
     }
-    boolean more = true;
-    while (more) {
-      more = false;
-      Iterator<ModuleDescriptor> iterator = modules.iterator();
-      while (iterator.hasNext()) {
-        ModuleDescriptor md = iterator.next();
-        if (moduleDepProvided(result, allProvided, md)) {
-          result.add(md);
-          iterator.remove();
-          more = true;
-        }
-      }
-    }
-    modules.addAll(0, result);
+    return true;
   }
 
   private static Map<String, InterfaceDescriptor> checkPresenceDependency(
@@ -313,79 +305,6 @@ public final class DepResolution {
     }
   }
 
-
-  private static void sortTenantModules(
-      List<TenantModuleDescriptor> tml,
-      Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled) {
-
-    Set<String> added = new HashSet<>();
-    // make a list of all modules involved.. also those removed.
-    LinkedList<ModuleDescriptor> sortedList = new LinkedList<>();
-    for (TenantModuleDescriptor tm : tml) {
-      if (tm.getAction() == TenantModuleDescriptor.Action.enable
-          || tm.getAction() == TenantModuleDescriptor.Action.uptodate
-          || tm.getAction() == TenantModuleDescriptor.Action.disable) {
-        sortedList.add(modsAvailable.get(tm.getId()));
-        added.add(tm.getId());
-      }
-    }
-    for (ModuleDescriptor md : modsEnabled.values()) {
-      if (!added.contains(md.getId())) {
-        sortedList.add(md);
-        added.add(md.getId());
-      }
-    }
-    topoSort(sortedList);
-    // we now have a list where things mentioned in the install comes first.. Thus, if
-    // for cases where there are different orders satisfying dependencies, the order in the
-    // install is honored and will be listed first.
-    logger.info("Topo sort result {}", () ->
-        sortedList.stream()
-            .map(ModuleDescriptor::getId)
-            .collect(Collectors.joining(", ")));
-
-    logger.info("Input install list {}", () ->
-        tml.stream()
-            .map(TenantModuleDescriptor::getId)
-            .collect(Collectors.joining(", ")));
-
-    List<TenantModuleDescriptor> tml2 = new ArrayList<>();
-
-    // go through modules that need to be disabled
-    Iterator<ModuleDescriptor> moduleIterator = sortedList.descendingIterator();
-    while (moduleIterator.hasNext()) {
-      String id = moduleIterator.next().getId();
-      Iterator<TenantModuleDescriptor> iterator = tml.iterator();
-      while (iterator.hasNext()) {
-        TenantModuleDescriptor tm = iterator.next();
-        if (tm.getId().equals(id) && tm.getAction() == TenantModuleDescriptor.Action.disable) {
-          tml2.add(tm);
-          iterator.remove();
-        }
-      }
-    }
-
-    // go through modules that need to be enabled/updated
-    moduleIterator = sortedList.iterator();
-    while (moduleIterator.hasNext()) {
-      String id = moduleIterator.next().getId();
-      Iterator<TenantModuleDescriptor> iterator = tml.iterator();
-      while (iterator.hasNext()) {
-        TenantModuleDescriptor tm = iterator.next();
-        if (tm.getId().equals(id)
-            && (tm.getAction() == TenantModuleDescriptor.Action.enable
-            || tm.getAction() == TenantModuleDescriptor.Action.uptodate)) {
-          tml2.add(tm);
-          iterator.remove();
-        }
-      }
-    }
-    tml2.addAll(tml);
-    // result in tml2.. transfer to tml
-    tml.clear();
-    tml.addAll(tml2);
-  }
-
   private static void addTenantModule(
       List<TenantModuleDescriptor> tml, String id, String from,
       TenantModuleDescriptor.Action action) {
@@ -483,11 +402,11 @@ public final class DepResolution {
    *
    * @param modsEnabled moddules enabled for a tenant
    * @param tml tenant module list (install)
-   * @param fix whether to disable modules when multiple interfaces are provided.
+   * @param fix whether to disable modules when multiple interfaces are provided
    * @param errors errors list (empty if no errors)
    * @param providedInterfaces provided interfaces for enabled modules
    * @param stickyModules modules that are never removed/enabled
-   * @return true if modsEnabled was altered (call again), false if modsEnabled was unchanged.
+   * @return true if modsEnabled was altered (call again), false if modsEnabled was unchanged
    */
   private static boolean checkMultiple(
       Map<String, ModuleDescriptor> modsEnabled,
@@ -665,12 +584,14 @@ public final class DepResolution {
    * @param modsEnabled   enabled modules (for some tenant)
    * @param tml           install list with actions
    * @param reinstall     whether to re-install
-   * @param maxIterations how many iterations to allow fixup of list.
+   * @param maxIterations how many fixup iterations
    */
   static void installMaxIterations(
       Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
       boolean reinstall, int maxIterations) {
+
+    final Collection<ModuleDescriptor> enabledModules = new LinkedList<>(modsEnabled.values());
 
     List<String> errors = new LinkedList<>();
     Set<String> stickyModules = new HashSet<>();
@@ -736,7 +657,70 @@ public final class DepResolution {
     if (!errors.isEmpty()) {
       throw new OkapiError(ErrorType.USER, String.join(". ", errors));
     }
-    sortTenantModules(tml, modsAvailable, modsEnabled);
+    sortTenantModules(tml, modsAvailable, enabledModules);
+
+  }
+
+  /**
+   * Sort the modules honoring enable/disable actions.
+   *
+   * <p>This is topological sort where nodes represent modules and arcs represent
+   * interface dependencies.
+   * @see <a href="https://en.wikipedia.org/wiki/Topological_sorting">Topological sorting</a>
+   * @param tml the module list with actions and the resulting sorted list afterwards.
+   * @param modsAvailable all known modules
+   * @param modules the existing list of modules and current list as we go on
+   * @throws OkapiError if dependencies can not be satisfied - including circular dependencies
+   */
+  static void sortTenantModules(List<TenantModuleDescriptor> tml,
+      Map<String, ModuleDescriptor> modsAvailable, Collection<ModuleDescriptor> modules) {
+
+    logger.info("sortTenantModules with list {}", () ->
+        tml.stream().map(TenantModuleDescriptor::getId).collect(Collectors.joining(", ")));
+    List<TenantModuleDescriptor> result = new ArrayList<>();
+    Iterator<TenantModuleDescriptor> iterator = tml.iterator();
+    while (iterator.hasNext()) {
+      TenantModuleDescriptor tm = iterator.next();
+      ModuleDescriptor md = modsAvailable.get(tm.getId());
+      if (tm.getAction().equals(TenantModuleDescriptor.Action.disable)) {
+        logger.debug("See if module {} can be removed from existing list of modules {}",
+            md.getId(), modules.stream().map(ModuleDescriptor::getId)
+                .collect(Collectors.joining(", ")));
+        if (DepResolution.moduleDepRequired(modules, md)) {
+          logger.debug("yes: removing {}", md.getId());
+          iterator.remove();
+          iterator = tml.iterator();
+          result.add(tm);
+          modules.remove(md);
+        }
+      } else if (tm.getAction().equals(TenantModuleDescriptor.Action.enable)) {
+        logger.debug("See if module {} can be added to existing list of modules {}",
+            md.getId(), modules.stream().map(ModuleDescriptor::getId)
+                .collect(Collectors.joining(", ")));
+        if (DepResolution.moduleDepProvided(modules, md)) {
+          logger.debug("yes: adding {}", md.getId());
+          iterator.remove();
+          iterator = tml.iterator();
+          result.add(tm);
+          modules.add(md);
+          String moduleFrom = tm.getFrom();
+          if (moduleFrom != null) {
+            logger.debug("yes: removing from {}", moduleFrom);
+            modules.remove(modsAvailable.get(moduleFrom));
+          }
+        }
+      } else {
+        iterator.remove();
+        iterator = tml.iterator();
+        result.add(tm);
+      }
+    }
+    if (!tml.isEmpty()) {
+      // it would be good to analyze this further with the interfaces that are problematic
+      throw new OkapiError(ErrorType.USER, "Some modules cannot be topological sorted: "
+          + tml.stream().map(TenantModuleDescriptor::getId).collect(Collectors.joining(", ")));
+    }
+    tml.addAll(result);
   }
 
   /**
@@ -745,7 +729,7 @@ public final class DepResolution {
    * @param testInterface interface to check. Either a required interface or a provided interface
    * @param provide true: testInterface is a provided interface;
    *                false: testInterface is a required interface
-   * @return newest modules that meets the requirements; empty if no modules are found.
+   * @return newest modules that meets the requirements; empty if no modules are found
    */
   private static Map<String, ModuleDescriptor> findModulesForInterface(
       Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor testInterface,
@@ -784,8 +768,8 @@ public final class DepResolution {
   /**
    * Find modules that provide a required interface.
    * @param modsAvailable all modules known
-   * @param req required interface to check.
-   * @return newest modules that meets the requirements; empty if no modules are found.
+   * @param req required interface to check
+   * @return newest modules that meet the requirements; empty if no modules are found
    */
   static Map<String, ModuleDescriptor> findModulesForRequiredInterface(
       Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor req) {
@@ -796,7 +780,7 @@ public final class DepResolution {
   /**
    * Find modules that require a provided interface.
    * @param modsAvailable all modules known
-   * @param prov provided interface to check.
+   * @param prov provided interface to check
    * @return newest modules that meets the requirements; empty if no modules are found.
    */
   static Map<String, ModuleDescriptor> findModuleWithProvidedInterface(

@@ -14,11 +14,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InstallJob;
@@ -963,13 +966,13 @@ public class TenantManager implements Liveness {
       return Future.succeededFuture(tml);
     }
     return jobs.add(t.getId(), job.getId(), job)
-        .compose(res2 -> runJob(t, pc, options, tml, modsAvailable, job));
+        .compose(res2 -> runJob(t, pc, options, tml, modsAvailable, modsEnabled, job));
   }
 
   private Future<List<TenantModuleDescriptor>> runJob(
       Tenant t, ProxyContext pc, TenantInstallOptions options,
-      List<TenantModuleDescriptor> tml,
-      Map<String, ModuleDescriptor> modsAvailable, InstallJob job) {
+      List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     Promise<List<TenantModuleDescriptor>> promise = Promise.promise();
     Future<Void> future = Future.succeededFuture();
@@ -989,26 +992,8 @@ public class TenantManager implements Liveness {
     if (options.getDeploy()) {
       future = future.compose(x -> autoDeploy(t, job, modsAvailable, tml));
     }
-    for (TenantModuleDescriptor tm : tml) {
-      future = future.compose(x -> {
-        tm.setStage(TenantModuleDescriptor.Stage.invoke);
-        return jobs.put(t.getId(), job.getId(), job);
-      });
-      future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
-      if (options.getIgnoreErrors()) {
-        future = future.otherwise(e -> {
-          logger.warn("Ignoring error for tenant {} module {}", t.getId(), tm.getId(), e);
-          return null;
-        });
-      }
-      future = future.compose(x -> {
-        if (tm.getMessage() != null) {
-          return Future.succeededFuture();
-        }
-        tm.setStage(TenantModuleDescriptor.Stage.done);
-        return jobs.put(t.getId(), job.getId(), job);
-      });
-    }
+    future = future.compose(x -> jobInvoke(t, pc, options, tml, modsAvailable, modsEnabled, job));
+
     // if we are really upgrading permissions do a refresh last
     for (TenantModuleDescriptor tm : tml) {
       if (tm.getAction() == Action.enable && tm.getFrom() != null) {
@@ -1048,6 +1033,95 @@ public class TenantManager implements Liveness {
       promise.complete(tml2);
     });
     return promise.future();
+  }
+
+  private boolean isExclusive(ModuleDescriptor md) {
+    return md.getSystemInterface("_tenantPermissions") != null
+        || md.getAuthRoutingEntry() != null;
+  }
+
+  private boolean depsOK(TenantModuleDescriptor tm, ModuleDescriptor md,
+      Collection<ModuleDescriptor> modules) {
+
+    if (tm.getAction() == Action.disable) {
+      return DepResolution.moduleDepRequired(modules, md);
+    }
+    return DepResolution.moduleDepProvided(modules, md);
+  }
+
+  private void jobRunPending(Tenant t, ProxyContext pc, TenantInstallOptions options,
+      List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
+      InstallJob job, AtomicInteger running, AtomicBoolean exclusive,
+      Promise<Void> promise) {
+
+    Iterator<TenantModuleDescriptor> iterator = tml.iterator();
+    while (iterator.hasNext() && running.get() < options.getMaxParallel() && !exclusive.get()) {
+      TenantModuleDescriptor tm = iterator.next();
+      if (tm.getStage() != TenantModuleDescriptor.Stage.pending
+          && tm.getStage() != TenantModuleDescriptor.Stage.deploy) {
+        continue;
+      }
+      ModuleDescriptor md = modsAvailable.get(tm.getId());
+      if (!depsOK(tm, md, getEnabledModules(t))) {
+        continue;
+      }
+      if (isExclusive(md)) {
+        if (running.get() > 0) {
+          continue;
+        }
+        exclusive.set(Boolean.TRUE);
+      }
+      running.incrementAndGet();
+      jobInvokeSingle(t, pc, options, tm, modsAvailable, job)
+          .onComplete(x -> {
+            running.decrementAndGet();
+            if (isExclusive(md)) {
+              exclusive.set(Boolean.FALSE);
+            }
+            if (x.failed()) {
+              promise.tryFail(x.cause());
+              return;
+            } else {
+              jobRunPending(t, pc, options, tml, modsAvailable, job, running, exclusive, promise);
+            }
+          });
+      iterator = tml.iterator();
+    }
+    for (TenantModuleDescriptor tm : tml) {
+      if (tm.getStage() != TenantModuleDescriptor.Stage.done && tm.getMessage() == null) {
+        return;
+      }
+    }
+    promise.tryComplete();
+  }
+
+  private Future<Void> jobInvoke(Tenant t, ProxyContext pc, TenantInstallOptions options,
+      List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
+
+    return Future.future(f -> jobRunPending(t, pc, options, tml, modsAvailable,
+        job, new AtomicInteger(), new AtomicBoolean(), f));
+  }
+
+  private Future<Void> jobInvokeSingle(Tenant t, ProxyContext pc, TenantInstallOptions options,
+      TenantModuleDescriptor tm, Map<String, ModuleDescriptor> modsAvailable, InstallJob job) {
+
+    tm.setStage(TenantModuleDescriptor.Stage.invoke);
+    Future<Void> future = jobs.put(t.getId(), job.getId(), job);
+    future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
+    if (options.getIgnoreErrors()) {
+      future = future.otherwise(e -> {
+        logger.warn("Ignoring error for tenant {} module {}", t.getId(), tm.getId(), e);
+        return null;
+      });
+    }
+    return future.compose(x -> {
+      if (tm.getMessage() != null) {
+        return Future.succeededFuture();
+      }
+      tm.setStage(TenantModuleDescriptor.Stage.done);
+      return jobs.put(t.getId(), job.getId(), job);
+    });
   }
 
   private Future<Void> autoDeploy(Tenant tenant, InstallJob job, Map<String,

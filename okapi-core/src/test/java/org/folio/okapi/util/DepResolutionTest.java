@@ -1,8 +1,8 @@
 package org.folio.okapi.util;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -179,7 +180,7 @@ public class DepResolutionTest {
   public void testUpgradeDifferentProduct() {
     List<TenantModuleDescriptor> tml = enableList(mdB);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false);
-    assertThat(tml, contains(disable(mdA100), enable(mdB)));
+    assertThat(tml, contains(enable(mdB), disable(mdA100)));
   }
 
   @Test
@@ -210,7 +211,7 @@ public class DepResolutionTest {
   public void testUpgrade1() {
     List<TenantModuleDescriptor> tml = enableList(mdD200);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdA200, mdD100, mdD200), map(mdB), tml, false);
-    assertThat(tml, contains(disable(mdB), enable(mdA200), enable(mdD200)));
+    assertThat(tml, contains(enable(mdD200), disable(mdB), enable(mdA200)));
   }
 
   @Test
@@ -251,7 +252,7 @@ public class DepResolutionTest {
   public void testInstallMinorLeafOptional() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     DepResolution.install(map(mdA100, mdA110, mdA111, mdD100, mdD110, mdE100), map(mdA100), tml, false);
-    assertThat(tml, contains(upgrade(mdA111, mdA100), enable(mdD110)));
+    assertThat(tml, contains(enable(mdD110), upgrade(mdA111, mdA100)));
   }
 
   // upgrade base dependency which is still compatible with optional interface
@@ -267,7 +268,7 @@ public class DepResolutionTest {
   public void testInstallMinorLeafOptional2() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     DepResolution.install(map(mdA100, mdA110, mdA111, mdD100, mdD110), map(mdA100, mdD100), tml, false);
-    assertThat(tml, contains(upgrade(mdA111, mdA100), upgrade(mdD110, mdD100)));
+    assertThat(tml, contains(upgrade(mdD110, mdD100), upgrade(mdA111, mdA100)));
   }
 
   // upgrade base dependency which is a major interface bump to optional interface
@@ -285,7 +286,7 @@ public class DepResolutionTest {
     // note that mdD200 is not part of the list
     DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110),
         map(mdA100, mdD100), tml, false);
-    assertThat(tml,  contains(disable(mdD100), upgrade(mdA200, mdA100)));
+    assertThat(tml, contains(upgrade(mdA200, mdA100), disable(mdD100)));
   }
 
   // upgrade base dependency and pull in module with unknown interface (results in error)
@@ -308,7 +309,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdD200);
     DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200, mdA200),
         map(mdA100, mdD100), tml, false);
-    assertThat(tml, contains(upgrade(mdA200, mdA100), upgrade(mdD200, mdD100)));
+    assertThat(tml, contains(upgrade(mdD200, mdD100), upgrade(mdA200, mdA100)));
   }
 
   // install optional with existing interface that needs upgrading, but
@@ -598,14 +599,14 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100, req1or2, reqI1or2);
       List<TenantModuleDescriptor> tml = enableList(reqI1or2, req1_100);
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(enable(prov100), enable(req1or2), enable(reqI1or2), enable(req1_100)));
+      assertThat(tml, contains(enable(prov100), enable(req1_100), enable(req1or2), enable(reqI1or2)));
     }
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(prov100, prov200, req1_100, req2_100, req1or2, reqI1or2);
       List<TenantModuleDescriptor> tml = enableList(req1_100, reqI1or2);
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(enable(prov100), enable(req1or2), enable(req1_100), enable(reqI1or2)));
+      assertThat(tml, contains(enable(prov100), enable(req1_100), enable(req1or2), enable(reqI1or2)));
     }
   }
 
@@ -631,22 +632,25 @@ public class DepResolutionTest {
     ModuleDescriptor modD = new ModuleDescriptor("modD-1.0.0");
     modD.setOptional(i2);
 
-    Assert.assertTrue(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1"), modA));
-    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1", "i2"), modB));
-    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1", "i2", "i3"), modC));
+    Assert.assertTrue(DepResolution.moduleDepProvided(Collections.emptyList(), modA));
+    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), modB));
+    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), modC));
 
-    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA), Set.of("i1"), modB));
-    Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), Set.of("i0", "i1"), modB));
-    Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), Set.of("i0", "i1", "i2", "i3"), modC));
-    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA, modB), Set.of("i1", "i2"), modC));
+    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA), modB));
+    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA), modB));
+    Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), modC));
+    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA, modB), modC));
 
-    List<ModuleDescriptor> l = new ArrayList<>(List.of(modC, modA, modB));
-    DepResolution.topoSort(l);
-    Assert.assertArrayEquals(new ModuleDescriptor[]{modA, modB, modC}, l.toArray());
+    Assert.assertTrue(DepResolution.moduleDepRequired(Collections.emptyList(), modA));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA), modA));
+    Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB), modA));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB), modB));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modB), modB));
 
-    l = new ArrayList<>(List.of(modB, modA, modC));
-    DepResolution.topoSort(l);
-    Assert.assertArrayEquals(new ModuleDescriptor[]{modA, modB, modC}, l.toArray());
+    Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modA));
+    Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD),modB));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modC));
+    Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modD));
 
     {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC);
@@ -743,7 +747,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC, modD);
       List<TenantModuleDescriptor> tml = enableList(modD, modB);
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(enable(modA), enable(modB), enable(modD)));
+      assertThat(tml, contains(enable(modD), enable(modA), enable(modB)));
     }
 
     {
@@ -751,7 +755,7 @@ public class DepResolutionTest {
       List<TenantModuleDescriptor> tml = enableList(modB, modD);
       tml.addAll(createList(Action.suggest, modA));
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(enable(modA), enable(modB), enable(modD), new TenantModuleDescriptorMatcher(Action.suggest, modA, null)));
+      assertThat(tml, contains(enable(modD), new TenantModuleDescriptorMatcher(Action.suggest, modA, null), enable(modA), enable(modB)));
     }
   }
 
@@ -1182,5 +1186,56 @@ public class DepResolutionTest {
     OkapiError error = Assert.assertThrows(OkapiError.class,
         () -> DepResolution.installMaxIterations(available, map(), tml1, false, numberOfModules - 1));
     Assert.assertEquals("Dependency resolution not completing in " + (numberOfModules - 1) + " iterations", error.getMessage());
+  }
+
+  @Test
+  public void sortTenantModulesUnsatisfied() {
+    // this should never happen as dependencies are checked before sorting starts
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    ModuleDescriptor md = new ModuleDescriptor("mod-1.0.0");
+    md.setRequires("int", "1.0");
+    List<TenantModuleDescriptor> tml = enableList(md);
+    Map<String,ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(md.getId(), md);
+    OkapiError error = Assert.assertThrows(OkapiError.class, () ->
+        DepResolution.sortTenantModules(tml, modsAvailable, new HashSet<>()));
+    Assert.assertEquals("Some modules cannot be topological sorted: mod-1.0.0", error.getMessage());
+  }
+
+  @Test
+  public void circularRequire() {
+    InterfaceDescriptor inta = new InterfaceDescriptor("inta", "1.0");
+    InterfaceDescriptor intb = new InterfaceDescriptor("intb", "1.0");
+
+    ModuleDescriptor mdA = new ModuleDescriptor("modA-1.0.0");
+    mdA.setProvides(new InterfaceDescriptor[] {inta});
+    mdA.setRequires(new InterfaceDescriptor[] {intb});
+
+    ModuleDescriptor mdB = new ModuleDescriptor("modB-1.0.0");
+    mdB.setProvides(new InterfaceDescriptor[] {intb});
+    mdB.setRequires(new InterfaceDescriptor[] {inta});
+
+    List<TenantModuleDescriptor> tml = enableList(mdA, mdB);
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.install(map(mdA, mdB), map(), tml, false));
+    Assert.assertEquals("Some modules cannot be topological sorted: modA-1.0.0, modB-1.0.0", error.getMessage());
+  }
+
+  @Test
+  public void circularOptional() {
+    InterfaceDescriptor inta = new InterfaceDescriptor("inta", "1.0");
+    InterfaceDescriptor intb = new InterfaceDescriptor("intb", "1.0");
+
+    ModuleDescriptor mdA = new ModuleDescriptor("modA-1.0.0");
+    mdA.setProvides(new InterfaceDescriptor[] {inta});
+    mdA.setOptional(new InterfaceDescriptor[] {intb});
+
+    ModuleDescriptor mdB = new ModuleDescriptor("modB-1.0.0");
+    mdB.setProvides(new InterfaceDescriptor[] {intb});
+    mdB.setRequires(new InterfaceDescriptor[] {inta});
+
+    List<TenantModuleDescriptor> tml = enableList(mdA, mdB);
+    DepResolution.install(map(mdA, mdB), map(), tml, false);
+    assertThat(tml, contains(enable(mdA), enable(mdB)));
   }
 }
