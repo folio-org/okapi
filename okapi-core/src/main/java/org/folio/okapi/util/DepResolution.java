@@ -153,6 +153,7 @@ public final class DepResolution {
 
   /**
    * Check if any of md's provided interfaces are used by any of the modules.
+   *
    * <p>A interface is used if it's a required or optional interface dependency.
    *
    * @param modules     the modules to check against
@@ -662,6 +663,7 @@ public final class DepResolution {
 
   /**
    * Sort the modules honoring enable/disable actions.
+   *
    * <p>This is topological sort where nodes represent modules and arcs represent
    * interface dependencies.
    * @see <a href="https://en.wikipedia.org/wiki/Topological_sorting">Topological sorting</a>
