@@ -152,7 +152,8 @@ public final class DepResolution {
   }
 
   /**
-   * Check if at least one of md's provided interfaces is a required or optional dependency of any of the modules.
+   * Check if any of md's provided interfaces are used by any of the modules.
+   * <p>A interface is used if it's a required or optional interface dependency.</p>
    *
    * @param modules     the modules to check against
    * @param md          module to check
