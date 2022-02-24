@@ -33,19 +33,18 @@ traits:
   versionFilters:
     queryParameters:
       preRelease:
-        description:
-          Whether to use pre-release in operation. "true"&#58; use all
+        description: Whether to use pre-release in operation. "true"&#58; use all
           modules; "false"&#58; releases (no pre-releases); "only"&#58; only pre-releases.
-        enum: ["true","false","only"]
+        enum: ['true', 'false', only]
         required: false
-        default: "true"
+        default: 'true'
       npmSnapshot:
-        description:
-          Whether to use NPM module snapshots in operation. "true"&#58; use all
-          modules; "false"&#58; releases (no NPM snapshots); "only"&#58; only NPM snapshots.
-        enum: ["true","false","only"]
+        description: Whether to use NPM module snapshots in operation. "true"&#58;
+          use all modules; "false"&#58; releases (no NPM snapshots); "only"&#58; only
+          NPM snapshots.
+        enum: ['true', 'false', only]
         required: false
-        default: "true"
+        default: 'true'
   installParameters:
     queryParameters:
       async:
@@ -71,13 +70,13 @@ traits:
         default: false
       invoke:
         description: |
-         Whether to invoke for tenant init/permissions/purge. Use
-          "true" to invoke, "false" to not invoke. Any other value
-          is a regular expression that is matched against the module ID.
-          If that pattern matches, invoke is performed (same as "true").
+          Whether to invoke for tenant init/permissions/purge. Use
+           "true" to invoke, "false" to not invoke. Any other value
+           is a regular expression that is matched against the module ID.
+           If that pattern matches, invoke is performed (same as "true").
         type: string
         required: false
-        default: "true"
+        default: 'true'
       parallel:
         description: |
           Number of parallel calls to tenant interfaces of modules.
@@ -439,9 +438,7 @@ traits:
 /_/proxy/import/modules:
   description: Proxy modules service, list import
   post:
-    is: [
-      versionFilters
-    ]
+    is: [versionFilters]
     description: Announce a list of new modules to the proxy. Once successful a module
       can be selected for a specific tenant. To announce only one module you may use
       /_/proxy/modules.
@@ -477,9 +474,9 @@ traits:
 /_/proxy/cleanup/modules:
   description: Proxy modules service, clean up obsolete snapshot modules
   post:
-    description: Remove module snapshot modules descriptors that are obsolete. A module is
-      considered obsolete if it is part of a release that is earlier than N latest releases
-      (saveReleases) and not part of the M latest snapshots in that release.
+    description: Remove module snapshot modules descriptors that are obsolete. A module
+      is considered obsolete if it is part of a release that is earlier than N latest
+      releases (saveReleases) and not part of the M latest snapshots in that release.
     queryParameters:
       removeDependencies:
         description: Force removal of modules that depend on obsolete snapshots
@@ -487,11 +484,13 @@ traits:
         required: false
         default: false
       saveReleases:
-        description: The number of latest releases where snapshots are never considered obsolete
+        description: The number of latest releases where snapshots are never considered
+          obsolete
         type: integer
         required: true
       saveSnapshots:
-        description: The number of latest snapshots that are never considered obsolete (preserved)
+        description: The number of latest snapshots that are never considered obsolete
+          (preserved)
         type: integer
         required: true
     responses:
@@ -517,11 +516,9 @@ traits:
 /_/proxy/modules:
   description: Proxy modules service
   post:
-    is: [
-      versionFilters
-    ]
-    description: Announce new module to the proxy. Once successful a module
-      can be selected for a specific tenant.
+    is: [versionFilters]
+    description: Announce new module to the proxy. Once successful a module can be
+      selected for a specific tenant.
     queryParameters:
       check:
         description: Whether to check dependencies
@@ -552,9 +549,7 @@ traits:
         body:
           text/plain:
   get:
-    is: [
-      versionFilters
-    ]
+    is: [versionFilters]
     description: List all or subset of modules for proxy
     queryParameters:
       dot:
@@ -584,11 +579,13 @@ traits:
         type: string
         required: false
       provide:
-        description: Limit to provided interfaces (each interface name separated by comma)
+        description: Limit to provided interfaces (each interface name separated by
+          comma)
         type: string
         required: false
       require:
-        description: Limit to required interfaces (each interface name separated by comma)
+        description: Limit to required interfaces (each interface name separated by
+          comma)
         type: string
         required: false
       scope:
@@ -626,8 +623,8 @@ traits:
             application/json:
               type: ModuleDescriptor
     delete:
-      description: Remove module descriptor for a particular module, module
-        will no longer be selectable by tenants
+      description: Remove module descriptor for a particular module, module will no
+        longer be selectable by tenants
       responses:
         204:
           headers:
@@ -737,9 +734,9 @@ traits:
             text/plain:
     /modules:
       post:
-        description: Enable a module for tenant. Only the member 'id' from
-          TenantModuleDescriptor is used in this operation.
-          This call will eventually be replaced by the 'install' service.
+        description: Enable a module for tenant. Only the member 'id' from TenantModuleDescriptor
+          is used in this operation. This call will eventually be replaced by the
+          'install' service.
         body:
           application/json:
             type: TenantModuleDescriptor
@@ -768,9 +765,7 @@ traits:
             body:
               text/plain:
       get:
-        is: [
-          versionFilters
-        ]
+        is: [versionFilters]
         description: Get enabled modules for tenant
         queryParameters:
           dot:
@@ -800,11 +795,13 @@ traits:
             type: string
             required: false
           provide:
-            description: Limit to provided interfaces (each interface name separated by comma)
+            description: Limit to provided interfaces (each interface name separated
+              by comma)
             type: string
             required: false
           require:
-            description: Limit to required interfaces (each interface name separted by comma)
+            description: Limit to required interfaces (each interface name separted
+              by comma)
 
             type: string
             required: false
@@ -841,7 +838,7 @@ traits:
               If that pattern matches, invoke is performed (same as "true)".
             type: string
             required: false
-            default: "true"
+            default: 'true'
           purge:
             description: Disabled modules will also be purged.
             type: boolean
@@ -871,8 +868,7 @@ traits:
             body:
               text/plain:
       /{module_id}:
-        description: CRUD service for getting module and upgrading module
-          for a tenant.
+        description: CRUD service for getting module and upgrading module for a tenant.
         get:
           description: Look up particular module selection
           responses:
@@ -889,9 +885,9 @@ traits:
               body:
                 text/plain:
         post:
-          description: Upgrade a module for a tenant. Enable new module and disable current module
-            with new module ID in body and existing ID in path. This call will eventually be
-            replaced by the 'install' service.
+          description: Upgrade a module for a tenant. Enable new module and disable
+            current module with new module ID in body and existing ID in path. This
+            call will eventually be replaced by the 'install' service.
           queryParameters:
             invoke:
               description: |
@@ -901,7 +897,7 @@ traits:
                 If that pattern matches, invoke is performed (same as "true)".
               type: string
               required: false
-              default: "true"
+              default: 'true'
             purge:
               description: Disabled modules will also be purged.
               type: boolean
@@ -939,8 +935,8 @@ traits:
               body:
                 text/plain:
         delete:
-          description: Disable a module for a tenant.
-            This call will eventually be replaced by the 'install' service.
+          description: Disable a module for a tenant. This call will eventually be
+            replaced by the 'install' service.
           queryParameters:
             invoke:
               description: |
@@ -950,7 +946,7 @@ traits:
                 If that pattern matches, invoke is performed (same as "true)".
               type: string
               required: false
-              default: "true"
+              default: 'true'
             purge:
               description: Disabled modules will also be purged.
               type: boolean
@@ -973,8 +969,8 @@ traits:
                 text/plain:
     /install:
       get:
-        description: Retrieve information about all install/upgrade
-          jobs - including those that are ongoing.
+        description: Retrieve information about all install/upgrade jobs - including
+          those that are ongoing.
         responses:
           200:
             description: OK
@@ -1019,18 +1015,16 @@ traits:
             body:
               text/plain:
       post:
-        is: [
-          versionFilters,
-          installParameters
-        ]
-        description: Enable, disable or upgrade one or more modules for tenant.
-          The request body and response body is of the same type TenantModuleDescriptorList.
+        is: [versionFilters, installParameters]
+        description: Enable, disable or upgrade one or more modules for tenant. The
+          request body and response body is of the same type TenantModuleDescriptorList.
           This list includes one or more modules to be enabled, disabled or upgraded.
-          The request is the initial desired changes and the response is the list of changes
-          that must be fulfilled to satisfy dependencies. This service will eventually partially replace
-          /_/proxy/tenants/{tenant}/modules . It also allows enabling multiple modules in one transaction.
-          For simulate=true, the response, can be viewed as a recipe for what must be deployed
-          (optionally) and enabled/disabled by the existing tenants-modules CRUD service.
+          The request is the initial desired changes and the response is the list
+          of changes that must be fulfilled to satisfy dependencies. This service
+          will eventually partially replace /_/proxy/tenants/{tenant}/modules . It
+          also allows enabling multiple modules in one transaction. For simulate=true,
+          the response, can be viewed as a recipe for what must be deployed (optionally)
+          and enabled/disabled by the existing tenants-modules CRUD service.
         body:
           application/json:
             type: TenantModuleDescriptorList
@@ -1115,14 +1109,11 @@ traits:
                 text/plain:
     /upgrade:
       post:
-        is: [
-          versionFilters,
-          installParameters
-        ]
-        description: Upgrade each module to the latest version. The upgrade is
-          rejected if it would violate the interface dependencies of the modules.
-          The response is a list of modules that have been enabled, disabled
-          or upgraded to perform the upgrade.
+        is: [versionFilters, installParameters]
+        description: Upgrade each module to the latest version. The upgrade is rejected
+          if it would violate the interface dependencies of the modules. The response
+          is a list of modules that have been enabled, disabled or upgraded to perform
+          the upgrade.
         responses:
           200:
             description: OK
@@ -1192,9 +1183,8 @@ traits:
               text/plain:
       /{interface_id}:
         get:
-          description: Get all modules that provide the specified interface ID
-            DEPRECATED. Use /_/proxy/tenants/{tenant_id}/modules?provide={interface_id}
-            instead.
+          description: Get all modules that provide the specified interface ID. DEPRECATED
+            Use /_/proxy/tenants/{tenant_id}/modules?provide={interface_id} instead.
           queryParameters:
             type:
               description: Limit by interfaceType
@@ -1246,11 +1236,10 @@ traits:
             body:
               text/plain:
       patch:
-        description: patch timer. Both routingEntry and id must be given.
-          The routingEntry.unit, routingEntry.delay and routingEntry.schedule
-          determines the new schedule for the timer. Using delay=0 disables
-          a timer. Omitting delay, unit and schedule reverts timer back to
-          initial values from module.
+        description: patch timer. Both routingEntry and id must be given. The routingEntry.unit,
+          routingEntry.delay and routingEntry.schedule determines the new schedule
+          for the timer. Using delay=0 disables a timer. Omitting delay, unit and
+          schedule reverts timer back to initial values from module.
         body:
           application/json:
             type: TimerDescriptor
@@ -1298,10 +1287,10 @@ traits:
               body:
                 text/plain:
         patch:
-          description: patch timer with routing entry as body. The unit, delay
-            and schedule determines the new schedule for the timer. Using delay=0
-            disables a timer. Omitting delay, unit and schedule reverts timer back
-            to initial values from module.
+          description: patch timer with routing entry as body. The unit, delay and
+            schedule determines the new schedule for the timer. Using delay=0 disables
+            a timer. Omitting delay, unit and schedule reverts timer back to initial
+            values from module.
           body:
             application/json:
               type: RoutingEntry
@@ -1344,10 +1333,10 @@ traits:
 /_/proxy/pull/modules:
   description: Pull module descriptors from a remote repository
   post:
-    description: Pull modules (i.e. Module Descriptors) from a remote
-      repository. The PullDescriptor includes one or more URLs. And
-      the operation will try all URLs in order until one succeeds. Hence,
-      the URLs should be pointing to identical remote repositories.
+    description: Pull modules (i.e. Module Descriptors) from a remote repository.
+      The PullDescriptor includes one or more URLs. And the operation will try all
+      URLs in order until one succeeds. Hence, the URLs should be pointing to identical
+      remote repositories.
     body:
       application/json:
         type: PullDescriptor
@@ -1375,9 +1364,9 @@ traits:
           text/plain:
 
 /_/env:
-  description: Environment service. Environment variables are system
-    variables that allows us to configure modules in a uniform way.
-    They can hold fundamental database configuration, etc.
+  description: Environment service. Environment variables are system variables that
+    allows us to configure modules in a uniform way. They can hold fundamental database
+    configuration, etc.
   post:
     description: Add environment entry
     body:
@@ -1482,17 +1471,13 @@ traits:
           text/plain:
 
 /_/invoke/tenant/{id}:
-  description: |
-    Call module with Tenant ID in path. This service offers support for
-    systems that need to "call-back" Okapi and don't allow setting the
-    Tenant ID in the HTTP header.
+  description: Call module with Tenant ID in path. This service offers support for
+    systems that need to "call-back" Okapi and don't allow setting the Tenant ID in
+    the HTTP header.
   get:
-    description: Invoke any service (the rest of the path, any method,
-      any response).
+    description: Invoke any service (the rest of the path, any method, any response).
     responses:
       200:
         description: OK
         body:
           text/plain:
-
-#TODO implement single module health check
