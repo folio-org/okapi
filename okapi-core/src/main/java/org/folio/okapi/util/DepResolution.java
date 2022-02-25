@@ -735,7 +735,7 @@ public final class DepResolution {
             "Dependency resolution not completing in " + maxIterations + " iterations");
       }
     }
-    List<String> permErrors = checkPermissionNames(modsEnabled);
+    List<String> permErrors = checkPermissionNames(modsAvailable, modsEnabled);
     if (!permErrors.isEmpty()) {
       logger.warn("permission name errors\n{}", String.join("\n", permErrors));
     }
@@ -811,48 +811,36 @@ public final class DepResolution {
     return findModulesForInterface(modsAvailable, prov, true);
   }
 
-  static List<String> checkPermissionNames(Map<String, ModuleDescriptor> modsEnabled) {
+  static List<String> checkPermissionNames(
+      Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled) {
+
     Map<String, Set<ModuleDescriptor>> defined = new HashMap<>();
     Map<String, Set<ModuleDescriptor>> required = new HashMap<>();
+    Set<String> unknown = new HashSet<>();
 
-    List<String> errors = new ArrayList<>();
     for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
       ModuleDescriptor md = entry.getValue();
-      for (InterfaceDescriptor descriptor : md.getProvidesList()) {
-        if (descriptor.isRegularHandler()) {
-          RoutingEntry[] handlers = descriptor.getHandlers();
-          if (handlers == null) {
-            continue;
-          }
-          for (RoutingEntry re : handlers) {
-            String[] modulePermissions = re.getModulePermissions();
-            if (modulePermissions != null) {
-              for (String modulePermission : modulePermissions) {
-                required.computeIfAbsent(modulePermission, k -> new HashSet<>()).add(md);
-              }
-            }
-            for (String requiredPermission : re.getPermissionsRequired()) {
-              defined.computeIfAbsent(requiredPermission, k -> new HashSet<>()).add(md);
-            }
-          }
+      boolean optionalUnknown = false;
+      for (InterfaceDescriptor opt : md.getOptionalList()) {
+        if (DepResolution.findModuleWithProvidedInterface(modsEnabled, opt).isEmpty()) {
+          continue; // this optional interface is part of our enabled modules
+        }
+        Map<String, ModuleDescriptor> modules =
+            DepResolution.findModuleWithProvidedInterface(modsAvailable, opt);
+        if (modules.isEmpty()) {
+          optionalUnknown = true;
+        } else {
+          getDefinedPermissions(defined, modules.values().iterator().next());
         }
       }
-      Permission[] permissionSets = md.getPermissionSets();
-      if (permissionSets != null) {
-        for (Permission permission: permissionSets) {
-          defined.computeIfAbsent(permission.getPermissionName(), k -> new HashSet<>()).add(md);
-          String[] subPermissions = permission.getSubPermissions();
-          if (subPermissions != null) {
-            for (String subPermission : subPermissions) {
-              defined.computeIfAbsent(subPermission, k -> new HashSet<>()).add(md);
-            }
-          }
-        }
-      }
+      getRequiredPermissions(required, md, optionalUnknown ? unknown : null);
+      getDefinedPermissions(defined, md);
     }
+    List<String> errors = new ArrayList<>();
     for (String permissionName : required.keySet()) {
       Set<ModuleDescriptor> modulesProvided = defined.get(permissionName);
-      if (modulesProvided == null) {
+      if (modulesProvided == null && !unknown.contains(permissionName)) {
         String names = required.get(permissionName)
             .stream().map(x -> x.getId()).collect(Collectors.joining(", "));
         errors.add("Undefined permission " + permissionName + ". Referred to from " + names);
@@ -866,5 +854,53 @@ public final class DepResolution {
       }
     }
     return errors;
+  }
+
+  private static void getRequiredPermissions(
+      Map<String, Set<ModuleDescriptor>> required, ModuleDescriptor md,
+      Set<String> unknownPermissions) {
+
+    for (InterfaceDescriptor descriptor : md.getProvidesList()) {
+      if (descriptor.isRegularHandler()) {
+        RoutingEntry[] handlers = descriptor.getHandlers();
+        if (handlers == null) {
+          continue;
+        }
+        for (RoutingEntry re : handlers) {
+          String[] modulePermissions = re.getModulePermissions();
+          if (modulePermissions != null) {
+            for (String modulePermission : modulePermissions) {
+              required.computeIfAbsent(modulePermission, k -> new HashSet<>()).add(md);
+              if (unknownPermissions != null) {
+                unknownPermissions.add(modulePermission);
+              }
+            }
+          }
+          for (String requiredPermission : re.getPermissionsRequired()) {
+            required.computeIfAbsent(requiredPermission, k -> new HashSet<>()).add(md);
+            if (unknownPermissions != null) {
+              unknownPermissions.add(requiredPermission);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private static void getDefinedPermissions(
+      Map<String, Set<ModuleDescriptor>> defined, ModuleDescriptor md) {
+
+    Permission[] permissionSets = md.getPermissionSets();
+    if (permissionSets != null) {
+      for (Permission permission: permissionSets) {
+        defined.computeIfAbsent(permission.getPermissionName(), k -> new HashSet<>()).add(md);
+        String[] subPermissions = permission.getSubPermissions();
+        if (subPermissions != null) {
+          for (String subPermission : subPermissions) {
+            defined.computeIfAbsent(subPermission, k -> new HashSet<>()).add(md);
+          }
+        }
+      }
+    }
   }
 }
