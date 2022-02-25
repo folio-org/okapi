@@ -140,9 +140,9 @@ public class DeploymentManager {
   }
 
   @SuppressWarnings("indentation")  // indentation of fail -> {
-  private Future<DeploymentDescriptor> deploy2(int usePort, DeploymentDescriptor md1) {
+  private Future<DeploymentDescriptor> deploy2(int usePort, DeploymentDescriptor md) {
 
-    LaunchDescriptor descriptor = md1.getDescriptor();
+    LaunchDescriptor descriptor = md.getDescriptor();
     if (descriptor == null) {
       ports.free(usePort);
       return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10703")));
@@ -166,23 +166,24 @@ public class DeploymentManager {
         }
         descriptor.setEnv(nenv);
       }
+      logger.info("Deploy {} {}", md.getSrvcId(), Json.encodePrettily(descriptor));
       String moduleUrl = "http://" + host + ":" + usePort;
       String moduleHost = host;
       if (descriptor.getDockerImage() != null) {
         moduleHost = Config.getSysConf("containerHost", host, config);
       }
       ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor,
-          md1.getSrvcId(), ports, moduleHost, usePort, config);
+          md.getSrvcId(), ports, moduleHost, usePort, config);
       return mh.start().compose(res -> {
         DeploymentDescriptor md2
-            = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
+            = new DeploymentDescriptor(md.getInstId(), md.getSrvcId(),
             moduleUrl, descriptor, mh);
-        md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
+        md2.setNodeId(md.getNodeId() != null ? md.getNodeId() : host);
         list.put(md2.getInstId(), md2);
         return dm.add(md2).map(md2);
       }, fail -> {
         ports.free(usePort);
-        logger.warn("Deploying {} failed", md1.getSrvcId());
+        logger.warn("Deploying {} failed", md.getSrvcId());
         return Future.failedFuture(new OkapiError(ErrorType.USER, fail.getMessage()));
       });
     });

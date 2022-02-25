@@ -385,6 +385,8 @@ public class TenantManager implements Liveness {
     if (!options.checkInvoke(md.getId())) {
       return Future.succeededFuture();
     }
+    long startTime = System.currentTimeMillis();
+    logger.info("Starting activation of module '{}' for tenant '{}'", md.getId(), tenant.getId());
     return getTenantInstanceForModule(md, mdFrom, mdTo, jo, tenantParameters, purge)
         .compose(instances -> {
           if (instances.isEmpty()) {
@@ -421,7 +423,13 @@ public class TenantManager implements Liveness {
                 waitTenantInit(tenant, getInstance, deleteInstance, pc, promise, TENANT_INIT_DELAY);
                 return promise.future();
               });
-        });
+        })
+        .onSuccess(res -> logger.info(
+            "Activation of module '{}' for tenant '{}' completed successfully in {} ms",
+            md.getId(), tenant.getId(), System.currentTimeMillis() - startTime))
+        .onFailure(e -> logger.warn(
+            "Activation of module '{}' for tenant '{}' failed: {}", md.getId(), tenant.getId(),
+            e.getMessage()));
   }
 
   /**

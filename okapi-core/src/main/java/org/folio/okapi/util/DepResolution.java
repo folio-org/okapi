@@ -633,22 +633,23 @@ public final class DepResolution {
             // see if we can find a module that require the provided interface
             Map<String, ModuleDescriptor> modules =
                 findModuleWithProvidedInterface(modsAvailable, prov.interfaceDescriptor);
-            if (modules.size() > 1) {
-              errors.add(messages.getMessage("10210", entry.getKey(),
-                  req.moduleDescriptor.getId(),
-                  String.join(", ", modules.keySet())));
-              return false;
-            } else if (!modules.isEmpty()) {
-              ModuleDescriptor mdFound = modules.values().iterator().next();
-              String from = req.moduleDescriptor.getId();
-              stickyModules.add(mdFound.getId());
-              logger.info("Adding 2 to={} from={}", mdFound.getId(), from);
-              modsEnabled.remove(from);
-              modsEnabled.put(mdFound.getId(), mdFound);
-              addTenantModule(tml, mdFound.getId(), from,
-                  TenantModuleDescriptor.Action.enable);
-              return true;
+            for (String product : modules.keySet()) {
+              if (product.equals(req.moduleDescriptor.getProduct())) {
+                String from = req.moduleDescriptor.getId();
+                ModuleDescriptor mdFound = modules.get(product);
+                stickyModules.add(mdFound.getId());
+                logger.info("Adding 2 to={} from={}", mdFound.getId(), from);
+                modsEnabled.remove(from);
+                modsEnabled.put(mdFound.getId(), mdFound);
+                addTenantModule(tml, mdFound.getId(), from,
+                    TenantModuleDescriptor.Action.enable);
+                return true;
+              }
             }
+            modsEnabled.remove(req.moduleDescriptor.getId());
+            addTenantModule(tml, req.moduleDescriptor.getId(), null,
+                TenantModuleDescriptor.Action.disable);
+            return true;
           }
         }
         errors.add(messages.getMessage("10201", req.moduleDescriptor.getId(), entry.getKey(),

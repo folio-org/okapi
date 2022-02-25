@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>4.13.0-SNAPSHOT</version>
+  <version>4.14.0-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
@@ -34,7 +34,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.2.4</version> <!-- also update depending versions below! -->
+        <version>4.2.5</version> <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -86,7 +86,7 @@
       <dependency>
         <groupId>io.rest-assured</groupId>
         <artifactId>rest-assured</artifactId>
-        <version>4.4.0</version>
+        <version>4.5.1</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
@@ -124,7 +124,7 @@
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
-        <version>1.16.2</version>
+        <version>1.16.3</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

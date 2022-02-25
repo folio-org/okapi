@@ -38,7 +38,6 @@ public class DepResolutionTest {
   private ModuleDescriptor mdD100;
   private ModuleDescriptor mdD110;
   private ModuleDescriptor mdD200;
-  private ModuleDescriptor mdDA200;
   private ModuleDescriptor mdE100;
   private ModuleDescriptor mdE110;
   private ModuleDescriptor mdE200;
@@ -120,10 +119,6 @@ public class DepResolutionTest {
 
     mdD200 = new ModuleDescriptor("moduleD-2.0.0");
     mdD200.setOptional(int20a);
-
-    mdDA200 = new ModuleDescriptor("moduleDA-2.0.0");
-    mdDA200.setOptional(int20a);
-    mdDA200.setRequires(new InterfaceDescriptor[]{new InterfaceDescriptor("unknown-interface", "2.0")});
 
     mdE100 = new ModuleDescriptor("moduleE-1.0.0");
     mdE100.setRequires(int10a);
@@ -285,13 +280,12 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void testInstallMajorBaseOptionalError() {
+  public void testInstallMajorBaseOptionalDisable() {
     List<TenantModuleDescriptor> tml = enableList(mdA200);
-    // note that mdD200 is not part of the lsit
-    OkapiError error = Assert.assertThrows(OkapiError.class,
-        () -> DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110),
-        map(mdA100, mdD100), tml, false));
-    Assert.assertEquals("Incompatible version for module moduleD-1.0.0 interface int. Need 1.0. Have 2.0/moduleA-2.0.0", error.getMessage());
+    // note that mdD200 is not part of the list
+    DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110),
+        map(mdA100, mdD100), tml, false);
+    assertThat(tml,  contains(disable(mdD100), upgrade(mdA200, mdA100)));
   }
 
   // upgrade base dependency and pull in module with unknown interface (results in error)
@@ -820,7 +814,7 @@ public class DepResolutionTest {
     testList.add(mdC);
     Assert.assertEquals("",
         DepResolution.checkAvailable(available.values(), testList, true));
-    Assert.assertTrue(testList.containsAll(List.of(mdC)));
+    Assert.assertTrue(testList.contains(mdC));
 
     Assert.assertEquals("", DepResolution.checkAvailable(map(mdC, mdD)));
 
@@ -904,12 +898,13 @@ public class DepResolutionTest {
       ModuleDescriptor ot101_alt = new ModuleDescriptor("otA-1.0.1");
       ot101_alt.setRequires(ot101.getRequires());
 
+      ModuleDescriptor os101_alt = new ModuleDescriptor("os-1.0.1");
+      os101_alt.setRequires(ot101.getRequires());
+
       List<TenantModuleDescriptor> tml = enableList(st101);
-      OkapiError error = Assert.assertThrows(OkapiError.class,
-          () -> DepResolution.install(map(st100, st101, ot100, ot101, ot101_alt),
-              map(ot100, st100), tml, false));
-      Assert.assertEquals("interface int required by module ot-1.0.0 is provided by multiple products: ot, otA",
-          error.getMessage());
+      DepResolution.install(map(st100, st101, ot100, ot101, ot101_alt, os101_alt),
+              map(ot100, st100), tml, false);
+      assertThat(tml, contains(upgrade(st101, st100), upgrade(ot101, ot100)));
     }
   }
 

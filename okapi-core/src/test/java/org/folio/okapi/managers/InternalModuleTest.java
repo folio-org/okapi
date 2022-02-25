@@ -28,7 +28,7 @@ class InternalModuleTest implements WithAssertions {
     when(proxyContext.getCtx().normalizedPath()).thenReturn(path);
     InternalModule internalModule = new InternalModule(
         mock(ModuleManager.class), mock(TenantManager.class), null,
-        mock(DiscoveryManager.class), null, mock(PullManager.class), "1.2.3");
+        mock(DiscoveryManager.class), null, mock(PullManager.class), mock(KubernetesManager.class), "1.2.3");
     return internalModule.internalService(body, proxyContext);
   }
 

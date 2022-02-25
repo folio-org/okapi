@@ -150,49 +150,35 @@ public class DiscoveryManager implements NodeListener {
    * </p>
    */
   private Future<DeploymentDescriptor> addAndDeploy0(DeploymentDescriptor dd) {
-
     String tmp = Json.encodePrettily(dd);
     logger.info("addAndDeploy: {}", tmp);
-    final String modId = dd.getSrvcId();
-    if (modId == null) {
+    final String id = dd.getSrvcId();
+    if (id == null) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10800")));
     }
-    return moduleManager.get(modId).compose(gres -> addAndDeploy1(dd, gres));
-  }
-
-  private Future<DeploymentDescriptor> addAndDeploy1(DeploymentDescriptor dd, ModuleDescriptor md) {
-
     LaunchDescriptor launchDesc = dd.getDescriptor();
     final String nodeId = dd.getNodeId();
     if (nodeId == null) {
-      if (launchDesc == null) { // 3: externally deployed
-        if (dd.getInstId() == null) {
-          return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10802")));
-        } else {
-          return add(dd).map(dd);
-        }
-      } else {
+      if (launchDesc != null) {
         return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10803")));
       }
-    } else {
-      if (launchDesc == null) {
-        return addAndDeploy2(dd, md, nodeId);
-      } else { // Have a launch descriptor already in dd
-        return callDeploy(nodeId, dd);
+      if (dd.getInstId() == null) {
+        return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10802")));
       }
+      return add(dd).map(dd);
     }
-  }
-
-  private Future<DeploymentDescriptor> addAndDeploy2(DeploymentDescriptor dd, ModuleDescriptor md,
-                                                     String nodeId) {
-    String modId = dd.getSrvcId();
-    LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
-    if (modLaunchDesc == null) {
-      return Future.failedFuture(new OkapiError(ErrorType.USER,
-          messages.getMessage("10804", modId)));
+    if (launchDesc != null) {
+      return callDeploy(nodeId, dd);
     }
-    dd.setDescriptor(modLaunchDesc);
-    return callDeploy(nodeId, dd);
+    return moduleManager.get(id).compose(md -> {
+      LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
+      if (modLaunchDesc == null) {
+        return Future.failedFuture(new OkapiError(ErrorType.USER,
+            messages.getMessage("10804", id)));
+      }
+      dd.setDescriptor(modLaunchDesc);
+      return callDeploy(nodeId, dd);
+    });
   }
 
   /**
