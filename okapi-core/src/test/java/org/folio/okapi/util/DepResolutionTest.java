@@ -1237,5 +1237,9 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdA, mdB);
     DepResolution.install(map(mdA, mdB), map(), tml, false);
     assertThat(tml, contains(enable(mdA), enable(mdB)));
+
+    tml = createList(Action.disable, mdA, mdB);
+    DepResolution.install(map(mdA, mdB), map(mdA, mdB), tml, false);
+    assertThat(tml, contains(disable(mdB), disable(mdA)));
   }
 }

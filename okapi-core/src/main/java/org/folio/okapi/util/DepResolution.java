@@ -154,11 +154,11 @@ public final class DepResolution {
   /**
    * Check if any of md's provided interfaces are used by any of the modules.
    *
-   * <p>A interface is used if it's a required or optional interface dependency.
+   * <p>A interface is used if it's a required interface dependency.
    *
    * @param modules     the modules to check against
    * @param md          module to check
-   * @return            true if modules do not use any of the provided interfaces; false otherwise
+   * @return            true if modules do not require any of the provided interfaces
    */
   public static boolean moduleDepRequired(Collection<ModuleDescriptor> modules,
       ModuleDescriptor md) {
@@ -168,7 +168,7 @@ public final class DepResolution {
         continue;
       }
       for (ModuleDescriptor md1 : modules) {
-        List<InterfaceDescriptor> requiresList = md1.getRequiresOptionalList();
+        InterfaceDescriptor [] requiresList = md1.getRequiresList();
         for (InterfaceDescriptor req : requiresList) {
           if (prov.isCompatible(req)) {
             return false;
