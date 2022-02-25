@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ModuleId;
+import org.folio.okapi.common.XOkapiHeaders;
 
 /**
  * Description of a module. These are used when creating modules under
@@ -230,6 +231,22 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       Collections.addAll(all, filters);
     }
     return all;
+  }
+
+  /**
+   * Get auth routing entry if such exists for module.
+   * @return entry for auth; null if no such filter exists for module.
+   */
+  @JsonIgnore
+  public RoutingEntry getAuthRoutingEntry() {
+    if (filters != null) {
+      for (RoutingEntry filt: filters) {
+        if (XOkapiHeaders.FILTER_AUTH.equals(filt.getPhase())) {
+          return filt;
+        }
+      }
+    }
+    return null;
   }
 
   /**

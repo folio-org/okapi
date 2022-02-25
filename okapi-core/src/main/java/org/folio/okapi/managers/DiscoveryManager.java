@@ -143,11 +143,14 @@ public class DiscoveryManager implements NodeListener {
 
   /**
    * Adds a service to the discovery, and optionally deploys it too.
-   * <p>
-   *   1: We have LaunchDescriptor and NodeId: Deploy on that node.
-   *   2: NodeId, but no LaunchDescriptor: Fetch the module, use its LaunchDescriptor, and deploy.
-   *   3: No nodeId: Do not deploy at all, just record the existence (URL and instId) of the module.
-   * </p>
+   *
+   * <ol>
+   * <li>e have LaunchDescriptor and NodeId: Deploy on that node.</li>
+   * <li>NodeId, but no LaunchDescriptor: Fetch the module, use itsLaunchDescriptor, and
+   * deploy.</li>
+   * <li>No nodeId: Do not deploy at all, just record the existence (URL and instId) of
+   * the module</li>
+   * </ol>
    */
   private Future<DeploymentDescriptor> addAndDeploy0(DeploymentDescriptor dd) {
     String tmp = Json.encodePrettily(dd);
