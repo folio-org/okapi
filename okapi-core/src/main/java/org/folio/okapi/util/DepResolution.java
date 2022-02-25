@@ -807,11 +807,11 @@ public final class DepResolution {
       ModuleDescriptor md = entry.getValue();
       boolean optionalUnknown = false;
       for (InterfaceDescriptor opt : md.getOptionalList()) {
-        if (DepResolution.findModuleWithProvidedInterface(modsEnabled, opt).isEmpty()) {
+        if (!DepResolution.findModulesForRequiredInterface(modsEnabled, opt).isEmpty()) {
           continue; // this optional interface is part of our enabled modules
         }
         Map<String, ModuleDescriptor> modules =
-            DepResolution.findModuleWithProvidedInterface(modsAvailable, opt);
+            DepResolution.findModulesForRequiredInterface(modsAvailable, opt);
         if (modules.isEmpty()) {
           optionalUnknown = true;
         } else {
