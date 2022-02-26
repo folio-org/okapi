@@ -29,8 +29,7 @@ import org.junit.Test;
 import static org.folio.okapi.util.TenantModuleDescriptorMatcher.*;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.*;
 
 public class DepResolutionTest {
 
@@ -1327,6 +1326,10 @@ public class DepResolutionTest {
             .add(new JsonObject()
                 .put("permissionName", "intb.post")
             )
+            .add(new JsonObject()
+                .put("permissionName", "intb.all")
+                .put("subPermissions", new JsonArray().add("intc.delete").add("intb.get"))
+            )
         );
     ModuleDescriptor mda = Json.decodeValue(mdaObject.encode(), ModuleDescriptor.class);
     ModuleDescriptor mdb = Json.decodeValue(mdbObject.encode(), ModuleDescriptor.class);
@@ -1339,7 +1342,7 @@ public class DepResolutionTest {
     modsEnabled.put(mdb.getId(), mdb);
 
     List<String> errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
-    assertThat(errors, contains("Undefined permission inta.post. Referred to from moda-1.0.0"));
+    assertThat(errors, contains("Undefined permission \"inta.post\" referred to from permissionsRequired in moda-1.0.0"));
 
     JsonObject mdcObject = new JsonObject()
         .put("id", "modc-1.0.0")
@@ -1371,15 +1374,39 @@ public class DepResolutionTest {
                 .put("permissionName", "intc.ppost") // deliberate typo
             )
             .add(new JsonObject()
+                .put("permissionName", "intc.ddelete") // deliberate typo
+            )
+            .add(new JsonObject()
                 .put("permissionName", "inta.get") // same as in moda
             )
         );
     ModuleDescriptor mdc = Json.decodeValue(mdcObject.encode(), ModuleDescriptor.class);
     modsAvailable.put(mdc.getId(), mdc);
     errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
-    assertThat(errors, contains("Undefined permission inta.post. Referred to from moda-1.0.0",
-        "Undefined permission intc.post. Referred to from modb-1.0.0",
-        "Multiple modules define permission inta.get: moda-1.0.0, modc-1.0.0"
+    assertThat(errors, contains(
+        "Undefined permission \"intc.post\" referred to from modulePermissions in modb-1.0.0",
+        "Undefined permission \"inta.post\" referred to from permissionsRequired in moda-1.0.0",
+        "Undefined permission \"intc.delete\" referred to from subPermissions in modb-1.0.0",
+        "Multiple modules define permission \"inta.get\": moda-1.0.0, modc-1.0.0"
     ));
+
+    mdcObject.put("permissionSets", new JsonArray()
+        .add(new JsonObject()
+            .put("permissionName", "intc.get")
+        )
+        .add(new JsonObject()
+            .put("permissionName", "intc.post")
+        )
+        .add(new JsonObject()
+            .put("permissionName", "intc.delete")
+        )
+        .add(new JsonObject()
+            .put("permissionName", "inta.post")
+        )
+    );
+    mdc = Json.decodeValue(mdcObject.encode(), ModuleDescriptor.class);
+    modsAvailable.put(mdc.getId(), mdc);
+    errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
+    assertThat(errors, is(empty()));
   }
 }
