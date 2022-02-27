@@ -8,6 +8,8 @@ import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
+import io.restassured.config.DecoderConfig;
+import io.restassured.config.RestAssuredConfig;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
@@ -99,7 +101,7 @@ public class ProxyTest {
   };
 
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
+  public static void setUpBeforeClass() {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml").failFast();
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
   }
@@ -112,7 +114,6 @@ public class ProxyTest {
     } else {
       ctx.response().setStatusCode(200);
       ctx.response().putHeader("Content-Type", ctx.request().getHeader("Content-Type"));
-      ctx.response().putHeader("Content-Encoding", "gzip");
       ctx.request().handler(preBuffer::appendBuffer);
       ctx.request().endHandler(res -> {
         logger.info("myPreHandle end=" + preBuffer.toString());
@@ -305,7 +306,9 @@ public class ProxyTest {
     router.routeWithRegex("/.*").handler(this::myPreHandle);
 
     Promise<Void> promise = Promise.promise();
-    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    HttpServerOptions so = new HttpServerOptions()
+        .setCompressionSupported(true)
+        .setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
         .requestHandler(router)
         .listen(portPre, x -> promise.handle(x.mapEmpty()));
@@ -331,7 +334,9 @@ public class ProxyTest {
     router.routeWithRegex("/.*").handler(this::myTimerHandle);
 
     Promise<Void> promise = Promise.promise();
-    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    HttpServerOptions so = new HttpServerOptions()
+        .setHandle100ContinueAutomatically(true)
+        .setCompressionSupported(true);
     listenTimer = vertx.createHttpServer(so)
         .requestHandler(router)
         .listen(portTimer, x -> promise.handle(x.mapEmpty()));
@@ -4114,15 +4119,31 @@ public class ProxyTest {
     logger.info("Elapsed {} ms", (endTime - startTime) / 1000000);
   }
 
+  @Test
+  public void compressionOkapiCalls(TestContext context) {
+    api.createRestAssured3().given()
+        .config(RestAssuredConfig.newConfig()
+            .decoderConfig(new DecoderConfig(DecoderConfig.ContentDecoder.GZIP)))
+        .get("/_/version")
+        .then().statusCode(200)
+        .header("Content-Encoding", "gzip");
+
+    api.createRestAssured3().given()
+        .config(RestAssuredConfig.newConfig()
+            .decoderConfig(new DecoderConfig().noContentDecoders()))
+        .get("/_/version")
+        .then().statusCode(200)
+        .header("Content-Encoding", nullValue());
+  }
 
   @Test
   public void testRequestResponse(TestContext context) {
     final String okapiTenant = "roskilde";
-
     // add tenant
     api.createRestAssured3().given()
         .header("Content-Type", "application/json")
-        .body(new JsonObject().put("id", okapiTenant).encode()).post("/_/proxy/tenants")
+        .body(new JsonObject().put("id", okapiTenant)
+            .encode()).post("/_/proxy/tenants")
         .then().statusCode(201);
 
     final String docRequestPre = "{" + LS
@@ -4214,7 +4235,6 @@ public class ProxyTest {
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=ISO-8859-1")
-        .header("Content-Encoding", nullValue())
         .body(equalTo("Okapi"));
 
     installReq = new JsonArray().add(new JsonObject().put("id",  "module-pre-1.0.0").put("action", "enable"));
@@ -4230,13 +4250,13 @@ public class ProxyTest {
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=UTF-8")
-        .header("Content-Encoding", "gzip");
+        .header("Content-Encoding", nullValue());
 
     given().header("X-Okapi-Tenant", okapiTenant)
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=ISO-8859-1")
-        .header("Content-Encoding", "gzip");
+        .header("Content-Encoding", nullValue());
 
     installReq = new JsonArray().add(new JsonObject().put("id",  "module-post-1.0.0").put("action", "enable"));
     api.createRestAssured3().given()
@@ -4251,7 +4271,7 @@ public class ProxyTest {
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=UTF-8")
-        .header("Content-Encoding", "gzip");
+        .header("Content-Encoding", nullValue());
   }
 
 }

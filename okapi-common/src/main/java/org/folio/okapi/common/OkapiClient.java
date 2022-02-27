@@ -43,7 +43,7 @@ public class OkapiClient {
   private int retryClosedCount;
   private int retryClosedWait;
   private Vertx vertx;
-  private static Random rand = new Random();
+  private static final Random RAND = new Random();
 
   /**
    * Constructor from a vert.x ctx. That ctx contains all the headers we need.
@@ -80,7 +80,7 @@ public class OkapiClient {
         OkapiStringUtil.removeLogCharacters(ctx.request().getHeader(XOkapiHeaders.URL)));
     for (String hdr : ctx.request().headers().names()) {
       if (hdr.startsWith(XOkapiHeaders.PREFIX)
-          || hdr.startsWith("Accept")) {
+          || hdr.equals("Accept")) {
         String hv = ctx.request().getHeader(hdr);
         headers.put(hdr, hv);
         if (hdr.equals(XOkapiHeaders.REQUEST_ID)) {
@@ -205,7 +205,7 @@ public class OkapiClient {
    * request to the modules, like the tenant interface.
    */
   public void newReqId(String path) {
-    String newId = String.format("%06d", rand.nextInt(1000000)) + "/" + path;
+    String newId = String.format("%06d", RAND.nextInt(1000000)) + "/" + path;
     if (reqId.isEmpty()) {
       reqId = newId;
     } else {
@@ -271,7 +271,7 @@ public class OkapiClient {
 
   private void request1(HttpMethod method, String path, Buffer data, Promise<String> promise) {
     request2(method, path, data)
-        .onSuccess(s -> promise.tryComplete(s))
+        .onSuccess(promise::tryComplete)
         .onFailure(e -> {
           if (e.getCause() == null) {
             promise.tryFail(e);
@@ -294,11 +294,11 @@ public class OkapiClient {
         () -> reqId + " REQ okapiClient " + tenant + " " + method.toString() + " " + url);
     long t1 = logger.isInfoEnabled() ? System.nanoTime() : 0;
     HttpRequest<Buffer> bufferHttpRequest = webClient.requestAbs(method, url);
-    bufferHttpRequest.headers().addAll(headers);
+    bufferHttpRequest.headers().setAll(headers);
+    bufferHttpRequest.headers().forEach(x -> logger.info("REQ {}={}", x.getKey(), x.getValue()));
     return bufferHttpRequest.sendBuffer(data)
-        .recover(e -> {
-          return Future.failedFuture(new ErrorTypeException(ErrorType.ANY, e));
-        }).compose(response -> {
+        .recover(e -> Future.failedFuture(new ErrorTypeException(ErrorType.ANY, e)))
+        .compose(response -> {
           statusCode = response.statusCode();
           if (logger.isInfoEnabled()) {
             long ns = System.nanoTime() - t1;
@@ -309,6 +309,8 @@ public class OkapiClient {
           }
           responsebody = response.bodyAsString();
           respHeaders = response.headers();
+          response.headers().forEach(x -> logger.info("RES {}={}", x.getKey(), x.getValue()));
+          logger.info("RES Response body {}", responsebody);
           if (statusCode >= 200 && statusCode <= 299) {
             return Future.succeededFuture(responsebody);
           }
@@ -375,7 +377,7 @@ public class OkapiClient {
   }
 
   /**
-   * Get the response body. Same string as returned in the callback from
+   * Get the response body. Same string as returned to the callback from
    * request().
    */
   public String getResponsebody() {

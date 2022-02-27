@@ -218,7 +218,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Promise<Void> promise) throws IOException {
+  public void start(Promise<Void> promise) {
     helloGreeting = System.getenv("helloGreeting");
     if (helloGreeting == null) {
       helloGreeting = "Hello";
@@ -245,11 +245,13 @@ public class MainVerticle extends AbstractVerticle {
 
     router.get("/recurse").handler(this::recurseHandle);
 
-    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-    Future<Void> future = vertx.createHttpServer(so)
+    HttpServerOptions so = new HttpServerOptions()
+        .setCompressionSupported(true)
+        .setHandle100ContinueAutomatically(true);
+    vertx.createHttpServer(so)
         .requestHandler(router)
         .listen(port)
-        .compose(result -> {
+        .<Void>compose(result -> {
           final String pidFile = System.getProperty("pidFile");
           if (pidFile != null && !pidFile.isEmpty()) {
             final String pid = name.split("@")[0];
@@ -262,7 +264,6 @@ public class MainVerticle extends AbstractVerticle {
             }
           }
           return Future.succeededFuture();
-        });
-    future.onComplete(promise::handle);
+        }).onComplete(promise);
   }
 }

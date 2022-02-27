@@ -88,7 +88,7 @@ public class ProxyService {
 
   // request + response HTTP headers that are forwarded in the pipeline
   private static final String [] FORWARD_HEADERS =
-      new String [] { "Content-Type", "Content-Encoding"};
+      new String [] { "Content-Type" };
 
   /**
    * Construct Proxy service.
@@ -111,6 +111,7 @@ public class ProxyService {
     enableTraceHeaders = Config.getSysConfBoolean(ConfNames.ENABLE_TRACE_HEADERS, false, config);
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
+    opt.setTryUseCompression(true);
     httpClient = new FuturisedHttpClient(vertx, opt);
 
     String tcTtlMs = Config.getSysConf(TOKEN_CACHE_TTL_MS, null, config);
