@@ -8,6 +8,8 @@ import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
+import io.restassured.config.DecoderConfig;
+import io.restassured.config.RestAssuredConfig;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
@@ -1560,7 +1562,6 @@ public class ProxyTest {
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
-      .log().ifValidationFails()
       .extract().response();
     final String locationTenantRoskilde = r.getHeader("Location");
 
@@ -1632,8 +1633,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/testr")
       .then().statusCode(200)
-      .body(containsString("It works"))
-      .log().ifValidationFails();
+      .body(containsString("It works"));
 
     // Set up, deploy, and enable the header module
     final String docHeaderModule = "{" + LS
@@ -1732,8 +1732,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/testb")
       .then().statusCode(200)
-      .body(containsString("It works"))
-      .log().ifValidationFails();
+      .body(containsString("It works"));
 
     // Actual redirecting request
     given()
@@ -1741,31 +1740,27 @@ public class ProxyTest {
       .get("/red")
       .then().statusCode(200)
       .body(containsString("It works"))
-      .header("X-Okapi-Trace", containsString("GET sample-module-1 http://localhost:9231/testr"))
-      .log().ifValidationFails();
+      .header("X-Okapi-Trace", containsString("GET sample-module-1 http://localhost:9231/testr"));
 
     // Bad redirect
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/badredirect")
       .then().statusCode(500)
-      .body(equalTo("Redirecting /badredirect to /nonexisting FAILED. No suitable module found"))
-      .log().ifValidationFails();
+      .body(equalTo("Redirecting /badredirect to /nonexisting FAILED. No suitable module found"));
 
     // catch redirect loops
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/simpleloop")
       .then().statusCode(500)
-      .body(containsString("loop:"))
-      .log().ifValidationFails();
+      .body(containsString("loop:"));
 
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/loop1")
       .then().statusCode(500)
-      .body(containsString("loop:"))
-      .log().ifValidationFails();
+      .body(containsString("loop:"));
 
     // redirect to multiple modules, but only one is executed
     given()
@@ -1774,16 +1769,14 @@ public class ProxyTest {
       .body("{}")
       .post("/multiple")
       .then().statusCode(200)
-      .body(containsString("Hello {}")) // test-module run once
-      .log().ifValidationFails();
+      .body(containsString("Hello {}")); // test-module run once
 
     // Redirect with parameters
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/red?foo=bar")
       .then().statusCode(200)
-      .body(containsString("It works"))
-      .log().ifValidationFails();
+      .body(containsString("It works"));
 
     // A longer chain of redirects
     given()
@@ -1791,9 +1784,8 @@ public class ProxyTest {
       .header("X-all-headers", "B")
       .get("/chain1")
       .then().statusCode(200)
-      .body(containsString("It works"))
+      .body(containsString("It works"));
       // No auth header should be included any more, since we don't have an auth filter
-      .log().ifValidationFails();
 
     // What happens on prefix match
     // /red matches, replaces with /testr, getting /testrlight which is not found
@@ -1802,15 +1794,13 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/redlight")
       .then().statusCode(404)
-      .header("X-Okapi-Trace", containsString("sample-module-1 http://localhost:9231/testrlight : 404"))
-      .log().ifValidationFails();
+      .header("X-Okapi-Trace", containsString("sample-module-1 http://localhost:9231/testrlight : 404"));
 
     // Verify that we replace only the beginning of the path
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/red/blue/red?color=/red")
-      .then().statusCode(404)
-      .log().ifValidationFails();
+      .then().statusCode(404);
 
     // Clean up
     given().delete(locationTenantRoskilde)
@@ -4114,6 +4104,31 @@ public class ProxyTest {
     logger.info("Elapsed {} ms", (endTime - startTime) / 1000000);
   }
 
+  @Test
+  public void testCompression(TestContext context) {
+    given()
+        .get("/_/proxy/modules")
+        .then().statusCode(200)
+        .header("Content-Encoding", nullValue());
+
+    // Okapi MD is abt 20k uncompressed to compression kicks in CONTENT_COMPRESS_MIN_SIZE
+    given()
+        .get("/_/proxy/modules?full=true")
+        .then().statusCode(200)
+        .header("Content-Encoding", "gzip");
+
+    given()
+        .config(new RestAssuredConfig().decoderConfig(new DecoderConfig(DecoderConfig.ContentDecoder.DEFLATE)))
+        .get("/_/proxy/modules?full=true")
+        .then().statusCode(200)
+        .header("Content-Encoding", is(nullValue()));
+
+    given()
+        .config(new RestAssuredConfig().decoderConfig(new DecoderConfig().noContentDecoders()))
+        .get("/_/proxy/modules?full=true")
+        .then().statusCode(200)
+        .header("Content-Encoding", is(nullValue()));
+  }
 
   @Test
   public void testRequestResponse(TestContext context) {

@@ -19,6 +19,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.RoutingContext;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -30,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.zip.GZIPOutputStream;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.ConfNames;
 import org.folio.okapi.bean.DeploymentDescriptor;
@@ -81,6 +85,7 @@ public class ProxyService {
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
   private static final String TOKEN_CACHE_MAX_SIZE = "token_cache_max_size";
   private static final String TOKEN_CACHE_TTL_MS = "token_cache_ttl_ms";
+  private static final int CONTENT_COMPRESS_MIN_SIZE = 16384; // compress response bigger than this
   private static final Messages messages = Messages.getInstance();
   private static final Comparator<ModuleInstance> compareInstanceLevel =
       Comparator.comparing((ModuleInstance a) -> a.getRoutingEntry().getPhaseLevel());
@@ -954,10 +959,30 @@ public class ProxyService {
     );
   }
 
+  static Buffer compressInternalResponse(RoutingContext ctx, Buffer respBuf) {
+    String acceptEncoding = ctx.request().getHeader("Accept-Encoding");
+    int sz = respBuf.length();
+    if (acceptEncoding != null && acceptEncoding.contains("gzip")
+        && sz > CONTENT_COMPRESS_MIN_SIZE) {
+      try {
+        ByteArrayOutputStream dst = new ByteArrayOutputStream();
+        GZIPOutputStream src = new GZIPOutputStream(dst);
+        src.write(respBuf.getBytes());
+        src.close();
+        respBuf = Buffer.buffer(dst.toByteArray());
+        logger.info("Compressed {} {}", sz, respBuf.length());
+        ctx.response().putHeader("Content-Encoding", "gzip");
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+    return respBuf;
+  }
+
   private void proxyInternalBuffer(
-      Iterator<ModuleInstance> it,
-      ProxyContext pc, Buffer bcontent, List<HttpClientRequest> clientRequestList,
-      ModuleInstance mi) {
+      Iterator<ModuleInstance> it, ProxyContext pc, Buffer bcontent,
+      List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
+
     String req = bcontent.toString();
     logger.debug("proxyInternalBuffer {}", req);
     RoutingContext ctx = pc.getCtx();
@@ -965,8 +990,7 @@ public class ProxyService {
     clientsEnd(bcontent, clientRequestList);
     try {
       internalModule.internalService(req, pc)
-          .onFailure(cause -> pc.responseError(OkapiError.getType(cause), cause))
-          .onSuccess(resp -> {
+          .compose(resp -> {
             int statusCode = pc.getCtx().response().getStatusCode();
             if (statusCode == 200 && resp.isEmpty()) {
               // Say "no content", if there isn't any
@@ -980,9 +1004,13 @@ public class ProxyService {
               proxyR(it, pc, null, respBuf, new LinkedList<>());
             } else { // produce a result
               pc.closeTimer();
-              ctx.response().end(respBuf);
+              // we only do this is okapi module is last in the pipeline as there's no way
+              // to tell filters that content is compressed (Content-Encoding is response only)
+              ctx.response().end(compressInternalResponse(ctx, respBuf));
             }
-          });
+            return null;
+          })
+          .onFailure(cause -> pc.responseError(OkapiError.getType(cause), cause));
     } catch (Exception e) {
       pc.responseError(OkapiError.getType(e), e);
     }
