@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
@@ -33,8 +34,16 @@ public class PullManager {
   private final ModuleManager moduleManager;
   private final Messages messages = Messages.getInstance();
 
+  /**
+   * Construct pull manager.
+   * @param vertx Vert.x handle to use for client
+   * @param moduleManager module manager to use for adding modules locally
+   */
   public PullManager(Vertx vertx, ModuleManager moduleManager) {
-    this.httpClient = new FuturisedHttpClient(vertx);
+    HttpClientOptions options = new HttpClientOptions()
+        .setTryUseCompression(true)
+        .setMaxPoolSize(2); // suffice as pull is normally not performed concurrently
+    this.httpClient = new FuturisedHttpClient(vertx, options);
     this.moduleManager = moduleManager;
   }
 
