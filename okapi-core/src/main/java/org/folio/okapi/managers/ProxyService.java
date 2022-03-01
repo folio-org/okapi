@@ -990,7 +990,7 @@ public class ProxyService {
     clientsEnd(bcontent, clientRequestList);
     try {
       internalModule.internalService(req, pc)
-          .compose(resp -> {
+          .map(resp -> {
             int statusCode = pc.getCtx().response().getStatusCode();
             if (statusCode == 200 && resp.isEmpty()) {
               // Say "no content", if there isn't any
