@@ -656,15 +656,17 @@ public final class DepResolution {
             "Dependency resolution not completing in " + maxIterations + " iterations");
       }
     }
-    List<String> permErrors = checkPermissionNames(modsAvailable, modsEnabled);
-    if (!permErrors.isEmpty()) {
-      logger.warn("permission name errors\n{}", String.join("\n", permErrors));
-    }
     if (!errors.isEmpty()) {
       throw new OkapiError(ErrorType.USER, String.join(". ", errors));
     }
+    Map<ModuleDescriptor, List<String>> permErrors = checkPermissionNames(modsAvailable,
+        modsEnabled);
+    for (Map.Entry<ModuleDescriptor,List<String>> ent : permErrors.entrySet()) {
+      for (String msg : ent.getValue()) {
+        logger.info("{}: {}", ent.getKey().getId(), msg);
+      }
+    }
     sortTenantModules(tml, modsAvailable, enabledModules);
-
   }
 
   /**
@@ -795,7 +797,7 @@ public final class DepResolution {
     return findModulesForInterface(modsAvailable, prov, true);
   }
 
-  static List<String> checkPermissionNames(
+  static Map<ModuleDescriptor, List<String>> checkPermissionNames(
       Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled) {
 
@@ -824,45 +826,51 @@ public final class DepResolution {
           optionalUnknown ? unknown : null);
       getDefinedPermissions(defined, md);
     }
-    List<String> errors = new ArrayList<>();
+    Map<ModuleDescriptor,List<String>> errors = new HashMap<>();
     for (Map.Entry<String,Set<ModuleDescriptor>> ent : referModulePermissions.entrySet()) {
       String permissionName = ent.getKey();
-      Set<ModuleDescriptor> modulesProvided = ent.getValue();
       if (!defined.containsKey(permissionName) && !unknown.contains(permissionName)) {
-        String names = modulesProvided
-            .stream().map(x -> x.getId()).collect(Collectors.joining(", "));
-        errors.add("Undefined permission \"" + permissionName + "\""
-            + " referred to from modulePermissions in " + names);
+        for (ModuleDescriptor md : ent.getValue()) {
+          errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Undefined permission '"
+              + permissionName + "' in modulePermissions");
+        }
       }
     }
     for (Map.Entry<String,Set<ModuleDescriptor>> ent : referRequired.entrySet()) {
       String permissionName = ent.getKey();
-      Set<ModuleDescriptor> modulesProvided = ent.getValue();
       if (!defined.containsKey(permissionName) && !unknown.contains(permissionName)) {
-        String names = modulesProvided
-            .stream().map(x -> x.getId()).collect(Collectors.joining(", "));
-        errors.add("Undefined permission \"" + permissionName + "\""
-            + " referred to from permissionsRequired in " + names);
+        for (ModuleDescriptor md : ent.getValue()) {
+          errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Undefined permission '"
+              + permissionName + "' in permissionsRequired");
+        }
       }
     }
     for (Map.Entry<String,Set<ModuleDescriptor>> ent : referSubPermissions.entrySet()) {
       String permissionName = ent.getKey();
-      Set<ModuleDescriptor> modulesProvided = ent.getValue();
       if (!defined.containsKey(permissionName) && !unknown.contains(permissionName)) {
-        String names = modulesProvided
-            .stream().map(x -> x.getId()).collect(Collectors.joining(", "));
-        errors.add("Undefined permission \"" + permissionName + "\""
-            + " referred to from subPermissions in " + names);
+        for (ModuleDescriptor md : ent.getValue()) {
+          errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Undefined permission '"
+              + permissionName + "' in subPermissions");
+        }
       }
     }
-    for (Map.Entry<String,Set<ModuleDescriptor>> entry: defined.entrySet()) {
-      if (entry.getValue().size() > 1) {
-        String names = entry.getValue()
+    for (Map.Entry<String,Set<ModuleDescriptor>> ent: defined.entrySet()) {
+      if (ent.getValue().size() > 1) {
+        String permissionName = ent.getKey();
+        String names = ent.getValue()
             .stream().map(x -> x.getId()).collect(Collectors.joining(", "));
-        errors.add("Multiple modules define permission \"" + entry.getKey() + "\": " + names);
+        for (ModuleDescriptor md : ent.getValue()) {
+          errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Permission '"
+              + permissionName + "' defined in multiple modules: " + names);
+        }
       }
     }
     return errors;
+  }
+
+  class PermRef {
+    ModuleDescriptor md;
+    List<String> property;
   }
 
   private static void getReferPermissions(

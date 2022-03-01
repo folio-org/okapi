@@ -1341,8 +1341,9 @@ public class DepResolutionTest {
     modsEnabled.put(mda.getId(), mda);
     modsEnabled.put(mdb.getId(), mdb);
 
-    List<String> errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
-    assertThat(errors, contains("Undefined permission \"inta.post\" referred to from permissionsRequired in moda-1.0.0"));
+    Map<ModuleDescriptor,List<String>> errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
+    assertThat(errors.keySet(), contains(mda));
+    assertThat(errors.get(mda), contains("Undefined permission 'inta.post' in permissionsRequired"));
 
     JsonObject mdcObject = new JsonObject()
         .put("id", "modc-1.0.0")
@@ -1383,12 +1384,13 @@ public class DepResolutionTest {
     ModuleDescriptor mdc = Json.decodeValue(mdcObject.encode(), ModuleDescriptor.class);
     modsAvailable.put(mdc.getId(), mdc);
     errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
-    assertThat(errors, contains(
-        "Undefined permission \"intc.post\" referred to from modulePermissions in modb-1.0.0",
-        "Undefined permission \"inta.post\" referred to from permissionsRequired in moda-1.0.0",
-        "Undefined permission \"intc.delete\" referred to from subPermissions in modb-1.0.0",
-        "Multiple modules define permission \"inta.get\": moda-1.0.0, modc-1.0.0"
-    ));
+    assertThat(errors.keySet(), contains(mda, mdb, mdc));
+    assertThat(errors.get(mda), contains("Undefined permission 'inta.post' in permissionsRequired",
+        "Permission 'inta.get' defined in multiple modules: moda-1.0.0, modc-1.0.0"));
+    assertThat(errors.get(mdb), contains("Undefined permission 'intc.post' in modulePermissions",
+        "Undefined permission 'intc.delete' in subPermissions"));
+    assertThat(errors.get(mdc), contains(
+        "Permission 'inta.get' defined in multiple modules: moda-1.0.0, modc-1.0.0"));
 
     mdcObject.put("permissionSets", new JsonArray()
         .add(new JsonObject()
@@ -1407,6 +1409,6 @@ public class DepResolutionTest {
     mdc = Json.decodeValue(mdcObject.encode(), ModuleDescriptor.class);
     modsAvailable.put(mdc.getId(), mdc);
     errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
-    assertThat(errors, is(empty()));
+    assertThat(errors.size(), is(0));
   }
 }
