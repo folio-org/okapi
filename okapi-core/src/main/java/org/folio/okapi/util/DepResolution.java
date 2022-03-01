@@ -868,11 +868,6 @@ public final class DepResolution {
     return errors;
   }
 
-  class PermRef {
-    ModuleDescriptor md;
-    List<String> property;
-  }
-
   private static void getReferPermissions(
       ModuleDescriptor md,
       Map<String, Set<ModuleDescriptor>> referRequired,
