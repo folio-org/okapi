@@ -2583,9 +2583,9 @@ public class ProxyTest {
 
     timerDelaySum.clear();
 
-    Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
         () -> Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(0));
-    Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
         () -> Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2));
     Assertions.assertThat(timerDelaySum.containsKey(0)).isFalse();
 
@@ -2649,10 +2649,6 @@ public class ProxyTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails();
 
-    try {
-      TimeUnit.MILLISECONDS.sleep(100);
-    } catch (InterruptedException ex) {
-    }
 
     // check that timer gone
     api.createRestAssured3().given()
