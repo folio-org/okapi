@@ -961,16 +961,16 @@ public class ProxyService {
 
   static Buffer compressInternalResponse(RoutingContext ctx, Buffer respBuf) {
     String acceptEncoding = ctx.request().getHeader("Accept-Encoding");
-    int sz = respBuf.length();
+    int uncompressedSize = respBuf.length();
     if (acceptEncoding != null && acceptEncoding.contains("gzip")
-        && sz > CONTENT_COMPRESS_MIN_SIZE) {
+        && uncompressedSize > CONTENT_COMPRESS_MIN_SIZE) {
       try {
-        ByteArrayOutputStream dst = new ByteArrayOutputStream();
-        GZIPOutputStream src = new GZIPOutputStream(dst);
-        src.write(respBuf.getBytes());
-        src.close();
-        respBuf = Buffer.buffer(dst.toByteArray());
-        logger.info("Compressed {} {}", sz, respBuf.length());
+        ByteArrayOutputStream compressedStream = new ByteArrayOutputStream();
+        GZIPOutputStream uncompressedStream = new GZIPOutputStream(compressedStream);
+        uncompressedStream.write(respBuf.getBytes());
+        uncompressedStream.close();
+        respBuf = Buffer.buffer(compressedStream.toByteArray());
+        logger.info("Compressed {} bytes to {} bytes", uncompressedSize, respBuf.length());
         ctx.response().putHeader("Content-Encoding", "gzip");
       } catch (IOException e) {
         throw new UncheckedIOException(e);
