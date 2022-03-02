@@ -87,7 +87,7 @@ public class InstallTest {
   }
 
   JsonObject pollComplete(TestContext context, String path) {
-    for (int i = 0; i < 20; i++) {
+    for (int i = 1; i < 20; i++) {
       RestAssuredClient c = api.createRestAssured3();
       logger.info("poll {}", i);
 
@@ -100,7 +100,7 @@ public class InstallTest {
         return job;
       }
       Async async = context.async();
-      vertx.setTimer(300, x -> async.complete());
+      vertx.setTimer(200 * i, x -> async.complete());
       async.await();
     }
     return new JsonObject();
