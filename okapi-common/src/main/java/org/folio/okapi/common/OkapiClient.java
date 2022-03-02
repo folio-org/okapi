@@ -80,7 +80,7 @@ public class OkapiClient {
         OkapiStringUtil.removeLogCharacters(ctx.request().getHeader(XOkapiHeaders.URL)));
     for (String hdr : ctx.request().headers().names()) {
       if (hdr.startsWith(XOkapiHeaders.PREFIX)
-          || hdr.startsWith("Accept")) {
+          || hdr.equals("Accept")) {
         String hv = ctx.request().getHeader(hdr);
         headers.put(hdr, hv);
         if (hdr.equals(XOkapiHeaders.REQUEST_ID)) {

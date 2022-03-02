@@ -329,6 +329,7 @@ public class MainVerticle extends AbstractVerticle {
 
     logger.debug("About to start HTTP server");
     HttpServerOptions so = new HttpServerOptions()
+        .setCompressionSupported(true)
         .setHandle100ContinueAutomatically(true);
     return vertx.createHttpServer(so)
         .requestHandler(router)
