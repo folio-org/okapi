@@ -114,11 +114,10 @@ public class ProxyTest {
     } else {
       ctx.response().setStatusCode(200);
       ctx.response().putHeader("Content-Type", ctx.request().getHeader("Content-Type"));
-      ctx.response().putHeader("Content-Encoding", "gzip");
       ctx.request().handler(preBuffer::appendBuffer);
       ctx.request().endHandler(res -> {
         logger.info("myPreHandle end=" + preBuffer.toString());
-        ctx.response().end();
+        ctx.response().end(preBuffer);
       });
     }
   }
@@ -134,7 +133,7 @@ public class ProxyTest {
       ctx.request().handler(postBuffer::appendBuffer);
       ctx.request().endHandler(res -> {
         logger.info("myPostHandle end=" + postBuffer.toString());
-        ctx.response().end();
+        ctx.response().end(postBuffer);
       });
     }
   }
@@ -236,10 +235,6 @@ public class ProxyTest {
       if (p.startsWith("/echo")) {
         response.setStatusCode(200);
         response.putHeader("Content-Type", request.getHeader("Content-Type"));
-        String contentEncoding = request.getHeader("Content-Encoding");
-        if (contentEncoding != null) {
-          response.putHeader("Content-Encoding", contentEncoding);
-        }
         response.setChunked(true);
         Pump pump = Pump.pump(request, response);
         pump.start();
@@ -4107,12 +4102,6 @@ public class ProxyTest {
   @Test
   public void testCompression(TestContext context) {
     given()
-        .get("/_/proxy/modules")
-        .then().statusCode(200)
-        .header("Content-Encoding", nullValue());
-
-    // Okapi MD is abt 20k uncompressed to compression kicks in CONTENT_COMPRESS_MIN_SIZE
-    given()
         .get("/_/proxy/modules?full=true")
         .then().statusCode(200)
         .header("Content-Encoding", "gzip");
@@ -4121,7 +4110,7 @@ public class ProxyTest {
         .config(new RestAssuredConfig().decoderConfig(new DecoderConfig(DecoderConfig.ContentDecoder.DEFLATE)))
         .get("/_/proxy/modules?full=true")
         .then().statusCode(200)
-        .header("Content-Encoding", is(nullValue()));
+        .header("Content-Encoding", "deflate");
 
     given()
         .config(new RestAssuredConfig().decoderConfig(new DecoderConfig().noContentDecoders()))
@@ -4229,7 +4218,6 @@ public class ProxyTest {
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=ISO-8859-1")
-        .header("Content-Encoding", nullValue())
         .body(equalTo("Okapi"));
 
     installReq = new JsonArray().add(new JsonObject().put("id",  "module-pre-1.0.0").put("action", "enable"));
@@ -4245,13 +4233,13 @@ public class ProxyTest {
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=UTF-8")
-        .header("Content-Encoding", "gzip");
+        .body(equalTo("Okapi"));
 
     given().header("X-Okapi-Tenant", okapiTenant)
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=ISO-8859-1")
-        .header("Content-Encoding", "gzip");
+        .body(equalTo("Okapi"));
 
     installReq = new JsonArray().add(new JsonObject().put("id",  "module-post-1.0.0").put("action", "enable"));
     api.createRestAssured3().given()
@@ -4266,7 +4254,7 @@ public class ProxyTest {
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=UTF-8")
-        .header("Content-Encoding", "gzip");
+        .body(equalTo("Okapi"));
   }
 
 }
