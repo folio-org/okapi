@@ -88,7 +88,7 @@ public class ProxyService {
 
   // request + response HTTP headers that are forwarded in the pipeline
   private static final String [] FORWARD_HEADERS =
-      new String [] { "Content-Type", "Content-Encoding"};
+      new String [] { "Content-Type" };
 
   /**
    * Construct Proxy service.
@@ -955,9 +955,9 @@ public class ProxyService {
   }
 
   private void proxyInternalBuffer(
-      Iterator<ModuleInstance> it,
-      ProxyContext pc, Buffer bcontent, List<HttpClientRequest> clientRequestList,
-      ModuleInstance mi) {
+      Iterator<ModuleInstance> it, ProxyContext pc, Buffer bcontent,
+      List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
+
     String req = bcontent.toString();
     logger.debug("proxyInternalBuffer {}", req);
     RoutingContext ctx = pc.getCtx();
@@ -965,8 +965,7 @@ public class ProxyService {
     clientsEnd(bcontent, clientRequestList);
     try {
       internalModule.internalService(req, pc)
-          .onFailure(cause -> pc.responseError(OkapiError.getType(cause), cause))
-          .onSuccess(resp -> {
+          .map(resp -> {
             int statusCode = pc.getCtx().response().getStatusCode();
             if (statusCode == 200 && resp.isEmpty()) {
               // Say "no content", if there isn't any
@@ -982,7 +981,9 @@ public class ProxyService {
               pc.closeTimer();
               ctx.response().end(respBuf);
             }
-          });
+            return null;
+          })
+          .onFailure(cause -> pc.responseError(OkapiError.getType(cause), cause));
     } catch (Exception e) {
       pc.responseError(OkapiError.getType(e), e);
     }
