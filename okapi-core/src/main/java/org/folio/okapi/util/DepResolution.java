@@ -661,9 +661,9 @@ public final class DepResolution {
     }
     Map<ModuleDescriptor, List<String>> permErrors = checkPermissionNames(modsAvailable,
         modsEnabled);
-    for (Map.Entry<ModuleDescriptor,List<String>> ent : permErrors.entrySet()) {
+    for (Map.Entry<ModuleDescriptor, List<String>> ent : permErrors.entrySet()) {
       for (String msg : ent.getValue()) {
-        logger.info("{}: {}", ent.getKey().getId(), msg);
+        logger.warn("{}: {}", ent.getKey().getId(), msg);
       }
     }
     sortTenantModules(tml, modsAvailable, enabledModules);
@@ -819,12 +819,12 @@ public final class DepResolution {
         if (modules.isEmpty()) {
           optionalUnknown = true;
         } else {
-          getDefinedPermissions(defined, modules.values().iterator().next());
+          addDefinedPermissions(defined, modules.values().iterator().next());
         }
       }
-      getReferPermissions(md, referRequired, referModulePermissions, referSubPermissions,
+      addReferPermissions(md, referRequired, referModulePermissions, referSubPermissions,
           optionalUnknown ? unknown : null);
-      getDefinedPermissions(defined, md);
+      addDefinedPermissions(defined, md);
     }
     Map<ModuleDescriptor,List<String>> errors = new HashMap<>();
     for (Map.Entry<String,Set<ModuleDescriptor>> ent : referModulePermissions.entrySet()) {
@@ -868,7 +868,7 @@ public final class DepResolution {
     return errors;
   }
 
-  private static void getReferPermissions(
+  private static void addReferPermissions(
       ModuleDescriptor md,
       Map<String, Set<ModuleDescriptor>> referRequired,
       Map<String, Set<ModuleDescriptor>> referModulePermissions,
@@ -914,7 +914,7 @@ public final class DepResolution {
     }
   }
 
-  private static void getDefinedPermissions(
+  private static void addDefinedPermissions(
       Map<String, Set<ModuleDescriptor>> defined, ModuleDescriptor md) {
 
     Permission[] permissionSets = md.getPermissionSets();
