@@ -740,6 +740,9 @@ public class InternalModule {
     try {
       final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
       final String tenantId = td.getId();
+      if (tenantId == null) {
+        throw new OkapiError(ErrorType.USER, messages.getMessage("11600"));
+      }
       Tenant t = new Tenant(td);
       return tenantManager.insert(t).map(res ->
         location(pc, tenantId, null, Json.encodePrettily(t.getDescriptor())));

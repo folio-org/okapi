@@ -64,6 +64,29 @@ public class TenantRATest {
         .post("/_/proxy/tenants")
         .then().statusCode(201);
 
+    req = new JsonObject();
+    given()
+        .header("Content-Type", "application/json").body(req.encode())
+        .post("/_/proxy/tenants")
+        .then().statusCode(400)
+        .body(containsString("Tenant id required"));
+
+    req = new JsonObject()
+        .put("id", "");
+    given()
+        .header("Content-Type", "application/json").body(req.encode())
+        .post("/_/proxy/tenants")
+        .then().statusCode(400)
+        .body(containsString("Tenant id required"));
+
+    req = new JsonObject()
+        .put("id", null);
+    given()
+        .header("Content-Type", "application/json").body(req.encode())
+        .post("/_/proxy/tenants")
+        .then().statusCode(400)
+        .body(containsString("Tenant id required"));
+
     req = new JsonObject()
         .put("id", "abcdefghijklmnopqrstuvwxyz012345");
     given()
