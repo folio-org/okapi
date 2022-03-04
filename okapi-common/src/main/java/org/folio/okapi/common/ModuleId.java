@@ -9,20 +9,46 @@ public class ModuleId implements Comparable<ModuleId> {
   private final String id;
 
   /**
-   * Construct Module ID from Module ID string or product only (moduleID without
-   * version).
-   * May throw IllegalArgumentException for invalid syntax for semantic version.
-   * @param s Module ID or product name. The module ID does not have restrictions
-   *     on characters, but a digit following a hyphen-minus marks the beginning of
-   *     a semantic version .. See {@link org.folio.okapi.common.SemVer}.
+   * Construct Module identifier from string.
+   *
+   * <p>The identifier string consists of a product name and optionally followed
+   * by semantic version. Example of valid identifiers:
+   * <ul>
+   *   <li>"foo-1.0.0" : product foo with version 1.0.0.</li>
+   *   <li>"foo-bar-2.0.0-SNAPSHOT" : product foo-bar with version 2.0.0-SNAPSHOT.</li>
+   *   <li>"Zoe" : product Zoe without version.</li>
+   * </ul>
+   * Example of invalid identifiers:
+   * <ul>
+   *   <li>"foo 1.0.0"</li>
+   *   <li>"123"</li>
+   *   <li>"a/b"</li>
+   * </ul>
+   * @param s Module ID or product name. The module ID may include of letters, digits,
+   *          underscore and hyphen-minus. Leading character, however, must be letter.
+   *          A digit following a hyphen-minus marks the beginning of a semantic version.
+   *          See {@link org.folio.okapi.common.SemVer}.
+   * @throws IllegalArgumentException if the module identifier is invalid.
    */
   public ModuleId(String s) {
     id = s;
-    for (int i = 0; i < s.length() - 1; i++) {
-      if (s.charAt(i) == '-' && Character.isDigit(s.charAt(i + 1))) {
-        product = s.substring(0, i);
-        semVer = new SemVer(s.substring(i + 1));
-        return;
+    if (s.isEmpty()) {
+      throw new IllegalArgumentException("ModuleID must not be empty");
+    }
+    if (!Character.isLetter(s.charAt(0))) {
+      throw new IllegalArgumentException("ModuleID '" + id + "' must start with letter");
+    }
+    for (int i = 1; i < s.length(); i++) {
+      char c = s.charAt(i);
+      if (c == '-') {
+        if (i < s.length() - 1 && Character.isDigit(s.charAt(i + 1))) {
+          product = s.substring(0, i);
+          semVer = new SemVer(s.substring(i + 1));
+          return;
+        }
+      } else if (!Character.isLetterOrDigit(c) && c != '_') {
+        throw new IllegalArgumentException("ModuleID '" + id
+            + "' has non-allowed character at offset " + i);
       }
     }
     product = s;
@@ -62,7 +88,7 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * Whether there's pre release with version.
+   * Whether there's pre-release with version.
    * @return true if there's a version with pre-release; false otherwise
    */
   public boolean hasPreRelease() {
@@ -79,7 +105,7 @@ public class ModuleId implements Comparable<ModuleId> {
 
   /**
    * Compare one module with another.
-   * @param other module (this compare to other)
+   * @param other module (this compare to other module)
    * @return +-5 for product diff, +-4 for major diff, +-3 for minor,
    *     +-2 for rest, +-1 for patch, 0=equal
    */
@@ -135,7 +161,7 @@ public class ModuleId implements Comparable<ModuleId> {
     b.append(product);
     if (semVer != null) {
       b.append("-");
-      b.append(semVer.toString());
+      b.append(semVer);
     }
     return b.toString();
   }
@@ -154,7 +180,7 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * Returns newest module out of a list of modules including this.
+   * Returns the newest module out of a list of modules including this.
    * @param l list of module IDs
    * @return newest module (possibly this module)
    */

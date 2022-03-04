@@ -10,12 +10,18 @@ public class ModuleIdTest {
   @java.lang.SuppressWarnings({"squid:S5961"}) // more than 25 assertions
   @Test
   public void test() {
-    ModuleId module_1 = new ModuleId("module-1");
-    assertEquals("module-1", module_1.getId());
+    ModuleId module_1 = new ModuleId("søvang-1");
+    assertEquals("søvang-1", module_1.getId());
     assertTrue(module_1.hasSemVer());
     assertFalse(module_1.hasPreRelease());
-    assertEquals("module", module_1.getProduct());
-    assertEquals("module-1", module_1.toString());
+    assertEquals("søvang", module_1.getProduct());
+    assertEquals("søvang-1", module_1.toString());
+
+    ModuleId module_1_9 = new ModuleId("søvang-1.9");
+    assertEquals("søvang-1.9", module_1_9.toString());
+
+    ModuleId module = new ModuleId("søvang");
+    assertEquals("søvang", module.toString());
 
     ModuleId module_1plus2 = new ModuleId("module-1-2+3");
     assertEquals("module-1-2+3", module_1plus2.getId());
@@ -26,8 +32,6 @@ public class ModuleIdTest {
     assertEquals("module-1-2+3", module_1plus2.toString());
 
     assertNotEquals(module_1, module_1plus2);
-    ModuleId module_1_ref = module_1;
-    assertEquals(module_1, module_1_ref);
     ModuleId module_1plus2copy = new ModuleId("module-1-2+3");
     assertEquals(module_1plus2, module_1plus2copy);
 
@@ -35,12 +39,6 @@ public class ModuleIdTest {
 
     ModuleId foobar_1_2 = new ModuleId("foo-bar1-1.2");
     assertEquals("foo-bar1-1.2", foobar_1_2.toString());
-
-    ModuleId module_1_9 = new ModuleId("module-1.9");
-    assertEquals("module-1.9", module_1_9.toString());
-
-    ModuleId module = new ModuleId("module");
-    assertEquals("module", module.toString());
 
     assertTrue(module_1.hasPrefix(module));
     assertFalse(module.hasPrefix(module_1));
@@ -69,6 +67,47 @@ public class ModuleIdTest {
 
     assertTrue(module_1.hasSemVer());
     assertEquals("1", module_1.getSemVer().toString());
+  }
+
+  @Test
+  public void testHyphenMinusEnd() {
+    assertEquals("a-", new ModuleId("a-").getProduct());
+  }
+
+  @Test
+  public void testHyphenNoVersion() {
+    assertEquals("a-x", new ModuleId("a-x").getProduct());
+  }
+
+  @Test
+  public void testUnderScore() {
+    assertEquals("a_x", new ModuleId("a_x").getProduct());
+  }
+
+  @Test
+  public void testEmpty() {
+    assertEquals("ModuleID must not be empty",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("")).getMessage());
+  }
+
+  @Test
+  public void testBadLead() {
+    assertEquals("ModuleID '1' must start with letter",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("1")).getMessage());
+    assertEquals("ModuleID '-1' must start with letter",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("-1")).getMessage());
+    assertEquals("ModuleID '_1' must start with letter",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("_1")).getMessage());
+    assertEquals("ModuleID ' a' must start with letter",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId(" a")).getMessage());
+  }
+
+  @Test
+  public void testBadCharacter() {
+    assertEquals("ModuleID 'my 2' has non-allowed character at offset 2",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("my 2")).getMessage());
+    assertEquals("ModuleID 'my ' has non-allowed character at offset 2",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("my ")).getMessage());
   }
 
   @Test
