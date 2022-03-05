@@ -2,6 +2,7 @@ package org.folio.okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import java.util.List;
 import java.util.regex.Pattern;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
@@ -16,9 +17,10 @@ import org.folio.okapi.util.OkapiError;
 
 @JsonInclude(Include.NON_NULL)
 public class TenantDescriptor {
+  // no-multi byte sequences allowed below in pattern, so char length = byte length
   private static final String TENANT_PATTERN_STRING = "^[a-z][a-z0-9]*(_[0-9]+)*$";
   private static final Pattern TENANT_PATTERN = Pattern.compile(TENANT_PATTERN_STRING);
-  private static final String TENANT_RESERVED = "pg";
+  private static final List<String> TENANT_RESERVED = List.of("pg");
   private static final int TENANT_MAX_LENGTH = 31;
 
   private String id;
@@ -62,7 +64,7 @@ public class TenantDescriptor {
       throw new OkapiError(ErrorType.USER, messages.getMessage("11601", id,
               TENANT_PATTERN_STRING));
     }
-    if (TENANT_RESERVED.equals(id)) {
+    if (TENANT_RESERVED.contains(id)) {
       throw new OkapiError(ErrorType.USER, messages.getMessage("11609", id));
     }
     this.id = id;

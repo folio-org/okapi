@@ -56,68 +56,13 @@ public class TenantRATest {
   }
 
   @Test
-  public void testBadTenants() {
-    JsonObject req = new JsonObject()
-        .put("id", "abcdefghijklmnopqrstuvwxyz01234");
-    given()
-        .header("Content-Type", "application/json").body(req.encode())
-        .post("/_/proxy/tenants")
-        .then().statusCode(201);
-
-    req = new JsonObject();
+  public void testNoTenant() {
+    JsonObject req = new JsonObject();
     given()
         .header("Content-Type", "application/json").body(req.encode())
         .post("/_/proxy/tenants")
         .then().statusCode(400)
         .body(containsString("Tenant id required"));
-
-    req = new JsonObject()
-        .put("id", "");
-    given()
-        .header("Content-Type", "application/json").body(req.encode())
-        .post("/_/proxy/tenants")
-        .then().statusCode(400)
-        .body(containsString("Tenant id required"));
-
-    req = new JsonObject()
-        .put("id", null);
-    given()
-        .header("Content-Type", "application/json").body(req.encode())
-        .post("/_/proxy/tenants")
-        .then().statusCode(400)
-        .body(containsString("Tenant id required"));
-
-    req = new JsonObject()
-        .put("id", "abcdefghijklmnopqrstuvwxyz012345");
-    given()
-        .header("Content-Type", "application/json").body(req.encode())
-        .post("/_/proxy/tenants")
-        .then().statusCode(400)
-        .body(containsString("must not exceed 31 characters"));
-
-    req = new JsonObject()
-        .put("id", "pg");
-    given()
-        .header("Content-Type", "application/json").body(req.encode())
-        .post("/_/proxy/tenants")
-        .then().statusCode(400)
-        .body(containsString("reserved"));
-
-    req = new JsonObject()
-        .put("id", "abc_");
-    given()
-        .header("Content-Type", "application/json").body(req.encode())
-        .post("/_/proxy/tenants")
-        .then().statusCode(400)
-        .body(containsString("match"));
-
-    req = new JsonObject()
-        .put("id", "abc_1");
-    given()
-        .header("Content-Type", "application/json").body(req.encode())
-        .post("/_/proxy/tenants")
-        .then().statusCode(201);
-
   }
 
   @Test
