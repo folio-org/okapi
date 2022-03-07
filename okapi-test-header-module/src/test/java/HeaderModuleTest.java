@@ -53,7 +53,6 @@ public class HeaderModuleTest {
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     Async async = context.async();
     cli.get("/testb", res -> {
-      cli.close();
       context.assertTrue(res.succeeded());
       context.assertEquals("foo", cli.getRespHeaders().get("X-my-header"));
       async.complete();
@@ -69,7 +68,6 @@ public class HeaderModuleTest {
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
 
     cli.get("/testb", res -> {
-      cli.close();
       context.assertTrue(res.succeeded());
       context.assertEquals("hello,foo", cli.getRespHeaders().get("X-my-header"));
       async.complete();
@@ -102,7 +100,6 @@ public class HeaderModuleTest {
         context.assertTrue(res.succeeded());
         context.assertEquals("POST test-header-module /_/tenantPermissions 200 -",
             cli.getRespHeaders().get(XOkapiHeaders.TRACE));
-        cli.close();
         async.complete();
       });
       async.await();
@@ -112,7 +109,6 @@ public class HeaderModuleTest {
       OkapiClient cli = new OkapiClient(URL, vertx, headers);
       cli.get("/permResult", res -> {
         context.assertEquals(perm, new JsonArray(res.result()).getJsonObject(0));
-        cli.close();
         async.complete();
       });
       async.await();
@@ -123,7 +119,6 @@ public class HeaderModuleTest {
       OkapiClient cli = new OkapiClient(URL, vertx, headers);
       cli.get("/permResult", res -> {
         context.assertNull(res.result());
-        cli.close();
         async.complete();
       });
       async.await();

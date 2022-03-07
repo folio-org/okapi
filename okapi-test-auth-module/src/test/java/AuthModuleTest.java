@@ -56,7 +56,6 @@ public class AuthModuleTest {
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.get("/notokentenant", res -> {
-      cli.close();
       context.assertTrue(res.succeeded());
       async.complete();
     });
@@ -72,7 +71,6 @@ public class AuthModuleTest {
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.get("/notokentenant", res -> {
-      cli.close();
       context.assertTrue(res.failed());
       context.assertEquals("401: Permissions required: foo,bar", res.cause().getMessage());
       async.complete();
@@ -107,7 +105,6 @@ public class AuthModuleTest {
     cli.setOkapiToken("a.b");
 
     cli.get("/badtoken", res -> {
-      cli.close();
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.USER, ErrorTypeException.getType(res));
       async.complete();
@@ -126,7 +123,6 @@ public class AuthModuleTest {
     cli.setOkapiToken("a.b.c");
 
     cli.get("/badjwt", res -> {
-      cli.close();
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.USER, ErrorTypeException.getType(res));
       async.complete();
@@ -145,7 +141,6 @@ public class AuthModuleTest {
     cli.setOkapiToken("dummyJwt.b.c");
 
     cli.get("/badpayload", res -> {
-      cli.close();
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.USER, ErrorTypeException.getType(res));
       async.complete();
@@ -169,7 +164,6 @@ public class AuthModuleTest {
     String body = j.encodePrettily();
 
     cli.post("/authn/login", body, res -> {
-      cli.close();
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.USER, ErrorTypeException.getType(res));
       async.complete();
@@ -186,7 +180,6 @@ public class AuthModuleTest {
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.post("/authn/login", "", res -> {
-      cli.close();
       context.assertTrue(res.succeeded());
       async.complete();
     });
@@ -202,7 +195,6 @@ public class AuthModuleTest {
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.post("/authn/login", "{", res -> {
-      cli.close();
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.USER, ErrorTypeException.getType(res));
       async.complete();
@@ -219,7 +211,6 @@ public class AuthModuleTest {
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
 
     cli.get("/authn/login", res -> {
-      cli.close();
       context.assertTrue(res.succeeded());
       async.complete();
     });
@@ -253,12 +244,10 @@ public class AuthModuleTest {
     cli.get("/normal", res -> {
       if (res.succeeded()) {
         cli.post("/normal", "{}", res2 -> {
-          cli.close();
           context.assertTrue(res2.succeeded());
           async.complete();
         });
       } else {
-        cli.close();
         context.assertTrue(res.succeeded());
         async.complete();
       }
@@ -375,7 +364,6 @@ public class AuthModuleTest {
         async.complete();
       });
       async.await();
-      cli.close();
     }
     {
       Async async = context.async();
@@ -386,7 +374,6 @@ public class AuthModuleTest {
         async.complete();
       });
       async.await();
-      cli.close();
     }
     {
       Async async = context.async();
@@ -397,7 +384,6 @@ public class AuthModuleTest {
         async.complete();
       });
       async.await();
-      cli.close();
     }
   }
 
@@ -417,7 +403,6 @@ public class AuthModuleTest {
     cli.get("/normal", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.NOT_FOUND, ErrorTypeException.getType(res));
-      cli.close();
       async.complete();
     });
   }
@@ -437,7 +422,6 @@ public class AuthModuleTest {
     cli.get("/normal", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.INTERNAL, ErrorTypeException.getType(res));
-      cli.close();
       async.complete();
     });
   }
@@ -462,7 +446,6 @@ public class AuthModuleTest {
       cli.get("/normal", res -> {
         context.assertTrue(res.failed());
         context.assertEquals(ErrorType.INTERNAL, ErrorTypeException.getType(res));
-        cli.close();
         async.complete();
       });
     }
