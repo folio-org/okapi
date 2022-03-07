@@ -193,7 +193,6 @@ public class SampleModuleTest {
 
   public void testDelete(TestContext context, OkapiClient cli, Async async) {
     cli.delete("/testb", res -> {
-      cli.close();
       context.assertTrue(res.succeeded());
       async.complete();
     });
@@ -206,7 +205,6 @@ public class SampleModuleTest {
     headers.put("X-Handler-error", "true");
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.get("/testb", res -> {
-      cli.close();
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
