@@ -13,6 +13,7 @@ import java.util.HashMap;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.auth.MainVerticle;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.ErrorTypeException;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -87,7 +88,7 @@ public class AuthModuleTest {
     cli.setOkapiToken("a.b.c");
     cli.get("/notenant", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.USER, res.getType());
+      context.assertEquals(ErrorType.USER, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -105,7 +106,7 @@ public class AuthModuleTest {
 
     cli.get("/badtoken", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.USER, res.getType());
+      context.assertEquals(ErrorType.USER, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -123,7 +124,7 @@ public class AuthModuleTest {
 
     cli.get("/badjwt", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.USER, res.getType());
+      context.assertEquals(ErrorType.USER, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -141,7 +142,7 @@ public class AuthModuleTest {
 
     cli.get("/badpayload", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.USER, res.getType());
+      context.assertEquals(ErrorType.USER, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -164,7 +165,7 @@ public class AuthModuleTest {
 
     cli.post("/authn/login", body, res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.USER, res.getType());
+      context.assertEquals(ErrorType.USER, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -195,7 +196,7 @@ public class AuthModuleTest {
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.post("/authn/login", "{", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.USER, res.getType());
+      context.assertEquals(ErrorType.USER, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -401,7 +402,7 @@ public class AuthModuleTest {
 
     cli.get("/normal", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.NOT_FOUND, res.getType());
+      context.assertEquals(ErrorType.NOT_FOUND, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -420,7 +421,7 @@ public class AuthModuleTest {
 
     cli.get("/normal", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertEquals(ErrorType.INTERNAL, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -444,7 +445,7 @@ public class AuthModuleTest {
 
       cli.get("/normal", res -> {
         context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.INTERNAL, res.getType());
+        context.assertEquals(ErrorType.INTERNAL, ErrorTypeException.getType(res));
         async.complete();
       });
     }

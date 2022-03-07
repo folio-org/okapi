@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.ErrorTypeException;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -206,7 +207,7 @@ public class SampleModuleTest {
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.get("/testb", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertEquals(ErrorType.INTERNAL, ErrorTypeException.getType(res));
       async.complete();
     });
   }

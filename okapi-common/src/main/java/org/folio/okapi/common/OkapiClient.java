@@ -1,5 +1,6 @@
 package org.folio.okapi.common;
 
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
@@ -20,7 +21,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Okapi client. Makes requests to other Okapi modules, or Okapi itself. Handles
+ * Okapi client. It makes requests to other Okapi modules, or Okapi itself. Handles
  * all the things we need with the headers etc. Note that the client keeps a
  * list of necessary headers (which it can get from the RoutingContext, or
  * separately), so it is bound to one request, or at least one tenant. Your
@@ -226,7 +227,7 @@ public class OkapiClient {
    * @param fut future with response as string if successful
    */
   public void request(HttpMethod method, String path, String data,
-                      Handler<ExtendedAsyncResult<String>> fut) {
+                      Handler<AsyncResult<String>> fut) {
 
     request(method, path, Buffer.buffer(data == null ? "" : data), fut);
   }
@@ -240,10 +241,10 @@ public class OkapiClient {
    * @param fut future with response as string if successful
    */
   public void request(HttpMethod method, String path, Buffer data,
-                      Handler<ExtendedAsyncResult<String>> fut) {
+                      Handler<AsyncResult<String>> fut) {
 
     request(method, path, data)
-        .onComplete(result -> fut.handle(ExtendedAsyncResult.from(result)));
+        .onComplete(result -> fut.handle(result));
   }
 
   /**
@@ -288,9 +289,8 @@ public class OkapiClient {
     HttpRequest<Buffer> bufferHttpRequest = webClient.requestAbs(method, url);
     bufferHttpRequest.headers().addAll(headers);
     return bufferHttpRequest.sendBuffer(data)
-        .recover(e -> {
-          return Future.failedFuture(new ErrorTypeException(ErrorType.ANY, e));
-        }).compose(response -> {
+        .recover(e -> Future.failedFuture(new ErrorTypeException(ErrorType.ANY, e)))
+        .compose(response -> {
           statusCode = response.statusCode();
           if (logger.isInfoEnabled()) {
             long ns = System.nanoTime() - t1;
@@ -324,7 +324,7 @@ public class OkapiClient {
   }
 
   public void post(String path, String data,
-      Handler<ExtendedAsyncResult<String>> fut) {
+      Handler<AsyncResult<String>> fut) {
     request(HttpMethod.POST, path, data, fut);
   }
 
@@ -333,7 +333,7 @@ public class OkapiClient {
   }
 
   public void get(String path,
-                  Handler<ExtendedAsyncResult<String>> fut) {
+                  Handler<AsyncResult<String>> fut) {
     request(HttpMethod.GET, path, "", fut);
   }
 
@@ -342,7 +342,7 @@ public class OkapiClient {
   }
 
   public void delete(String path,
-                     Handler<ExtendedAsyncResult<String>> fut) {
+                     Handler<AsyncResult<String>> fut) {
     request(HttpMethod.DELETE, path, "", fut);
   }
 
@@ -351,7 +351,7 @@ public class OkapiClient {
   }
 
   public void head(String path,
-      Handler<ExtendedAsyncResult<String>> fut) {
+      Handler<AsyncResult<String>> fut) {
     request(HttpMethod.HEAD, path, "", fut);
   }
 

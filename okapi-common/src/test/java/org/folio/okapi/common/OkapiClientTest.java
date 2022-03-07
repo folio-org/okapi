@@ -76,7 +76,7 @@ public class OkapiClientTest {
     OkapiClient cli = new OkapiClient(ctx);
     cli.get(p, res -> {
       if (res.failed()) {
-        HttpResponse.responseError(ctx, res.getType(), res.cause());
+        HttpResponse.responseError(ctx, ErrorTypeException.getType(res), res.cause());
       } else {
         ctx.request().endHandler(x -> {
           HttpResponse.responseJson(ctx, 200);
@@ -125,7 +125,7 @@ public class OkapiClientTest {
 
     cli.get("/test1", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertEquals(ErrorType.INTERNAL, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -159,7 +159,7 @@ public class OkapiClientTest {
 
     cli.get("/test2?p=%2Ftest1", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertEquals(ErrorType.INTERNAL, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -200,7 +200,7 @@ public class OkapiClientTest {
 
     {
       Async async = context.async();
-      cli.get("/test1", (ExtendedAsyncResult<String> res) -> {
+      cli.get("/test1", res -> {
         context.assertTrue(res.succeeded());
         context.assertEquals("hello test-lib", res.result());
         context.assertEquals(res.result(), cli.getResponsebody());
@@ -215,7 +215,7 @@ public class OkapiClientTest {
       Async async = context.async();
       cli.request(HttpMethod.GET, "/test_not_found", "", res -> {
         context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.NOT_FOUND, res.getType());
+        context.assertEquals(ErrorType.NOT_FOUND, ErrorTypeException.getType(res));
         async.complete();
       });
       async.await();
@@ -319,7 +319,7 @@ public class OkapiClientTest {
 
     cli.get("/test1?e=403", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.FORBIDDEN, res.getType());
+      context.assertEquals(ErrorType.FORBIDDEN, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -333,7 +333,7 @@ public class OkapiClientTest {
 
     cli.get("/test1?e=400", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.USER, res.getType());
+      context.assertEquals(ErrorType.USER, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -347,7 +347,7 @@ public class OkapiClientTest {
 
     cli.get("/test1?e=500", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertEquals(ErrorType.INTERNAL, ErrorTypeException.getType(res));
       async.complete();
     });
   }
@@ -362,7 +362,8 @@ public class OkapiClientTest {
       cli.setClosedRetry(0);
       cli.get("/test1", res2 -> {
         context.assertTrue(res2.failed());
-        context.assertEquals(ErrorType.INTERNAL, res2.getType());
+        ErrorTypeException e = (ErrorTypeException) res2.cause();
+        context.assertEquals(ErrorType.INTERNAL, e.getErrorType());
         async.complete();
       });
     });
@@ -378,7 +379,7 @@ public class OkapiClientTest {
       cli.setClosedRetry(90);
       cli.get("/test1", res2 -> {
         context.assertTrue(res2.failed());
-        context.assertEquals(ErrorType.INTERNAL, res2.getType());
+        context.assertEquals(ErrorType.INTERNAL, ErrorTypeException.getType(res2));
         async.complete();
       });
     });
