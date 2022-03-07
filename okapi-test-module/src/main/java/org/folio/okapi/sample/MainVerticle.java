@@ -201,7 +201,6 @@ public class MainVerticle extends AbstractVerticle {
       OkapiClient ok = new OkapiClient(ctx);
       depth--;
       ok.get("/recurse?depth=" + depth, res -> {
-        ok.close();
         if (res.succeeded()) {
           HttpResponse.responseText(ctx, 200);
           ctx.response().end(depthstr + " " + res.result());

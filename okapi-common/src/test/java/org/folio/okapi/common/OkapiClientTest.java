@@ -160,8 +160,6 @@ public class OkapiClientTest {
     cli.get("/test2?p=%2Ftest1", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.INTERNAL, res.getType());
-      cli.close();
-      cli.close(); // 2nd close should work (ignored)
       async.complete();
     });
   }
@@ -276,7 +274,6 @@ public class OkapiClientTest {
       });
       async.await();
     }
-    cli.close();
   }
 
   @Test
@@ -323,7 +320,6 @@ public class OkapiClientTest {
     cli.get("/test1?e=403", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.FORBIDDEN, res.getType());
-      cli.close();
       async.complete();
     });
   }
@@ -338,7 +334,6 @@ public class OkapiClientTest {
     cli.get("/test1?e=400", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.USER, res.getType());
-      cli.close();
       async.complete();
     });
   }
@@ -353,7 +348,6 @@ public class OkapiClientTest {
     cli.get("/test1?e=500", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.INTERNAL, res.getType());
-      cli.close();
       async.complete();
     });
   }

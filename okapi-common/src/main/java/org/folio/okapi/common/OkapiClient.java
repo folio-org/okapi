@@ -48,14 +48,10 @@ public class OkapiClient {
   /**
    * Constructor from a vert.x ctx. That ctx contains all the headers we need.
    *
-   * <p>Using {@link #OkapiClient(HttpClient, RoutingContext)} or
-   * {@link #OkapiClient(WebClient, RoutingContext)} is preferred
-   * to re-use a Verticle's client allowing for pooling and pipe-lining.
-   *
    * @param ctx routing context (using some headers from it)
    */
   public OkapiClient(RoutingContext ctx) {
-    this(ctx.vertx().createHttpClient(), ctx);
+    this(WebClientFactory.getWebClient(ctx.vertx()), ctx);
   }
 
   /**
@@ -133,16 +129,12 @@ public class OkapiClient {
   /**
    * Explicit constructor.
    *
-   * <p>Using {@link #OkapiClient(HttpClient, String, Vertx, Map)} or
-   * {@link #OkapiClient(WebClient, String, Vertx, Map)} is preferred
-   * to re-use a Verticle's client allowing for pooling and pipe-lining.
-   *
    * @param okapiUrl OKAPI URL
    * @param vertx Vert.x handle
    * @param headers may be null
    */
   public OkapiClient(String okapiUrl, Vertx vertx, Map<String, String> headers) {
-    this(vertx.createHttpClient(), okapiUrl, vertx, headers);
+    this(WebClientFactory.getWebClient(vertx), okapiUrl, vertx, headers);
   }
 
   /**
@@ -414,18 +406,5 @@ public class OkapiClient {
    */
   public void setOkapiToken(String token) {
     headers.put(XOkapiHeaders.TOKEN, token);
-  }
-
-  /**
-   * Close HTTP connection for client. This closes the {@link WebClient} and the
-   * {@link HttpClient}. A Verticle should create a single WebClient or HttpClient
-   * and reuse it for all request to allow for pooling and pipe-lining, and should only
-   * close it when the Verticle shuts down.
-   */
-  public void close() {
-    if (webClient != null) {
-      webClient.close();
-      webClient = null;
-    }
   }
 }
