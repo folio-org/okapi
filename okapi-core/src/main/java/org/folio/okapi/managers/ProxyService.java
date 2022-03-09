@@ -230,7 +230,8 @@ public class ProxyService {
       logger.debug("getModulesForRequest: Checking {} '{}' '{}'",
           re.getPathPattern(), phase, re.getLevel());
 
-      if (skipAuth && phase != null && phase.equals(XOkapiHeaders.FILTER_AUTH)) {
+      if (phase != null && phase.equals(XOkapiHeaders.FILTER_AUTH)
+          && (skipAuth || !enableSystemAuth)) {
         logger.debug("Skipping auth, have cached token.");
         iter.remove();
       }
