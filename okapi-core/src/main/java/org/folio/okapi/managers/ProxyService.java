@@ -230,7 +230,8 @@ public class ProxyService {
       logger.debug("getModulesForRequest: Checking {} '{}' '{}'",
           re.getPathPattern(), phase, re.getLevel());
 
-      if (skipAuth && phase != null && phase.equals(XOkapiHeaders.FILTER_AUTH)) {
+      if (phase != null && phase.equals(XOkapiHeaders.FILTER_AUTH)
+          && (skipAuth || !enableSystemAuth)) {
         logger.debug("Skipping auth, have cached token.");
         iter.remove();
       }
@@ -510,6 +511,9 @@ public class ProxyService {
   }
 
   private void log(HttpClientRequest creq) {
+    if (! logger.isDebugEnabled()) {
+      return;
+    }
     logger.debug("{} {}", creq.getMethod().name(), creq.getURI());
     for (Map.Entry<String, String> next : creq.headers()) {
       logger.debug(" {}:{}", next.getKey(), next.getValue());
