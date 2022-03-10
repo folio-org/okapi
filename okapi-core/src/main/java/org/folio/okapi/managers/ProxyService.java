@@ -511,7 +511,10 @@ public class ProxyService {
   }
 
   private void log(HttpClientRequest creq) {
-    logger.debug("{} {}", () -> creq.getMethod().name(), () -> creq.getURI());
+    if (! logger.isDebugEnabled()) {
+      return;
+    }
+    logger.debug("{} {}", creq.getMethod().name(), creq.getURI());
     for (Map.Entry<String, String> next : creq.headers()) {
       logger.debug(" {}:{}", next.getKey(), next.getValue());
     }
