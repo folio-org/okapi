@@ -2851,7 +2851,7 @@ leave it unmodified (default).
 This property appeared in Okapi 4.10.0; trace header was always enabled
 before 4.10.0.
 * `enable_system_auth`: Controls whether Okapi checks token by calling Auth module
-when invoking system interfaces such as `_tenant`.
+when invoking system interfaces such as `_tenant` or via regular proxy call.
 The value is a boolean - `true` for enable, `false` for disable.  Default is `true`.
 * `kube_config`: Filename/resource which is the Kubernetes configuration
 to use for Kubernetes integration. If defined, Okapi will perform
