@@ -803,6 +803,7 @@ public final class DepResolution {
 
     Map<String, Set<ModuleDescriptor>> defined = new HashMap<>();
     Map<String, Set<ModuleDescriptor>> referRequired = new HashMap<>();
+    Map<String, Set<ModuleDescriptor>> referPermissionsDesired = new HashMap<>();
     Map<String, Set<ModuleDescriptor>> referModulePermissions = new HashMap<>();
     Map<String, Set<ModuleDescriptor>> referSubPermissions = new HashMap<>();
     Set<String> unknown = new HashSet<>();
@@ -822,8 +823,8 @@ public final class DepResolution {
           addDefinedPermissions(defined, modules.values().iterator().next());
         }
       }
-      addReferPermissions(md, referRequired, referModulePermissions, referSubPermissions,
-          optionalUnknown ? unknown : null);
+      addReferPermissions(md, referRequired, referPermissionsDesired, referModulePermissions,
+          referSubPermissions, optionalUnknown ? unknown : null);
       addDefinedPermissions(defined, md);
     }
     Map<ModuleDescriptor,List<String>> errors = new HashMap<>();
@@ -842,6 +843,15 @@ public final class DepResolution {
         for (ModuleDescriptor md : ent.getValue()) {
           errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Undefined permission '"
               + permissionName + "' in permissionsRequired");
+        }
+      }
+    }
+    for (Map.Entry<String,Set<ModuleDescriptor>> ent : referPermissionsDesired.entrySet()) {
+      String permissionName = ent.getKey();
+      if (!defined.containsKey(permissionName) && !unknown.contains(permissionName)) {
+        for (ModuleDescriptor md : ent.getValue()) {
+          errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Undefined permission '"
+              + permissionName + "' in permissionsDesired");
         }
       }
     }
@@ -871,6 +881,7 @@ public final class DepResolution {
   private static void addReferPermissions(
       ModuleDescriptor md,
       Map<String, Set<ModuleDescriptor>> referRequired,
+      Map<String, Set<ModuleDescriptor>> referPermissionDesired,
       Map<String, Set<ModuleDescriptor>> referModulePermissions,
       Map<String, Set<ModuleDescriptor>> referSubPermissions,
       Set<String> unknownPermissions) {
@@ -890,10 +901,22 @@ public final class DepResolution {
             }
           }
         }
-        for (String requiredPermission : re.getPermissionsRequired()) {
-          referRequired.computeIfAbsent(requiredPermission, k -> new HashSet<>()).add(md);
-          if (unknownPermissions != null) {
-            unknownPermissions.add(requiredPermission);
+        String [] permissionsRequired = re.getPermissionsRequired();
+        if (permissionsRequired != null) {
+          for (String requiredPermission : permissionsRequired) {
+            referRequired.computeIfAbsent(requiredPermission, k -> new HashSet<>()).add(md);
+            if (unknownPermissions != null) {
+              unknownPermissions.add(requiredPermission);
+            }
+          }
+        }
+        String [] permissionsDesired = re.getPermissionsDesired();
+        if (permissionsDesired != null) {
+          for (String desiredPermission : permissionsDesired) {
+            referPermissionDesired.computeIfAbsent(desiredPermission, k -> new HashSet<>()).add(md);
+            if (unknownPermissions != null) {
+              unknownPermissions.add(desiredPermission);
+            }
           }
         }
       }

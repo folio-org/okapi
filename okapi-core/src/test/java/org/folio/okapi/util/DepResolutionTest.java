@@ -1267,6 +1267,11 @@ public class DepResolutionTest {
                         .put("permissionsRequired", new JsonArray().add("inta.post"))
                         .put("modulePermissions", new JsonArray().add("intb.get"))
                     )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("PUT"))
+                        .put("pathPattern", "/a")
+                        .put("permissionsDesired", new JsonArray().add("inta.post"))
+                    )
                 )
             )
         )
@@ -1343,7 +1348,8 @@ public class DepResolutionTest {
 
     Map<ModuleDescriptor,List<String>> errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
     assertThat(errors.keySet(), contains(mda));
-    assertThat(errors.get(mda), contains("Undefined permission 'inta.post' in permissionsRequired"));
+    assertThat(errors.get(mda), contains("Undefined permission 'inta.post' in permissionsRequired",
+        "Undefined permission 'inta.post' in permissionsDesired"));
 
     JsonObject mdcObject = new JsonObject()
         .put("id", "modc-1.0.0")
@@ -1386,6 +1392,7 @@ public class DepResolutionTest {
     errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
     assertThat(errors.keySet(), contains(mda, mdb, mdc));
     assertThat(errors.get(mda), contains("Undefined permission 'inta.post' in permissionsRequired",
+        "Undefined permission 'inta.post' in permissionsDesired",
         "Permission 'inta.get' defined in multiple modules: moda-1.0.0, modc-1.0.0"));
     assertThat(errors.get(mdb), contains("Undefined permission 'intc.post' in modulePermissions",
         "Undefined permission 'intc.delete' in subPermissions"));
