@@ -25,6 +25,22 @@ terminated manually.*
 
 ## Quick start
 
+Before buliding, make sure your `` $JAVA_HOME`` environment variable is set correctly.
+
+For e.g., on Debain(and Debian-based) distros, add the following at the end of the ``/etc/profile``:
+
+`` 
+export JAVA_HOME=/usr/lib/jvm/java-1.11.0-openjdk-amd64
+``
+> **_NOTE:_**  Replace the ``java-1.11.0-openjdk-amd64`` with your JDK's path under ``/usr/lib/jvm``.
+Then run:
+
+``
+source /etc/profile
+``
+
+
+
 To build and run:
 
     $ mvn install
