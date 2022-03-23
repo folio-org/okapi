@@ -27,18 +27,30 @@ terminated manually.*
 
 Before buliding, make sure your `` $JAVA_HOME`` environment variable is set correctly.
 
-For e.g., on Debain(and Debian-based) distros, add the following at the end of the ``/etc/profile``:
+This can be done by one of the two ways described below:
 
-`` 
-export JAVA_HOME=/usr/lib/jvm/java-1.11.0-openjdk-amd64
-``
-> **_NOTE:_**  Replace the ``java-1.11.0-openjdk-amd64`` with your JDK's path under ``/usr/lib/jvm``.
+1. For e.g., on Debain(and Debian-based) distros, run the following command to set the
+$JAVA_HOME for the current session:
+
+```
+  $ export JAVA_HOME=`readlink -f /usr/bin/java | sed "s:bin/java::"`
+```
+
+
+2. Or, you can add the following at the end of the ``~/.profile`` for persistently setting ``$JAVA_HOME`` :
+
+```
+  $ echo export JAVA_HOME=`readlink -f /usr/bin/java | sed "s:bin/java::"` >> ~/.profile
+```
+
 Then run:
 
-``
-source /etc/profile
-``
+```
+  $ source ~/.profile
+```
 
+
+You may need to log out and log in again or reboot for these changes to take effect.
 
 
 To build and run:
