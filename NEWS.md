@@ -1,3 +1,9 @@
+## 4.13.1 2022-03-28
+
+Fixes:
+
+ * [OKAPI-1088](https://issues.folio.org/browse/OKAPI-1088): jackson-databind 2.13.2.1, Vert.x 4.2.6, log4j 2.17.2 (CVE-2020-36518)
+
 ## 4.13.0 2022-02-23
 
 Fixes:
