@@ -11,6 +11,8 @@ import org.folio.okapi.common.GenericCompositeFuture;
 public class EventBusChecker {
   private static final String EVENT_NODE_CHECK = "org.folio.okapi.node.check.";
 
+  private static final long EVENTBUS_TIMEOUT = 1000L; // ms
+
   /**
    * Check that event bus is operational by sending a message to each party.
    * @param vertx Vert.x handle
@@ -32,7 +34,7 @@ public class EventBusChecker {
   }
 
   static Future<Void> check(Vertx vertx, String thisNode, String reply, List<String> nodes) {
-    DeliveryOptions options = new DeliveryOptions().setSendTimeout(30);
+    DeliveryOptions options = new DeliveryOptions().setSendTimeout(EVENTBUS_TIMEOUT);
     vertx.eventBus().consumer(EVENT_NODE_CHECK + thisNode, message -> message.reply(reply));
     List<Future<Void>> futures = new LinkedList<>();
     for (String node : nodes) {
