@@ -33,7 +33,7 @@ This can be done by one of the two ways described below:
 $JAVA_HOME for the current session:
 
 ```
-  $ export JAVA_HOME=`readlink -f /usr/bin/java | sed "s:bin/java::"`
+  $ export JAVA_HOME=`readlink -f /usr/bin/javac | sed "s:bin/javac::"`
 ```
 
 
