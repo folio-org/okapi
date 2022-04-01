@@ -830,7 +830,8 @@ public final class DepResolution {
     Map<ModuleDescriptor,List<String>> errors = new HashMap<>();
     for (Map.Entry<String,Set<ModuleDescriptor>> ent : referModulePermissions.entrySet()) {
       String permissionName = ent.getKey();
-      if (!defined.containsKey(permissionName) && !unknown.contains(permissionName)) {
+      if (!defined.containsKey(permissionName) && !unknown.contains(permissionName)
+          && !referRequired.containsKey(permissionName)) {
         for (ModuleDescriptor md : ent.getValue()) {
           errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Undefined permission '"
               + permissionName + "' in modulePermissions");
@@ -857,7 +858,8 @@ public final class DepResolution {
     }
     for (Map.Entry<String,Set<ModuleDescriptor>> ent : referSubPermissions.entrySet()) {
       String permissionName = ent.getKey();
-      if (!defined.containsKey(permissionName) && !unknown.contains(permissionName)) {
+      if (!defined.containsKey(permissionName) && !unknown.contains(permissionName)
+          && !referRequired.containsKey(permissionName)) {
         for (ModuleDescriptor md : ent.getValue()) {
           errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Undefined permission '"
               + permissionName + "' in subPermissions");
