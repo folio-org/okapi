@@ -25,6 +25,34 @@ terminated manually.*
 
 ## Quick start
 
+Before buliding, make sure your `` $JAVA_HOME`` environment variable is set correctly.
+
+This can be done by one of the two ways described below:
+
+1. For e.g., on Debain(and Debian-based) distros, run the following command to set the
+$JAVA_HOME for the current session:
+
+```
+  $ export JAVA_HOME=`readlink -f /usr/bin/javac | sed "s:bin/javac::"`
+```
+
+
+2. Or, you can add the following at the end of the ``~/.profile`` for persistently setting ``$JAVA_HOME`` :
+
+```
+  $ echo export JAVA_HOME=`readlink -f /usr/bin/javac | sed "s:bin/javac::"` >> ~/.profile
+```
+
+Then run:
+
+```
+  $ source ~/.profile
+```
+
+
+You may need to log out and log in again or reboot for these changes to take effect.
+
+
 To build and run:
 
     $ mvn install
