@@ -40,7 +40,7 @@ $JAVA_HOME for the current session:
 2. Or, you can add the following at the end of the ``~/.profile`` for persistently setting ``$JAVA_HOME`` :
 
 ```
-  $ echo export JAVA_HOME=`readlink -f /usr/bin/java | sed "s:bin/java::"` >> ~/.profile
+  $ echo export JAVA_HOME=`readlink -f /usr/bin/javac | sed "s:bin/javac::"` >> ~/.profile
 ```
 
 Then run:
