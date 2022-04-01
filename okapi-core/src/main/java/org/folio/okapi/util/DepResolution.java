@@ -878,8 +878,20 @@ public final class DepResolution {
     return errors;
   }
 
-  private static void addReferPermissions(
-      ModuleDescriptor md,
+  private static void addReferPermissions(ModuleDescriptor md, String [] permissions,
+      Map<String, Set<ModuleDescriptor>> refer, Set<String> unknownPermissions) {
+
+    if (permissions != null) {
+      for (String permission : permissions) {
+        refer.computeIfAbsent(permission, k -> new HashSet<>()).add(md);
+        if (unknownPermissions != null) {
+          unknownPermissions.add(permission);
+        }
+      }
+    }
+  }
+
+  private static void addReferPermissions(ModuleDescriptor md,
       Map<String, Set<ModuleDescriptor>> referRequired,
       Map<String, Set<ModuleDescriptor>> referPermissionDesired,
       Map<String, Set<ModuleDescriptor>> referModulePermissions,
@@ -892,53 +904,25 @@ public final class DepResolution {
         continue;
       }
       for (RoutingEntry re : handlers) {
-        String[] modulePermissions = re.getModulePermissions();
-        if (modulePermissions != null) {
-          for (String modulePermission : modulePermissions) {
-            referModulePermissions.computeIfAbsent(modulePermission, k -> new HashSet<>()).add(md);
-            if (unknownPermissions != null) {
-              unknownPermissions.add(modulePermission);
-            }
-          }
-        }
-        String [] permissionsRequired = re.getPermissionsRequired();
-        if (permissionsRequired != null) {
-          for (String requiredPermission : permissionsRequired) {
-            referRequired.computeIfAbsent(requiredPermission, k -> new HashSet<>()).add(md);
-            if (unknownPermissions != null) {
-              unknownPermissions.add(requiredPermission);
-            }
-          }
-        }
-        String [] permissionsDesired = re.getPermissionsDesired();
-        if (permissionsDesired != null) {
-          for (String desiredPermission : permissionsDesired) {
-            referPermissionDesired.computeIfAbsent(desiredPermission, k -> new HashSet<>()).add(md);
-            if (unknownPermissions != null) {
-              unknownPermissions.add(desiredPermission);
-            }
-          }
-        }
+        addReferPermissions(md, re.getModulePermissions(), referModulePermissions,
+            unknownPermissions);
+        addReferPermissions(md, re.getPermissionsRequired(), referRequired,
+            unknownPermissions);
+        addReferPermissions(md, re.getPermissionsDesired(), referPermissionDesired,
+            unknownPermissions);
       }
     }
     Permission[] permissionSets = md.getPermissionSets();
     if (permissionSets != null) {
       for (Permission permission: permissionSets) {
         String[] subPermissions = permission.getSubPermissions();
-        if (subPermissions != null) {
-          for (String subPermission : subPermissions) {
-            referSubPermissions.computeIfAbsent(subPermission, k -> new HashSet<>()).add(md);
-            if (unknownPermissions != null) {
-              unknownPermissions.add(subPermission);
-            }
-          }
-        }
+        addReferPermissions(md, subPermissions, referSubPermissions, unknownPermissions);
       }
     }
   }
 
-  private static void addDefinedPermissions(
-      Map<String, Set<ModuleDescriptor>> defined, ModuleDescriptor md) {
+  private static void addDefinedPermissions(Map<String, Set<ModuleDescriptor>> defined,
+      ModuleDescriptor md) {
 
     Permission[] permissionSets = md.getPermissionSets();
     if (permissionSets != null) {
