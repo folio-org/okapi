@@ -103,7 +103,7 @@ Ubuntu 20.04 LTS (Focal Fossa):
 ## Documentation
 
 * [Okapi Guide and Reference](doc/guide.md)
-* API: [RAML and schemas](okapi-core/src/main/raml) [dev.folio.org](https://dev.folio.org/reference/api/#okapi)
+* API: [RAML and schemas](okapi-core/src/main/raml) and generated [API documentation](https://dev.folio.org/reference/api/#okapi)
 * [Documentation index](doc/index.md)
 * [Contributing guidelines](CONTRIBUTING.md)
 * [Securing](doc/securing.md) in the doc directory shows how to enable
