@@ -107,6 +107,9 @@ public class SemVer implements Comparable<SemVer> {
       while (i < v.length() && Character.isDigit(v.charAt(i))) {
         i++;
       }
+      if (i > offset + 18) { // 18 digits is within Long / 2^63-1
+        throw new IllegalArgumentException("at most 18 digits for numeric component");
+      }
     }
     if (i == offset) {
       return -1;
