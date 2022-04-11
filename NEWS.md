@@ -1,3 +1,10 @@
+## 4.13.2 2022-04-11
+
+Fixes:
+
+ * [OKAPI-1091](https://issues.folio.org/browse/OKAPI-1091) Exception for SemVer with component 4000001006
+ * Move jackson-databind entry before jackson-bom
+
 ## 4.13.1 2022-03-28
 
 Fixes:

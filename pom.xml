@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>4.13.2-SNAPSHOT</version>
+  <version>4.13.3-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
@@ -32,6 +32,13 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId> <!-- remove for vertx >= 4.2.7 -->
+        <version>2.13.2.20220324</version> <!-- jackson-databind 2.13.2.1 fixing https://nvd.nist.gov/vuln/detail/CVE-2020-36518 -->
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
         <version>4.2.6</version> <!-- also update depending versions below! -->
@@ -56,14 +63,6 @@
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast-kubernetes</artifactId>
         <version>2.2.3</version>  <!-- https://github.com/hazelcast/hazelcast-kubernetes#requirements-and-recommendations -->
-      </dependency>
-
-      <dependency>
-        <groupId>com.fasterxml.jackson</groupId>
-        <artifactId>jackson-bom</artifactId> <!-- remove for vertx >= 4.2.7 -->
-        <version>2.13.2.20220324</version> <!-- jackson-databind 2.13.2.1 fixing https://nvd.nist.gov/vuln/detail/CVE-2020-36518 -->
-        <type>pom</type>
-        <scope>import</scope>
       </dependency>
       <!-- END: versions that depend on the vertx-stack-depchain version -->
 
