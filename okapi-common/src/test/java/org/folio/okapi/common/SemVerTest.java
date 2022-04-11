@@ -117,7 +117,11 @@ public class SemVerTest {
     assertEquals(1, snap3.compareTo(snap1));
     assertEquals(-1, snap1.compareTo(snap3));
 
-    SemVer npmSnapshot = createVersion("1.7.10001", false, true);
+    SemVer npmSnapshot = new SemVer("4000001006.1.0");
+    assertEquals(-4, snap1.compareTo(npmSnapshot));
+
+    SemVer longV = new SemVer("123456789012345678");
+    assertEquals(4, longV.compareTo(npmSnapshot));
   }
 
   @Test
@@ -144,5 +148,6 @@ public class SemVerTest {
     invalidVersion("1-2.3.", "missing pre-release version component");
     invalidVersion("1-123snapshot.", "missing pre-release version component");
     invalidVersion("1x+", "invalid semver: 1x+");
+    invalidVersion("1234567890123456789", "at most 18 digits for numeric component");
   }
 }
