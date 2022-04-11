@@ -77,10 +77,10 @@ public class SemVer implements Comparable<SemVer> {
    * @param c2 right operand
    * @return <0 if c1 < c2, 0 if c1 == c2, >0 if c1 > c2
    */
-  private int compareComp(String c1, String c2) {
+  private long compareComp(String c1, String c2) {
     if (allDigits(c1)) {
       if (allDigits(c2)) {
-        return Integer.parseInt(c1) - Integer.parseInt(c2);
+        return Long.parseLong(c1) - Long.parseLong(c2);
       } else {
         return -1;
       }
@@ -140,7 +140,7 @@ public class SemVer implements Comparable<SemVer> {
     Iterator<String> i1 = this.versions.iterator();
     Iterator<String> i2 = other.versions.iterator();
     while (i1.hasNext() && i2.hasNext()) {
-      int v = compareComp(i1.next(), i2.next());
+      long v = compareComp(i1.next(), i2.next());
       if (v != 0) {
         return false;
       }
@@ -154,7 +154,7 @@ public class SemVer implements Comparable<SemVer> {
     i1 = this.preRelease.iterator();
     i2 = other.preRelease.iterator();
     while (i1.hasNext() && i2.hasNext()) {
-      int v = compareComp(i1.next(), i2.next());
+      long v = compareComp(i1.next(), i2.next());
       if (v != 0) {
         return false;
       }
@@ -191,7 +191,7 @@ public class SemVer implements Comparable<SemVer> {
     Iterator<String> i2 = other.versions.iterator();
     int level = 4; // major returns +-4, minor +-3, patch +- 2, rest +-1.
     while (i1.hasNext() && i2.hasNext()) {
-      int v = compareComp(i1.next(), i2.next());
+      long v = compareComp(i1.next(), i2.next());
       if (v > 0) {
         return level;
       } else if (v < 0) {
@@ -216,7 +216,7 @@ public class SemVer implements Comparable<SemVer> {
       return -1;
     }
     while (i1.hasNext() && i2.hasNext()) {
-      int v = compareComp(i1.next(), i2.next());
+      long v = compareComp(i1.next(), i2.next());
       if (v > 0) {
         return 1;
       } else if (v < 0) {
