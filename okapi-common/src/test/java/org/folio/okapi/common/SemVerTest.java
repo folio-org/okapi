@@ -117,7 +117,8 @@ public class SemVerTest {
     assertEquals(1, snap3.compareTo(snap1));
     assertEquals(-1, snap1.compareTo(snap3));
 
-    createVersion("1.7.4000001006", false, true);
+    SemVer npmSnapshot = new SemVer("4000001006.1.0");
+    assertEquals(-4, snap1.compareTo(npmSnapshot));
   }
 
   @Test
