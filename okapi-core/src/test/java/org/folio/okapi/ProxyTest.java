@@ -3988,7 +3988,7 @@ public class ProxyTest {
     given()
         .header("Content-Type", "application/json")
         .body("{\"id\":").post("/_/proxy/import/modules")
-        .then().statusCode(400).body(containsString("Cannot deserialize instance"));
+        .then().statusCode(400).body(containsString("Cannot deserialize"));
 
     given()
         .header("Content-Type", "application/json")
