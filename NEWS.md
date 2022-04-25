@@ -1,3 +1,11 @@
+## 4.12.1 2022-04-14
+
+Fixes:
+ * [OKAPI-902](https://issues.folio.org/browse/OKAPI-902) Update log4j2 configuration in Debian package
+ * [OKAPI-1088](https://issues.folio.org/browse/OKAPI-1088) jackson-databind 2.13.2.1, Vert.x 4.2.6, log4j 2.17.2 (CVE-2020-36518)
+   Move jackson-databind entry before jackson-bom
+ * [OKAPI-1091](https://issues.folio.org/browse/OKAPI-1091) Exception for SemVer with component 4000001006
+
 ## 4.12.0 2021-12-20
 
 Features:
