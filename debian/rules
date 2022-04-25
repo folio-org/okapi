@@ -3,7 +3,7 @@
 # output every command that modifies files on the build system.
 export DH_VERBOSE = 1
 
-MVN = mvn -Dmaven.test.skip=true -Duser.home="$(HOME)"
+MVN = JAVA_HOME=`readlink -f /usr/bin/java|sed 's:bin/java::'` mvn -Dmaven.test.skip=true -Duser.home="$(HOME)" -B
 
 
 OKAPIPACKAGE = okapi

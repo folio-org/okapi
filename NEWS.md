@@ -1,3 +1,8 @@
+## 4.12.2 2022-04-25
+
+Fixes:
+ * [FOLIO-3371](https://issues.folio.org/browse/FOLIO-3371) Unable to find jdeps, JAVA_HOME is not correctly set in Debian build stage
+
 ## 4.12.1 2022-04-14
 
 Fixes:
