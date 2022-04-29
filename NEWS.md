@@ -1,7 +1,13 @@
+## 4.12.3 2022-04-29
+
+Fixes:
+ * [OKAPI-1094](https://issues.folio.org/browse/OKAPI-1094) Update Vert.x from 4.2.6 to 4.2.7
+ * [FOLIO-3484](https://issues.folio.org/browse/FOLIO-3484) Rebuild all released alpine-jre-openjdk11 containers fixing ZipException
+
 ## 4.12.2 2022-04-25
 
 Fixes:
- * [FOLIO-3371](https://issues.folio.org/browse/FOLIO-3371) Unable to find jdeps, JAVA_HOME is not correctly set in Debian build stage
+ * [FOLIO-3371](https://issues.folio.org/browse/FOLIO-3371) Unable to find jdeps, JAVA\_HOME is not correctly set in Debian build stage
 
 ## 4.12.1 2022-04-14
 
