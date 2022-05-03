@@ -21,15 +21,20 @@ public final class WebClientFactory {
    *
    * <p>The webClientOptions parameter is only used when creating the WebClient,
    * the options of an existing WebClient are not changed.
+   *
+   * <p>It uses {@code HttpClientFactory} for the underlying {@code HttpClient}.
    */
   public static WebClient getWebClient(Vertx vertx, WebClientOptions webClientOptions) {
-    return clients.computeIfAbsent(vertx, x -> WebClient.create(vertx, webClientOptions));
+    var httpClient = HttpClientFactory.getHttpClient(vertx, webClientOptions);
+    return clients.computeIfAbsent(vertx, x -> WebClient.wrap(httpClient, webClientOptions));
   }
 
   /**
    * Get a WebClient, returns the same instance for the same Vertx instance.
    *
    * <p>It doesn't reset WebClientOptions when returning an existing WebClient.
+   *
+   * <p>It uses {@code HttpClientFactory} for the underlying {@code HttpClient}.
    */
   public static WebClient getWebClient(Vertx vertx) {
     return getWebClient(vertx, new WebClientOptions());
