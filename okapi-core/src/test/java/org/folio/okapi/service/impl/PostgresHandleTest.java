@@ -25,14 +25,13 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
   static final String CRT_PATH = "/var/lib/postgresql/data/server.crt";
   static final String CONF_PATH = "/var/lib/postgresql/data/postgresql.conf";
   static final String CONF_BAK_PATH = "/var/lib/postgresql/data/postgresql.conf.bak";
-  static final String PGA_PATH = "/var/lib/postgresql/data/pg_hba.conf";
   static String serverCrt;
 
   static void exec(String... command) {
     try {
       ExecResult execResult = POSTGRESQL_CONTAINER.execInContainer(command);
       OkapiLogger.get().debug(() -> String.join(" ", command) + " " + execResult);
-    } catch (InterruptedException|IOException|UnsupportedOperationException e) {
+    } catch (InterruptedException | IOException | UnsupportedOperationException e) {
       throw new RuntimeException(e);
     }
   }
@@ -42,17 +41,9 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
    * Appending a key=value entry has precedence over any previous entries of the same key.
    */
   static void configure(String... configEntries) {
-    exec("rm", "-f", PGA_PATH);
     exec("cp", "-p", CONF_BAK_PATH, CONF_PATH);  // start with unaltered config
     for (String configEntry : configEntries) {
       exec("sh", "-c", "echo '" + configEntry + "' >> " + CONF_PATH);
-    }
-    exec("su-exec", "postgres", "pg_ctl", "reload");
-  }
-
-  static void pga(String... configEntries) {
-    for (String configEntry : configEntries) {
-      exec("sh", "-c", "echo '" + configEntry + "' >> " + PGA_PATH);
     }
     exec("su-exec", "postgres", "pg_ctl", "reload");
   }
@@ -107,7 +98,6 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
   @SuppressWarnings("java:S2699")  // suppress "Tests should include assertions"
   void connectWithoutSsl(Vertx vertx, VertxTestContext vtc) {
     configure("ssl = off");
-    pga("host  all  all  172.16.0.0/12  md5");
     JsonObject config = config();
     config.remove("postgres_server_pem");
     new PostgresHandle(vertx, config).getConnection().onComplete(vtc.succeedingThenComplete());
@@ -141,10 +131,14 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
   @Test
   void scram256(Vertx vertx, VertxTestContext vtc) {
     configure("ssl = on", "password_encryption = scram-sha-256");
-    pga("host  all  all  172.16.0.0/12  scram-sha-256");
-    new PostgresHandle(vertx, config()).getConnection().onComplete(vtc.failing(fail -> {
-      assertThat(fail.getMessage()).contains("28P01");
-      vtc.completeNow();
-    }));
+    new PostgresHandle(vertx, config()).getConnection()
+        .onComplete(vtc.succeeding(connection -> vtc.verify(() -> {
+          String sql = "ALTER USER " + POSTGRESQL_CONTAINER.getUsername()
+              + " WITH PASSWORD '" + POSTGRESQL_CONTAINER.getPassword() + "';";
+          connection.query(sql).execute()
+              .onComplete(vtc.succeeding(rowset -> vtc.verify(() -> {
+                new PostgresHandle(vertx, config()).getConnection().onComplete(vtc.succeedingThenComplete());
+              })));
+        })));
   }
 }
