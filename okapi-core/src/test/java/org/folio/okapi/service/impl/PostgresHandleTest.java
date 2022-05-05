@@ -129,6 +129,8 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
   }
 
   @Test
+  @DisplayName("Connect with SCRAM-SHA-256 encrypted password")
+  @SuppressWarnings("java:S2699")  // suppress "Tests should include assertions"
   void scram256(Vertx vertx, VertxTestContext vtc) {
     configure("ssl = on", "password_encryption = scram-sha-256");
     new PostgresHandle(vertx, config()).getConnection()
