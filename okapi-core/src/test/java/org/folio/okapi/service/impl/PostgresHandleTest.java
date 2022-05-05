@@ -132,13 +132,12 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
   void scram256(Vertx vertx, VertxTestContext vtc) {
     configure("ssl = on", "password_encryption = scram-sha-256");
     new PostgresHandle(vertx, config()).getConnection()
-        .onComplete(vtc.succeeding(connection -> vtc.verify(() -> {
+        .compose(connection -> {
           String sql = "ALTER USER " + POSTGRESQL_CONTAINER.getUsername()
               + " WITH PASSWORD '" + POSTGRESQL_CONTAINER.getPassword() + "';";
-          connection.query(sql).execute()
-              .onComplete(vtc.succeeding(rowset -> vtc.verify(() -> {
-                new PostgresHandle(vertx, config()).getConnection().onComplete(vtc.succeedingThenComplete());
-              })));
-        })));
+          return connection.query(sql).execute().mapEmpty();
+        })
+        .compose(x -> new PostgresHandle(vertx, config()).getConnection())
+        .onComplete(vtc.succeedingThenComplete());
   }
 }
