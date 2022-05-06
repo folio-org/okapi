@@ -132,9 +132,10 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
   @DisplayName("Connect with SCRAM-SHA-256 encrypted password")
   @SuppressWarnings("java:S2699")  // suppress "Tests should include assertions"
   void scram256(Vertx vertx, VertxTestContext vtc) {
-    configure("ssl = on", "password_encryption = scram-sha-256");
+    configure("ssl = off", "password_encryption = scram-sha-256");
     JsonObject config = config();
-    new PostgresHandle(vertx, config()).getConnection()
+    config.remove("postgres_server_pem");
+    new PostgresHandle(vertx, config).getConnection()
         .compose(connection -> {
           String sql = "CREATE USER scram WITH PASSWORD 'foo';";
           return connection.query(sql).execute()
@@ -144,7 +145,7 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
         .compose(password -> {
           assertThat(password).startsWith("SCRAM-SHA-256");
           config.put("postgres_username", "scram").put("postgres_password", "foo");
-          return new PostgresHandle(vertx, config()).getConnection();
+          return new PostgresHandle(vertx, config).getConnection();
         })
         .onComplete(vtc.succeedingThenComplete());
   }
