@@ -56,10 +56,9 @@ Changes:
 This version of Okapi happens to make a different order of modules during
 install as part of [OKAPI-662](https://issues.folio.org/browse/OKAPI-662) work.
 This is not an error, as multiple orders are ok as far as interface dependencies
-are concerned. Module mod-data-export-spring <= 1.2.1 may break because of this.
-See [MODEXPS-67](https://issues.folio.org/browse/MODEXPS-67). For this
-reason do not use this version Okapi unless mod-data-export-spring includes
-the fix (at this time, no fix of mod-data-export-spring has been released).
+are concerned. Module mod-data-export-spring < 1.2.3 may break because of this.
+See [MODEXPS-67](https://issues.folio.org/browse/MODEXPS-67). For this reason
+do not use this version Okapi unless you have also updated mod-data-spring to >= 1.2.3.
 
 ## 4.12.0 2021-12-20
 
