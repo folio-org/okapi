@@ -93,7 +93,7 @@
       }
     },
     "delegateCORS": {
-      "description": "Okapi handles CORS by default. Set to true to delegate CORS handling to the module. This only applies to calls made via /_/invoke/tenant/<tid>/<path>",
+      "description": "Okapi handles CORS by default. Set to true to delegate CORS handling to the module. This only applies to calls made via /_/invoke/tenant/<tid>/<path>. No OPTIONS entry in the methods array is needed for this.",
       "type": "boolean"
     }
   }
