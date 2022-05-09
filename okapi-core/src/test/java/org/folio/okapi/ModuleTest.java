@@ -141,7 +141,7 @@ public class ModuleTest {
         break;
       case "mongo":
         if (mongoDBContainer == null) {
-          mongoDBContainer = new MongoDBContainer("mongo:3.6.23");
+          mongoDBContainer = new MongoDBContainer("mongo:5.0.8");
           mongoDBContainer.start();
         }
         conf.put("mongo_port", mongoDBContainer.getFirstMappedPort().toString());
