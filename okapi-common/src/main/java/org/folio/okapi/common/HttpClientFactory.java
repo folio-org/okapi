@@ -17,19 +17,19 @@ public final class HttpClientFactory {
   }
 
   /**
-   * Get a WebClient, returns the same instance for the same Vertx instance.
+   * Get a HttpClient, returns the same instance for the same Vertx instance.
    *
-   * <p>The webClientOptions parameter is only used when creating the WebClient,
-   * the options of an existing WebClient are not changed.
+   * <p>The httpClientOptions parameter is only used when creating the HttpClient,
+   * the options of an existing HttpClient are not changed.
    */
   public static HttpClient getHttpClient(Vertx vertx, HttpClientOptions httpClientOptions) {
     return clients.computeIfAbsent(vertx, x -> vertx.createHttpClient(httpClientOptions));
   }
 
   /**
-   * Get a WebClient, returns the same instance for the same Vertx instance.
+   * Get a HttpClient, returns the same instance for the same Vertx instance.
    *
-   * <p>It doesn't reset WebClientOptions when returning an existing WebClient.
+   * <p>It doesn't reset HttpClientOptions when returning an existing HttpClient.
    */
   public static HttpClient getHttpClient(Vertx vertx) {
     return getHttpClient(vertx, new HttpClientOptions());
