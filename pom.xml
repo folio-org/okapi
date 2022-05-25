@@ -107,6 +107,12 @@
       <dependency>
         <groupId>com.cronutils</groupId>
         <artifactId>cron-utils</artifactId>
+        <!--
+          After upgrading cron-utils to a version with fixed org.glassfish:jakarta.el
+          remove the org.glassfish:jakarta.el dependency in okapi-core/pom.xml!
+          https://github.com/jmrozanec/cron-utils/issues/517
+          https://github.com/jmrozanec/cron-utils/pull/518
+        -->
         <version>9.1.6</version>
       </dependency>
       <dependency>
