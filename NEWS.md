@@ -1,3 +1,10 @@
+## 4.12.4 2022-05-27
+
+Fixes:
+ * [OKAPI-1099](https://issues.folio.org/browse/OKAPI-1099) Release Okapi v4.12.4 fixing ZipException on 64-bit systems
+
+Okapi 4.12.1 - 4.12.3 are affected by OKAPI-1099.
+
 ## 4.12.3 2022-04-29
 
 Fixes:
