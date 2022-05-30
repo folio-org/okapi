@@ -1,3 +1,11 @@
+## 4.14.1 2022-05-30
+
+Fixes:
+ * Upgrade mongo to 5.0.8 for testing
+ * Fix javadoc for HttpClientFactory methods
+ * [OKAPI-1098](https://issues.folio.org/browse/OKAPI-1098): Fix Jakarta Expression Language validation (CVE-2021-28170)
+ * [OKAPI-1100](https://issues.folio.org/browse/OKAPI-1100): Vert.x 4.3.1, micrometer 1.8.4, nuprocess 2.0.3, test deps
+
 ## 4.14.0 2022-05-06
 
 New features:
