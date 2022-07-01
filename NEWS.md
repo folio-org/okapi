@@ -1,3 +1,9 @@
+## 4.14.2 2022-07-01
+
+Fixes:
+ * [OKAPI-1109](https://issues.folio.org/browse/OKAPI-1109): Log to /var/log/folio/okapi/okapi.log, not STDOUT, in Debian
+ * [OKAPI-1101](https://issues.folio.org/browse/OKAPI-1101): Publish javadoc and sources to maven repository
+
 ## 4.14.1 2022-05-30
 
 Fixes:
