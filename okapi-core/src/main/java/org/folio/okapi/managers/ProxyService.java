@@ -1157,7 +1157,7 @@ public class ProxyService {
     logger.debug("callSystemInterface: Checking if {} has auth", tenantId);
 
     if (!enableSystemAuth) {
-      return doCallSystemInterface(headersIn, tenantId, null, inst, null, request);
+      return doCallSystemInterface(headersIn, tenantId, inst, null, request);
     }
     return tenantManager.getEnabledModules(tenantId).compose(enabledModules -> {
       List<ModuleDescriptor> enabledModulesAndThis = new ArrayList<>(enabledModules);
@@ -1171,7 +1171,7 @@ public class ProxyService {
       }
       logger.debug("callSystemInterface: No auth for {} calling with "
           + "tenant header only", tenantId);
-      return doCallSystemInterface(headersIn, tenantId, null, inst, null, request);
+      return doCallSystemInterface(headersIn, tenantId, inst, null, request);
     });
   }
 
@@ -1206,22 +1206,39 @@ public class ProxyService {
     }
     ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath(),
         inst.getMethod(), inst.isHandler());
-    return doCallSystemInterface(headers, tenantId, null, authInst, modPerms, "")
+    return doCallSystemInterface(headers, tenantId, authInst, modPerms, "")
         .compose(cli -> {
           MultiMap authHeaders = cli.getRespHeaders();
+          String deftok = authHeaders.get(XOkapiHeaders.TOKEN);
+          String modTok = authHeaders.get(XOkapiHeaders.MODULE_TOKENS);
+          MultiMap headersOut = MultiMap.caseInsensitiveMultiMap();
+          headers.forEach((k, v) -> {
+            if (k.startsWith("X-")) {
+              headersOut.add(k, v); // includes X-Okapi-Permissions
+            }
+          });
+          String token = null;
+          if (modTok != null) {
+            JsonObject jo = new JsonObject(modTok);
+            token = jo.getString(modId, deftok);
+          }
+          if (token != null) {
+            headersOut.add(XOkapiHeaders.TOKEN, token);
+          } else {
+            headersOut.remove(XOkapiHeaders.TOKEN);
+          }
           logger.info("authForSystemInterface: {} {}",
               () -> inst.getModuleDescriptor().getId(),
               () -> Json.encode(authHeaders.entries()));
-          return doCallSystemInterface(headers, tenantId, authHeaders, inst, null, request);
+          return doCallSystemInterface(headersOut, tenantId, inst, null, request);
         });
   }
 
   private Future<OkapiClient> doCallSystemInterface2(
-      MultiMap headersIn, String tenantId, MultiMap authHeaders, ModuleInstance inst,
+      MultiMap headersIn, String tenantId, ModuleInstance inst,
       String modPerms, String request) {
 
-    Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authHeaders,
-        inst, modPerms);
+    Map<String, String> headers = sysReqHeaders(headersIn, tenantId, inst, modPerms);
     headers.put(XOkapiHeaders.URL_TO, inst.getUrl());
     logger.debug("syscall begin {} {} {}{}", inst.getModuleDescriptor().getId(),
         inst.getMethod(), inst.getUrl(), inst.getPath());
@@ -1258,7 +1275,7 @@ public class ProxyService {
    * operating as the correct tenant.
    */
   Future<OkapiClient> doCallSystemInterface(
-      MultiMap headersIn, String tenantId, MultiMap authHeaders, ModuleInstance inst,
+      MultiMap headersIn, String tenantId, ModuleInstance inst,
       String modPerms, String request) {
 
     Future<Void> future = Future.succeededFuture();
@@ -1275,16 +1292,16 @@ public class ProxyService {
           });
     }
     return future.compose(x -> doCallSystemInterface2(
-        headersIn, tenantId, authHeaders, inst, modPerms, request));
+        headersIn, tenantId, inst, modPerms, request));
   }
 
   /**
    * Helper to make request headers for the system requests we make. Copies all
    * X- headers over. Adds a tenant, and a token, if we have one.
    */
-  private static Map<String, String> sysReqHeaders(
-      MultiMap headersIn, String tenantId, MultiMap authHeaders,
+  private static Map<String, String> sysReqHeaders(MultiMap headersIn, String tenantId,
       ModuleInstance inst, String modPerms) {
+
     Map<String, String> headersOut = new HashMap<>();
     for (String hdr : headersIn.names()) {
       if (hdr.startsWith("X-")) {
@@ -1292,27 +1309,6 @@ public class ProxyService {
       }
     }
     headersOut.put(XOkapiHeaders.TENANT, tenantId);
-    if (authHeaders != null) {
-      String deftok = authHeaders.get(XOkapiHeaders.TOKEN);
-      String modTok = authHeaders.get(XOkapiHeaders.MODULE_TOKENS);
-      String modId = inst.getModuleDescriptor().getId();
-      String token = null;
-      if (modTok != null) {
-        JsonObject jo = new JsonObject(modTok);
-        token = jo.getString(modId, deftok);
-      }
-      if (token == null) {
-        headersOut.remove(XOkapiHeaders.TOKEN);
-      } else {
-        headersOut.put(XOkapiHeaders.TOKEN, token);
-      }
-      String permissions = authHeaders.get(XOkapiHeaders.PERMISSIONS);
-      if (permissions == null) {
-        headersOut.remove(XOkapiHeaders.PERMISSIONS);
-      } else {
-        headersOut.put(XOkapiHeaders.PERMISSIONS, permissions);
-      }
-    }
     headersOut.put("Accept", "*/*");
     headersOut.put("Content-Type", "application/json; charset=UTF-8");
     if (modPerms != null) { // We are making an auth call
