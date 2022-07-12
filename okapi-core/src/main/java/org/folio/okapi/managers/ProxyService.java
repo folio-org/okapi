@@ -1287,7 +1287,7 @@ public class ProxyService {
       ModuleInstance inst, String modPerms) {
     Map<String, String> headersOut = new HashMap<>();
     for (String hdr : headersIn.names()) {
-      if (hdr.matches("^X-.*$")) {
+      if (hdr.startsWith("X-")) {
         headersOut.put(hdr, headersIn.get(hdr));
       }
     }
@@ -1307,7 +1307,9 @@ public class ProxyService {
         headersOut.put(XOkapiHeaders.TOKEN, token);
       }
       String permissions = authHeaders.get(XOkapiHeaders.PERMISSIONS);
-      if (permissions != null) {
+      if (permissions == null) {
+        headersOut.remove(XOkapiHeaders.PERMISSIONS);
+      } else {
         headersOut.put(XOkapiHeaders.PERMISSIONS, permissions);
       }
     }
