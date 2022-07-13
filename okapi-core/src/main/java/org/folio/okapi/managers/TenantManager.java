@@ -657,13 +657,14 @@ public class TenantManager implements Liveness {
     logger.debug("tenantPerms: {} and {}", permsModule.getId(), permPath);
     if (pc == null) {
       MultiMap headersIn = MultiMap.caseInsensitiveMultiMap();
-      return proxyService.doCallSystemInterface(headersIn, tenant.getId(), null,
-          permInst, null, pljson).mapEmpty();
+      return proxyService.doCallSystemInterface(headersIn, tenant.getId(), permInst,
+          null, pljson).mapEmpty();
     }
-    return proxyService.callSystemInterface(tenant.getId(), permInst, pljson, pc).compose(cres -> {
-      pc.passOkapiTraceHeaders(cres);
-      return Future.succeededFuture();
-    });
+    return proxyService.callSystemInterface(tenant.getId(), permInst, pljson, pc)
+        .map(cres -> {
+          pc.passOkapiTraceHeaders(cres);
+          return null;
+        });
   }
 
   /**
