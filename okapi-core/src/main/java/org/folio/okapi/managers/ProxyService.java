@@ -54,6 +54,7 @@ import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.util.TokenCache;
 import org.folio.okapi.util.TokenCache.CacheEntry;
+import org.folio.okapi.util.TokenHeader;
 
 /**
  * Okapi's proxy service. Routes incoming requests to relevant modules, as
@@ -259,39 +260,32 @@ public class ProxyService {
    */
   private void parseTokenAndPopulateContext(ProxyContext pc) {
     RoutingContext ctx = pc.getCtx();
-    String auth = ctx.request().getHeader(XOkapiHeaders.AUTHORIZATION);
-    String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
-    if (auth != null) {
-      if (auth.startsWith("Bearer ")) {
-        auth = auth.substring(6).trim();
-      }
-      if (tok != null && !auth.equals(tok)) {
-        pc.responseError(400, messages.getMessage("10104"));
-        throw new IllegalArgumentException("X-Okapi-Token is not equal to Authorization token");
-      }
-      ctx.request().headers().set(XOkapiHeaders.TOKEN, auth);
-      ctx.request().headers().remove(XOkapiHeaders.AUTHORIZATION);
-      logger.debug("Moved Authorization header to X-Okapi-Token");
+    MultiMap headers = ctx.request().headers();
+    String token;
+    try {
+      token = TokenHeader.check(headers);
+    } catch (IllegalArgumentException e) {
+      pc.responseError(400, messages.getMessage("10104"));
+      throw e;
     }
-    String tenantId = ctx.request().getHeader(XOkapiHeaders.TENANT);
-    String userId = ctx.request().getHeader(XOkapiHeaders.USER_ID);
+    String tenantId = headers.get(XOkapiHeaders.TENANT);
 
     OkapiToken okapiToken = null;
-
     if (tenantId == null) {
       try {
-        okapiToken = new OkapiToken(ctx.request().getHeader(XOkapiHeaders.TOKEN));
+        okapiToken = new OkapiToken(token);
       } catch (IllegalArgumentException e) {
         pc.responseError(400, messages.getMessage("10105", e.getMessage()));
-        throw new IllegalArgumentException(e);
+        throw e;
       }
     }
 
     // userId does not exist all the time
+    String userId = headers.get(XOkapiHeaders.USER_ID);
     if (userId == null) {
       if (okapiToken == null) {
         try {
-          okapiToken = new OkapiToken(ctx.request().getHeader(XOkapiHeaders.TOKEN));
+          okapiToken = new OkapiToken(token);
         } catch (IllegalArgumentException e) {
           // ignoring bad token
         }
@@ -303,15 +297,10 @@ public class ProxyService {
 
     if (tenantId == null) {
       tenantId = okapiToken.getTenantWithoutValidation();
-      if (tenantId != null) {
-        ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
-        logger.debug("Recovered tenant from token: '{}'", tenantId);
-      }
       if (tenantId == null) {
-        logger.debug("No tenantId, defaulting to " + XOkapiHeaders.SUPERTENANT_ID);
         tenantId = XOkapiHeaders.SUPERTENANT_ID;
-        ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
       }
+      headers.add(XOkapiHeaders.TENANT, tenantId);
     }
 
     pc.setTenant(tenantId);

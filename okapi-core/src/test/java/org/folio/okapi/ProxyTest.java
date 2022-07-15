@@ -1207,6 +1207,16 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .statusCode(200);
 
+    // check that we accept Cookie and that's passed on to test module
+    String cookieVal = "refreshToken=yy; accessToken=" + okapiToken;
+    given().header("X-all-headers", "HB") // echo in body and in headers
+        .header("Cookie", cookieVal)
+        .get("/testb")
+        .then()
+        .statusCode(200)
+        .header("X-Okapi-Tenant", okapiTenant)
+        .body(containsString("Cookie:" + cookieVal)); // cookie received?
+
     // Check that we fail on conflicting X-Okapi-Token and Auth tokens
     given().header("X-all-headers", "H") // ask sample to report all headers
       .header("X-Okapi-Tenant", okapiTenant)
