@@ -12,7 +12,7 @@ class TokenHeaderTest {
   @Test
   void cookies1() {
     String c = "name=value; name2=value2; name3=value3";
-    assertThat(TokenHeader.cookieValue(c, "namea")).isEqualTo(null);
+    assertThat(TokenHeader.cookieValue(c, "namea")).isNull();;
     assertThat(TokenHeader.cookieValue(c, "name")).isEqualTo("value");
     assertThat(TokenHeader.cookieValue(c, "name2")).isEqualTo("value2");
     assertThat(TokenHeader.cookieValue(c, "name3")).isEqualTo("value3");
@@ -37,7 +37,7 @@ class TokenHeaderTest {
   @Test
   void headersEmpty() {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-    assertThat(TokenHeader.check(headers)).isEqualTo(null);
+    assertThat(TokenHeader.check(headers)).isNull();
     assertThat(headers).isEmpty();
   }
 
@@ -89,7 +89,7 @@ class TokenHeaderTest {
   void headersCookieNoAccess1() {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     headers.set("Cookie", "other=y");
-    assertThat(TokenHeader.check(headers)).isEqualTo(null);
+    assertThat(TokenHeader.check(headers)).isNull();
   }
 
   @Test
