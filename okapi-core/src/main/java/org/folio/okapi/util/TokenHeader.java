@@ -8,14 +8,18 @@ public class TokenHeader {
   private TokenHeader() { }
 
   /**
-   * Get cookie value from name. We are being strict here!
+   * Get cookie value from name.
+   *
+   * <p>Based on RFC6265.
+   * <a href="https://www.rfc-editor.org/rfc/rfc6265#section-4.2.1">Cookie syntax</a>
+   *    <a href="https://www.rfc-editor.org/rfc/rfc6265#section-4.1.1">Cookie pair syntax</a>
    * @param cookie cookie string
    * @param name name to look for
-   * @return value; null if not found.
+   * @return value; null if not found
    * @throws IllegalArgumentException if name occurs multiple times.
    */
   static String cookieValue(String cookie, String name) {
-    String[] components = cookie.split("; ");
+    String[] components = cookie.trim().split("; ");
     String v = null;
     for (String component : components) {
       if (component.startsWith(name + "=")) {

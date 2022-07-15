@@ -11,7 +11,7 @@ class TokenHeaderTest {
 
   @Test
   void cookies1() {
-    String c = "name=value; name2=value2; name3=value3";
+    String c = "\n\r \tname=value; name2=value2; name3=value3 ";
     assertThat(TokenHeader.cookieValue(c, "namea")).isNull();;
     assertThat(TokenHeader.cookieValue(c, "name")).isEqualTo("value");
     assertThat(TokenHeader.cookieValue(c, "name2")).isEqualTo("value2");
