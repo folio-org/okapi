@@ -56,7 +56,7 @@ public class TokenHeader {
     }
     String cookie = headers.get("Cookie");
     if (cookie != null) {
-      String accessToken = cookieValue(cookie, "accessToken");
+      String accessToken = cookieValue(cookie, XOkapiHeaders.COOKIE_ACCESS_TOKEN);
       if (accessToken != null) {
         if (token != null) {
           if (!token.equals(accessToken)) {

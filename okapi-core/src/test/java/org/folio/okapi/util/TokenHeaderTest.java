@@ -12,7 +12,7 @@ class TokenHeaderTest {
   @Test
   void cookies1() {
     String c = "\n\r \tname=value; name2=value2; name3=value3 ";
-    assertThat(TokenHeader.cookieValue(c, "namea")).isNull();;
+    assertThat(TokenHeader.cookieValue(c, "namea")).isNull();
     assertThat(TokenHeader.cookieValue(c, "name")).isEqualTo("value");
     assertThat(TokenHeader.cookieValue(c, "name2")).isEqualTo("value2");
     assertThat(TokenHeader.cookieValue(c, "name3")).isEqualTo("value3");
@@ -80,7 +80,7 @@ class TokenHeaderTest {
   @Test
   void headersCookie() {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-    headers.set("Cookie", "other=y; accessToken=123");
+    headers.set("Cookie", "other=y; " + XOkapiHeaders.COOKIE_ACCESS_TOKEN + "=123");
     assertThat(TokenHeader.check(headers)).isEqualTo("123");
     assertThat(headers.get(XOkapiHeaders.TOKEN)).isEqualTo("123");
   }
@@ -104,7 +104,7 @@ class TokenHeaderTest {
   @Test
   void headersCookieAndTokenMatch() {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-    headers.set("Cookie", "accessToken=123");
+    headers.set("Cookie", XOkapiHeaders.COOKIE_ACCESS_TOKEN +"=123");
     headers.set(XOkapiHeaders.TOKEN, "123");
     assertThat(TokenHeader.check(headers)).isEqualTo("123");
   }
@@ -112,7 +112,7 @@ class TokenHeaderTest {
   @Test
   void headersCookieAndTokenMismatch() {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-    headers.set("Cookie", "accessToken=123");
+    headers.set("Cookie", XOkapiHeaders.COOKIE_ACCESS_TOKEN + "=123");
     headers.set(XOkapiHeaders.TOKEN, "124");
     String msg = Assertions.assertThrows(IllegalArgumentException.class,
         () -> TokenHeader.check(headers)).getMessage();
