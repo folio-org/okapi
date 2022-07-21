@@ -1208,7 +1208,7 @@ public class ProxyTest {
       .statusCode(200);
 
     // check that we accept Cookie and that's passed on to test module
-    String cookieVal = "refreshToken=yy; accessToken=" + okapiToken;
+    String cookieVal = "folioRefreshToken=yy; folioAccessToken=" + okapiToken;
     given().header("X-all-headers", "HB") // echo in body and in headers
         .header("Cookie", cookieVal)
         .get("/testb")
