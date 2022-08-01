@@ -276,7 +276,15 @@ public class AuthModuleTest {
       cli.setOkapiToken(cli.getRespHeaders().get(XOkapiHeaders.TOKEN));
       cli.post("/_/tenant", "{}", res2 -> {
         context.assertTrue(res2.succeeded());
-        async.complete();
+        String p = cli.getRespHeaders().get(XOkapiHeaders.PERMISSIONS);
+        context.assertEquals("magic", p);
+        headers.put(XOkapiHeaders.PERMISSIONS, p);
+        cli.setHeaders(headers);
+        cli.setOkapiToken(cli.getRespHeaders().get(XOkapiHeaders.TOKEN));
+        cli.post("/_/tenant", "{}", res3 -> {
+          context.assertTrue(res3.succeeded());
+          async.complete();
+        });
       });
     });
   }

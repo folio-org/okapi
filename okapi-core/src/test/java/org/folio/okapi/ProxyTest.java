@@ -1896,6 +1896,14 @@ public class ProxyTest {
       + "      \"type\" : \"request-response\"," + LS
       + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS

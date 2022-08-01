@@ -61,8 +61,20 @@ class Auth {
     return token;
   }
 
+  public void tenantOp(RoutingContext ctx) {
+    MultiMap headers = ctx.request().headers();
+    String permissions = headers.get(XOkapiHeaders.PERMISSIONS);
+    if ("magic".equals(permissions)) {
+      ctx.response().setStatusCode(200);
+      ctx.response().putHeader("Content-Type", "application/json");
+      ctx.response().end("{}");
+    } else {
+      filter(ctx);
+    }
+  }
+
   public void login(RoutingContext ctx) {
-    final String json = ctx.getBodyAsString();
+    final String json = ctx.body().asString();
     if (json == null || json.length() == 0) {
       logger.info("test-auth: accept OK in login");
       HttpResponse.responseText(ctx, 202).end("Auth accept in /authn/login");
@@ -225,6 +237,8 @@ class Auth {
     String des = headers.get(XOkapiHeaders.PERMISSIONS_DESIRED);
     if (des != null) {
       ctx.response().headers().add(XOkapiHeaders.PERMISSIONS, des);
+    } else if (ctx.request().path().equals("/_/tenant")) {
+      ctx.response().headers().add(XOkapiHeaders.PERMISSIONS, "magic");
     }
     String modTok = moduleTokens(ctx);
     if (req != null) {
@@ -256,7 +270,7 @@ class Auth {
       ctx.response().setChunked(true);
       logger.debug("test-auth: Head request");
       //ctx.response().end("ACCEPTED"); // Dirty trick??
-      ctx.response().write("Accpted");
+      ctx.response().write("Accepted");
       logger.debug("test-auth: Done with the HEAD response");
     } else {
       echo(ctx);
