@@ -10,6 +10,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
@@ -28,6 +29,8 @@ import org.folio.okapi.common.XOkapiHeaders;
 class Auth {
 
   private final Logger logger = OkapiLogger.get();
+
+  private List<String> tenantsInitialized = new LinkedList<>();
 
   /**
    * Calculate a token from tenant and username. Fakes a JWT token, almost
@@ -61,10 +64,18 @@ class Auth {
     return token;
   }
 
+  public void listTenants(RoutingContext ctx) {
+    ctx.response().setStatusCode(200);
+    ctx.response().putHeader("Content-Type", "application/json");
+    ctx.response().end(new JsonArray(tenantsInitialized).encodePrettily());
+  }
+
   public void tenantOp(RoutingContext ctx) {
     MultiMap headers = ctx.request().headers();
     String permissions = headers.get(XOkapiHeaders.PERMISSIONS);
-    if ("magic".equals(permissions)) {
+    String tenant = headers.get(XOkapiHeaders.TENANT);
+    if ("magic".equals(permissions) && tenant != null) {
+      tenantsInitialized.add(tenant);
       ctx.response().setStatusCode(200);
       ctx.response().putHeader("Content-Type", "application/json");
       ctx.response().end("{}");
@@ -270,7 +281,7 @@ class Auth {
       ctx.response().setChunked(true);
       logger.debug("test-auth: Head request");
       //ctx.response().end("ACCEPTED"); // Dirty trick??
-      ctx.response().write("Accepted");
+      ctx.response().write("Accpted");
       logger.debug("test-auth: Done with the HEAD response");
     } else {
       echo(ctx);

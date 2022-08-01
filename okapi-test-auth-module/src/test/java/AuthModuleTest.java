@@ -10,6 +10,8 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.auth.MainVerticle;
 import org.folio.okapi.common.ErrorType;
@@ -283,7 +285,10 @@ public class AuthModuleTest {
         cli.setOkapiToken(cli.getRespHeaders().get(XOkapiHeaders.TOKEN));
         cli.post("/_/tenant", "{}", res3 -> {
           context.assertTrue(res3.succeeded());
-          async.complete();
+          cli.get("/authn/listTenants", res4 -> {
+            context.assertEquals(new JsonArray(List.of("my-lib")).encodePrettily(), res4.result());
+            async.complete();
+          });
         });
       });
     });
