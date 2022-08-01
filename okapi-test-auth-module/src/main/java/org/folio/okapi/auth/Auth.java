@@ -276,16 +276,7 @@ class Auth {
         .add(XOkapiHeaders.MODULE_TOKENS, modTok)
         .add(XOkapiHeaders.USER_ID, userId);
     HttpResponse.responseText(ctx, 202); // Abusing 202 to say filter OK
-    if (ctx.request().method() == HttpMethod.HEAD) {
-      ctx.response().headers().remove("Content-Length");
-      ctx.response().setChunked(true);
-      logger.debug("test-auth: Head request");
-      //ctx.response().end("ACCEPTED"); // Dirty trick??
-      ctx.response().write("Accpted");
-      logger.debug("test-auth: Done with the HEAD response");
-    } else {
-      echo(ctx);
-    }
+    echo(ctx);
   }
 
   private void echo(RoutingContext ctx) {
