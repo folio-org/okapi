@@ -10,31 +10,6 @@ import org.junit.jupiter.api.Test;
 class TokenHeaderTest {
 
   @Test
-  void cookies1() {
-    String c = "\n\r \tname=value; name2=value2; name3=value3 ";
-    assertThat(TokenHeader.cookieValue(c, "namea")).isNull();
-    assertThat(TokenHeader.cookieValue(c, "name")).isEqualTo("value");
-    assertThat(TokenHeader.cookieValue(c, "name2")).isEqualTo("value2");
-    assertThat(TokenHeader.cookieValue(c, "name3")).isEqualTo("value3");
-  }
-
-  @Test
-  void cookies2() {
-    String c = "name=value; name=value2; name3=value3";
-    String msg = Assertions.assertThrows(IllegalArgumentException.class,
-        () -> TokenHeader.cookieValue(c, "name")).getMessage();
-    assertThat(msg).isEqualTo("multiple occurrences of name in cookie");
-    assertThat(TokenHeader.cookieValue(c, "name3")).isEqualTo("value3");
-  }
-
-  @Test
-  void cookies3() {
-    String c = "name=value;name2=value2; name3=value3";
-    assertThat(TokenHeader.cookieValue(c, "name")).isEqualTo("value;name2=value2");
-    assertThat(TokenHeader.cookieValue(c, "name3")).isEqualTo("value3");
-  }
-
-  @Test
   void headersEmpty() {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     assertThat(TokenHeader.check(headers)).isNull();
@@ -86,6 +61,14 @@ class TokenHeaderTest {
   }
 
   @Test
+  void notReallyRfc6265() {
+    MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+    headers.set("Cookie", "other = y;;" + XOkapiHeaders.COOKIE_ACCESS_TOKEN + "=123;");
+    assertThat(TokenHeader.check(headers)).isEqualTo("123");
+    assertThat(headers.get(XOkapiHeaders.TOKEN)).isEqualTo("123");
+  }
+
+  @Test
   void headersCookieNoAccess1() {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     headers.set("Cookie", "other=y");
@@ -117,6 +100,16 @@ class TokenHeaderTest {
     String msg = Assertions.assertThrows(IllegalArgumentException.class,
         () -> TokenHeader.check(headers)).getMessage();
     assertThat(msg).isEqualTo("X-Okapi-Token conflicts with Cookie");
+  }
+
+  @Test
+  void headersMultipleValues() {
+    MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+    headers.set("Cookie", XOkapiHeaders.COOKIE_ACCESS_TOKEN + "=123; "
+        + XOkapiHeaders.COOKIE_ACCESS_TOKEN + "=124");
+    String msg = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> TokenHeader.check(headers)).getMessage();
+    assertThat(msg).isEqualTo("Multiple folioAccessToken cookie names");
   }
 
 }

@@ -1,36 +1,14 @@
 package org.folio.okapi.util;
 
+import io.netty.handler.codec.http.cookie.Cookie;
+import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.vertx.core.MultiMap;
+import java.util.List;
 import org.folio.okapi.common.XOkapiHeaders;
 
 public class TokenHeader {
 
   private TokenHeader() { }
-
-  /**
-   * Get cookie value from name.
-   *
-   * <p>Based on RFC6265.
-   * <a href="https://www.rfc-editor.org/rfc/rfc6265#section-4.2.1">Cookie syntax</a>
-   *    <a href="https://www.rfc-editor.org/rfc/rfc6265#section-4.1.1">Cookie pair syntax</a>
-   * @param cookie cookie string
-   * @param name name to look for
-   * @return value; null if not found
-   * @throws IllegalArgumentException if name occurs multiple times.
-   */
-  static String cookieValue(String cookie, String name) {
-    String[] components = cookie.trim().split("; ");
-    String v = null;
-    for (String component : components) {
-      if (component.startsWith(name + "=")) {
-        if (v != null) {
-          throw new IllegalArgumentException("multiple occurrences of " + name + " in cookie");
-        }
-        v = component.substring(component.indexOf('=') + 1);
-      }
-    }
-    return v;
-  }
 
   /**
    * Get token from X-Okapi-Token, Authorization, Cookie headers.
@@ -54,9 +32,19 @@ public class TokenHeader {
       }
       headers.remove(XOkapiHeaders.AUTHORIZATION);
     }
-    String cookie = headers.get("Cookie");
-    if (cookie != null) {
-      String accessToken = cookieValue(cookie, XOkapiHeaders.COOKIE_ACCESS_TOKEN);
+    String cookieHeader = headers.get("Cookie");
+    if (cookieHeader != null) {
+      List<Cookie> cookies = ServerCookieDecoder.STRICT.decodeAll(cookieHeader);
+      String accessToken = null;
+      for (Cookie cookie : cookies) {
+        if (XOkapiHeaders.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
+          if (accessToken != null) {
+            throw new IllegalArgumentException("Multiple " + XOkapiHeaders.COOKIE_ACCESS_TOKEN
+                + " cookie names");
+          }
+          accessToken = cookie.value();
+        }
+      }
       if (accessToken != null) {
         if (token != null) {
           if (!token.equals(accessToken)) {
