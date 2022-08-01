@@ -74,7 +74,7 @@ class Auth {
     MultiMap headers = ctx.request().headers();
     String permissions = headers.get(XOkapiHeaders.PERMISSIONS);
     String tenant = headers.get(XOkapiHeaders.TENANT);
-    if ("magic".equals(permissions) && tenant != null) {
+    if ("magic".equals(permissions)) {
       tenantsInitialized.add(tenant);
       ctx.response().setStatusCode(200);
       ctx.response().putHeader("Content-Type", "application/json");
