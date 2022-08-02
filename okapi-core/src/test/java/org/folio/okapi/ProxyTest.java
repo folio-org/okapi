@@ -1895,6 +1895,18 @@ public class ProxyTest {
       + "      \"level\" : \"20\"," + LS
       + "      \"type\" : \"request-response\"," + LS
       + "      \"permissionsRequired\" : [ ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"path\" : \"/authn/listTenants\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/_/tenant\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
@@ -2024,6 +2036,13 @@ public class ProxyTest {
       .header("Content-Type", "text/xml")
       .body(equalTo("<test>Hello Okapi</test>"));
     Assert.assertEquals("Okapi", preBuffer.toString());
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .get("/authn/listTenants")
+      .then().statusCode(200).log().ifValidationFails()
+      .header("Content-Type", "application/json")
+      .body(equalTo(new JsonArray(List.of(okapiTenant)).encodePrettily()));
 
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
