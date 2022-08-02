@@ -1201,11 +1201,7 @@ public class ProxyService {
           String deftok = authHeaders.get(XOkapiHeaders.TOKEN);
           String modTok = authHeaders.get(XOkapiHeaders.MODULE_TOKENS);
           MultiMap headersOut = MultiMap.caseInsensitiveMultiMap();
-          headers.forEach((k, v) -> {
-            if (k.startsWith("X-")) {
-              headersOut.add(k, v); // includes X-Okapi-Permissions
-            }
-          });
+          headersOut.addAll(headers);
           String token = null;
           if (modTok != null) {
             JsonObject jo = new JsonObject(modTok);
@@ -1216,9 +1212,13 @@ public class ProxyService {
           } else {
             headersOut.remove(XOkapiHeaders.TOKEN);
           }
+          String okapiPermissions = authHeaders.get(XOkapiHeaders.PERMISSIONS);
+          if (okapiPermissions != null) {
+            headersOut.set(XOkapiHeaders.PERMISSIONS, okapiPermissions);
+          }
           logger.info("authForSystemInterface: {} {}",
               () -> inst.getModuleDescriptor().getId(),
-              () -> Json.encode(authHeaders.entries()));
+              () -> Json.encode(headersOut.entries()));
           return doCallSystemInterface(headersOut, tenantId, inst, null, request);
         });
   }
