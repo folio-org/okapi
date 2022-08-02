@@ -1125,7 +1125,7 @@ public class ProxyTest {
       .header("Origin", "http://foobar.com")
       .get("/testb")
       .then().statusCode(200)
-      .header("Access-Control-Allow-Origin", "*")
+      .header("Access-Control-Allow-Origin", "http://foobar.com")
       .header("Access-Control-Expose-Headers", startsWithIgnoringCase(
         "Location,X-Okapi-Trace,X-Okapi-Token,Authorization,X-Okapi-Request-Id"))
       .body(equalTo("It works"));
@@ -3537,7 +3537,7 @@ public class ProxyTest {
       .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD.toString(), HttpMethod.POST.name())
       .options("/_/invoke/tenant/" + tenant + "/regularcall")
       .then()
-      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), "*")
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), "http://localhost")
       .header(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS.toString(), notNullValue())
       .header(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS.toString(), notNullValue())
       .statusCode(204)
