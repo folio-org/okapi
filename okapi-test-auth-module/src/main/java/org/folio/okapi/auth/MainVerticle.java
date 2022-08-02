@@ -38,6 +38,8 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/authn/login").handler(BodyHandler.create());
     router.post("/authn/login").handler(auth::login);
     router.route("/authn/login").handler(auth::accept);
+    router.get("/authn/listTenants").handler(auth::listTenants);
+    router.post("/_/tenant").handler(auth::tenantOp);
     router.route("/*").handler(auth::filter);
 
     vertx.createHttpServer()
