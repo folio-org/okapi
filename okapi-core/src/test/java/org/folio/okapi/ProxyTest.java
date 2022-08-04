@@ -1125,7 +1125,7 @@ public class ProxyTest {
       .header("Origin", "http://foobar.com")
       .get("/testb")
       .then().statusCode(200)
-      .header("Access-Control-Allow-Origin", "*")
+      .header("Access-Control-Allow-Origin", "http://foobar.com")
       .header("Access-Control-Expose-Headers", startsWithIgnoringCase(
         "Location,X-Okapi-Trace,X-Okapi-Token,Authorization,X-Okapi-Request-Id"))
       .body(equalTo("It works"));
@@ -1206,6 +1206,16 @@ public class ProxyTest {
       .then()
       .header("X-Okapi-Tenant", okapiTenant)
       .statusCode(200);
+
+    // check that we accept Cookie and that's passed on to test module
+    String cookieVal = "folioRefreshToken=yy; folioAccessToken=" + okapiToken;
+    given().header("X-all-headers", "HB") // echo in body and in headers
+        .header("Cookie", cookieVal)
+        .get("/testb")
+        .then()
+        .statusCode(200)
+        .header("X-Okapi-Tenant", okapiTenant)
+        .body(containsString("Cookie:" + cookieVal)); // cookie received?
 
     // Check that we fail on conflicting X-Okapi-Token and Auth tokens
     given().header("X-all-headers", "H") // ask sample to report all headers
@@ -3527,7 +3537,7 @@ public class ProxyTest {
       .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD.toString(), HttpMethod.POST.name())
       .options("/_/invoke/tenant/" + tenant + "/regularcall")
       .then()
-      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), "*")
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), "http://localhost")
       .header(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS.toString(), notNullValue())
       .header(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS.toString(), notNullValue())
       .statusCode(204)
