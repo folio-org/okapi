@@ -68,14 +68,17 @@ public class CorsHelper {
             .allowedHeader(XOkapiHeaders.AUTHORIZATION)
             .allowedHeader(XOkapiHeaders.REQUEST_ID) // expose response headers
             .allowedHeader(XOkapiHeaders.MODULE_ID)
+            .allowedHeader("Credentials")
             .exposedHeader(HttpHeaders.LOCATION.toString())
             .exposedHeader(XOkapiHeaders.TRACE)
             .exposedHeader(XOkapiHeaders.TOKEN)
             .exposedHeader(XOkapiHeaders.AUTHORIZATION)
             .exposedHeader(XOkapiHeaders.REQUEST_ID)
             .exposedHeader(XOkapiHeaders.MODULE_ID)
+            .exposedHeader("Credentials")
             // Allow browsers to cache this CORS response. The cache is per URL.
             .maxAgeSeconds(ACCESS_CONTROL_MAX_AGE)
+            .allowCredentials(true)
             .handle(ctx);
       }
     });
