@@ -1,12 +1,21 @@
+## 4.14.3 2022-08-11
+
+Fixes:
+
+ * [OKAPI-1111](https://issues.folio.org/browse/OKAPI-1111) mod-authtoken tenant init not called
+ * [OKAPI-1114](https://issues.folio.org/browse/OKAPI-1114) Upgrade to Vert.x 4.3.3, micrometer 1.9.3
+
 ## 4.14.2 2022-07-01
 
 Fixes:
+
  * [OKAPI-1109](https://issues.folio.org/browse/OKAPI-1109): Log to /var/log/folio/okapi/okapi.log, not STDOUT, in Debian
  * [OKAPI-1101](https://issues.folio.org/browse/OKAPI-1101): Publish javadoc and sources to maven repository
 
 ## 4.14.1 2022-05-30
 
 Fixes:
+
  * Upgrade mongo to 5.0.8 for testing
  * Fix javadoc for HttpClientFactory methods
  * [OKAPI-1098](https://issues.folio.org/browse/OKAPI-1098): Fix Jakarta Expression Language validation (CVE-2021-28170)
