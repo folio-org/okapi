@@ -1160,12 +1160,18 @@ public class ProxyService {
       return doCallSystemInterface(headersIn, tenantId, null, inst, null, request);
     }
     return tenantManager.getEnabledModules(tenantId).compose(enabledModules -> {
+      RoutingEntry filt;
       for (ModuleDescriptor md : enabledModules) {
-        RoutingEntry filt = md.getAuthRoutingEntry();
+        filt = md.getAuthRoutingEntry();
         if (filt != null) {
           logger.debug("callSystemInterface: Found auth filter in {}", md.getId());
           return authForSystemInterface(md, filt, tenantId, inst, request, headersIn);
         }
+      }
+      ModuleDescriptor instMd = inst.getModuleDescriptor();
+      filt = instMd.getAuthRoutingEntry();
+      if (filt != null) {
+        return authForSystemInterface(instMd, filt, tenantId, inst, request, headersIn);
       }
       logger.debug("callSystemInterface: No auth for {} calling with "
           + "tenant header only", tenantId);
@@ -1206,17 +1212,24 @@ public class ProxyService {
         inst.getMethod(), inst.isHandler());
     return doCallSystemInterface(headers, tenantId, null, authInst, modPerms, "")
         .compose(cli -> {
-          String deftok = cli.getRespHeaders().get(XOkapiHeaders.TOKEN);
-          logger.debug("authForSystemInterface: {}",
-              () -> Json.encode(cli.getRespHeaders().entries()));
-          String modTok = cli.getRespHeaders().get(XOkapiHeaders.MODULE_TOKENS);
+          MultiMap authHeaders = cli.getRespHeaders();
+          String deftok = authHeaders.get(XOkapiHeaders.TOKEN);
+          String modTok = authHeaders.get(XOkapiHeaders.MODULE_TOKENS);
+          MultiMap headersOut = MultiMap.caseInsensitiveMultiMap();
+          headersOut.addAll(headers);
           String token = null;
           if (modTok != null) {
             JsonObject jo = new JsonObject(modTok);
             token = jo.getString(modId, deftok);
           }
-          logger.debug("authForSystemInterface: Got token {}", token);
-          return doCallSystemInterface(headers, tenantId, token, inst, null, request);
+          String okapiPermissions = authHeaders.get(XOkapiHeaders.PERMISSIONS);
+          if (okapiPermissions != null) {
+            headersOut.set(XOkapiHeaders.PERMISSIONS, okapiPermissions);
+          }
+          logger.info("authForSystemInterface: {} {}",
+              () -> inst.getModuleDescriptor().getId(),
+              () -> Json.encode(headersOut.entries()));
+          return doCallSystemInterface(headersOut, tenantId, token, inst, null, request);
         });
   }
 
@@ -1226,7 +1239,8 @@ public class ProxyService {
 
     Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
     headers.put(XOkapiHeaders.URL_TO, inst.getUrl());
-    logger.debug("syscall begin {} {}{}", inst.getMethod(), inst.getUrl(), inst.getPath());
+    logger.debug("syscall begin {} {} {}{}", inst.getModuleDescriptor().getId(),
+        inst.getMethod(), inst.getUrl(), inst.getPath());
     OkapiClient cli = new OkapiClient(httpClient.getHttpClient(), inst.getUrl(), vertx, headers);
     String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
     cli.newReqId(reqId); // "tenant" or "tenantpermissions"
@@ -1237,7 +1251,8 @@ public class ProxyService {
     final Timer.Sample sample = MetricsHelper.getTimerSample();
     Promise<OkapiClient> promise = Promise.promise();
     cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
-      logger.debug("syscall return {} {}{}", inst.getMethod(), inst.getUrl(), inst.getPath());
+      logger.debug("syscall return {} {} {}{}", inst.getModuleDescriptor().getId(),
+          inst.getMethod(), inst.getUrl(), inst.getPath());
       if (cres.failed()) {
         String msg = messages.getMessage("11101", inst.getMethod(),
             inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
@@ -1283,17 +1298,16 @@ public class ProxyService {
    * Helper to make request headers for the system requests we make. Copies all
    * X- headers over. Adds a tenant, and a token, if we have one.
    */
-  private static Map<String, String> sysReqHeaders(
-      MultiMap headersIn, String tenantId, String authToken,
-      ModuleInstance inst, String modPerms) {
+  private static Map<String, String> sysReqHeaders(MultiMap headersIn, String tenantId,
+      String authToken, ModuleInstance inst, String modPerms) {
+
     Map<String, String> headersOut = new HashMap<>();
     for (String hdr : headersIn.names()) {
-      if (hdr.matches("^X-.*$")) {
+      if (hdr.startsWith("X-")) {
         headersOut.put(hdr, headersIn.get(hdr));
       }
     }
     headersOut.put(XOkapiHeaders.TENANT, tenantId);
-    logger.debug("Added {} : {}", XOkapiHeaders.TENANT, tenantId);
     if (authToken == null) {
       headersOut.remove(XOkapiHeaders.TOKEN);
     } else {

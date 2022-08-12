@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>4.14.3-SNAPSHOT</version>
+  <version>4.14.4-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
@@ -34,7 +34,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.3.1</version> <!-- also update depending versions below! -->
+        <version>4.3.3</version> <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -43,7 +43,7 @@
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.8.4</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
+        <version>1.9.3</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>

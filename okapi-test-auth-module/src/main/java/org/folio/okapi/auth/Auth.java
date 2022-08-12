@@ -1,7 +1,6 @@
 package org.folio.okapi.auth;
 
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
@@ -10,6 +9,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
@@ -28,6 +28,8 @@ import org.folio.okapi.common.XOkapiHeaders;
 class Auth {
 
   private final Logger logger = OkapiLogger.get();
+
+  private List<String> tenantsInitialized = new LinkedList<>();
 
   /**
    * Calculate a token from tenant and username. Fakes a JWT token, almost
@@ -61,8 +63,28 @@ class Auth {
     return token;
   }
 
+  public void listTenants(RoutingContext ctx) {
+    ctx.response().setStatusCode(200);
+    ctx.response().putHeader("Content-Type", "application/json");
+    ctx.response().end(new JsonArray(tenantsInitialized).encodePrettily());
+  }
+
+  public void tenantOp(RoutingContext ctx) {
+    MultiMap headers = ctx.request().headers();
+    String permissions = headers.get(XOkapiHeaders.PERMISSIONS);
+    String tenant = headers.get(XOkapiHeaders.TENANT);
+    if ("magic".equals(permissions)) {
+      tenantsInitialized.add(tenant);
+      ctx.response().setStatusCode(200);
+      ctx.response().putHeader("Content-Type", "application/json");
+      ctx.response().end("{}");
+    } else {
+      filter(ctx);
+    }
+  }
+
   public void login(RoutingContext ctx) {
-    final String json = ctx.getBodyAsString();
+    final String json = ctx.body().asString();
     if (json == null || json.length() == 0) {
       logger.info("test-auth: accept OK in login");
       HttpResponse.responseText(ctx, 202).end("Auth accept in /authn/login");
@@ -225,6 +247,8 @@ class Auth {
     String des = headers.get(XOkapiHeaders.PERMISSIONS_DESIRED);
     if (des != null) {
       ctx.response().headers().add(XOkapiHeaders.PERMISSIONS, des);
+    } else if (ctx.request().path().equals("/_/tenant")) {
+      ctx.response().headers().add(XOkapiHeaders.PERMISSIONS, "magic");
     }
     String modTok = moduleTokens(ctx);
     if (req != null) {
@@ -251,16 +275,7 @@ class Auth {
         .add(XOkapiHeaders.MODULE_TOKENS, modTok)
         .add(XOkapiHeaders.USER_ID, userId);
     HttpResponse.responseText(ctx, 202); // Abusing 202 to say filter OK
-    if (ctx.request().method() == HttpMethod.HEAD) {
-      ctx.response().headers().remove("Content-Length");
-      ctx.response().setChunked(true);
-      logger.debug("test-auth: Head request");
-      //ctx.response().end("ACCEPTED"); // Dirty trick??
-      ctx.response().write("Accpted");
-      logger.debug("test-auth: Done with the HEAD response");
-    } else {
-      echo(ctx);
-    }
+    echo(ctx);
   }
 
   private void echo(RoutingContext ctx) {
