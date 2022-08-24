@@ -7,6 +7,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.ErrorType;
@@ -207,16 +208,17 @@ public class ProxyContext {
    */
   public final void logRequest(RoutingContext ctx, String tenant) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
-    StringBuilder mods = new StringBuilder();
-    if (modList != null && !modList.isEmpty()) {
-      for (ModuleInstance mi : modList) {
-        mods.append(" ").append(mi.getModuleDescriptor().getId());
-      }
+    String mods = "";
+    if (modList != null) {
+      mods = modList.stream().map(x -> x.getModuleDescriptor().getId())
+          .collect(Collectors.joining(" "));
     }
     if (logger.isInfoEnabled()) {
-      logger.info("{} REQ {} {} {} {} {}", reqId,
-          ctx.request().remoteAddress(), tenant, ctx.request().method(),
-          ctx.request().path(), mods);
+      OkapiMapMessage msg = new OkapiMapMessage(reqId, tenant, userId, mods,
+          String.format("%s REQ %s %s %s %s %s", reqId,
+              ctx.request().remoteAddress(), tenant, ctx.request().method(),
+              ctx.request().path(), mods));
+      logger.info(msg);
     }
     MetricsHelper.recordCodeExecutionTime(sample, "ProxyContext.logRequest");
   }
@@ -230,8 +232,10 @@ public class ProxyContext {
   public void logResponse(String module, String url, int statusCode) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
     if (logger.isInfoEnabled()) {
-      logger.info("{} RES {} {} {} {}", reqId,
-          statusCode, timeDiff(), module, url);
+      OkapiMapMessage msg = new OkapiMapMessage(reqId, tenant, userId, module,
+          String.format("%s RES %s %s %s %s", reqId,
+              statusCode, timeDiff(), module, url));
+      logger.info(msg);
     }
     MetricsHelper.recordCodeExecutionTime(sample, "ProxyContext.logResponse");
   }
