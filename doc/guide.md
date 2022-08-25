@@ -2906,7 +2906,7 @@ For example, to enable the JSON based logging, one could use:
 
 Okapi uses [AsyncLoggerContextSelector](https://logging.apache.org/log4j/2.x/manual/async.html)
 by default. Use
-`-Dlog4j2.contextSelector=org.apache.logging.log4j.core.osgi.BundleContextSelector`
+`-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector`
 to switch back to log4j2's default synchronous logger.
 
 ### Environment Variables

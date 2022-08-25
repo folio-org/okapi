@@ -26,6 +26,8 @@ import org.folio.okapi.common.XOkapiHeaders;
 public class ProxyContext {
 
   private static final Logger logger = OkapiLogger.get();
+
+  private static final Logger fullLogger = OkapiLogger.get(ProxyContext.class);
   private List<ModuleInstance> modList;
   private final String reqId;
   private String tenant;
@@ -82,11 +84,9 @@ public class ProxyContext {
     if (curid == null || curid.isEmpty()) {
       reqId = newid.toString();
       ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
-      logger.debug("Assigning new reqId {}", newid);
     } else {
       reqId = curid + ";" + newid.toString();
       ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqId);
-      logger.debug("Appended a reqId {}", newid);
     }
     nanoTimeStart = 0;
     timerId = null;
@@ -218,7 +218,7 @@ public class ProxyContext {
           String.format("%s REQ %s %s %s %s %s", reqId,
               ctx.request().remoteAddress(), tenant, ctx.request().method(),
               ctx.request().path(), mods));
-      logger.info(msg);
+      fullLogger.info(msg);
     }
     MetricsHelper.recordCodeExecutionTime(sample, "ProxyContext.logRequest");
   }
@@ -235,7 +235,7 @@ public class ProxyContext {
       OkapiMapMessage msg = new OkapiMapMessage(reqId, tenant, userId, module,
           String.format("%s RES %s %s %s %s", reqId,
               statusCode, timeDiff(), module, url));
-      logger.info(msg);
+      fullLogger.info(msg);
     }
     MetricsHelper.recordCodeExecutionTime(sample, "ProxyContext.logResponse");
   }
