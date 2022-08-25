@@ -85,7 +85,7 @@ public class ProxyContext {
       reqId = newid.toString();
       ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
     } else {
-      reqId = curid + ";" + newid.toString();
+      reqId = curid + ";" + newid;
       ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqId);
     }
     nanoTimeStart = 0;
@@ -204,9 +204,8 @@ public class ProxyContext {
   /**
    * Log that HTTP request has been received.
    * @param ctx routing context
-   * @param tenant tenant
    */
-  public final void logRequest(RoutingContext ctx, String tenant) {
+  public final void logRequest(RoutingContext ctx) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
     String mods = "";
     if (modList != null) {

@@ -302,7 +302,6 @@ public class ProxyService {
       }
       headers.add(XOkapiHeaders.TENANT, tenantId);
     }
-
     pc.setTenant(tenantId);
   }
 
@@ -565,7 +564,7 @@ public class ProxyService {
 
           pc.setModList(l);
 
-          pc.logRequest(ctx, tenantId);
+          pc.logRequest(ctx);
 
           headers.set(XOkapiHeaders.URL, okapiUrl);
           headers.remove(XOkapiHeaders.MODULE_ID);
