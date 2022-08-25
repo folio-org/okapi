@@ -45,7 +45,6 @@ import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.FuturisedHttpClient;
 import org.folio.okapi.util.MetricsHelper;

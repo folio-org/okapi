@@ -25,6 +25,7 @@ public class OkapiMapMessage extends MapMessage<OkapiMapMessage, String> {
     return v != null ? v : "";
   }
 
+  @Override
   protected void appendMap(final StringBuilder sb) {
     sb.append(get("message"));
   }
