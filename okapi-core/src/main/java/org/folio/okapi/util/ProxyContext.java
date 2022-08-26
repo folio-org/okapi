@@ -206,12 +206,12 @@ public class ProxyContext {
    */
   public final void logRequest(RoutingContext ctx) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
-    String mods = "";
-    if (modList != null) {
-      mods = modList.stream().map(x -> x.getModuleDescriptor().getId())
-          .collect(Collectors.joining(" "));
-    }
-    if (logger.isInfoEnabled()) {
+    if (fullLogger.isInfoEnabled()) {
+      String mods = "";
+      if (modList != null) {
+        mods = modList.stream().map(x -> x.getModuleDescriptor().getId())
+            .collect(Collectors.joining(" "));
+      }
       OkapiMapMessage msg = new OkapiMapMessage(reqId, tenant, userId, mods,
           String.format("%s REQ %s %s %s %s %s", reqId,
               ctx.request().remoteAddress(), tenant, ctx.request().method(),
@@ -229,7 +229,7 @@ public class ProxyContext {
    */
   public void logResponse(String module, String url, int statusCode) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
-    if (logger.isInfoEnabled()) {
+    if (fullLogger.isInfoEnabled()) {
       OkapiMapMessage msg = new OkapiMapMessage(reqId, tenant, userId, module,
           String.format("%s RES %s %s %s %s", reqId,
               statusCode, timeDiff(), module, url));
