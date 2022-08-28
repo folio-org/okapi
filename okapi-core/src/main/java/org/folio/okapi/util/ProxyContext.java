@@ -25,7 +25,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 @SuppressWarnings({"squid:S1192"})
 public class ProxyContext {
   private static final Logger logger = OkapiLogger.get(); // logger name "okapi"
-  private static final Logger fullLogger = OkapiLogger.get(ProxyContext.class);
+  private static final Logger fullLogger = OkapiLogger.get("full");
 
   private List<ModuleInstance> modList;
   private final String reqId;
