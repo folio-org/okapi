@@ -45,7 +45,6 @@ import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.FuturisedHttpClient;
 import org.folio.okapi.util.MetricsHelper;
@@ -302,7 +301,6 @@ public class ProxyService {
       }
       headers.add(XOkapiHeaders.TENANT, tenantId);
     }
-
     pc.setTenant(tenantId);
   }
 
@@ -541,14 +539,6 @@ public class ProxyService {
     // modules will not accept the response. Maybe later...
     try {
       parseTokenAndPopulateContext(pc);
-      putAndRejectMdcLookups(pc,
-          FolioLoggingContext.TENANT_ID_LOGGING_VAR_NAME, pc.getTenant());
-      putAndRejectMdcLookups(pc,
-          FolioLoggingContext.REQUEST_ID_LOGGING_VAR_NAME, headers.get(XOkapiHeaders.REQUEST_ID));
-      putAndRejectMdcLookups(pc,
-          FolioLoggingContext.MODULE_ID_LOGGING_VAR_NAME, headers.get(XOkapiHeaders.MODULE_ID));
-      putAndRejectMdcLookups(pc,
-          FolioLoggingContext.USER_ID_LOGGING_VAR_NAME, pc.getUserId());
     } catch (IllegalArgumentException e) {
       stream.resume();
       return; // Error code already set in ctx
@@ -573,7 +563,7 @@ public class ProxyService {
 
           pc.setModList(l);
 
-          pc.logRequest(ctx, tenantId);
+          pc.logRequest(ctx);
 
           headers.set(XOkapiHeaders.URL, okapiUrl);
           headers.remove(XOkapiHeaders.MODULE_ID);
@@ -589,21 +579,6 @@ public class ProxyService {
             proxyR(l.iterator(), pc, stream, null, clientRequest);
           });
         });
-  }
-
-  /**
-   * Throw IllegalArgumentException if s contains ${ to disable MDC lookups
-   * mitigating any denial of service attack using recursive lookups
-   * (CVE-2021-45105, https://logging.apache.org/log4j/2.x/index.html ).
-   * Otherwise put (name, s) into FolioLoggingContext.
-   */
-  private static void putAndRejectMdcLookups(ProxyContext pc, String name, String s) {
-    if (s != null && s.contains("${")) {
-      var e = new IllegalArgumentException(name + " must not contain ${");
-      pc.responseError(400, e.getMessage());
-      throw e;
-    }
-    FolioLoggingContext.put(name, s);
   }
 
   private static void clientsEnd(Buffer bcontent, List<HttpClientRequest> clientRequestList) {
