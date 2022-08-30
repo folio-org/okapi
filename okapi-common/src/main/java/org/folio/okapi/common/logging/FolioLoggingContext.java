@@ -21,6 +21,11 @@ import org.apache.logging.log4j.core.lookup.StrLookup;
  * appender.console.layout.requestId.value = $${FolioLoggingContext:requestid}
  * }
  * </pre>
+ *
+ * <p>Note this does not work (empty values) when using the
+ * <a href="https://logging.apache.org/log4j/2.x/manual/async.html">async logger</a>.
+ *
+ * <p>The default sync logger works fine.
  */
 @Plugin(name = "FolioLoggingContext", category = StrLookup.CATEGORY)
 public class FolioLoggingContext implements StrLookup {
