@@ -3835,7 +3835,7 @@ and installed locally.
 在这个例子中，我们有两次Pull操作。第二次Pull操作要比第一次Pull操作快，因为所有或者大多数模块已经被获取了。
 ```
 cat > /tmp/pull.json <<END
-{"urls" : [ "http://folio-registry.aws.indexdata.com:80" ]}
+{"urls" : [ "https://folio-registry.dev.folio.org" ]}
 END
 
 curl -w '\n' -X POST -d@/tmp/pull.json http://localhost:9130/_/proxy/pull/modules
