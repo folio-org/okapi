@@ -1,3 +1,11 @@
+## 4.14.4 2022-09-01
+
+Fixes:
+
+ * [OKAPI-1117](https://issues.folio.org/browse/OKAPI-1117) Empty values in logging. Okapi 4.13 thrue 4.14.3 in default logging configuration logged empty values for context variables (those in []'s)
+
+ * [OKAPI-1118](https://issues.folio.org/browse/OKAPI-1118) cron-utils 9.2.0, clean up javax.el/jakarta.el
+
 ## 4.14.3 2022-08-11
 
 Fixes:
