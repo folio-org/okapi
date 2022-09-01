@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.folio.okapi</groupId>
     <artifactId>okapi</artifactId>
-    <version>4.14.4-SNAPSHOT</version>
+    <version>4.14.5-SNAPSHOT</version>
   </parent>
   <artifactId>okapi-core</artifactId>
   <dependencies>
@@ -83,15 +83,6 @@
     <dependency>
       <groupId>com.cronutils</groupId>
       <artifactId>cron-utils</artifactId>
-    </dependency>
-    <dependency>
-      <!-- Remove this dependency when cron-utils ships with jakarta.el >= 3.0.4!
-           https://github.com/jmrozanec/cron-utils/issues/517
-           https://github.com/jmrozanec/cron-utils/pull/518
-      -->
-      <groupId>org.glassfish</groupId>
-      <artifactId>jakarta.el</artifactId>
-      <version>3.0.4</version>
     </dependency>
     <dependency>
       <groupId>com.ongres.scram</groupId>
