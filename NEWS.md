@@ -41,7 +41,7 @@ New features:
  * [OKAPI-1079](https://issues.folio.org/browse/OKAPI-1079) Enable HTTP compression for pull. For this to work,
    the registry okapi should be updated
  * [OKAPI-1094](https://issues.folio.org/browse/OKAPI-1094) Update Vert.x from 4.2.6 to 4.2.7
- * [OKAPI-1096](https://issues.folio.org/browse/OKAPI-1096) New API: HttpClientFactory (with WebClientFactory)
+ * [OKAPI-1095](https://issues.folio.org/browse/OKAPI-1095) New API: HttpClientFactory (with WebClientFactory)
 
 ## 4.13.2 2022-04-11
 
