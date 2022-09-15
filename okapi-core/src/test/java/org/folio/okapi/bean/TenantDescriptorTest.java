@@ -15,7 +15,7 @@ class TenantDescriptorTest {
 
   @Test
   public void valid() {
-    List.of("a", "a123456789012345678901234567890", "a_12", "a_1_23").forEach(id -> {
+    List.of("a", "a123456789012345678901234567890", "abcd").forEach(id -> {
       TenantDescriptor t = new TenantDescriptor();
       t.setId(id);
       assertThat(t.getId(), is(id));
@@ -24,19 +24,11 @@ class TenantDescriptorTest {
 
   @Test
   public void badChars() {
-    List.of("søvang", "camelCase", "a_b", "a_", "a_12__2", " a", "a ").forEach(id -> {
+    List.of("søvang", "camelCase", "a_b", "a_", "a_12__2", " a", "a ",
+        "a1234567890123456789012345678901").forEach(id -> {
       TenantDescriptor tenant = new TenantDescriptor();
       Throwable t = Assert.assertThrows(OkapiError.class, () -> tenant.setId(id));
       assertThat(t.getMessage(), containsString("must match pattern"));
-    });
-  }
-
-  @Test
-  public void length() {
-    List.of("a1234567890123456789012345678901").forEach(id -> {
-      TenantDescriptor tenant = new TenantDescriptor();
-      Throwable t = Assert.assertThrows(OkapiError.class, () -> tenant.setId(id));
-      assertThat(t.getMessage(), containsString("must not exceed"));
     });
   }
 

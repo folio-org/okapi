@@ -18,10 +18,9 @@ import org.folio.okapi.util.OkapiError;
 @JsonInclude(Include.NON_NULL)
 public class TenantDescriptor {
   // no-multi byte sequences allowed below in pattern, so char length = byte length
-  private static final String TENANT_PATTERN_STRING = "^[a-z][a-z0-9]*(_[0-9]+)*$";
+  private static final String TENANT_PATTERN_STRING = "^[a-z][a-z0-9]{0,30}$";
   private static final Pattern TENANT_PATTERN = Pattern.compile(TENANT_PATTERN_STRING);
   private static final List<String> TENANT_RESERVED = List.of("pg");
-  private static final int TENANT_MAX_LENGTH = 31;
 
   private String id;
   private String name;
@@ -56,16 +55,12 @@ public class TenantDescriptor {
     if (id == null || id.isEmpty()) {
       throw new OkapiError(ErrorType.USER, messages.getMessage("11600"));
     }
-    if (id.length() > TENANT_MAX_LENGTH) {
-      throw new OkapiError(ErrorType.USER, messages.getMessage("11606", id,
-              TENANT_MAX_LENGTH));
-    }
     if (!TENANT_PATTERN.matcher(id).find()) {
       throw new OkapiError(ErrorType.USER, messages.getMessage("11601", id,
               TENANT_PATTERN_STRING));
     }
     if (TENANT_RESERVED.contains(id)) {
-      throw new OkapiError(ErrorType.USER, messages.getMessage("11609", id));
+      throw new OkapiError(ErrorType.USER, messages.getMessage("11606", id));
     }
     this.id = id;
   }
