@@ -197,4 +197,10 @@ public class XOkapiHeaders {
    * version.
    */
   public static final String OKAPI_MODULE = "okapi";
+
+  /**
+   * Cookie access token name.
+   */
+  public static final String COOKIE_ACCESS_TOKEN = "folioAccessToken";
+
 }

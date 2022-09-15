@@ -31,7 +31,7 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
     try {
       ExecResult execResult = POSTGRESQL_CONTAINER.execInContainer(command);
       OkapiLogger.get().debug(() -> String.join(" ", command) + " " + execResult);
-    } catch (InterruptedException|IOException|UnsupportedOperationException e) {
+    } catch (InterruptedException | IOException | UnsupportedOperationException e) {
       throw new RuntimeException(e);
     }
   }
@@ -100,7 +100,7 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
     configure("ssl = off");
     JsonObject config = config();
     config.remove("postgres_server_pem");
-    new PostgresHandle(vertx, config).getConnection().onComplete(vtc.completing());
+    new PostgresHandle(vertx, config).getConnection().onComplete(vtc.succeedingThenComplete());
   }
 
   @Test
@@ -126,5 +126,27 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
   void rejectTlsv1_2(Vertx vertx, VertxTestContext vtc) {
     configure("ssl = on", "ssl_min_protocol_version = TLSv1.2", "ssl_max_protocol_version = TLSv1.2");
     new PostgresHandle(vertx, config()).getConnection().onComplete(vtc.failing(fail -> vtc.completeNow()));
+  }
+
+  @Test
+  @DisplayName("Connect with SCRAM-SHA-256 encrypted password")
+  @SuppressWarnings("java:S2699")  // suppress "Tests should include assertions"
+  void scram256(Vertx vertx, VertxTestContext vtc) {
+    configure("ssl = off", "password_encryption = scram-sha-256");
+    JsonObject config = config();
+    config.remove("postgres_server_pem");
+    new PostgresHandle(vertx, config).getConnection()
+        .compose(connection -> {
+          String sql = "CREATE USER scram WITH PASSWORD 'foo';";
+          return connection.query(sql).execute()
+              .compose(x -> connection.query("SELECT rolpassword FROM pg_authid WHERE rolname='scram'").execute())
+              .map(rowSet -> rowSet.iterator().next().getString(0));
+        })
+        .compose(password -> {
+          assertThat(password).startsWith("SCRAM-SHA-256");
+          config.put("postgres_username", "scram").put("postgres_password", "foo");
+          return new PostgresHandle(vertx, config).getConnection();
+        })
+        .onComplete(vtc.succeedingThenComplete());
   }
 }

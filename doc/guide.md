@@ -2546,7 +2546,7 @@ than the pull, because all/most modules have already been fetched.
 
 ```
 cat > /tmp/pull.json <<END
-{"urls" : [ "http://folio-registry.aws.indexdata.com:80" ]}
+{"urls" : [ "https://folio-registry.dev.folio.org" ]}
 END
 
 curl -w '\n' -X POST -d@/tmp/pull.json http://localhost:9130/_/proxy/pull/modules
@@ -2851,7 +2851,7 @@ leave it unmodified (default).
 This property appeared in Okapi 4.10.0; trace header was always enabled
 before 4.10.0.
 * `enable_system_auth`: Controls whether Okapi checks token by calling Auth module
-when invoking system interfaces such as `_tenant`.
+when invoking system interfaces such as `_tenant` or via regular proxy call.
 The value is a boolean - `true` for enable, `false` for disable.  Default is `true`.
 * `kube_config`: Filename/resource which is the Kubernetes configuration
 to use for Kubernetes integration. If defined, Okapi will perform
@@ -2906,7 +2906,7 @@ For example, to enable the JSON based logging, one could use:
 
 Okapi uses [AsyncLoggerContextSelector](https://logging.apache.org/log4j/2.x/manual/async.html)
 by default. Use
-`-Dlog4j2.contextSelector=org.apache.logging.log4j.core.osgi.BundleContextSelector`
+`-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector`
 to switch back to log4j2's default synchronous logger.
 
 ### Environment Variables

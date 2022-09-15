@@ -1,3 +1,30 @@
+## 4.14.0 2022-05-06
+
+New features:
+
+ * [OKAPI-793](https://issues.folio.org/browse/OKAPI-793) Enable SCRAM-SHA-256 PostgreSQL passwords
+ * [OKAPI-939](https://issues.folio.org/browse/OKAPI-939) Parallel (concurrent) migration for modules
+   Query parameter `parallel` controls this. Default is 1 - sequental
+ * [OKAPI-1070](https://issues.folio.org/browse/OKAPI-1070) Check permission names during install. Logs warnings
+   for undefined permissions
+ * [OKAPI-1079](https://issues.folio.org/browse/OKAPI-1079) Enable HTTP compression for pull. For this to work,
+   the registry okapi should be updated
+ * [OKAPI-1094](https://issues.folio.org/browse/OKAPI-1094) Update Vert.x from 4.2.6 to 4.2.7
+ * [OKAPI-1096](https://issues.folio.org/browse/OKAPI-1096) New API: HttpClientFactory (with WebClientFactory)
+
+## 4.13.2 2022-04-11
+
+Fixes:
+
+ * [OKAPI-1091](https://issues.folio.org/browse/OKAPI-1091) Exception for SemVer with component 4000001006
+ * Move jackson-databind entry before jackson-bom
+
+## 4.13.1 2022-03-28
+
+Fixes:
+
+ * [OKAPI-1088](https://issues.folio.org/browse/OKAPI-1088): jackson-databind 2.13.2.1, Vert.x 4.2.6, log4j 2.17.2 (CVE-2020-36518)
+
 ## 4.13.0 2022-02-23
 
 Fixes:
@@ -29,10 +56,9 @@ Changes:
 This version of Okapi happens to make a different order of modules during
 install as part of [OKAPI-662](https://issues.folio.org/browse/OKAPI-662) work.
 This is not an error, as multiple orders are ok as far as interface dependencies
-are concerned. Module mod-data-export-spring <= 1.2.1 may break because of this.
-See [MODEXPS-67](https://issues.folio.org/browse/MODEXPS-67). For this
-reason do not use this version Okapi unless mod-data-export-spring includes
-the fix (at this time, no fix of mod-data-export-spring has been released).
+are concerned. Module mod-data-export-spring < 1.2.3 may break because of this.
+See [MODEXPS-67](https://issues.folio.org/browse/MODEXPS-67). For this reason
+do not use this version Okapi unless you have also updated mod-data-spring to >= 1.2.3.
 
 ## 4.12.0 2021-12-20
 
