@@ -566,7 +566,7 @@ orchestrate the whole operation.
 Ignoring all the messy details, this how it works: The client (often
 on a web browser, but can really be anything) calls the `/authn/login`
 service to identify itself. Depending on the tenant, we may have
-different authorization modules serving the `/authn/login` request,
+different authentication modules serving the `/authn/login` request,
 and they may take different parameters (username and password are the
 most likely, but we can have anything from simple IP authentication to
 complex interactions with LDAP, OAuth, or other systems).
