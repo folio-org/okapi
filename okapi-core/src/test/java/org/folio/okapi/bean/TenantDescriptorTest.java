@@ -14,7 +14,7 @@ import static org.hamcrest.Matchers.is;
 class TenantDescriptorTest {
 
   @Test
-  public void valid() {
+  void valid() {
     List.of("a", "a123456789012345678901234567890", "abcd").forEach(id -> {
       TenantDescriptor t = new TenantDescriptor();
       t.setId(id);
@@ -23,7 +23,7 @@ class TenantDescriptorTest {
   }
 
   @Test
-  public void badChars() {
+  void badChars() {
     List.of("søvang", "camelCase", "a_b", "a_", "a_12__2", " a", "a ",
         "a1234567890123456789012345678901").forEach(id -> {
       TenantDescriptor tenant = new TenantDescriptor();
@@ -33,7 +33,7 @@ class TenantDescriptorTest {
   }
 
   @Test
-  public void reserved() {
+  void reserved() {
     List.of("pg").forEach(id -> {
       TenantDescriptor tenant = new TenantDescriptor();
       Throwable t = Assert.assertThrows(OkapiError.class, () -> tenant.setId(id));
@@ -42,7 +42,7 @@ class TenantDescriptorTest {
   }
 
   @Test
-  public void missing() {
+  void missing() {
     TenantDescriptor tenant = new TenantDescriptor();
     Throwable t = Assert.assertThrows(OkapiError.class, () -> tenant.setId(null));
     assertThat(t.getMessage(), containsString("Tenant id required"));
