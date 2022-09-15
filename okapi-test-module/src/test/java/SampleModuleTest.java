@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.ErrorTypeException;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -193,7 +194,6 @@ public class SampleModuleTest {
 
   public void testDelete(TestContext context, OkapiClient cli, Async async) {
     cli.delete("/testb", res -> {
-      cli.close();
       context.assertTrue(res.succeeded());
       async.complete();
     });
@@ -206,9 +206,8 @@ public class SampleModuleTest {
     headers.put("X-Handler-error", "true");
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.get("/testb", res -> {
-      cli.close();
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertEquals(ErrorType.INTERNAL, ErrorTypeException.getType(res));
       async.complete();
     });
   }

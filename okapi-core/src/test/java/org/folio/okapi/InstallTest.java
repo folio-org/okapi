@@ -1,5 +1,9 @@
 package org.folio.okapi;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
@@ -31,9 +35,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
 
 @RunWith(VertxUnitRunner.class)
 public class InstallTest {
@@ -1193,23 +1194,20 @@ public class InstallTest {
         ), job);
 
     // initial module called once..
-    context.assertEquals(tModule.getOperations().get(0),
-        new JsonObject()
-            .put("module_to", module1)
-            .put("purge", false));
+    JsonObject operation = tModule.getOperations().get(0);
+    assertThat(operation.getString("module_to"), is(module1));
+    assertThat(operation.getBoolean("purge"), is(false));
 
     // second module called on upgrade
-    context.assertEquals(tModule2.getOperations().get(0),
-        new JsonObject()
-            .put("module_to", module2)
-            .put("module_from", module1)
-            .put("purge", false));
+    operation = tModule2.getOperations().get(0);
+    assertThat(operation.getString("module_to"), is(module2));
+    assertThat(operation.getString("module_from"), is(module1));
+    assertThat(operation.getBoolean("purge"), is(false));
 
     // second module called on purge
-    context.assertEquals(tModule2.getOperations().get(1),
-        new JsonObject()
-            .put("module_from", module2)
-            .put("purge", true));
+    operation = tModule2.getOperations().get(1);
+    assertThat(operation.getString("module_from"), is(module2));
+    assertThat(operation.getBoolean("purge"), is(true));
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
     tModule2.stop().onComplete(context.asyncAssertSuccess());
@@ -1236,15 +1234,12 @@ public class InstallTest {
                 .put("stage", "done")
             )
         ), job);
-    context.assertEquals(tModule.getOperations().get(0),
-        new JsonObject()
-            .put("module_from", module)
-            .put("purge", true));
-
-    context.assertEquals(tModule.getOperations().get(1),
-        new JsonObject()
-            .put("module_to", module)
-            .put("purge", false));
+    JsonObject operation0 = tModule.getOperations().get(0);
+    assertThat(operation0.getString("module_from"), is(module));
+    assertThat(operation0.getBoolean("purge"), is(true));
+    JsonObject operation1 = tModule.getOperations().get(1);
+    assertThat(operation1.getString("module_to"), is(module));
+    assertThat(operation1.getBoolean("purge"), is(false));
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
 
@@ -1270,15 +1265,12 @@ public class InstallTest {
                 .put("stage", "done")
             )
         ), job);
-    context.assertEquals(tModule.getOperations().get(0),
-        new JsonObject()
-            .put("module_from", module)
-            .put("purge", true));
-
-    context.assertEquals(tModule.getOperations().get(1),
-        new JsonObject()
-            .put("module_to", module)
-            .put("purge", false));
+    JsonObject operation0 = tModule.getOperations().get(0);
+    assertThat(operation0.getString("module_from"), is(module));
+    assertThat(operation0.getBoolean("purge"), is(true));
+    JsonObject operation1 = tModule.getOperations().get(1);
+    assertThat(operation1.getString("module_to"), is(module));
+    assertThat(operation1.getBoolean("purge"), is(false));
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
 

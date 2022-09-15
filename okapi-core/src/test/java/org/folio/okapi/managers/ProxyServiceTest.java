@@ -186,37 +186,4 @@ public class ProxyServiceTest implements WithAssertions {
     assertThat(ProxyService.statusOk(200)).isTrue();
     assertThat(ProxyService.statusOk(300)).isFalse();
   }
-
-  private void rejectMdcLookups(String headerName, String headerValue) {
-    var proxyService = new ProxyService(Vertx.vertx(), null, null, null, null, new JsonObject());
-    var routingContext = mock(RoutingContext.class, RETURNS_DEEP_STUBS);
-    var headers = MultiMap.caseInsensitiveMultiMap().add(headerName, headerValue);
-    when(routingContext.request().headers()).thenReturn(headers);
-    when(routingContext.request().getHeader(headerName)).thenReturn(headerValue);
-    proxyService.proxy(routingContext);
-    verify(routingContext.response()).setStatusCode(400);
-  }
-
-  @Test
-  public void rejectMdcLookups() {
-    rejectMdcLookups("X-Okapi-Tenant", "${foo}");
-    rejectMdcLookups("X-Okapi-Request-Id", "${foo}-y");
-    rejectMdcLookups("X-Okapi-Module-Id", "x${foo}y${bar}z");
-
-    JsonObject jsonObject = new JsonObject();
-    jsonObject.put("user_id", "x-${foo${bar}}");
-    byte[] encodedBytes = Base64.getEncoder().encode(jsonObject.encode().getBytes());
-    String encodedString = new String(encodedBytes);
-    String token = "method." + encodedString + ".trail";
-    rejectMdcLookups("X-Okapi-Token", token);
-  }
-
-  @Test
-  public void rejectMdcLookupsRedirect() {
-    var proxyService = new ProxyService(Vertx.vertx(), null, null, null, null, new JsonObject());
-    var routingContext = mock(RoutingContext.class, RETURNS_DEEP_STUBS);
-    when(routingContext.request().path()).thenReturn("/_/invoke/tenant/x${foo}y/123");
-    proxyService.redirectProxy(routingContext);
-    verify(routingContext.response()).setStatusCode(400);
-  }
 }
