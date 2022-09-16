@@ -738,13 +738,9 @@ public class InternalModule {
   private Future<String> createTenant(ProxyContext pc, String body) {
     try {
       final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
-      if (td.getId() == null || td.getId().isEmpty()) {
-        td.setId(UUID.randomUUID().toString());
-      }
       final String tenantId = td.getId();
-      if (!tenantId.matches("^[a-z0-9_-]+$")) {
-        return Future.failedFuture(
-            new OkapiError(ErrorType.USER, messages.getMessage("11601", tenantId)));
+      if (tenantId == null) {
+        throw new OkapiError(ErrorType.USER, messages.getMessage("11600"));
       }
       Tenant t = new Tenant(td);
       return tenantManager.insert(t).map(res ->
