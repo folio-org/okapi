@@ -5,6 +5,8 @@ import java.util.List;
 
 public class ModuleId implements Comparable<ModuleId> {
 
+  private static final String MODULE_QUOTE = "ModuleID '";
+
   private final String product;
   private final SemVer semVer;
   private final String id;
@@ -48,7 +50,7 @@ public class ModuleId implements Comparable<ModuleId> {
       throw new IllegalArgumentException("ModuleID must not be empty");
     }
     if (!isAsciiLetter(s.charAt(0))) {
-      throw new IllegalArgumentException("ModuleID '" + id + "' must start with lowercase letter");
+      throw new IllegalArgumentException(MODULE_QUOTE + id + "' must start with lowercase letter");
     }
     final boolean ui = s.startsWith("folio_");
     int i = ui ? 6 : 1;
@@ -56,8 +58,8 @@ public class ModuleId implements Comparable<ModuleId> {
       char c = s.charAt(i);
       if (c == '-') {
         if (i >= s.length() - 1) {
-          throw new IllegalArgumentException("ModuleID '" + id
-              + "' has non-allowed character at offset " + (i + 1));
+          throw new IllegalArgumentException(MODULE_QUOTE + id
+              + "' has hyphen-minus as last character");
         }
         c = s.charAt(++i);
         if (isAsciiNumeric(c)) {
@@ -67,11 +69,11 @@ public class ModuleId implements Comparable<ModuleId> {
           return;
         }
         if (!isAsciiLetter(c)) {
-          throw new IllegalArgumentException("ModuleID '" + id
+          throw new IllegalArgumentException(MODULE_QUOTE + id
               + "' has non-allowed character at offset " + i);
         }
       } else if (!isAsciiLetter(c) && !isAsciiNumeric(c)) {
-        throw new IllegalArgumentException("ModuleID '" + id
+        throw new IllegalArgumentException(MODULE_QUOTE + id
             + "' has non-allowed character at offset " + i);
       }
     }
@@ -85,8 +87,7 @@ public class ModuleId implements Comparable<ModuleId> {
       return;
     }
     if (product.length() > 31) {
-      throw new IllegalArgumentException("ModuleID '" + product
-          + "' exceeding 31 characters");
+      throw new IllegalArgumentException(MODULE_QUOTE + product + "' exceeding 31 characters");
     }
     for (String res : List.of("catalog", "date", "role", "time", "timestamp", "user")) {
       if (res.equals(product)) {

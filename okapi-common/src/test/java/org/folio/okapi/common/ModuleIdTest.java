@@ -71,7 +71,7 @@ public class ModuleIdTest {
 
   @Test
   public void testHyphenMinusEnd() {
-    assertEquals("ModuleID 'a-' has non-allowed character at offset 2",
+    assertEquals("ModuleID 'a-' has hyphen-minus as last character",
         assertThrows(IllegalArgumentException.class, () -> new ModuleId("a-")).getMessage());
   }
 
