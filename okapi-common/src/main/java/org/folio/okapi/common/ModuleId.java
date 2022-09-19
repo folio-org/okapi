@@ -1,6 +1,7 @@
 package org.folio.okapi.common;
 
 import java.util.Collection;
+import java.util.List;
 
 public class ModuleId implements Comparable<ModuleId> {
 
@@ -49,12 +50,8 @@ public class ModuleId implements Comparable<ModuleId> {
     if (!isAsciiLetter(s.charAt(0))) {
       throw new IllegalArgumentException("ModuleID '" + id + "' must start with lowercase letter");
     }
-    int i = 1;
-    int limit = 31;
-    if (s.startsWith("folio_")) {
-      limit = 127;
-      i = 6;
-    }
+    final boolean ui = s.startsWith("folio_");
+    int i = ui ? 6 : 1;
     for (; i < s.length(); i++) {
       char c = s.charAt(i);
       if (c == '-') {
@@ -65,10 +62,7 @@ public class ModuleId implements Comparable<ModuleId> {
         c = s.charAt(++i);
         if (isAsciiNumeric(c)) {
           product = s.substring(0, i - 1);
-          if (product.length() > limit) {
-            throw new IllegalArgumentException("ModuleID '" + product
-                + "' exceeding " + limit + " characters");
-          }
+          productCheck(ui);
           semVer = new SemVer(s.substring(i));
           return;
         }
@@ -82,11 +76,23 @@ public class ModuleId implements Comparable<ModuleId> {
       }
     }
     product = s;
-    if (product.length() > limit) {
-      throw new IllegalArgumentException("ModuleID '" + product
-          + "' exceeding " + limit + " characters");
-    }
+    productCheck(ui);
     semVer = null;
+  }
+
+  void productCheck(boolean ui) {
+    if (ui) {
+      return;
+    }
+    if (product.length() > 31) {
+      throw new IllegalArgumentException("ModuleID '" + product
+          + "' exceeding 31 characters");
+    }
+    for (String res : List.of("catalog", "date", "role", "time", "timestamp", "user")) {
+      if (res.equals(product)) {
+        throw new IllegalArgumentException("ModuleID '" + product + "' is a reserved name");
+      }
+    }
   }
 
   /**

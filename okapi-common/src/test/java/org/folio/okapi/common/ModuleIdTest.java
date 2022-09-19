@@ -98,6 +98,21 @@ public class ModuleIdTest {
   }
 
   @Test
+  public void testReserved() {
+    assertEquals("ModuleID 'catalog' is a reserved name",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("catalog-1.0.0")).getMessage());
+    assertEquals("ModuleID 'date' is a reserved name",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("date")).getMessage());
+    assertEquals("ModuleID 'role' is a reserved name",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("role")).getMessage());
+    assertEquals("ModuleID 'time' is a reserved name",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("time")).getMessage());
+    assertEquals("ModuleID 'user' is a reserved name",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("user-1.0.0")).getMessage());
+    assertEquals("user-a", new ModuleId("user-a-1.0.0").getProduct());
+  }
+
+  @Test
   public void testBadLead() {
     assertEquals("ModuleID '1' must start with lowercase letter",
         assertThrows(IllegalArgumentException.class, () -> new ModuleId("1")).getMessage());
