@@ -1037,7 +1037,7 @@ public class ModuleTest {
 
     // Try to enable a non-existing module
     final String docEnableNonExisting = "{" + LS
-      + "  \"id\" : \"UnknownModule\"" + LS
+      + "  \"id\" : \"unknown-module\"" + LS
       + "}";
     given()
       .header("Content-Type", "application/json")

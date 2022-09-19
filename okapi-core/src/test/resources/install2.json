@@ -104,7 +104,7 @@
   "id" : "folio_data-export-2.0.1",
   "action" : "enable"
 }, {
-  "id" : "mod-data-import-converter-storage-1.8.3",
+  "id" : "mod-data-import-conv-storage-1.8.3",
   "action" : "enable"
 }, {
   "id" : "mod-source-record-manager-2.3.4",

@@ -938,7 +938,7 @@ public class ProxyTest {
 
     // try to enable a module we don't know
     final String docEnableAuthBad = "{" + LS
-      + "  \"id\" : \"UnknonwModule-1\"" + LS
+      + "  \"id\" : \"unknown-module-1\"" + LS
       + "}";
     given()
       .header("Content-Type", "application/json")
@@ -3419,7 +3419,7 @@ public class ProxyTest {
     String tenant = "test-tenant-permissions-tenant";
     setupBasicTenant(tenant);
 
-    String moduleA0 = "moduleA-1.0.0";
+    String moduleA0 = "module-a-1.0.0";
     timerPermissions.clear();
     setupBasicOther(tenant, moduleA0, "ainterface");
     Assert.assertEquals(0, timerPermissions.size());
@@ -3439,7 +3439,7 @@ public class ProxyTest {
     Assert.assertTrue(timerPermissions.containsKey(moduleA0));
     Assert.assertTrue(timerPermissions.containsKey(moduleId1));
 
-    String moduleA1 = "moduleA-1.0.1";
+    String moduleA1 = "module-a-1.0.1";
     setupBasicOther(tenant, moduleA1, "binterface");
     Assert.assertEquals(4, timerPermissions.size());
     Assert.assertTrue(timerPermissions.containsKey(moduleA1));
@@ -3467,8 +3467,8 @@ public class ProxyTest {
   @Test
   public void testTenantPermissionsVersion() {
     String tenant = "test-tenant-permissions-tenant";
-    String moduleId = "test-tenant-permissions-basic-module-1.0.0";
-    String authModuleId = "test-tenant-permissions-auth-module-1.0.0";
+    String moduleId = "test-permissions-basic-module-1.0.0";
+    String authModuleId = "test-permissions-auth-module-1.0.0";
     String body = new JsonObject().put("id", "test").encode();
 
     setupBasicTenant(tenant);
@@ -3523,8 +3523,8 @@ public class ProxyTest {
   @Test
   public void testDelegateCORS() {
     String tenant = "test-tenant-delegate-cors";
-    String moduleId = "test-tenant-delegate-cors-module-1.0.0";
-    String authModuleId = "test-tenant-delegate-cors-auth-module-1.0.0";
+    String moduleId = "test-delegate-cors-module-1.0.0";
+    String authModuleId = "test-delegate-cors-auth-module-1.0.0";
     String body = new JsonObject().put("id", "test").encode();
 
     setupBasicTenant(tenant);
@@ -3906,15 +3906,15 @@ public class ProxyTest {
 
     List<ModuleDescriptor> modules = new LinkedList<>();
 
-    ModuleDescriptor md = new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.1");
+    ModuleDescriptor md = new ModuleDescriptor("module-a-1.0.0-SNAPSHOT.1");
     md.setProvides(interfaceDescriptors); // this snapshot requires intA provided by moduleB-1.0.0
     modules.add(md);
 
-    modules.add(new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.2"));
+    modules.add(new ModuleDescriptor("module-a-1.0.0-SNAPSHOT.2"));
 
-    modules.add(new ModuleDescriptor("moduleA-1.0.0"));
+    modules.add(new ModuleDescriptor("module-a-1.0.0"));
 
-    md = new ModuleDescriptor("moduleB-1.0.0");
+    md = new ModuleDescriptor("module-b-1.0.0");
     md.setRequires(interfaceDescriptors);
     modules.add(md);
 
@@ -3927,13 +3927,13 @@ public class ProxyTest {
         .get("/_/proxy/modules")
         .then().statusCode(200)
         .body("$", hasSize(5))
-        .body("[0].id", is("moduleA-1.0.0-SNAPSHOT.1"))
-        .body("[1].id", is("moduleA-1.0.0-SNAPSHOT.2"));
+        .body("[0].id", is("module-a-1.0.0-SNAPSHOT.1"))
+        .body("[1].id", is("module-a-1.0.0-SNAPSHOT.2"));
 
     api.createRestAssured3().given()
         .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
         .then().statusCode(400)
-        .body(containsString("Missing dependency: moduleB-1.0.0 requires intA: 1.0"));
+        .body(containsString("Missing dependency: module-b-1.0.0 requires intA: 1.0"));
 
     // this will also remove moduleB-1.0.0
     api.createRestAssured3().given()
@@ -3944,7 +3944,7 @@ public class ProxyTest {
         .get("/_/proxy/modules")
         .then().statusCode(200)
         .body("$", hasSize(3))
-        .body("[0].id", is("moduleA-1.0.0-SNAPSHOT.2"));
+        .body("[0].id", is("module-a-1.0.0-SNAPSHOT.2"));
   }
 
   @Test
@@ -3957,16 +3957,16 @@ public class ProxyTest {
         .then().statusCode(201);
 
     List<ModuleDescriptor> modules = List.of(
-        new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.1"),
-        new ModuleDescriptor("moduleA-1.0.0-SNAPSHOT.2"),
-        new ModuleDescriptor("moduleA-1.0.0"));
+        new ModuleDescriptor("module-a-1.0.0-SNAPSHOT.1"),
+        new ModuleDescriptor("module-a-1.0.0-SNAPSHOT.2"),
+        new ModuleDescriptor("module-a-1.0.0"));
 
     api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
         .then().statusCode(204);
 
-    JsonArray installReq = new JsonArray().add(new JsonObject().put("id",  "moduleA-1.0.0-SNAPSHOT.1").put("action", "enable"));
+    JsonArray installReq = new JsonArray().add(new JsonObject().put("id",  "module-a-1.0.0-SNAPSHOT.1").put("action", "enable"));
     api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(installReq.encode())
@@ -3977,9 +3977,9 @@ public class ProxyTest {
     api.createRestAssured3().given()
         .post("/_/proxy/cleanup/modules?saveReleases=0&saveSnapshots=1")
         .then().statusCode(400)
-        .body(is("delete: module moduleA-1.0.0-SNAPSHOT.1 is used by tenant roskilde"));
+        .body(is("delete: module module-a-1.0.0-SNAPSHOT.1 is used by tenant roskilde"));
 
-    installReq = new JsonArray().add(new JsonObject().put("id",  "moduleA-1.0.0-SNAPSHOT.1").put("action", "disable"));
+    installReq = new JsonArray().add(new JsonObject().put("id",  "module-a-1.0.0-SNAPSHOT.1").put("action", "disable"));
     api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(installReq.encode())
@@ -4010,18 +4010,18 @@ public class ProxyTest {
         .then().statusCode(204);
 
     ModuleDescriptor mdA = new ModuleDescriptor();
-    mdA.setId("moduleA-1.0.0");
+    mdA.setId("module-a-1.0.0");
     mdA.setProvidedHandler("intA", "1.0", new RoutingEntry("/a", "GET"));
 
     ModuleDescriptor mdB = new ModuleDescriptor();
-    mdB.setId("moduleB-1.0.0");
+    mdB.setId("module-b-1.0.0");
     mdB.setRequires("intA", "1.0");
     List<ModuleDescriptor> modules = new LinkedList<>();
     modules.add(mdB);
     api.createRestAssured3().given()
         .header("Content-Type", "application/json")
         .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
-        .then().statusCode(400).body(equalTo("Missing dependency: moduleB-1.0.0 requires intA: 1.0"));
+        .then().statusCode(400).body(equalTo("Missing dependency: module-b-1.0.0 requires intA: 1.0"));
 
     // try again, but without checking .. therefore it should succeed
     api.createRestAssured3().given()
@@ -4039,7 +4039,7 @@ public class ProxyTest {
         .then().statusCode(400);
 
     ModuleDescriptor mdC = new ModuleDescriptor();
-    mdC.setId("moduleC-1.0.0");
+    mdC.setId("module-c-1.0.0");
     {
       InterfaceDescriptor[] interfaceDescriptors = new InterfaceDescriptor[1];
       InterfaceDescriptor interfaceDescriptor = interfaceDescriptors[0] = new InterfaceDescriptor();
@@ -4053,7 +4053,7 @@ public class ProxyTest {
     given()
         .header("Content-Type", "application/json")
         .body(Json.encodePrettily(modules)).post("/_/proxy/import/modules")
-        .then().statusCode(400).body(equalTo("version is missing for module moduleC-1.0.0"));
+        .then().statusCode(400).body(equalTo("version is missing for module module-c-1.0.0"));
   }
 
   @Test

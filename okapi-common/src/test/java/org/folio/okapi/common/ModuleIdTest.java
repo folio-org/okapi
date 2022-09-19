@@ -10,18 +10,18 @@ public class ModuleIdTest {
   @java.lang.SuppressWarnings({"squid:S5961"}) // more than 25 assertions
   @Test
   public void test() {
-    ModuleId module_1 = new ModuleId("søvang-1");
-    assertEquals("søvang-1", module_1.getId());
+    ModuleId module_1 = new ModuleId("sovang-1");
+    assertEquals("sovang-1", module_1.getId());
     assertTrue(module_1.hasSemVer());
     assertFalse(module_1.hasPreRelease());
-    assertEquals("søvang", module_1.getProduct());
-    assertEquals("søvang-1", module_1.toString());
+    assertEquals("sovang", module_1.getProduct());
+    assertEquals("sovang-1", module_1.toString());
 
-    ModuleId module_1_9 = new ModuleId("søvang-1.9");
-    assertEquals("søvang-1.9", module_1_9.toString());
+    ModuleId module_1_9 = new ModuleId("sovang-1.9");
+    assertEquals("sovang-1.9", module_1_9.toString());
 
-    ModuleId module = new ModuleId("søvang");
-    assertEquals("søvang", module.toString());
+    ModuleId module = new ModuleId("sovang");
+    assertEquals("sovang", module.toString());
 
     ModuleId module_1plus2 = new ModuleId("module-1-2+3");
     assertEquals("module-1-2+3", module_1plus2.getId());
@@ -71,7 +71,8 @@ public class ModuleIdTest {
 
   @Test
   public void testHyphenMinusEnd() {
-    assertEquals("a-", new ModuleId("a-").getProduct());
+    assertEquals("ModuleID 'a-' has non-allowed character at offset 2",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("a-")).getMessage());
   }
 
   @Test
@@ -80,8 +81,14 @@ public class ModuleIdTest {
   }
 
   @Test
-  public void testUnderScore() {
-    assertEquals("a_x", new ModuleId("a_x").getProduct());
+  public void testDoubleHypen() {
+    assertEquals("ModuleID 'a--x' has non-allowed character at offset 2",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("a--x")).getMessage());
+  }
+
+  @Test
+  public void frontend() {
+    assertEquals("folio_inventory-storage", new ModuleId("folio_inventory-storage-1.0.0").getProduct());
   }
 
   @Test
@@ -92,14 +99,23 @@ public class ModuleIdTest {
 
   @Test
   public void testBadLead() {
-    assertEquals("ModuleID '1' must start with letter",
+    assertEquals("ModuleID '1' must start with lowercase letter",
         assertThrows(IllegalArgumentException.class, () -> new ModuleId("1")).getMessage());
-    assertEquals("ModuleID '-1' must start with letter",
+    assertEquals("ModuleID '-1' must start with lowercase letter",
         assertThrows(IllegalArgumentException.class, () -> new ModuleId("-1")).getMessage());
-    assertEquals("ModuleID '_1' must start with letter",
-        assertThrows(IllegalArgumentException.class, () -> new ModuleId("_1")).getMessage());
-    assertEquals("ModuleID ' a' must start with letter",
+    assertEquals("ModuleID 'A1' must start with lowercase letter",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("A1")).getMessage());
+    assertEquals("ModuleID ' a' must start with lowercase letter",
         assertThrows(IllegalArgumentException.class, () -> new ModuleId(" a")).getMessage());
+  }
+
+  @Test
+  public void testLength() {
+    assertEquals("m123456789012345678901234567890", new ModuleId("m123456789012345678901234567890").getProduct());
+    assertEquals("ModuleID 'm1234567890123456789012345678901' exceeding 31 characters",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("m1234567890123456789012345678901")).getMessage());
+    assertEquals("ModuleID 'm1234567890123456789012345678901' exceeding 31 characters",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("m1234567890123456789012345678901-3")).getMessage());
   }
 
   @Test
@@ -108,6 +124,10 @@ public class ModuleIdTest {
         assertThrows(IllegalArgumentException.class, () -> new ModuleId("my 2")).getMessage());
     assertEquals("ModuleID 'my ' has non-allowed character at offset 2",
         assertThrows(IllegalArgumentException.class, () -> new ModuleId("my ")).getMessage());
+    assertEquals("ModuleID 'søvang' has non-allowed character at offset 1",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("søvang")).getMessage());
+    assertEquals("ModuleID 'mod_foo' has non-allowed character at offset 3",
+        assertThrows(IllegalArgumentException.class, () -> new ModuleId("mod_foo")).getMessage());
   }
 
   @Test

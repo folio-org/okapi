@@ -6228,7 +6228,7 @@
     }
   }
 }, {
-  "id" : "mod-data-import-converter-storage-1.8.3",
+  "id" : "mod-data-import-conv-storage-1.8.3",
   "name" : "Data Import Converter Storage",
   "requires" : [ ],
   "provides" : [ {

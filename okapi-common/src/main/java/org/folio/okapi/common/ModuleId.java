@@ -8,6 +8,14 @@ public class ModuleId implements Comparable<ModuleId> {
   private final SemVer semVer;
   private final String id;
 
+  static boolean isAsciiLetter(char c) {
+    return c >= 97 && c <= 122; // a-z
+  }
+
+  static boolean isAsciiNumeric(char c) {
+    return c >= 48 && c <= 57;  // 0-9
+  }
+
   /**
    * Construct Module identifier from string.
    *
@@ -16,16 +24,19 @@ public class ModuleId implements Comparable<ModuleId> {
    * <ul>
    *   <li>"foo-1.0.0" : product foo with version 1.0.0.</li>
    *   <li>"foo-bar-2.0.0-SNAPSHOT" : product foo-bar with version 2.0.0-SNAPSHOT.</li>
-   *   <li>"Zoe" : product Zoe without version.</li>
+   *   <li>"zoe" : product Zoe without version.</li>
+   *   <li>"folio_email-shipping-1.0.0" : FOLIO UI module.</li>
    * </ul>
    * Example of invalid identifiers:
    * <ul>
+   *   <li>"mod_inventory"</li>
+   *   <li>"FOO"</li>
    *   <li>"foo 1.0.0"</li>
    *   <li>"123"</li>
    *   <li>"a/b"</li>
    * </ul>
-   * @param s Module ID or product name. The module ID may include of letters, digits,
-   *          underscore and hyphen-minus. Leading character, however, must be letter.
+   * @param s Module ID or product name. The module ID may include of lowercase letters, digits,
+   *          and hyphen-minus. Leading character, however, must be lower-case letter.
    *          A digit following a hyphen-minus marks the beginning of a semantic version.
    *          See {@link org.folio.okapi.common.SemVer}.
    * @throws IllegalArgumentException if the module identifier is invalid.
@@ -35,23 +46,46 @@ public class ModuleId implements Comparable<ModuleId> {
     if (s.isEmpty()) {
       throw new IllegalArgumentException("ModuleID must not be empty");
     }
-    if (!Character.isLetter(s.charAt(0))) {
-      throw new IllegalArgumentException("ModuleID '" + id + "' must start with letter");
+    if (!isAsciiLetter(s.charAt(0))) {
+      throw new IllegalArgumentException("ModuleID '" + id + "' must start with lowercase letter");
     }
-    for (int i = 1; i < s.length(); i++) {
+    int i = 1;
+    int limit = 31;
+    if (s.startsWith("folio_")) {
+      limit = 127;
+      i = 6;
+    }
+    for (; i < s.length(); i++) {
       char c = s.charAt(i);
       if (c == '-') {
-        if (i < s.length() - 1 && Character.isDigit(s.charAt(i + 1))) {
-          product = s.substring(0, i);
-          semVer = new SemVer(s.substring(i + 1));
+        if (i >= s.length() - 1) {
+          throw new IllegalArgumentException("ModuleID '" + id
+              + "' has non-allowed character at offset " + (i + 1));
+        }
+        c = s.charAt(++i);
+        if (isAsciiNumeric(c)) {
+          product = s.substring(0, i - 1);
+          if (product.length() > limit) {
+            throw new IllegalArgumentException("ModuleID '" + product
+                + "' exceeding " + limit + " characters");
+          }
+          semVer = new SemVer(s.substring(i));
           return;
         }
-      } else if (!Character.isLetterOrDigit(c) && c != '_') {
+        if (!isAsciiLetter(c)) {
+          throw new IllegalArgumentException("ModuleID '" + id
+              + "' has non-allowed character at offset " + i);
+        }
+      } else if (!isAsciiLetter(c) && !isAsciiNumeric(c)) {
         throw new IllegalArgumentException("ModuleID '" + id
             + "' has non-allowed character at offset " + i);
       }
     }
     product = s;
+    if (product.length() > limit) {
+      throw new IllegalArgumentException("ModuleID '" + product
+          + "' exceeding " + limit + " characters");
+    }
     semVer = null;
   }
 
