@@ -3378,7 +3378,7 @@ public class ProxyTest {
 
   @Test
   public void testProxyClientFailure(TestContext context) {
-    String tenant = "test-tenant-permissions-tenant";
+    String tenant = "testtenantpermissions";
     setupBasicTenant(tenant);
 
     String moduleId = "module-1.0.0";
@@ -3416,7 +3416,7 @@ public class ProxyTest {
 
   @Test
   public void testTenantPermissionsUpgrade() {
-    String tenant = "test-tenant-permissions-tenant";
+    String tenant = "testtenantpermissions";
     setupBasicTenant(tenant);
 
     String moduleA0 = "module-a-1.0.0";
@@ -3466,7 +3466,7 @@ public class ProxyTest {
 
   @Test
   public void testTenantPermissionsVersion() {
-    String tenant = "test-tenant-permissions-tenant";
+    String tenant = "testtenantpermissions";
     String moduleId = "test-permissions-basic-module-1.0.0";
     String authModuleId = "test-permissions-auth-module-1.0.0";
     String body = new JsonObject().put("id", "test").encode();
@@ -3522,7 +3522,7 @@ public class ProxyTest {
 
   @Test
   public void testDelegateCORS() {
-    String tenant = "test-tenant-delegate-cors";
+    String tenant = "testtenantdelegatecors";
     String moduleId = "test-delegate-cors-module-1.0.0";
     String authModuleId = "test-delegate-cors-auth-module-1.0.0";
     String body = new JsonObject().put("id", "test").encode();
