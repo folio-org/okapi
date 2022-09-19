@@ -91,7 +91,7 @@ public class ModuleId implements Comparable<ModuleId> {
     }
     for (String res : List.of("catalog", "date", "role", "time", "timestamp", "user")) {
       if (res.equals(product)) {
-        throw new IllegalArgumentException("ModuleID '" + product + "' is a reserved name");
+        throw new IllegalArgumentException(MODULE_QUOTE + product + "' is a reserved name");
       }
     }
   }
