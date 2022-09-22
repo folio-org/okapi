@@ -73,7 +73,7 @@ public class TenantManager implements Liveness {
   private final boolean local;
   private static final int TENANT_INIT_DELAY = 300; // initial wait in ms
   private static final int TENANT_INIT_INCREASE = 1250;  // increase factor (/ 1000)
-  private static String TENANT_PATTERN_STRING = "^[a-z][a-z0-9]{0,30}$";
+  private static final String TENANT_PATTERN_STRING = "^[a-z][a-z0-9]{0,30}$";
   private static final Pattern TENANT_PATTERN = Pattern.compile(TENANT_PATTERN_STRING);
   private static final List<String> TENANT_RESERVED = List.of("pg");
   private Consumer<String> tenantChangeConsumer;
