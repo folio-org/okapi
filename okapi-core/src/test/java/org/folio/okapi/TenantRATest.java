@@ -1,5 +1,6 @@
 package org.folio.okapi;
 
+import io.restassured.http.ContentType;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import org.junit.After;
@@ -11,7 +12,6 @@ import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
@@ -21,12 +21,14 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 
+import java.util.List;
+
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
 public class TenantRATest {
 
   private final Logger logger = OkapiLogger.get();
-  private int port = 9230;
+  private final int port = 9230;
 
   private Vertx vertx;
   private static final String LS = System.lineSeparator();
@@ -34,7 +36,7 @@ public class TenantRATest {
   private static RamlDefinition api;
 
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
+  public static void setUpBeforeClass() {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
   }
 
@@ -83,33 +85,58 @@ public class TenantRATest {
      // Check that we can not delete the superTenant
     c = api.createRestAssured3();
     c.given().delete("/_/proxy/tenants/supertenant")
-      .then().statusCode(400);
-     Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+        .then().statusCode(400)
+        .contentType(ContentType.TEXT)
+        .body(is("Can not delete the superTenant supertenant"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
 
-    String badId = "{" + LS
-      + "  \"id\" : \"Bad Id with Spaces and Specials: ?%!\"," + LS
-      + "  \"name\" : \"roskilde\"," + LS
-      + "  \"description\" : \"Roskilde bibliotek\"" + LS
-      + "}";
+    // omitted identifier
     c = api.createRestAssured3();
     c.given()
-            .header("Content-Type", "application/json").body(badId)
-            .post("/_/proxy/tenants").then().statusCode(400);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-             c.getLastReport().isEmpty());
+        .contentType(ContentType.JSON)
+        .body(new JsonObject().encode())
+        .post("/_/proxy/tenants").then().statusCode(400)
+        .contentType(ContentType.TEXT)
+        .body(is("Tenant id required"));
 
-    String doc = "{" + LS
-      + "  \"id\" : \"roskilde\"," + LS
-      + "  \"name\" : \"roskilde\"," + LS
-      + "  \"description\" : \"Roskilde bibliotek\"" + LS
-      + "}";
+    for (String id : List.of("Bad id", "a_b", "a0123456789012345678901234567890")) {
+      c = api.createRestAssured3();
+      c.given()
+          .contentType(ContentType.JSON)
+          .body(new JsonObject().put("id", id).encode())
+          .post("/_/proxy/tenants")
+          .then().statusCode(400)
+          .contentType(ContentType.TEXT)
+          .body(is("Tenant id " + id + " invalid. Must match ^[a-z][a-z0-9]{0,30}$"));
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+          c.getLastReport().isEmpty());
+    }
+
+    for (String id : List.of("pg")) {
+      c = api.createRestAssured3();
+      c.given()
+          .contentType(ContentType.JSON)
+          .body(new JsonObject().put("id", id).encode())
+          .post("/_/proxy/tenants")
+          .then().statusCode(400)
+          .contentType(ContentType.TEXT)
+          .body(is("Invalid tenant id " + id + " is a reserved word"));
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+          c.getLastReport().isEmpty());
+    }
+
+    JsonObject tenantObject = new JsonObject()
+        .put("id", "roskilde")
+        .put("name", "Roskilde")
+        .put("description", "Roskilde bibliotek");
 
     c = api.createRestAssured3();
     r = c.given()
-      .header("Content-Type", "application/json").body(doc)
+        .contentType(ContentType.JSON)
+        .body(tenantObject.encode())
       .post("/_/proxy/tenants").then().statusCode(201)
-      .body(equalTo(doc)).extract().response();
+      .body(equalTo(tenantObject.encodePrettily())).extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     String location = r.getHeader("Location");
@@ -117,20 +144,24 @@ public class TenantRATest {
     // post again, fail because of duplicate
     c = api.createRestAssured3();
     c.given()
-            .header("Content-Type", "application/json").body(doc)
-            .post("/_/proxy/tenants").then().statusCode(400);
+        .contentType(ContentType.JSON)
+        .body(tenantObject.encode())
+        .post("/_/proxy/tenants")
+        .then().statusCode(400)
+        .contentType(ContentType.TEXT)
+        .body(is("Duplicate tenant id roskilde"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
-             c.getLastReport().isEmpty());
+        c.getLastReport().isEmpty());
 
     c = api.createRestAssured3();
     c.given()
-            .header("Content-Type", "application/json")
-            .get("/_/proxy/tenants/roskilde/modules/foo").then().statusCode(404);
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/tenants/roskilde/modules/foo").then().statusCode(404);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
-             c.getLastReport().isEmpty());
+        c.getLastReport().isEmpty());
 
     c = api.createRestAssured3();
-    c.given().get(location).then().statusCode(200).body(equalTo(doc));
+    c.given().get(location).then().statusCode(200).body(equalTo(tenantObject.encodePrettily()));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
@@ -139,7 +170,7 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
-    final String tenantList = "[ " + doc + ", " + superTenantDoc + " ]";
+    final String tenantList = "[ " + tenantObject.encodePrettily() + ", " + superTenantDoc + " ]";
     c = api.createRestAssured3();
     c.given()
       .get("/_/proxy/tenants")
@@ -262,24 +293,6 @@ public class TenantRATest {
       .get("/_/proxy/tenants")
       .then().statusCode(200)
       .body(equalTo("[ " + superdoc2 + " ]"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
-    // server-side generated Id
-    String doc6 = "{" + LS
-      + "  \"name\" : \"Ringsted\"," + LS
-      + "  \"description\" : \"Ringsted description\"" + LS
-      + "}";
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json").body(doc6)
-      .post("/_/proxy/tenants").then().statusCode(201).extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    location3 = r.getHeader("Location");
-
-    c = api.createRestAssured3();
-    c.given().delete(location3).then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
