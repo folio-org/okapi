@@ -11,12 +11,11 @@ import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
-
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -27,7 +26,7 @@ import org.junit.runner.RunWith;
 public class TenantRATest {
 
   private final Logger logger = OkapiLogger.get();
-  private static final int PORT = 9230;
+  private int port = 9230;
 
   private Vertx vertx;
   private static final String LS = System.lineSeparator();
@@ -37,8 +36,6 @@ public class TenantRATest {
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
-    RestAssured.port = PORT;
-    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
   }
 
   @Before
@@ -46,7 +43,7 @@ public class TenantRATest {
     vertx = Vertx.vertx();
 
     DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(new JsonObject().put("port", Integer.toString(PORT)));
+      .setConfig(new JsonObject().put("port", Integer.toString(port)));
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 
@@ -56,17 +53,9 @@ public class TenantRATest {
   }
 
   @Test
-  public void testNoTenant() {
-    JsonObject req = new JsonObject();
-    given()
-        .header("Content-Type", "application/json").body(req.encode())
-        .post("/_/proxy/tenants")
-        .then().statusCode(400)
-        .body(containsString("Tenant id required"));
-  }
-
-  @Test
   public void test1() {
+    RestAssured.port = port;
+
     RestAssuredClient c;
     Response r;
 
@@ -276,8 +265,8 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // server-side generated Id
     String doc6 = "{" + LS
-      + "  \"id\" : \"ringsted\"," + LS
       + "  \"name\" : \"Ringsted\"," + LS
       + "  \"description\" : \"Ringsted description\"" + LS
       + "}";
