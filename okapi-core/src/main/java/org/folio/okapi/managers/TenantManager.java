@@ -75,7 +75,6 @@ public class TenantManager implements Liveness {
   private static final int TENANT_INIT_INCREASE = 1250;  // increase factor (/ 1000)
   private static final String TENANT_PATTERN_STRING = "^[a-z][a-z0-9]{0,30}$";
   private static final Pattern TENANT_PATTERN = Pattern.compile(TENANT_PATTERN_STRING);
-  private static final List<String> TENANT_RESERVED = List.of("pg");
   private Consumer<String> tenantChangeConsumer;
 
   /**
@@ -134,9 +133,6 @@ public class TenantManager implements Liveness {
     if (!TENANT_PATTERN.matcher(id).find()) {
       return Future.failedFuture(
           new OkapiError(ErrorType.USER, messages.getMessage("10412", id, TENANT_PATTERN_STRING)));
-    }
-    if (TENANT_RESERVED.contains(id)) {
-      throw new OkapiError(ErrorType.USER, messages.getMessage("10413", id));
     }
     return tenants.get(id)
         .compose(gres -> {

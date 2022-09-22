@@ -113,19 +113,6 @@ public class TenantRATest {
           c.getLastReport().isEmpty());
     }
 
-    for (String id : List.of("pg")) {
-      c = api.createRestAssured3();
-      c.given()
-          .contentType(ContentType.JSON)
-          .body(new JsonObject().put("id", id).encode())
-          .post("/_/proxy/tenants")
-          .then().statusCode(400)
-          .contentType(ContentType.TEXT)
-          .body(is("Invalid tenant id " + id + " is a reserved word"));
-      Assert.assertTrue("raml: " + c.getLastReport().toString(),
-          c.getLastReport().isEmpty());
-    }
-
     JsonObject tenantObject = new JsonObject()
         .put("id", "roskilde")
         .put("name", "Roskilde")
