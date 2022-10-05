@@ -1,9 +1,15 @@
+## 4.14.5 2022-10-05
+
+Fixes:
+
+* [OKAPI-1122](https://issues.folio.org/browse/OKAPI-1122): nuprocess 2.0.5 fixing Arbitrary Command Injection CVE-2022-39243
+* [OKAPI-1125](https://issues.folio.org/browse/OKAPI-1125): Vert.x 4.3.4, micrometer 1.9.4, log4j 2.19.0 - CVE-2022-42003, CVE-2022-42004
+
 ## 4.14.4 2022-09-01
 
 Fixes:
 
  * [OKAPI-1117](https://issues.folio.org/browse/OKAPI-1117) Empty values in logging. Okapi 4.13 thrue 4.14.3 in default logging configuration logged empty values for context variables (those in []'s)
-
  * [OKAPI-1118](https://issues.folio.org/browse/OKAPI-1118) cron-utils 9.2.0, clean up javax.el/jakarta.el
 
 ## 4.14.3 2022-08-11
