@@ -5,11 +5,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 
-
-// S1118: Utility class should have a private constructor
 // S4792: Configuring loggers is security-sensitive
-@java.lang.SuppressWarnings({"squid:S4792", "squid:S1118"})
+@java.lang.SuppressWarnings({"squid:S4792"})
 public class LogHelper {
+  private LogHelper() {}
+
   private static final Logger LOGGER = LogManager.getLogger(LogHelper.class);
 
   public static String getRootLogLevel() {
@@ -17,11 +17,14 @@ public class LogHelper {
   }
 
   private static void setRootLogLevel(Level l) {
-    Configurator.setRootLevel(l);
+    Configurator.setAllLevels(LogManager.getRootLogger().getName(), l);
   }
 
+  /**
+   * Set log level for root logger and all children.
+   * @param name log level name
+   */
   public static void setRootLogLevel(String name) {
-    Level l = Level.toLevel(name);
-    setRootLogLevel(l);
+    setRootLogLevel(Level.toLevel(name));
   }
 }
