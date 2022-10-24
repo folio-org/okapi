@@ -1,3 +1,7 @@
+## 4.14.6 2022-10-24
+
+* [OKAPI-1127](https://issues.folio.org/browse/OKAPI-1127) Fix Using -Dloglevel=$OKAPI_LOGLEVEL does not take effect
+
 ## 4.14.5 2022-10-05
 
 Fixes:

@@ -101,15 +101,9 @@ public class MainVerticle extends AbstractVerticle {
     String okapiUrl = Config.getSysConf("okapiurl", "http://localhost:" + port, config);
     okapiUrl = OkapiStringUtil.trimTrailingSlashes(okapiUrl);
     final String nodeName = Config.getSysConf("nodename", null, config);
-    String storageType = Config.getSysConf("storage", "inmemory", config);
-    String loglevel = Config.getSysConf("loglevel", null, config);
-    if (loglevel != null) {
+    String loglevel = Config.getSysConf("loglevel", System.getenv("OKAPI_LOGLEVEL"), config);
+    if (loglevel != null && !loglevel.isEmpty()) {
       LogHelper.setRootLogLevel(loglevel);
-    } else {
-      String lev = System.getenv("OKAPI_LOGLEVEL");
-      if (lev != null && !lev.isEmpty()) {
-        LogHelper.setRootLogLevel(lev);
-      }
     }
     String mode = config.getString("mode", "cluster");
     switch (mode) {
@@ -133,6 +127,7 @@ public class MainVerticle extends AbstractVerticle {
         break;
     }
 
+    String storageType = Config.getSysConf("storage", "inmemory", config);
     storage = new Storage(vertx, storageType, config);
 
     healthManager = new HealthManager(Integer.parseInt(
