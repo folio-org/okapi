@@ -97,6 +97,13 @@ public class TimerManager {
     );
   }
 
+  private void cancel(String runId) {
+    Long id = timerRunning.remove(runId);
+    if (id != null) {
+      vertx.cancelTimer(id);
+    }
+  }
+
   private Future<Void> removeStale(String tenantId, List<ModuleDescriptor> mdList) {
     final LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
     return timerMap.getAll().compose(list -> {
@@ -105,10 +112,7 @@ public class TimerManager {
         ModuleDescriptor md = getModuleForTimer(mdList, timerId);
         if (md == null) {
           final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
-          Long id = timerRunning.remove(runId);
-          if (id != null) {
-            vertx.cancelTimer(id);
-          }
+          cancel(runId);
           timerMap.remove(timerId);
           futures.add(timerStore.delete(runId).mapEmpty());
         }
@@ -401,7 +405,7 @@ public class TimerManager {
       String timerDescriptorVal = o.getString("timerDescriptor");
       TimerDescriptor timerDescriptor = Json.decodeValue(timerDescriptorVal, TimerDescriptor.class);
       final String runId = tenantId + TIMER_ENTRY_SEP + timerDescriptor.getId();
-      vertx.cancelTimer(timerRunning.get(runId));
+      cancel(runId);
       waitTimer(tenantId, timerDescriptor);
     });
   }
