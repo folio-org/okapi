@@ -1,4 +1,13 @@
+## 4.14.7 2022-11-07
+
+Fixes:
+
+* [OKAPI-1130](https://issues.folio.org/browse/OKAPI-1130) Permission okapi.all must include timer management permissions
+* [OKAPI-1129](https://issues.folio.org/browse/OKAPI-1129) NPE in timer patch
+
 ## 4.14.6 2022-10-24
+
+Fixes:
 
 * [OKAPI-1127](https://issues.folio.org/browse/OKAPI-1127) Fix Using -Dloglevel=$OKAPI_LOGLEVEL does not take effect
 
