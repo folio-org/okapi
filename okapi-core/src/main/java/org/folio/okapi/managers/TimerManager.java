@@ -401,7 +401,10 @@ public class TimerManager {
       String timerDescriptorVal = o.getString("timerDescriptor");
       TimerDescriptor timerDescriptor = Json.decodeValue(timerDescriptorVal, TimerDescriptor.class);
       final String runId = tenantId + TIMER_ENTRY_SEP + timerDescriptor.getId();
-      vertx.cancelTimer(timerRunning.get(runId));
+      Long id = timerRunning.get(runId);
+      if (id != null) {
+        vertx.cancelTimer(id);
+      }
       waitTimer(tenantId, timerDescriptor);
     });
   }
