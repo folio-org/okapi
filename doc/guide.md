@@ -571,7 +571,7 @@ and they may take different parameters (username and password are the
 most likely, but we can have anything from simple IP authentication to
 complex interactions with LDAP, OAuth, or other systems).
 
-The authorization service returns a token to the client, and the
+The login service returns a token to the client, and the
 client passes this token in a special header in all requests it makes
 to Okapi. Okapi in turn passes it to the authorization module,
 together with information of what modules will be called to satisfy
