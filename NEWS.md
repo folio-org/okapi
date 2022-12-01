@@ -1,3 +1,10 @@
+## 4.14.8 2022-12-01
+
+Fixes:
+
+* [OKAPI-1137](https://issues.folio.org/browse/OKAPI-1137) Upgrade to Hazelcast 4.2.6
+* [OKAPI-1136](https://issues.folio.org/browse/OKAPI-1136) Upgrade to Vert.x 4.3.5, nuprocess 2.0.6
+
 ## 4.14.7 2022-11-07
 
 Fixes:
