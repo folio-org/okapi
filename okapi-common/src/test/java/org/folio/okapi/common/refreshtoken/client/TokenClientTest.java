@@ -21,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.refreshtoken.tokencache.TokenCache;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -44,6 +45,8 @@ public class TokenClientTest {
   private static final String PASSWORD_OK = "abc123";
 
   private static boolean enableLoginWithExpiry = false;
+
+  private static boolean returnCookies;
 
   WebClient webClient;
 
@@ -101,7 +104,7 @@ public class TokenClientTest {
       String username = login.getString("username");
       String password = login.getString("password");
       if (!TENANT_OK.equals(request.getHeader(XOkapiHeaders.TENANT))
-          || !USER_OK.equals(username) ||  !PASSWORD_OK.equals(password)) {
+          || !USER_OK.equals(username) || !PASSWORD_OK.equals(password)) {
         response.setStatusCode(400);
         response.putHeader("Content-Type", "text/plain");
         response.end("Bad tenant/username/password");
@@ -109,22 +112,23 @@ public class TokenClientTest {
       }
       log.info("login with expiry ok");
       response.setStatusCode(201);
-      response.putHeader("Set-Cookie",
-          Cookie.cookie("otherToken", "validtoken")
-              .setMaxAge(3000)
-              .setSecure(true)
-              .setPath("/")
-              .setHttpOnly(true)
-              .setSameSite(CookieSameSite.NONE).encode());
-
-      response.putHeader("Set-Cookie",
-          Cookie.cookie("folioAccessToken", "validtoken")
-              .setMaxAge(300)
-              .setSecure(true)
-              .setPath("/")
-              .setHttpOnly(true)
-              .setSameSite(CookieSameSite.NONE)
-              .encode());
+      if (returnCookies) {
+        response.putHeader("Set-Cookie",
+            Cookie.cookie("otherToken", "validtoken")
+                .setMaxAge(3000)
+                .setSecure(true)
+                .setPath("/")
+                .setHttpOnly(true)
+                .setSameSite(CookieSameSite.NONE).encode());
+        response.putHeader("Set-Cookie",
+            Cookie.cookie(XOkapiHeaders.COOKIE_ACCESS_TOKEN, "validtoken")
+                .setMaxAge(300)
+                .setSecure(true)
+                .setPath("/")
+                .setHttpOnly(true)
+                .setSameSite(CookieSameSite.NONE)
+                .encode());
+      }
       response.putHeader("Content-Type", "application/json");
       response.headers().forEach((n, v) -> log.info("{}:{}", n, v));
       response.end("{}");
@@ -162,6 +166,7 @@ public class TokenClientTest {
   @Before
   public void before() {
     enableLoginWithExpiry = false;
+    returnCookies = true;
     webClient = WebClient.create(vertx);
     tokenCache = TokenCache.create(10);
   }
@@ -258,6 +263,52 @@ public class TokenClientTest {
   }
 
   @Test
+  public void withExpiryNoCookies(TestContext context) {
+    enableLoginWithExpiry = true;
+    returnCookies = false;
+    Buffer xmlBody = Buffer.buffer("<hi/>");
+    TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, tokenCache,
+        TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
+    Future<Void> f = Future.succeededFuture();
+    f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+            .putHeader("Content-Type", "text/xml")
+            .expect(ResponsePredicate.SC_CREATED))
+        .compose(request -> request.sendBuffer(xmlBody))
+        .map(response -> {
+          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
+          return null;
+        }));
+    f.onComplete(context.asyncAssertSuccess());
+  }
+
+  @Test
+  public void withExpiryNullCache(TestContext context) {
+    enableLoginWithExpiry = true;
+    Buffer xmlBody = Buffer.buffer("<hi/>");
+    TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, null,
+        TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
+    Future<Void> f = Future.succeededFuture();
+    f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+            .putHeader("Content-Type", "text/xml")
+            .expect(ResponsePredicate.SC_CREATED))
+        .compose(request -> request.sendBuffer(xmlBody))
+        .map(response -> {
+          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
+          return null;
+        }));
+    f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+            .putHeader("Content-Type", "text/xml")
+            .expect(ResponsePredicate.SC_CREATED))
+        .compose(request -> request.sendBuffer(xmlBody))
+        .map(response -> {
+          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
+          return null;
+        }));
+    f.onComplete(context.asyncAssertSuccess());
+  }
+
+
+  @Test
   public void badPasswordWithExpiry(TestContext context) {
     enableLoginWithExpiry = true;
     Buffer xmlBody = Buffer.buffer("<hi/>");
@@ -271,9 +322,10 @@ public class TokenClientTest {
           Assert.assertEquals(xmlBody, response.bodyAsBuffer());
           return null;
         })
-        .onComplete(context.asyncAssertFailure(
-            t -> assertThat(t.getMessage(), is("Bad tenant/username/password"))
-        ));
+        .onComplete(context.asyncAssertFailure(e -> {
+            assertThat(e, Matchers.instanceOf(TokenClientException.class));
+            assertThat(e.getMessage(), is("Bad tenant/username/password"));
+        }));
   }
 
 }
