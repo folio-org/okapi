@@ -107,13 +107,7 @@ public class TokenClient {
    */
   public Future<String> getToken() {
     if (cache != null) {
-      String cacheValue;
-      try {
-        cacheValue = cache.get(tenant, username);
-      } catch (Exception e) {
-        log.warn("Failed to access TokenCache {}", e.getMessage(), e);
-        return Future.failedFuture("Failed to access TokenCache");
-      }
+      String cacheValue = cache.get(tenant, username);
       if (cacheValue != null) {
         return Future.succeededFuture(cacheValue);
       }
