@@ -7,16 +7,11 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
-import java.util.Map;
 import java.util.function.Supplier;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.refreshtoken.tokencache.TokenCache;
 
 public class TokenClient {
-  private static final Logger log = LogManager.getLogger(TokenClient.class);
-
   private final TokenCache cache;
   private final WebClient client;
   private final String okapiUrl;

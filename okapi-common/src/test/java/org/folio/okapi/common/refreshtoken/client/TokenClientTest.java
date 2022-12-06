@@ -48,6 +48,10 @@ public class TokenClientTest {
 
   private static boolean returnCookies;
 
+  private static int cookieAge;
+
+  private static int countLoginWithExpiry;
+
   WebClient webClient;
 
   TokenCache tokenCache;
@@ -94,6 +98,7 @@ public class TokenClientTest {
         response.end("Not found");
         return;
       }
+      countLoginWithExpiry++;
       if (!"application/json".equals(request.getHeader("Content-Type"))) {
         response.setStatusCode(400);
         response.putHeader("Content-Type", "text/plain");
@@ -113,7 +118,7 @@ public class TokenClientTest {
       log.info("login with expiry ok");
       response.setStatusCode(201);
       if (returnCookies) {
-        response.addCookie(Cookie.cookie("tokenbefore", "validtoken")
+        response.addCookie(Cookie.cookie("a", "validtoken")
                 .setMaxAge(3000)
                 .setSecure(true)
                 .setPath("/")
@@ -121,13 +126,13 @@ public class TokenClientTest {
                 .setSameSite(CookieSameSite.NONE));
         response.addCookie(
             Cookie.cookie(XOkapiHeaders.COOKIE_ACCESS_TOKEN, "validtoken")
-                .setMaxAge(300)
+                .setMaxAge(cookieAge)
                 .setSecure(true)
                 .setPath("/")
                 .setHttpOnly(true)
                 .setSameSite(CookieSameSite.NONE));
         response.addCookie(
-            Cookie.cookie("tokenafter", "validtoken")
+            Cookie.cookie("tokenafter", "z")
                 .setMaxAge(3000)
                 .setSecure(true)
                 .setPath("/")
@@ -172,8 +177,10 @@ public class TokenClientTest {
   public void before() {
     enableLoginWithExpiry = false;
     returnCookies = true;
+    cookieAge = 300;
     webClient = WebClient.create(vertx);
     tokenCache = TokenCache.create(10);
+    countLoginWithExpiry = 0;
   }
 
   @After
@@ -211,9 +218,10 @@ public class TokenClientTest {
           Assert.assertEquals(xmlBody, response.bodyAsBuffer());
           return null;
         })
-        .onComplete(context.asyncAssertFailure(
-            t -> assertThat(t.getMessage(), is("Bad tenant/username/password"))
-        ));
+        .onComplete(context.asyncAssertFailure(t -> {
+          assertThat(t.getMessage(), is("Bad tenant/username/password"));
+          assertThat(countLoginWithExpiry, is(0));
+        }));
   }
 
   @Test
@@ -238,7 +246,9 @@ public class TokenClientTest {
           Assert.assertEquals(xmlBody, response.bodyAsBuffer());
           return null;
         }));
-    f.onComplete(context.asyncAssertSuccess());
+    f.onComplete(context.asyncAssertSuccess(x ->
+        assertThat(countLoginWithExpiry, is(0))
+    ));
   }
 
   @Test
@@ -264,7 +274,30 @@ public class TokenClientTest {
           Assert.assertEquals(xmlBody, response.bodyAsBuffer());
           return null;
         }));
-    f.onComplete(context.asyncAssertSuccess());
+    f.onComplete(context.asyncAssertSuccess(x ->
+        assertThat(countLoginWithExpiry, is(1))
+    ));
+  }
+
+  @Test
+  public void withExpiryAge0(TestContext context) {
+    enableLoginWithExpiry = true;
+    cookieAge = 0;
+    Buffer xmlBody = Buffer.buffer("<hi/>");
+    TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, tokenCache,
+        TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
+    Future<Void> f = Future.succeededFuture();
+    f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+            .putHeader("Content-Type", "text/xml")
+            .expect(ResponsePredicate.SC_CREATED))
+        .compose(request -> request.sendBuffer(xmlBody))
+        .map(response -> {
+          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
+          return null;
+        }));
+    f.onComplete(context.asyncAssertSuccess(x ->
+        assertThat(countLoginWithExpiry, is(1))
+    ));
   }
 
   @Test
@@ -283,7 +316,9 @@ public class TokenClientTest {
           Assert.assertEquals(xmlBody, response.bodyAsBuffer());
           return null;
         }));
-    f.onComplete(context.asyncAssertSuccess());
+    f.onComplete(context.asyncAssertSuccess(x ->
+        assertThat(countLoginWithExpiry, is(1))
+    ));
   }
 
   @Test
@@ -309,7 +344,9 @@ public class TokenClientTest {
           Assert.assertEquals(xmlBody, response.bodyAsBuffer());
           return null;
         }));
-    f.onComplete(context.asyncAssertSuccess());
+    f.onComplete(context.asyncAssertSuccess(x ->
+        assertThat(countLoginWithExpiry, is(2))
+    ));
   }
 
 
@@ -328,8 +365,9 @@ public class TokenClientTest {
           return null;
         })
         .onComplete(context.asyncAssertFailure(e -> {
-            assertThat(e, Matchers.instanceOf(TokenClientException.class));
-            assertThat(e.getMessage(), is("Bad tenant/username/password"));
+          assertThat(countLoginWithExpiry, is(1));
+          assertThat(e, Matchers.instanceOf(TokenClientException.class));
+          assertThat(e.getMessage(), is("Bad tenant/username/password"));
         }));
   }
 
