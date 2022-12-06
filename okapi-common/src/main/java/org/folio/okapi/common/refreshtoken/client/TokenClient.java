@@ -59,7 +59,7 @@ public class TokenClient {
         .putHeader(XOkapiHeaders.TENANT, tenant)
         .sendJsonObject(payload).map(res -> {
           if (res.statusCode() != 201) {
-            throw new RuntimeException(res.bodyAsString());
+            throw new TokenClientException(res.bodyAsString());
           }
           String token = res.getHeader(XOkapiHeaders.TOKEN);
           if (cache != null) {
@@ -96,7 +96,7 @@ public class TokenClient {
           } else if (res.statusCode() == 404) {
             return null;
           } else {
-            throw new RuntimeException(res.bodyAsString());
+            throw new TokenClientException(res.bodyAsString());
           }
         });
   }
