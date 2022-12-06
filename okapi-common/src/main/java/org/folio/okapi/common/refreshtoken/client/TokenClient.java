@@ -76,20 +76,18 @@ public class TokenClient {
         .putHeader(XOkapiHeaders.TENANT, tenant)
         .sendJsonObject(payload).map(res -> {
           if (res.statusCode() == 201) {
-            for (Map.Entry<String,String> entry : res.headers().entries()) {
-              if ("Set-Cookie".equals(entry.getKey())) {
-                Cookie cookie = ClientCookieDecoder.STRICT.decode(entry.getValue());
-                if (XOkapiHeaders.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
-                  long age = cookie.maxAge() - AGE_DIFF_TOKEN;
-                  if (age < 0L) {
-                    age = 0L;
-                  }
-                  if (cache != null) {
-                    cache.put(tenant, username, cookie.value(),
-                        System.currentTimeMillis() + age * 1000);
-                  }
-                  return cookie.value();
+            for (String v: res.cookies()) {
+              Cookie cookie = ClientCookieDecoder.STRICT.decode(v);
+              if (XOkapiHeaders.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
+                long age = cookie.maxAge() - AGE_DIFF_TOKEN;
+                if (age < 0L) {
+                  age = 0L;
                 }
+                if (cache != null) {
+                  cache.put(tenant, username, cookie.value(),
+                      System.currentTimeMillis() + age * 1000);
+                }
+                return cookie.value();
               }
             }
             return null;
