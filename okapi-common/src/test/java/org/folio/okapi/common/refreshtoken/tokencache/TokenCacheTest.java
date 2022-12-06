@@ -1,5 +1,7 @@
 package org.folio.okapi.common.refreshtoken.tokencache;
 
+import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,11 +28,10 @@ public class TokenCacheTest {
   }
 
   @Test
-  public void testExpiryGet() throws InterruptedException {
+  public void testExpiryGet() {
     TokenCache tk = TokenCache.create(1);
     tk.put("tenant", "user1", "v1", System.currentTimeMillis());
-    Thread.sleep(2);
-    // Awaitility.await().atMost(2, TimeUnit.MILLISECONDS)
-    Assert.assertNull(tk.get("tenant", "user1"));
+    Awaitility.await().atMost(101, TimeUnit.MILLISECONDS).untilAsserted(
+        () -> Assert.assertNull(tk.get("tenant", "user1")));
   }
 }
