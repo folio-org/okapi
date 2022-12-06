@@ -113,21 +113,26 @@ public class TokenClientTest {
       log.info("login with expiry ok");
       response.setStatusCode(201);
       if (returnCookies) {
-        response.putHeader("Set-Cookie",
-            Cookie.cookie("otherToken", "validtoken")
+        response.addCookie(Cookie.cookie("tokenbefore", "validtoken")
                 .setMaxAge(3000)
                 .setSecure(true)
                 .setPath("/")
                 .setHttpOnly(true)
-                .setSameSite(CookieSameSite.NONE).encode());
-        response.putHeader("Set-Cookie",
+                .setSameSite(CookieSameSite.NONE));
+        response.addCookie(
             Cookie.cookie(XOkapiHeaders.COOKIE_ACCESS_TOKEN, "validtoken")
                 .setMaxAge(300)
                 .setSecure(true)
                 .setPath("/")
                 .setHttpOnly(true)
-                .setSameSite(CookieSameSite.NONE)
-                .encode());
+                .setSameSite(CookieSameSite.NONE));
+        response.addCookie(
+            Cookie.cookie("tokenafter", "validtoken")
+                .setMaxAge(3000)
+                .setSecure(true)
+                .setPath("/")
+                .setHttpOnly(true)
+                .setSameSite(CookieSameSite.NONE));
       }
       response.putHeader("Content-Type", "application/json");
       response.headers().forEach((n, v) -> log.info("{}:{}", n, v));
