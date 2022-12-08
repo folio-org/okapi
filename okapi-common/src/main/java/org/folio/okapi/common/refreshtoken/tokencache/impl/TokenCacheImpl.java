@@ -2,7 +2,6 @@ package org.folio.okapi.common.refreshtoken.tokencache.impl;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.folio.okapi.common.refreshtoken.tokencache.TokenCache;
 
 public class TokenCacheImpl implements TokenCache {
@@ -16,12 +15,19 @@ public class TokenCacheImpl implements TokenCache {
     }
   }
 
-  Map<String,CacheValue> entries = new LinkedHashMap<>();
+  final Map<String,CacheValue> entries;
 
-  final int capacity;
-
+  /**
+   * Create token cache with given max capacity.
+   * @param capacity max number of items before least recently added item is removed.
+   */
   public TokenCacheImpl(int capacity) {
-    this.capacity = capacity;
+    entries = new LinkedHashMap<>(capacity) {
+      @Override
+      protected boolean removeEldestEntry(Map.Entry<String,CacheValue> eldest) {
+        return size() > capacity || eldest.getValue().expired();
+      }
+    };
   }
 
   private static String key(String tenant, String user) {
@@ -40,13 +46,6 @@ public class TokenCacheImpl implements TokenCache {
     c.value = value;
     c.expires = expires;
     entries.put(key(tenant, user), c);
-    prune();
-  }
-
-  private void prune() {
-    entries.entrySet().removeIf(e -> e.getValue().expired());
-    AtomicInteger d = new AtomicInteger(entries.size() - capacity);
-    entries.entrySet().removeIf(e -> d.getAndDecrement() > 0);
   }
 }
 
