@@ -1,40 +1,41 @@
 package org.folio.okapi.common.refreshtoken.tokencache;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class TokenCacheTest {
   @Test
   public void testCapacity() {
     TokenCache tk = TokenCache.create(1);
-    Assert.assertNull(tk.get("tenant", "user1"));
+    assertThat(tk.get("tenant", "user1"), is(nullValue()));
     tk.put("tenant", "user1", "v1", System.currentTimeMillis() + 10000);
-    Assert.assertEquals("v1", tk.get("tenant", "user1"));
+    assertThat(tk.get("tenant", "user1"), is("v1"));
     tk.put("tenant", "user2", "v2", System.currentTimeMillis() + 10000);
-    Assert.assertEquals("v2", tk.get("tenant", "user2"));
-    Assert.assertNull(null, tk.get("tenant", "user1"));
+    assertThat(tk.get("tenant", "user2"), is("v2"));
+    assertThat(tk.get("tenant", "user1"), is(nullValue()));
   }
 
   @Test
   public void testExpiryPut() {
     TokenCache tk = TokenCache.create(1);
-    tk.put("tenant", "user1", "v1", System.currentTimeMillis() + 10000);
-    Assert.assertEquals("v1", tk.get("tenant", "user1"));
-    tk.put("tenant", "user2", "v2", System.currentTimeMillis() - 1);
-    Assert.assertNull(tk.get("tenant", "user1"));
-    Assert.assertNull(tk.get("tenant", "user2"));
-  }
 
-  @Test
-  public void testExpiryPut2() {
-    TokenCache tk = TokenCache.create(2);
+    // removed immediately even though capacity is not exceeded
+    tk.put("tenant", "user1", "v1", System.currentTimeMillis() - 1);
+    assertThat(tk.get("tenant", "user1"), is(nullValue()));
+
+    // saved
     tk.put("tenant", "user1", "v1", System.currentTimeMillis() + 10000);
-    Assert.assertEquals("v1", tk.get("tenant", "user1"));
-    tk.put("tenant", "user2", "v2", System.currentTimeMillis() - 1);
-    Assert.assertEquals("v1", tk.get("tenant", "user1"));
-    Assert.assertNull(tk.get("tenant", "user2"));
+    assertThat(tk.get("tenant", "user1"), is("v1"));
+
+    // capacity exceeded
+    tk.put("tenant", "user2", "v2", System.currentTimeMillis() + 5000);
+    assertThat(tk.get("tenant", "user1"), is(nullValue()));
+    assertThat(tk.get("tenant", "user2"), is("v2"));
   }
 
   @Test
