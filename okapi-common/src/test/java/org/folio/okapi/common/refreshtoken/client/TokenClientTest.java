@@ -226,21 +226,15 @@ public class TokenClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
-        .map(response -> {
-          assertThat(response.bodyAsBuffer(), is(xmlBody));
-          return null;
-        })
+        .onComplete(context.asyncAssertSuccess(response -> assertThat(response.bodyAsBuffer(), is(xmlBody))))
         .compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-                .putHeader("Content-Type", "text/xml")
-                .expect(ResponsePredicate.SC_CREATED))
-            .compose(request -> request.sendBuffer(xmlBody))
-            .map(response -> {
-              assertThat(response.bodyAsBuffer(), is(xmlBody));
-              return null;
-            }))
-        .onComplete(context.asyncAssertSuccess(x ->
-            assertThat(countLoginWithExpiry, is(0))
-        ));
+            .putHeader("Content-Type", "text/xml")
+            .expect(ResponsePredicate.SC_CREATED)))
+        .compose(request -> request.sendBuffer(xmlBody))
+        .onComplete(context.asyncAssertSuccess(response -> {
+          assertThat(response.bodyAsBuffer(), is(xmlBody));
+          assertThat(countLoginWithExpiry, is(0));
+        }));
   }
 
   @Test
@@ -253,22 +247,15 @@ public class TokenClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
-        .map(response -> {
-          assertThat(response.bodyAsBuffer(), is(xmlBody));
-          return null;
-        })
+        .onComplete(context.asyncAssertSuccess(response -> assertThat(response.bodyAsBuffer(), is(xmlBody))))
         .compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-                .putHeader("Content-Type", "text/xml")
-                .expect(ResponsePredicate.SC_CREATED))
-            .compose(request -> request.sendBuffer(xmlBody))
-            .map(response -> {
-              assertThat(response.bodyAsBuffer(), is(xmlBody));
-              return null;
-            })
-        )
-        .onComplete(context.asyncAssertSuccess(x ->
-            assertThat(countLoginWithExpiry, is(1))
-        ));
+            .putHeader("Content-Type", "text/xml")
+            .expect(ResponsePredicate.SC_CREATED)))
+        .compose(request -> request.sendBuffer(xmlBody))
+        .onComplete(context.asyncAssertSuccess(response -> {
+          assertThat(response.bodyAsBuffer(), is(xmlBody));
+          assertThat(countLoginWithExpiry, is(1));
+        }));
   }
 
   @Test
@@ -282,13 +269,10 @@ public class TokenClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
-        .map(response -> {
+        .onComplete(context.asyncAssertSuccess(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
-          return null;
-        })
-        .onComplete(context.asyncAssertSuccess(x ->
-            assertThat(countLoginWithExpiry, is(1))
-        ));
+          assertThat(countLoginWithExpiry, is(1));
+        }));
   }
 
   @Test
@@ -302,13 +286,10 @@ public class TokenClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
-        .map(response -> {
+        .onComplete(context.asyncAssertSuccess(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
-          return null;
-        })
-        .onComplete(context.asyncAssertSuccess(x ->
-            assertThat(countLoginWithExpiry, is(1))
-        ));
+          assertThat(countLoginWithExpiry, is(1));
+        }));
   }
 
   @Test
@@ -321,21 +302,15 @@ public class TokenClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
-        .map(response -> {
-          assertThat(response.bodyAsBuffer(), is(xmlBody));
-          return null;
-        })
+        .onComplete(context.asyncAssertSuccess(response -> assertThat(response.bodyAsBuffer(), is(xmlBody))))
         .compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-                .putHeader("Content-Type", "text/xml")
-                .expect(ResponsePredicate.SC_CREATED))
-            .compose(request -> request.sendBuffer(xmlBody))
-            .map(response -> {
-              assertThat(response.bodyAsBuffer(), is(xmlBody));
-              return null;
-            }))
-        .onComplete(context.asyncAssertSuccess(x ->
-            assertThat(countLoginWithExpiry, is(2))
-        ));
+            .putHeader("Content-Type", "text/xml")
+            .expect(ResponsePredicate.SC_CREATED)))
+        .compose(request -> request.sendBuffer(xmlBody))
+        .onComplete(context.asyncAssertSuccess(response -> {
+          assertThat(response.bodyAsBuffer(), is(xmlBody));
+          assertThat(countLoginWithExpiry, is(2));
+        }));
   }
 
   @Test
