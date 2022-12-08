@@ -24,7 +24,6 @@ import org.folio.okapi.common.refreshtoken.tokencache.TokenCache;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -197,11 +196,9 @@ public class TokenClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
-        .map(response -> {
-          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
-          return null;
-        })
-        .onComplete(context.asyncAssertSuccess());
+        .onComplete(context.asyncAssertSuccess(response ->
+            assertThat(response.bodyAsBuffer(), is(xmlBody))
+        ));
   }
 
   @Test
@@ -214,10 +211,6 @@ public class TokenClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_BAD_REQUEST))
         .compose(request -> request.sendBuffer(xmlBody))
-        .map(response -> {
-          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
-          return null;
-        })
         .onComplete(context.asyncAssertFailure(t -> {
           assertThat(t.getMessage(), is("Bad tenant/username/password"));
           assertThat(countLoginWithExpiry, is(0));
@@ -235,7 +228,7 @@ public class TokenClientTest {
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
-          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
+          assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
         }));
     f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
@@ -243,7 +236,7 @@ public class TokenClientTest {
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
-          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
+          assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
         }));
     f.onComplete(context.asyncAssertSuccess(x ->
@@ -263,7 +256,7 @@ public class TokenClientTest {
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
-          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
+          assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
         }));
     f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
@@ -271,7 +264,7 @@ public class TokenClientTest {
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
-          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
+          assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
         }));
     f.onComplete(context.asyncAssertSuccess(x ->
@@ -292,7 +285,7 @@ public class TokenClientTest {
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
-          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
+          assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
         }));
     f.onComplete(context.asyncAssertSuccess(x ->
@@ -313,7 +306,7 @@ public class TokenClientTest {
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
-          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
+          assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
         }));
     f.onComplete(context.asyncAssertSuccess(x ->
@@ -333,7 +326,7 @@ public class TokenClientTest {
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
-          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
+          assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
         }));
     f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
@@ -341,7 +334,7 @@ public class TokenClientTest {
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
-          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
+          assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
         }));
     f.onComplete(context.asyncAssertSuccess(x ->
@@ -360,10 +353,6 @@ public class TokenClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_BAD_REQUEST))
         .compose(request -> request.sendBuffer(xmlBody))
-        .map(response -> {
-          Assert.assertEquals(xmlBody, response.bodyAsBuffer());
-          return null;
-        })
         .onComplete(context.asyncAssertFailure(e -> {
           assertThat(countLoginWithExpiry, is(1));
           assertThat(e, Matchers.instanceOf(TokenClientException.class));
