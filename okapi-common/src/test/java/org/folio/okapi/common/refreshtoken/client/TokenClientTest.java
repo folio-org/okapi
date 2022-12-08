@@ -222,26 +222,25 @@ public class TokenClientTest {
     Buffer xmlBody = Buffer.buffer("<hi/>");
     TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, tokenCache,
         TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
-    Future<Void> f = Future.succeededFuture();
-    f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
-        }));
-    f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-            .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED))
-        .compose(request -> request.sendBuffer(xmlBody))
-        .map(response -> {
-          assertThat(response.bodyAsBuffer(), is(xmlBody));
-          return null;
-        }));
-    f.onComplete(context.asyncAssertSuccess(x ->
-        assertThat(countLoginWithExpiry, is(0))
-    ));
+        })
+        .compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+                .putHeader("Content-Type", "text/xml")
+                .expect(ResponsePredicate.SC_CREATED))
+            .compose(request -> request.sendBuffer(xmlBody))
+            .map(response -> {
+              assertThat(response.bodyAsBuffer(), is(xmlBody));
+              return null;
+            }))
+        .onComplete(context.asyncAssertSuccess(x ->
+            assertThat(countLoginWithExpiry, is(0))
+        ));
   }
 
   @Test
@@ -250,26 +249,26 @@ public class TokenClientTest {
     Buffer xmlBody = Buffer.buffer("<hi/>");
     TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, tokenCache,
         TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
-    Future<Void> f = Future.succeededFuture();
-    f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
-        }));
-    f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-            .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED))
-        .compose(request -> request.sendBuffer(xmlBody))
-        .map(response -> {
-          assertThat(response.bodyAsBuffer(), is(xmlBody));
-          return null;
-        }));
-    f.onComplete(context.asyncAssertSuccess(x ->
-        assertThat(countLoginWithExpiry, is(1))
-    ));
+        })
+        .compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+                .putHeader("Content-Type", "text/xml")
+                .expect(ResponsePredicate.SC_CREATED))
+            .compose(request -> request.sendBuffer(xmlBody))
+            .map(response -> {
+              assertThat(response.bodyAsBuffer(), is(xmlBody));
+              return null;
+            })
+        )
+        .onComplete(context.asyncAssertSuccess(x ->
+            assertThat(countLoginWithExpiry, is(1))
+        ));
   }
 
   @Test
@@ -279,18 +278,17 @@ public class TokenClientTest {
     Buffer xmlBody = Buffer.buffer("<hi/>");
     TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, tokenCache,
         TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
-    Future<Void> f = Future.succeededFuture();
-    f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
-        }));
-    f.onComplete(context.asyncAssertSuccess(x ->
-        assertThat(countLoginWithExpiry, is(1))
-    ));
+        })
+        .onComplete(context.asyncAssertSuccess(x ->
+            assertThat(countLoginWithExpiry, is(1))
+        ));
   }
 
   @Test
@@ -300,18 +298,17 @@ public class TokenClientTest {
     Buffer xmlBody = Buffer.buffer("<hi/>");
     TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, tokenCache,
         TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
-    Future<Void> f = Future.succeededFuture();
-    f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
-        }));
-    f.onComplete(context.asyncAssertSuccess(x ->
-        assertThat(countLoginWithExpiry, is(1))
-    ));
+        })
+        .onComplete(context.asyncAssertSuccess(x ->
+            assertThat(countLoginWithExpiry, is(1))
+        ));
   }
 
   @Test
@@ -320,28 +317,26 @@ public class TokenClientTest {
     Buffer xmlBody = Buffer.buffer("<hi/>");
     TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, null,
         TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
-    Future<Void> f = Future.succeededFuture();
-    f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .map(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
           return null;
-        }));
-    f = f.compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-            .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED))
-        .compose(request -> request.sendBuffer(xmlBody))
-        .map(response -> {
-          assertThat(response.bodyAsBuffer(), is(xmlBody));
-          return null;
-        }));
-    f.onComplete(context.asyncAssertSuccess(x ->
-        assertThat(countLoginWithExpiry, is(2))
-    ));
+        })
+        .compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+                .putHeader("Content-Type", "text/xml")
+                .expect(ResponsePredicate.SC_CREATED))
+            .compose(request -> request.sendBuffer(xmlBody))
+            .map(response -> {
+              assertThat(response.bodyAsBuffer(), is(xmlBody));
+              return null;
+            }))
+        .onComplete(context.asyncAssertSuccess(x ->
+            assertThat(countLoginWithExpiry, is(2))
+        ));
   }
-
 
   @Test
   public void badPasswordWithExpiry(TestContext context) {
