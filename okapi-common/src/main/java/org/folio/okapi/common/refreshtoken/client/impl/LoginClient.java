@@ -1,4 +1,4 @@
-package org.folio.okapi.common.refreshtoken.client;
+package org.folio.okapi.common.refreshtoken.client.impl;
 
 import io.netty.handler.codec.http.cookie.ClientCookieDecoder;
 import io.netty.handler.codec.http.cookie.Cookie;
@@ -6,17 +6,22 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.WebClient;
 import java.util.function.Supplier;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.common.refreshtoken.tokencache.TokenCache;
+import org.folio.okapi.common.refreshtoken.client.Client;
+import org.folio.okapi.common.refreshtoken.client.ClientException;
+import org.folio.okapi.common.refreshtoken.client.ClientOptions;
+import org.folio.okapi.common.refreshtoken.tokencache.TenantUserCache;
 
-public class TokenClient {
-  private final TokenCache cache;
-  private final WebClient client;
-  private final String okapiUrl;
+public class LoginClient implements Client {
+  private final TenantUserCache cache;
+
+  private final ClientOptions clientOptions;
+
   private final String tenant;
+
   private final String username;
+
   private final Supplier<Future<String>> getPasswordSupplier;
 
   /**
@@ -31,30 +36,30 @@ public class TokenClient {
 
   /**
    * Construct client. Used normally for each incoming request.
-   * @param okapiUrl OKAPI URL for to use for getting token
-   * @param client WebClient
+   * @param clientOptions common options.
    * @param cache token cache; maybe null for no cache (testing ONLY)
    * @param tenant Okapi tenant
    * @param username username to use for getting token
    * @param getPasswordSupplier for providing the password
    */
-  public TokenClient(String okapiUrl, WebClient client, TokenCache cache, String tenant,
+  public LoginClient(
+      ClientOptions clientOptions, TenantUserCache cache, String tenant,
       String username, Supplier<Future<String>> getPasswordSupplier) {
+    this.clientOptions = clientOptions;
     this.cache = cache;
-    this.client = client;
-    this.okapiUrl = okapiUrl;
     this.tenant = tenant;
     this.username = username;
     this.getPasswordSupplier = getPasswordSupplier;
   }
 
   Future<String> getTokenLegacy(JsonObject payload) {
-    return client.postAbs(okapiUrl + "/authn/login")
+    return clientOptions.getWebClient()
+        .postAbs(clientOptions.getOkapiUrl() + "/authn/login")
         .putHeader("Accept", "*/*")
         .putHeader(XOkapiHeaders.TENANT, tenant)
         .sendJsonObject(payload).map(res -> {
           if (res.statusCode() != 201) {
-            throw new TokenClientException(res.bodyAsString());
+            throw new ClientException(res.bodyAsString());
           }
           String token = res.getHeader(XOkapiHeaders.TOKEN);
           if (cache != null) {
@@ -66,7 +71,8 @@ public class TokenClient {
   }
 
   Future<String> getTokenWithExpiry(JsonObject payload) {
-    return client.postAbs(okapiUrl + "/authn/login-with-expiry")
+    return clientOptions.getWebClient()
+        .postAbs(clientOptions.getOkapiUrl() + "/authn/login-with-expiry")
         .putHeader("Accept", "*/*")
         .putHeader(XOkapiHeaders.TENANT, tenant)
         .sendJsonObject(payload).map(res -> {
@@ -89,15 +95,12 @@ public class TokenClient {
           } else if (res.statusCode() == 404) {
             return null;
           } else {
-            throw new TokenClientException(res.bodyAsString());
+            throw new ClientException(res.bodyAsString());
           }
         });
   }
 
-  /**
-   * Get token. Use normally for each outgoing request.
-   * @return token value or null if none could be obtained.
-   */
+  @Override
   public Future<String> getToken() {
     if (cache != null) {
       String cacheValue = cache.get(tenant, username);
@@ -114,11 +117,7 @@ public class TokenClient {
     });
   }
 
-  /**
-   * Populate token for WebClient request. Normally used for each outgoing request.
-   * @param request the value that is returned for WebClient,getAbs and others.
-   * @return request future result
-   */
+  @Override
   public Future<HttpRequest<Buffer>> getToken(HttpRequest<Buffer> request) {
     return getToken().map(token -> {
       if (token != null) {

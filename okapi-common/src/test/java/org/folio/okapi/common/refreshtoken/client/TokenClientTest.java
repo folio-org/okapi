@@ -20,7 +20,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.common.refreshtoken.tokencache.TokenCache;
+import org.folio.okapi.common.refreshtoken.tokencache.TenantUserCache;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -53,7 +53,7 @@ public class TokenClientTest {
 
   WebClient webClient;
 
-  TokenCache tokenCache;
+  TenantUserCache tokenCache;
 
   @BeforeClass
   public static void beforeClass(TestContext context) {
@@ -178,7 +178,7 @@ public class TokenClientTest {
     returnCookies = true;
     cookieAge = 300;
     webClient = WebClient.create(vertx);
-    tokenCache = TokenCache.create(10);
+    tokenCache = new TenantUserCache(10);
     countLoginWithExpiry = 0;
   }
 
@@ -190,9 +190,11 @@ public class TokenClientTest {
   @Test
   public void nullCache(TestContext context) {
     Buffer xmlBody = Buffer.buffer("<hi/>");
-    TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, null /* cache */,
+    Client client = Client.createLoginClient(
+        new ClientOptions().webClient(webClient).okapiUrl(OKAPI_URL),
+        null /* cache */,
         TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
-    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
@@ -204,10 +206,11 @@ public class TokenClientTest {
   @Test
   public void nullPassword(TestContext context) {
     Buffer xmlBody = Buffer.buffer("<hi/>");
-    TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, tokenCache,
+    Client client = Client.createLoginClient(
+        new ClientOptions().webClient(webClient).okapiUrl(OKAPI_URL),
+        tokenCache,
         TENANT_OK, USER_OK, () -> Future.succeededFuture(null));
-
-    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_BAD_REQUEST))
         .compose(request -> request.sendBuffer(xmlBody))
@@ -217,17 +220,23 @@ public class TokenClientTest {
         }));
   }
 
+  Client getLoginClient(TenantUserCache theCache) {
+    return Client.createLoginClient(
+        new ClientOptions().webClient(webClient).okapiUrl(OKAPI_URL),
+        theCache,
+        TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
+  }
+
   @Test
   public void legacy(TestContext context) {
     Buffer xmlBody = Buffer.buffer("<hi/>");
-    TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, tokenCache,
-        TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
-    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    Client client = getLoginClient(tokenCache);
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertSuccess(response -> assertThat(response.bodyAsBuffer(), is(xmlBody))))
-        .compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+        .compose(x -> client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED)))
         .compose(request -> request.sendBuffer(xmlBody))
@@ -241,14 +250,13 @@ public class TokenClientTest {
   public void withExpiry(TestContext context) {
     enableLoginWithExpiry = true;
     Buffer xmlBody = Buffer.buffer("<hi/>");
-    TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, tokenCache,
-        TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
-    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    Client client = getLoginClient(tokenCache);
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertSuccess(response -> assertThat(response.bodyAsBuffer(), is(xmlBody))))
-        .compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+        .compose(x -> client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED)))
         .compose(request -> request.sendBuffer(xmlBody))
@@ -263,9 +271,8 @@ public class TokenClientTest {
     enableLoginWithExpiry = true;
     cookieAge = 0;
     Buffer xmlBody = Buffer.buffer("<hi/>");
-    TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, tokenCache,
-        TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
-    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    Client client = getLoginClient(tokenCache);
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
@@ -280,9 +287,8 @@ public class TokenClientTest {
     enableLoginWithExpiry = true;
     returnCookies = false;
     Buffer xmlBody = Buffer.buffer("<hi/>");
-    TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, tokenCache,
-        TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
-    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    Client client = getLoginClient(tokenCache);
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
@@ -296,14 +302,13 @@ public class TokenClientTest {
   public void withExpiryNullCache(TestContext context) {
     enableLoginWithExpiry = true;
     Buffer xmlBody = Buffer.buffer("<hi/>");
-    TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, null,
-        TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
-    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    Client client = getLoginClient(null);
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertSuccess(response -> assertThat(response.bodyAsBuffer(), is(xmlBody))))
-        .compose(x -> tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+        .compose(x -> client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED)))
         .compose(request -> request.sendBuffer(xmlBody))
@@ -317,15 +322,17 @@ public class TokenClientTest {
   public void badPasswordWithExpiry(TestContext context) {
     enableLoginWithExpiry = true;
     Buffer xmlBody = Buffer.buffer("<hi/>");
-    TokenClient tokenClient = new TokenClient(OKAPI_URL, webClient, tokenCache,
+    Client client = Client.createLoginClient(
+        new ClientOptions().webClient(webClient).okapiUrl(OKAPI_URL),
+        tokenCache,
         TENANT_OK, USER_OK, () -> Future.succeededFuture("bad"));
-    tokenClient.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_BAD_REQUEST))
         .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertFailure(e -> {
           assertThat(countLoginWithExpiry, is(1));
-          assertThat(e, Matchers.instanceOf(TokenClientException.class));
+          assertThat(e, Matchers.instanceOf(ClientException.class));
           assertThat(e.getMessage(), is("Bad tenant/username/password"));
         }));
   }
