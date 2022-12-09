@@ -4,15 +4,6 @@ import org.folio.okapi.common.refreshtoken.tokencache.impl.ExpiryMapImpl;
 
 public interface ExpiryMap<K,V> {
   /**
-   * Create a cache with given capacity.
-   * @param capacity number of tokens kept before they are removed at put
-   * @return cache instance.
-   */
-  static ExpiryMap create(int capacity) {
-    return new ExpiryMapImpl(capacity);
-  }
-
-  /**
    * Put a cache.
    * @param key cache key
    * @param value cache value; should not be null

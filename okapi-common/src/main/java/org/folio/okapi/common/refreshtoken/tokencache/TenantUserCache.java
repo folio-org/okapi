@@ -1,5 +1,7 @@
 package org.folio.okapi.common.refreshtoken.tokencache;
 
+import org.folio.okapi.common.refreshtoken.tokencache.impl.ExpiryMapImpl;
+
 public class TenantUserCache {
 
   static class TokenKey {
@@ -32,7 +34,7 @@ public class TenantUserCache {
   final ExpiryMap<TokenKey,String> map;
 
   public TenantUserCache(int capacity) {
-    map = ExpiryMap.create(capacity);
+    map = new ExpiryMapImpl<>(capacity);
   }
 
   public void put(String tenant, String user, String token, long expiresTimeMillis) {
