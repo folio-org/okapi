@@ -31,13 +31,13 @@ public class ExpiryMapImpl<K,V> implements ExpiryMap<K,V> {
   }
 
   @Override
-  public V get(K key) {
+  public synchronized V get(K key) {
     CacheValue<V> c = entries.get(key);
     return c == null || c.expired() ? null : c.value;
   }
 
   @Override
-  public void put(K key, V value, long expires) {
+  public synchronized void put(K key, V value, long expires) {
     CacheValue<V> c = new CacheValue<>();
     c.value = value;
     c.expires = expires;
