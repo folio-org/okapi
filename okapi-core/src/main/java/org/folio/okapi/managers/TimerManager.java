@@ -234,7 +234,7 @@ public class TimerManager {
   }
 
   /**
-   * Handle a timer timer.
+   * Handle a timer.
    *
    * <p>This method is called for each timer in each tenant and for each instance in
    * the Okapi cluster.
@@ -244,25 +244,25 @@ public class TimerManager {
   private void handleTimer(String tenantId, String timerId) {
     logger.info("timer {} handle for tenant {}", timerId, tenantId);
     tenantTimers.get(tenantId).get(timerId)
-        .compose(timerDescriptor -> {
-          // this timer is latest and current .. do the work ...
-          // find module for this timer.. If module is not found, it was disabled
-          // in the meantime and timer is stopped.
-          return getModuleForTimer(tenantId, timerId).map(md -> {
-            if (md == null) {
-              final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
-              timerRunning.remove(runId);
+        .compose(timerDescriptor ->
+            // this timer is latest and current ... do the work ...
+            // find module for this timer. If module is not found, it was disabled
+            // in the meantime and timer is stopped.
+            getModuleForTimer(tenantId, timerId).map(md -> {
+              if (md == null) {
+                final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
+                timerRunning.remove(runId);
+                return null;
+              }
+              if (discoveryManager.isLeader()) {
+                // only fire timer in one instance (of the Okapi cluster)
+                fireTimer(tenantId, md, timerDescriptor);
+              }
+              // roll on.. wait and redo..
+              waitTimer(tenantId, timerDescriptor);
               return null;
-            }
-            if (discoveryManager.isLeader()) {
-              // only fire timer in one instance (of the Okapi cluster)
-              fireTimer(tenantId, md, timerDescriptor);
-            }
-            // roll on.. wait and redo..
-            waitTimer(tenantId, timerDescriptor);
-            return null;
-          });
-        })
+            })
+        )
         .onFailure(cause -> logger.warn("handleTimer id={} {}", timerId,
             cause.getMessage(), cause));
   }
@@ -395,7 +395,7 @@ public class TimerManager {
   }
 
   /**
-   * Consume patch event and start a new timer ..
+   * Consume patch event and start a new timer ...
    */
   private void consumePatchTimer() {
     EventBus eb = vertx.eventBus();
