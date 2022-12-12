@@ -137,7 +137,8 @@ public class TimerManager {
                   if (timerRunning.containsKey(runId)) {
                     return Future.succeededFuture();
                   }
-                  return waitTimer(tenantId, existing);
+                  waitTimer(tenantId, existing);
+                  return Future.succeededFuture();
                 }
                 // non-patched timer descriptor for module's routing entry
                 TimerDescriptor newTimerDescriptor = new TimerDescriptor();
@@ -150,7 +151,10 @@ public class TimerManager {
                   vertx.cancelTimer(timerRunning.get(runId));
                 }
                 return timerMap.put(timerId, newTimerDescriptor)
-                    .compose(x -> waitTimer(tenantId, newTimerDescriptor));
+                    .map(x -> {
+                      waitTimer(tenantId, newTimerDescriptor);
+                      return null;
+                    });
               });
           seq++;
         }
@@ -244,18 +248,19 @@ public class TimerManager {
           // this timer is latest and current .. do the work ...
           // find module for this timer.. If module is not found, it was disabled
           // in the meantime and timer is stopped.
-          return getModuleForTimer(tenantId, timerId).compose(md -> {
+          return getModuleForTimer(tenantId, timerId).map(md -> {
             if (md == null) {
               final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
               timerRunning.remove(runId);
-              return Future.succeededFuture();
+              return null;
             }
             if (discoveryManager.isLeader()) {
               // only fire timer in one instance (of the Okapi cluster)
               fireTimer(tenantId, md, timerDescriptor);
             }
             // roll on.. wait and redo..
-            return waitTimer(tenantId, timerDescriptor);
+            waitTimer(tenantId, timerDescriptor);
+            return null;
           });
         })
         .onFailure(cause -> logger.warn("handleTimer id={} {}", timerId,
@@ -271,7 +276,7 @@ public class TimerManager {
    * @param tenantId tenant identifier
    * @param timerDescriptor descriptor that this handling
    */
-  private Future<Void> waitTimer(String tenantId, TimerDescriptor timerDescriptor) {
+  private void waitTimer(String tenantId, TimerDescriptor timerDescriptor) {
     RoutingEntry routingEntry = timerDescriptor.getRoutingEntry();
     final long delay = routingEntry.getDelayMilliSeconds();
     final String runId = tenantId + TIMER_ENTRY_SEP + timerDescriptor.getId();
@@ -282,7 +287,6 @@ public class TimerManager {
     } else {
       timerRunning.remove(runId);
     }
-    return Future.succeededFuture();
   }
 
   /**
