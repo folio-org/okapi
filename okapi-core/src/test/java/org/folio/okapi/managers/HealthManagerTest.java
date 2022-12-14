@@ -19,6 +19,8 @@ public class HealthManagerTest {
   private static final int PORT = 9230;
 
   @Test
+  @SuppressWarnings("java:S2699")  // Suppress "Add at least one assertion to this test case"
+  // as it is a false positive: https://github.com/SonarSource/sonar-java/pull/4141
   void testPort0(Vertx vertx, VertxTestContext context) {
     HealthManager m = new HealthManager(0);
     m.init(vertx, Collections.emptyList()).onComplete(context.succeedingThenComplete());

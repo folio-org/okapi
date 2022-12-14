@@ -207,14 +207,12 @@ public class MainDeployTest {
   public void testOkapiSamePort(TestContext context) {
     String[] args = {"dev"};
 
-    Async async = context.async();
     MainDeploy d1 = new MainDeploy();
     d1.init(args, context.asyncAssertSuccess(vertx -> {
       MainDeploy d2 = new MainDeploy();
       d2.init(args, context.asyncAssertFailure(
-          x -> vertx.close(context.asyncAssertSuccess(y -> async.complete()))));
+          x -> vertx.close(context.asyncAssertSuccess())));
     }));
-    async.await();
   }
 
 }
