@@ -279,9 +279,9 @@ public class TimerManager {
   private void waitTimer(String tenantId, TimerDescriptor timerDescriptor) {
     RoutingEntry routingEntry = timerDescriptor.getRoutingEntry();
     final long delay = routingEntry.getDelayMilliSeconds();
-    final String runId = tenantId + TIMER_ENTRY_SEP + timerDescriptor.getId();
     final String timerId = timerDescriptor.getId();
-    logger.info("waitTimer {} delay {} for tenant {}", timerDescriptor.getId(), delay, tenantId);
+    final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
+    logger.info("waitTimer {} delay {} for tenant {}", timerId, delay, tenantId);
     if (delay > 0) {
       timerRunning.put(runId, vertx.setTimer(delay, res -> handleTimer(tenantId, timerId)));
     } else {
