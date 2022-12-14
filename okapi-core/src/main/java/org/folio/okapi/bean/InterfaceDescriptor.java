@@ -23,6 +23,7 @@ public class InterfaceDescriptor {
 
   private String id;
   private String version;
+  private @JsonIgnore int[] versionParts;
   private String interfaceType; // enum: "proxy" (default), "system", "internal", multiple
   private RoutingEntry[] handlers;
   private String[] scope;
@@ -40,11 +41,7 @@ public class InterfaceDescriptor {
    */
   public InterfaceDescriptor(String id, String version) {
     this.id = id;
-    if (validateVersion(version)) {
-      this.version = version;
-    } else {
-      throw new IllegalArgumentException("Bad version number '" + version + "'");
-    }
+    setVersion(version);
   }
 
   public String getId() {
@@ -61,14 +58,16 @@ public class InterfaceDescriptor {
 
   /**
    * set interface version.
+   *
    * @param version interface version
    */
   public void setVersion(String version) {
-    if (validateVersion(version)) {
-      this.version = version;
-    } else {
+    int[] p = versionParts(version, 0);
+    if (p == null) {
       throw new IllegalArgumentException("Bad version number '" + version + "'");
     }
+    this.version = version;
+    this.versionParts = p;
   }
 
   /**
@@ -130,7 +129,7 @@ public class InterfaceDescriptor {
     if (!this.getId().equals(required.getId())) {
       return Integer.MAX_VALUE; // not the same interface at all
     }
-    int[] t = InterfaceDescriptor.versionParts(this.version, 0);
+    int[] t = versionParts;
     for (int idx = 0;; idx++) {
       int[] r = InterfaceDescriptor.versionParts(required.version, idx);
       if (r == null) {
@@ -271,9 +270,6 @@ public class InterfaceDescriptor {
     String it = getInterfaceType();
     if (it != null && !it.equals("proxy") && !it.equals("system") && !it.equals("multiple")) {
       return "Bad interface type '" + it + "' for module " + mod;
-    }
-    if (!validateVersion(version)) {
-      return "Bad interface version number '" + version + "' for module " + mod;
     }
     return "";
   }
