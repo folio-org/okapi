@@ -6,6 +6,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetServer;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -290,15 +292,28 @@ public class ProcessModuleHandleTest {
     // program should operate OK
     desc.setExec("java " + testModuleArgs);
     int no = 3; // number of processes to spawn
+    List<Integer> ports = new LinkedList<>();
     List<ModuleHandle> mhs = new LinkedList<>();
     for (int i = 0; i < no; i++) {
+      ports.add(9231 + i);
       mhs.add(createModuleHandle(desc, 9231 + i));
     }
     logger.debug("Start");
     List<Future<Void>> start = mhs.stream().map(ModuleHandle::start).collect(Collectors.toList());
-    GenericCompositeFuture.all(start)
-        .map(mhs.stream().map(ModuleHandle::stop).collect(Collectors.toList()))
-        .compose(stop -> GenericCompositeFuture.all(stop))
+    GenericCompositeFuture.join(start)
+        .onSuccess(x -> ports.forEach(port -> context.assertFalse(isFree(port), "port " + port)))
+        .map(x -> mhs.stream().map(ModuleHandle::stop).collect(Collectors.toList()))
+        .compose(stop -> GenericCompositeFuture.join(stop))
+        .onSuccess(x -> ports.forEach(port -> context.assertTrue(isFree(port), "port " + port)))
         .onComplete(context.asyncAssertSuccess());
+  }
+
+  private boolean isFree(int port) {
+    try {
+      new ServerSocket(port).close();
+      return true;
+    } catch (IOException e) {
+      return false;
+    }
   }
 }
