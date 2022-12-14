@@ -80,8 +80,10 @@ class InternalModuleTest implements WithAssertions {
     "GET,  /_/proxy/health",
     "GET,  /_/version",
   })
+  @SuppressWarnings("java:S2699")  // Suppress "Add at least one assertion to this test case"
+  // as it is a false positive: https://github.com/SonarSource/sonar-java/pull/4141
   void ignoreBody(HttpMethod httpMethod, String path, VertxTestContext vtc) {
-    internalService(httpMethod, path, "}").onComplete(vtc.succeedingThenComplete());;
+    internalService(httpMethod, path, "}").onComplete(vtc.succeedingThenComplete());
   }
 
   /**

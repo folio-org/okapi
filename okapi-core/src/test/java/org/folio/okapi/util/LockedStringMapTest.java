@@ -327,39 +327,29 @@ public class LockedStringMapTest {
 
   @Test
   public void testConcurrent(TestContext context) {
-    {
-      Async async = context.async();
-      map.init(vertx, "FooMap", true).onComplete(context.asyncAssertSuccess(x -> async.complete()));
-      async.await();
-    }
-    {
-      List<Future<Void>> futures = new LinkedList<>();
-      for (int i = 0; i < 10; i++) {
-        futures.add(map.addOrReplace(true,"k", "l", Integer.toString(i)));
-      }
-      Async async = context.async();
-      GenericCompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
-      async.await();
-    }
-    {
-      List<Future<Void>> futures = new LinkedList<>();
-      for (int i = 0; i < 10; i++) {
-        futures.add(map.addOrReplace(true,"k", Integer.toString(i), Integer.toString(i)));
-      }
-      Async async = context.async();
-      GenericCompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
-      async.await();
-    }
-
-    {
-      List<Future<Boolean>> futures = new LinkedList<>();
-      for (int i = 0; i < 10; i++) {
-        futures.add(map.remove("k", "l"));
-        futures.add(map.remove("k", Integer.toString(i)));
-      }
-      Async async = context.async();
-      GenericCompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(x -> async.complete()));
-      async.await();
-    }
+    map.init(vertx, "FooMap", true)
+        .compose(x -> {
+          List<Future<Void>> futures = new LinkedList<>();
+          for (int i = 0; i < 10; i++) {
+            futures.add(map.addOrReplace(true, "k", "l", Integer.toString(i)));
+          }
+          return GenericCompositeFuture.all(futures);
+        })
+        .compose(x -> {
+          List<Future<Void>> futures = new LinkedList<>();
+          for (int i = 0; i < 10; i++) {
+            futures.add(map.addOrReplace(true, "k", Integer.toString(i), Integer.toString(i)));
+          }
+          return GenericCompositeFuture.all(futures);
+        })
+        .compose(x -> {
+          List<Future<Boolean>> futures = new LinkedList<>();
+          for (int i = 0; i < 10; i++) {
+            futures.add(map.remove("k", "l"));
+            futures.add(map.remove("k", Integer.toString(i)));
+          }
+          return GenericCompositeFuture.all(futures);
+        })
+        .onComplete(context.asyncAssertSuccess());
   }
 }
