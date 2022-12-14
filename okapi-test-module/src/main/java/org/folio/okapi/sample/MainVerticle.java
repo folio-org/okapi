@@ -145,7 +145,7 @@ public class MainVerticle extends AbstractVerticle {
     String meth = ctx.request().method().name();
     if (logger.isInfoEnabled()) {
       logger.info("{} {} to okapi-est-module for tenant {}",
-          meth, ctx.request().uri(), tenant);
+          meth, ctx.request().path(), tenant);
     }
     tenantParameters = null;
     if (ctx.request().method().equals(HttpMethod.DELETE)) {
@@ -193,7 +193,7 @@ public class MainVerticle extends AbstractVerticle {
     final String depthstr = d;
     int depth = Integer.parseInt(depthstr);
     if (depth < 0) {
-      HttpResponse.responseError(ctx, 400, "Bad recursion, can not be negative " + depthstr);
+      HttpResponse.responseError(ctx, 400, "Bad recursion, depth cannot be negative: " + depth);
     } else if (depth == 0) {
       HttpResponse.responseText(ctx, 200);
       ctx.response().end("Recursion done");
