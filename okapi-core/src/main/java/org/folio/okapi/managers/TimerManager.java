@@ -137,7 +137,8 @@ public class TimerManager {
                   if (timerRunning.containsKey(runId)) {
                     return Future.succeededFuture();
                   }
-                  return waitTimer(tenantId, existing);
+                  waitTimer(tenantId, existing);
+                  return Future.succeededFuture();
                 }
                 // non-patched timer descriptor for module's routing entry
                 TimerDescriptor newTimerDescriptor = new TimerDescriptor();
@@ -150,7 +151,10 @@ public class TimerManager {
                   vertx.cancelTimer(timerRunning.get(runId));
                 }
                 return timerMap.put(timerId, newTimerDescriptor)
-                    .compose(x -> waitTimer(tenantId, newTimerDescriptor));
+                    .map(x -> {
+                      waitTimer(tenantId, newTimerDescriptor);
+                      return null;
+                    });
               });
           seq++;
         }
@@ -230,41 +234,41 @@ public class TimerManager {
   }
 
   /**
-   * Handle a timer timer.
+   * Handle a timer.
    *
    * <p>This method is called for each timer in each tenant and for each instance in
    * the Okapi cluster.
    * @param tenantId tenant identifier
-   * @param timerDescriptor descriptor that this handling
+   * @param timerId timer identifier
    */
-  private void handleTimer(String tenantId, TimerDescriptor timerDescriptor) {
-    logger.info("timer {} handle for tenant {}", timerDescriptor.getId(), tenantId);
-    final String timerId = timerDescriptor.getId();
+  private void handleTimer(String tenantId, String timerId) {
+    logger.info("timer {} handle for tenant {}", timerId, tenantId);
     tenantTimers.get(tenantId).get(timerId)
-        .compose(currentDescriptor -> {
-          // this timer is latest and current .. do the work..
-          // find module for this timer.. If module is not found, it was disabled
-          // in the meantime and timer is stopped.
-          return getModuleForTimer(tenantId, timerId).compose(md -> {
-            if (md == null) {
-              final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
-              timerRunning.remove(runId);
-              return Future.succeededFuture();
-            }
-            if (discoveryManager.isLeader()) {
-              // only fire timer in one instance (of the Okapi cluster)
-              fireTimer(tenantId, md, currentDescriptor);
-            }
-            // roll on.. wait and redo..
-            return waitTimer(tenantId, timerDescriptor);
-          });
-        })
+        .compose(timerDescriptor ->
+            // this timer is latest and current ... do the work ...
+            // find module for this timer. If module is not found, it was disabled
+            // in the meantime and timer is stopped.
+            getModuleForTimer(tenantId, timerId).map(md -> {
+              if (md == null) {
+                final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
+                timerRunning.remove(runId);
+                return null;
+              }
+              if (discoveryManager.isLeader()) {
+                // only fire timer in one instance (of the Okapi cluster)
+                fireTimer(tenantId, md, timerDescriptor);
+              }
+              // roll on.. wait and redo..
+              waitTimer(tenantId, timerDescriptor);
+              return null;
+            })
+        )
         .onFailure(cause -> logger.warn("handleTimer id={} {}", timerId,
             cause.getMessage(), cause));
   }
 
   /**
-   * Handle a timer timer.
+   * Wait for timer.
    *
    * <p>This method is called for each timer in each tenant and for each instance in
    * the Okapi cluster. If the tenant descriptor has a zero delay, that will
@@ -272,17 +276,17 @@ public class TimerManager {
    * @param tenantId tenant identifier
    * @param timerDescriptor descriptor that this handling
    */
-  private Future<Void> waitTimer(String tenantId, TimerDescriptor timerDescriptor) {
+  private void waitTimer(String tenantId, TimerDescriptor timerDescriptor) {
     RoutingEntry routingEntry = timerDescriptor.getRoutingEntry();
     final long delay = routingEntry.getDelayMilliSeconds();
-    final String runId = tenantId + TIMER_ENTRY_SEP + timerDescriptor.getId();
-    logger.info("waitTimer {} delay {} for tenant {}", timerDescriptor.getId(), delay, tenantId);
+    final String timerId = timerDescriptor.getId();
+    final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
+    logger.info("waitTimer {} delay {} for tenant {}", timerId, delay, tenantId);
     if (delay > 0) {
-      timerRunning.put(runId, vertx.setTimer(delay, res -> handleTimer(tenantId, timerDescriptor)));
+      timerRunning.put(runId, vertx.setTimer(delay, res -> handleTimer(tenantId, timerId)));
     } else {
       timerRunning.remove(runId);
     }
-    return Future.succeededFuture();
   }
 
   /**
@@ -391,7 +395,7 @@ public class TimerManager {
   }
 
   /**
-   * Consume patch event and start a new timer ..
+   * Consume patch event and start a new timer ...
    */
   private void consumePatchTimer() {
     EventBus eb = vertx.eventBus();
