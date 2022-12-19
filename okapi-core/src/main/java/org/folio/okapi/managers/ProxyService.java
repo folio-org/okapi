@@ -537,8 +537,8 @@ public class ProxyService {
    * @param ctx routing context
    */
   public void proxy(RoutingContext ctx) {
-    ctx.request().pause();
     ReadStream<Buffer> stream = ctx.request();
+    stream.pause();
     // Pause the request data stream before doing any slow ops, otherwise
     // it will get read into a buffer somewhere.
 
@@ -624,7 +624,6 @@ public class ProxyService {
       ProxyContext pc, ModuleInstance mi, RequestOptions options, Throwable res) {
 
     String msg = res.getMessage() + ": " + options.getMethod() + " " + options.getURI();
-    logger.warn("proxyClientFailure: {}: {}", mi.getUrl(), msg);
     MetricsHelper.recordHttpClientError(pc.getTenant(), mi.getMethod().name(),
         mi.getRoutingEntry().getStaticPath());
     pc.responseError(500, messages.getMessage("10107",
@@ -648,6 +647,7 @@ public class ProxyService {
       logger.trace("ProxyRequestHttpClient request buf '{}'", bcontent);
       clientsEnd(bcontent, clientRequestList);
       clientRequest.end(bcontent);
+      ctx.response().closeHandler(x -> clientRequest.setTimeout(1));
       log(clientRequest);
       clientRequest.response()
           .onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res))
@@ -836,7 +836,6 @@ public class ProxyService {
       final Timer.Sample sample = MetricsHelper.getTimerSample();
       copyHeaders(clientRequest, ctx, mi);
       if (bcontent != null) {
-        logger.trace("proxyRequestResponse request buf '{}'", bcontent);
         clientsEnd(bcontent, clientRequestList);
         clientRequest.end(bcontent);
       } else {
@@ -846,6 +845,7 @@ public class ProxyService {
         }
         streamHandle(stream, clientRequest, clientRequestList);
       }
+      ctx.response().closeHandler(x -> clientRequest.setTimeout(1));
       log(clientRequest);
       clientRequest.response()
           .onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res))
@@ -885,6 +885,7 @@ public class ProxyService {
       final Timer.Sample sample = MetricsHelper.getTimerSample();
       copyHeaders(clientRequest, ctx, mi);
       clientRequest.end();
+      ctx.response().closeHandler(x -> clientRequest.setTimeout(1));
       log(clientRequest);
       clientRequest.response()
           .onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res))

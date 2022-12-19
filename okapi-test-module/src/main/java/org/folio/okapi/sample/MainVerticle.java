@@ -121,6 +121,9 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void response(String msg, boolean xmlConversion, RoutingContext ctx) {
+    if (ctx.response().closed()) {
+      logger.info("Already closed");
+    }
     if (ctx.request().method().equals(HttpMethod.GET)) {
       ctx.request().endHandler(x -> ctx.response().end("It works" + msg));
     } else {
