@@ -2836,9 +2836,9 @@ Defaults to `localhost`.
   server certificate.
 * `log_wait_ms`: Controls how often in milliseconds Okapi logs a `WAIT`
 line for ongoing request. A value of 0 disables this and is also the default.
-leave it unmodified (default).
 * `postgres_db_init`: For a value of `1`, Okapi will drop existing
 PostgreSQL database and prepare a new one. A value of `0` (null) will
+leave it unmodified (default).
 * `token_cache_max_size`: Maximum number of token cache entries.
   Defaults to 10000.
 * `token_cache_ttl_ms`: Time to live in milliseconds for token cache entries.
