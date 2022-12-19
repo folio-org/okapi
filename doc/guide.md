@@ -2834,6 +2834,8 @@ Defaults to `localhost`.
   CA and the CA certificate. Defaults to none, allowing unencrypted
   connection only. If set, requires a TLSv1.3 connection and a valid
   server certificate.
+* `log_wait_ms`: Controls how often in milliseconds Okapi logs a `WAIT`
+line for ongoing request. A value of 0 disables this and is also the default.
 * `postgres_db_init`: For a value of `1`, Okapi will drop existing
 PostgreSQL database and prepare a new one. A value of `0` (null) will
 * `log_wait_ms`: Controls how often in milliseconds Okapi logs a `WAIT`
