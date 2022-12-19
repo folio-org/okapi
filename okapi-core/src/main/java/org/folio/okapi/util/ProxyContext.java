@@ -100,9 +100,18 @@ public class ProxyContext {
     closeTimer();
     nanoTimeStart = System.nanoTime();
     if (waitMs > 0) {
-      timerId = ctx.vertx().setPeriodic(waitMs, res
-          -> logger.warn("{} WAIT {} {} {} {}", reqId, ctx.request().remoteAddress(), tenant,
-          ctx.request().method(), ctx.request().path())
+      timerId = ctx.vertx().setPeriodic(waitMs, res -> {
+            String mods = "";
+            if (modList != null) {
+              mods = modList.stream().map(x -> x.getModuleDescriptor().getId())
+                  .collect(Collectors.joining(" "));
+            }
+            OkapiMapMessage msg = new OkapiMapMessage(reqId, tenant, userId, mods,
+                String.format("%s WAIT %s %s %s %s %s", reqId,
+                    ctx.request().remoteAddress(), tenant, ctx.request().method(),
+                    ctx.request().path(), mods));
+            fullLogger.info(msg);
+          }
       );
     }
   }
