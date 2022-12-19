@@ -2864,6 +2864,8 @@ see [kubernetes](#kubernetes-integration) section.
 * `kube_namespace`: Kubernetes namespace to use. If omitted, `default` is used.
 * `kube_refresh_interval`: Time in milliseconds between Kubernetes endpoints
 poll. Default is 30000 (30 seconds).
+* `idle_timeout`: Time in seconds of neither sending nor receiving data after which
+a proxied HTTP request is cancelled. Defaults to 0 that disables timeout.
 
 #### Command
 

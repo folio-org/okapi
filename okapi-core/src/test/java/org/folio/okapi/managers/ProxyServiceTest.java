@@ -1,23 +1,50 @@
 package org.folio.okapi.managers;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.core.streams.WriteStream;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Arrays;
-import java.util.Base64;
+import java.util.List;
 import org.assertj.core.api.WithAssertions;
+import org.awaitility.Awaitility;
+import org.folio.okapi.bean.ModuleInstance;
+import org.folio.okapi.util.ProxyContext;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 
+@RunWith(VertxUnitRunner.class)
 public class ProxyServiceTest implements WithAssertions {
+
+  private static Vertx vertx;
+  private static int port;
+
+  @BeforeClass
+  public static void startServer(TestContext context) throws InterruptedException {
+    vertx = Vertx.vertx();
+    vertx.createHttpServer()
+    // waits 2000 ms = 2 seconds before responding
+    .requestHandler(req -> vertx.setTimer(2000, x -> req.response().end()))
+    .listen(0)
+    .onComplete(context.asyncAssertSuccess(httpServer -> {
+      port = httpServer.actualPort();
+    }));
+  }
 
   class MyReadStream implements ReadStream<Buffer> {
     boolean pause = false;
@@ -185,5 +212,19 @@ public class ProxyServiceTest implements WithAssertions {
     assertThat(ProxyService.statusOk(100)).isFalse();
     assertThat(ProxyService.statusOk(200)).isTrue();
     assertThat(ProxyService.statusOk(300)).isFalse();
+  }
+
+  @Test
+  public void httpIdleTimeout() {
+    var routingContext = mock(RoutingContext.class, Mockito.RETURNS_DEEP_STUBS);
+    var proxyContext = new ProxyContext(routingContext, 0);
+    var httpClientRequests = List.of(mock(HttpClientRequest.class));
+    ModuleInstance moduleInstance = mock(ModuleInstance.class, Mockito.RETURNS_DEEP_STUBS);
+    when(moduleInstance.getUrl()).thenReturn("http://localhost:" + port + "/");
+    var conf = new JsonObject().put("idle_timeout", 1 /* second */);
+    var proxyService = new ProxyService(vertx, null, null, null, null, conf);
+    proxyService.proxyRequestHttpClient(null, proxyContext, Buffer.buffer(), httpClientRequests, moduleInstance);
+    Awaitility.await().untilAsserted(() ->
+        verify(routingContext.response()).end(contains("(idle_timeout is 1 seconds)")));
   }
 }

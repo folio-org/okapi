@@ -10,6 +10,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpClosedException;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.ConfNames;
 import org.folio.okapi.bean.DeploymentDescriptor;
@@ -78,6 +80,7 @@ public class ProxyService {
   private final int waitMs;
   private final boolean enableSystemAuth;
   private final boolean enableTraceHeaders;
+  private final int idleTimeout;
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
   private static final String TOKEN_CACHE_MAX_SIZE = "token_cache_max_size";
   private static final String TOKEN_CACHE_TTL_MS = "token_cache_ttl_ms";
@@ -109,8 +112,10 @@ public class ProxyService {
     waitMs = config.getInteger("logWaitMs", 0);
     enableSystemAuth = Config.getSysConfBoolean(ConfNames.ENABLE_SYSTEM_AUTH, true, config);
     enableTraceHeaders = Config.getSysConfBoolean(ConfNames.ENABLE_TRACE_HEADERS, false, config);
+    idleTimeout = Config.getSysConfInteger(ConfNames.IDLE_TIMEOUT, 0, config);
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
+    opt.setIdleTimeout(idleTimeout).setIdleTimeoutUnit(TimeUnit.SECONDS);
     httpClient = new FuturisedHttpClient(vertx, opt);
 
     String tcTtlMs = Config.getSysConf(TOKEN_CACHE_TTL_MS, null, config);
@@ -612,7 +617,13 @@ public class ProxyService {
   private void proxyClientFailure(
       ProxyContext pc, ModuleInstance mi, RequestOptions options, Throwable res) {
 
-    String msg = res.getMessage() + ": " + options.getMethod() + " " + options.getURI();
+    String msg = res.getMessage();
+    if (res instanceof HttpClosedException) {
+      msg += (idleTimeout == 0)
+          ? " (idle_timeout is disabled)"
+          : " (idle_timeout is " + idleTimeout + " seconds)";
+    }
+    msg += ": " + options.getMethod() + " " + options.getURI();
     logger.warn("proxyClientFailure: {}: {}", mi.getUrl(), msg);
     MetricsHelper.recordHttpClientError(pc.getTenant(), mi.getMethod().name(),
         mi.getRoutingEntry().getStaticPath());
@@ -620,7 +631,7 @@ public class ProxyService {
         mi.getModuleDescriptor().getId(), mi.getUrl(), msg));
   }
 
-  private void proxyRequestHttpClient(
+  void proxyRequestHttpClient(
       Iterator<ModuleInstance> it,
       ProxyContext pc, Buffer bcontent, List<HttpClientRequest> clientRequestList,
       ModuleInstance mi) {
