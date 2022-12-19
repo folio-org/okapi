@@ -105,7 +105,7 @@ public class ProxyService {
     this.internalModule = im;
     this.discoveryManager = dm;
     this.okapiUrl = okapiUrl;
-    waitMs = config.getInteger("logWaitMs", 0);
+    waitMs = Config.getSysConfInteger(ConfNames.LOG_WAIT_MS, 0, config);
     enableSystemAuth = Config.getSysConfBoolean(ConfNames.ENABLE_SYSTEM_AUTH, true, config);
     enableTraceHeaders = Config.getSysConfBoolean(ConfNames.ENABLE_TRACE_HEADERS, false, config);
     HttpClientOptions opt = new HttpClientOptions();
@@ -609,12 +609,12 @@ public class ProxyService {
       bcontent = pc.getAuthResBody();
     }
     if (bcontent != null) {
-      pc.closeTimer();
       clientsEnd(bcontent, clientRequestList);
       ctx.response().end(bcontent);
     } else {
       streamHandle(readStream, ctx.response(), clientRequestList);
     }
+    pc.closeTimer();
     MetricsHelper.recordHttpServerProcessingTime(pc.getSample(), pc.getTenant(),
         ctx.response().getStatusCode(), ctx.request().method().name(),
         pc.getHandlerModuleInstance());
