@@ -34,7 +34,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.3.5</version> <!-- also update depending versions below! -->
+        <version>4.3.6</version> <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -58,10 +58,12 @@
         <version>2.2.3</version>  <!-- https://github.com/hazelcast/hazelcast-kubernetes#requirements-and-recommendations -->
       </dependency>
       <dependency>
-        <!-- Remove this dependency when vertx-hazelcast ships with hazelcast >= 4.2.6 or later -->
-        <groupId>com.hazelcast</groupId>
-        <artifactId>hazelcast</artifactId>
-        <version>4.2.6</version>
+        <!-- Remove this dependency after upgrading to Vert.x >= 4.3.7 that ships with netty >= 4.1.86.Final -->
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>4.1.86.Final</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
       <!-- END: versions that depend on the vertx-stack-depchain version -->
 
