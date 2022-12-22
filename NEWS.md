@@ -1,3 +1,10 @@
+## 4.14.9 2022-12-22
+
+Fixes:
+
+* [OKAPI-1143](https://issues.folio.org/browse/OKAPI-1143), [OKAPI-1150](https://issues.folio.org/browse/OKAPI-1150): Vert.x 4.3.7, Netty 4.1.86 fixing CVE-2022-41881, CVE-2022-41915
+* [OKAPI-1144](https://issues.folio.org/browse/OKAPI-1144), [OKAPI-1146](https://issues.folio.org/browse/OKAPI-1146), [OKAPI-1147](https://issues.folio.org/browse/OKAPI-1147): log\_wait\_ms option to report missing HTTP client close
+
 ## 4.14.8 2022-12-01
 
 Fixes:
