@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>4.14.9-SNAPSHOT</version>
+  <version>4.14.10-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
@@ -34,7 +34,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.3.5</version> <!-- also update depending versions below! -->
+        <version>4.3.7</version> <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -56,12 +56,6 @@
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast-kubernetes</artifactId>
         <version>2.2.3</version>  <!-- https://github.com/hazelcast/hazelcast-kubernetes#requirements-and-recommendations -->
-      </dependency>
-      <dependency>
-        <!-- Remove this dependency when vertx-hazelcast ships with hazelcast >= 4.2.6 or later -->
-        <groupId>com.hazelcast</groupId>
-        <artifactId>hazelcast</artifactId>
-        <version>4.2.6</version>
       </dependency>
       <!-- END: versions that depend on the vertx-stack-depchain version -->
 
