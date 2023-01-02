@@ -22,6 +22,7 @@ public final class ConfNames {
   public static final String KUBE_SERVER_PEM = "kube_server_pem";
   public static final String KUBE_NAMESPACE = "kube_namespace";
   public static final String KUBE_REFRESH_INTERVAL = "kube_refresh_interval";
+  public static final String LOG_WAIT_MS = "log_wait_ms";
 
   private ConfNames() {
     throw new UnsupportedOperationException("Cannot instantiate utility class.");

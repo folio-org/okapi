@@ -372,6 +372,9 @@ public class TenantManager implements Liveness {
     return future.compose(from -> invokeTenantInterface1(tenant, options, from, mdTo, pc));
   }
 
+  @SuppressWarnings("java:S2259")
+  // Suppress "A 'NullPointerException' could be thrown; 'md' is nullable here."
+  // This is a false positive because we check mdFrom and mdTo in enableAndDisableModule.
   private Future<Void> invokeTenantInterface1(Tenant tenant, TenantInstallOptions options,
       ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
       ProxyContext pc) {

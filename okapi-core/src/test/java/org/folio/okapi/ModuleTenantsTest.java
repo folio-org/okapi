@@ -51,7 +51,7 @@ public class ModuleTenantsTest {
     JsonObject conf = new JsonObject()
         .put("port", Integer.toString(port))
         .put(ConfNames.ENABLE_TRACE_HEADERS, false)
-        .put("logWaitMs", 200);
+        .put("log_wait_ms", 200);
 
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(conf);

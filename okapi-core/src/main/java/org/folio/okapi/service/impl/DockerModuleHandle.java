@@ -15,7 +15,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.ConfNames;
 import org.folio.okapi.bean.AnyDescriptor;
@@ -407,14 +406,12 @@ public class DockerModuleHandle implements ModuleHandle {
       throw (new IllegalArgumentException(messages.getMessage("11302")));
     }
     JsonObject exposedPorts = config.getJsonObject("ExposedPorts");
-    if (exposedPorts != null) {
-      for (Map.Entry<String, Object> next : exposedPorts) {
-        String key = next.getKey();
-        String port = key.split("/")[0];
-        return Integer.parseInt(port);
-      }
+    if (exposedPorts == null || exposedPorts.isEmpty()) {
+      throw new IllegalArgumentException(messages.getMessage("11301"));
     }
-    throw (new IllegalArgumentException(messages.getMessage("11301")));
+    String key = exposedPorts.iterator().next().getKey();
+    String port = key.split("/")[0];
+    return Integer.parseInt(port);
   }
 
   private Future<Void> prepareContainer() {
