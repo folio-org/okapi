@@ -4,7 +4,6 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
 import java.util.function.Supplier;
-
 import org.folio.okapi.common.refreshtoken.client.impl.LoginClient;
 import org.folio.okapi.common.refreshtoken.client.impl.RefreshClient;
 import org.folio.okapi.common.refreshtoken.tokencache.RefreshTokenCache;
