@@ -55,7 +55,7 @@ public class RefreshClient implements Client {
       }
     }
     return clientOptions.getWebClient()
-        .postAbs(REFRESH_PATH)
+        .postAbs(clientOptions.getOkapiUrl() + REFRESH_PATH)
         .putHeader(HttpHeaders.ACCEPT.toString(), "*/*")
         .putHeader(XOkapiHeaders.TENANT, tenant)
         .putHeader(HttpHeaders.COOKIE.toString(),
