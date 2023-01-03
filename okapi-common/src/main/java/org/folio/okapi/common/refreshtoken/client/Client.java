@@ -18,8 +18,8 @@ public interface Client {
   }
 
   static Client createRefreshClient(ClientOptions clientOptions, RefreshTokenCache accessTokenCache,
-      Supplier<Future<String>> getRefreshTokenSupplier) {
-    return new RefreshClient(clientOptions, accessTokenCache, getRefreshTokenSupplier);
+      String tenant, String refreshToken) {
+    return new RefreshClient(clientOptions, accessTokenCache, tenant, refreshToken);
   }
 
   static Client createClientApi(Supplier<Future<String>> apiTokenSupplier) {

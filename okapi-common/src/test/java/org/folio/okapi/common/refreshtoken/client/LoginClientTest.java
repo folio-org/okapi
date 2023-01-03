@@ -19,6 +19,7 @@ import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.Constants;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.refreshtoken.tokencache.TenantUserCache;
 import org.hamcrest.Matchers;
@@ -30,8 +31,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
-public class TokenClientTest {
-  private static final Logger log = LogManager.getLogger(TokenClientTest.class);
+public class LoginClientTest {
+  private static final Logger log = LogManager.getLogger(LoginClientTest.class);
 
   static Vertx vertx;
 
@@ -124,7 +125,7 @@ public class TokenClientTest {
                 .setHttpOnly(true)
                 .setSameSite(CookieSameSite.NONE));
         response.addCookie(
-            Cookie.cookie(XOkapiHeaders.COOKIE_ACCESS_TOKEN, "validtoken")
+            Cookie.cookie(Constants.COOKIE_ACCESS_TOKEN, "validtoken")
                 .setMaxAge(cookieAge)
                 .setSecure(true)
                 .setPath("/")
@@ -292,9 +293,8 @@ public class TokenClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
-        .onComplete(context.asyncAssertSuccess(response -> {
-          assertThat(response.bodyAsBuffer(), is(xmlBody));
-          assertThat(countLoginWithExpiry, is(1));
+        .onComplete(context.asyncAssertFailure(response -> {
+          assertThat(response.getMessage(), is("/authn/login-with-expiry did not return access token"));
         }));
   }
 

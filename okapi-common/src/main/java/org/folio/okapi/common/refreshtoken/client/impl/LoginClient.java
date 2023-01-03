@@ -4,9 +4,11 @@ import io.netty.handler.codec.http.cookie.ClientCookieDecoder;
 import io.netty.handler.codec.http.cookie.Cookie;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import java.util.function.Supplier;
+import org.folio.okapi.common.Constants;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.refreshtoken.client.Client;
 import org.folio.okapi.common.refreshtoken.client.ClientException;
@@ -14,6 +16,11 @@ import org.folio.okapi.common.refreshtoken.client.ClientOptions;
 import org.folio.okapi.common.refreshtoken.tokencache.TenantUserCache;
 
 public class LoginClient implements Client {
+
+  private static final String LOGIN_EXPIRY_PATH = "/authn/login-with-expiry";
+
+  private static final String LOGIN_LEGACY_PATH = "/authn/login";
+
   private final TenantUserCache cache;
 
   private final ClientOptions clientOptions;
@@ -54,14 +61,17 @@ public class LoginClient implements Client {
 
   Future<String> getTokenLegacy(JsonObject payload) {
     return clientOptions.getWebClient()
-        .postAbs(clientOptions.getOkapiUrl() + "/authn/login")
-        .putHeader("Accept", "*/*")
+        .postAbs(clientOptions.getOkapiUrl() + LOGIN_LEGACY_PATH)
+        .putHeader(HttpHeaders.ACCEPT.toString(), "*/*")
         .putHeader(XOkapiHeaders.TENANT, tenant)
         .sendJsonObject(payload).map(res -> {
           if (res.statusCode() != 201) {
             throw new ClientException(res.bodyAsString());
           }
           String token = res.getHeader(XOkapiHeaders.TOKEN);
+          if (token == null) {
+            throw new ClientException(LOGIN_LEGACY_PATH + " did not return token");
+          }
           if (cache != null) {
             cache.put(tenant, username, token,
                 System.currentTimeMillis() + AGE_LEGACY_TOKEN * 1000);
@@ -72,31 +82,30 @@ public class LoginClient implements Client {
 
   Future<String> getTokenWithExpiry(JsonObject payload) {
     return clientOptions.getWebClient()
-        .postAbs(clientOptions.getOkapiUrl() + "/authn/login-with-expiry")
-        .putHeader("Accept", "*/*")
+        .postAbs(clientOptions.getOkapiUrl() + LOGIN_EXPIRY_PATH)
+        .putHeader(HttpHeaders.ACCEPT.toString(), "*/*")
         .putHeader(XOkapiHeaders.TENANT, tenant)
         .sendJsonObject(payload).map(res -> {
-          if (res.statusCode() == 201) {
-            for (String v: res.cookies()) {
-              Cookie cookie = ClientCookieDecoder.STRICT.decode(v);
-              if (XOkapiHeaders.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
-                long age = cookie.maxAge() - AGE_DIFF_TOKEN;
-                if (age < 0L) {
-                  age = 0L;
-                }
-                if (cache != null) {
-                  cache.put(tenant, username, cookie.value(),
-                      System.currentTimeMillis() + age * 1000);
-                }
-                return cookie.value();
-              }
-            }
+          if (res.statusCode() == 404) {
             return null;
-          } else if (res.statusCode() == 404) {
-            return null;
-          } else {
+          } else if (res.statusCode() != 201) {
             throw new ClientException(res.bodyAsString());
           }
+          for (String v: res.cookies()) {
+            Cookie cookie = ClientCookieDecoder.STRICT.decode(v);
+            if (Constants.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
+              long age = cookie.maxAge() - AGE_DIFF_TOKEN;
+              if (age < 0L) {
+                age = 0L;
+              }
+              if (cache != null) {
+                cache.put(tenant, username, cookie.value(),
+                    System.currentTimeMillis() + age * 1000);
+              }
+              return cookie.value();
+            }
+          }
+          throw new ClientException(LOGIN_EXPIRY_PATH + " did not return access token");
         });
   }
 
@@ -120,9 +129,7 @@ public class LoginClient implements Client {
   @Override
   public Future<HttpRequest<Buffer>> getToken(HttpRequest<Buffer> request) {
     return getToken().map(token -> {
-      if (token != null) {
-        request.putHeader(XOkapiHeaders.TOKEN, token);
-      }
+      request.putHeader(XOkapiHeaders.TOKEN, token);
       return request;
     });
   }
