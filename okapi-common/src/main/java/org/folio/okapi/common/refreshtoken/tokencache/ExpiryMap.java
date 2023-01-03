@@ -1,7 +1,5 @@
 package org.folio.okapi.common.refreshtoken.tokencache;
 
-import org.folio.okapi.common.refreshtoken.tokencache.impl.ExpiryMapImpl;
-
 public interface ExpiryMap<K,V> {
   /**
    * Put a cache.
