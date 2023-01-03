@@ -13,6 +13,7 @@ import org.folio.okapi.common.refreshtoken.client.ClientException;
 import org.folio.okapi.common.refreshtoken.client.ClientOptions;
 import org.folio.okapi.common.refreshtoken.tokencache.RefreshTokenCache;
 
+@java.lang.SuppressWarnings({"squid:S1075"}) // URIs should not be hardcoded
 public class RefreshClient implements Client {
 
   private static final String REFRESH_PATH = "/authn/refresh";

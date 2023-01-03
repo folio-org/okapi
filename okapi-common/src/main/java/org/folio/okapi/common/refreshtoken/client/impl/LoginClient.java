@@ -15,6 +15,7 @@ import org.folio.okapi.common.refreshtoken.client.ClientException;
 import org.folio.okapi.common.refreshtoken.client.ClientOptions;
 import org.folio.okapi.common.refreshtoken.tokencache.TenantUserCache;
 
+@java.lang.SuppressWarnings({"squid:S1075"}) // URIs should not be hardcoded
 public class LoginClient implements Client {
 
   private static final String LOGIN_EXPIRY_PATH = "/authn/login-with-expiry";
