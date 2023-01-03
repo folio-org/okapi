@@ -4,7 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
 import java.util.function.Supplier;
-import org.folio.okapi.common.refreshtoken.client.impl.ApiClient;
+
 import org.folio.okapi.common.refreshtoken.client.impl.LoginClient;
 import org.folio.okapi.common.refreshtoken.client.impl.RefreshClient;
 import org.folio.okapi.common.refreshtoken.tokencache.RefreshTokenCache;
@@ -20,10 +20,6 @@ public interface Client {
   static Client createRefreshClient(ClientOptions clientOptions, RefreshTokenCache accessTokenCache,
       String tenant, String refreshToken) {
     return new RefreshClient(clientOptions, accessTokenCache, tenant, refreshToken);
-  }
-
-  static Client createClientApi(Supplier<Future<String>> apiTokenSupplier) {
-    return new ApiClient(apiTokenSupplier);
   }
 
   /**
