@@ -20,7 +20,7 @@ public class TenantUserCache {
       }
       if (o instanceof TokenKey) {
         TokenKey tokenKey = (TokenKey) o; // if on java17 we didn't have to do this
-        return tokenKey.user == user && tokenKey.tenant == tenant;
+        return tokenKey.tenant == tenant && tokenKey.user == user;
       }
       return false;
     }
