@@ -77,15 +77,15 @@ public class LoginClientTest {
       String password = login.getString("password");
       if (!TENANT_OK.equals(request.getHeader(XOkapiHeaders.TENANT))
           || !USER_OK.equals(username) || !PASSWORD_OK.equals(password)) {
-        log.info("legacy login failed");
         response.setStatusCode(400);
         response.putHeader("Content-Type", "text/plain");
         response.end("Bad tenant/username/password");
         return;
       }
-      log.info("legacy login OK");
       response.setStatusCode(201);
-      response.putHeader(XOkapiHeaders.TOKEN, "validtoken");
+      if (returnCookies) {
+        response.putHeader(XOkapiHeaders.TOKEN, "validtoken");
+      }
       response.putHeader("Content-Type", "application/json");
       response.end(login.encode());
     });
@@ -115,7 +115,6 @@ public class LoginClientTest {
         response.end("Bad tenant/username/password");
         return;
       }
-      log.info("login with expiry ok");
       response.setStatusCode(201);
       if (returnCookies) {
         response.addCookie(Cookie.cookie("a", "validtoken")
@@ -140,7 +139,6 @@ public class LoginClientTest {
                 .setSameSite(CookieSameSite.NONE));
       }
       response.putHeader("Content-Type", "application/json");
-      response.headers().forEach((n, v) -> log.info("{}:{}", n, v));
       response.end("{}");
     });
 
@@ -214,7 +212,6 @@ public class LoginClientTest {
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_BAD_REQUEST))
-        .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertFailure(t -> {
           assertThat(t.getMessage(), is("Bad tenant/username/password"));
           assertThat(countLoginWithExpiry, is(0));
@@ -245,6 +242,18 @@ public class LoginClientTest {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
           assertThat(countLoginWithExpiry, is(0));
         }));
+  }
+
+  @Test
+  public void legacyNoToken(TestContext context) {
+    returnCookies = false;
+    Client client = getLoginClient(tokenCache);
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+            .putHeader("Content-Type", "text/xml")
+            .expect(ResponsePredicate.SC_CREATED))
+        .onComplete(context.asyncAssertFailure(cause ->
+            assertThat(cause.getMessage(), is("/authn/login did not return token"))
+        ));
   }
 
   @Test
@@ -292,7 +301,6 @@ public class LoginClientTest {
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_CREATED))
-        .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertFailure(response -> {
           assertThat(response.getMessage(), is("/authn/login-with-expiry did not return access token"));
         }));
@@ -329,7 +337,6 @@ public class LoginClientTest {
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_BAD_REQUEST))
-        .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertFailure(e -> {
           assertThat(countLoginWithExpiry, is(1));
           assertThat(e, Matchers.instanceOf(ClientException.class));
