@@ -635,6 +635,15 @@ public class TenantManager implements Liveness {
           pl = new PermissionList(mdFrom.getId(), new Permission[0]);
         }
         break;
+      case "2.1":
+        if (mdTo != null) {
+          pl = new PermissionList(mdTo.getId(), mdTo.getExpandedPermissionSets(),
+              mdTo.getReplaces());
+        } else  {
+          // attempt an empty list for the module being disabled
+          pl = new PermissionList(mdFrom.getId(), new Permission[0]);
+        }
+        break;
       default:
         return Future.failedFuture(new OkapiError(ErrorType.USER,
             "Unknown version of _tenantPermissions interface in use " + permIntVer + "."));

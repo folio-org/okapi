@@ -1366,9 +1366,7 @@ public class ModuleTest {
     final String docEnable2 = "{" + LS
       + "  \"id\" : \"sample-module2-1\"" + LS
       + "}";
-    final String expPerms2 = "{ "
-      + "\"moduleId\" : \"sample-module2-1\", "
-      + "\"perms\" : null }";
+    final String expPerms2 = "{\"moduleId\" : \"sample-module2-1\"}";
 
     String locSampleEnable2 = given()
       .header("Content-Type", "application/json")
