@@ -1,3 +1,9 @@
+## 4.13.3 2023-01-16
+
+Fixes:
+
+ * [OKAPI-1152](https://issues.folio.org/browse/OKAPI-1152) Hazelcast 4.2.6 fixing improver authentication CVE-2022-36437
+
 ## 4.13.2 2022-04-11
 
 Fixes:
