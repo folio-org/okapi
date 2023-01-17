@@ -43,9 +43,9 @@ public class LoginClient implements Client {
   private static final long AGE_DIFF_TOKEN = 10L;
 
   /**
-   * Construct client. Used normally for each incoming request.
+   * Construct login client. Used normally for each incoming request.
    * @param clientOptions common options.
-   * @param cache token cache; maybe null for no cache (testing ONLY)
+   * @param cache access token cache; maybe null for no cache (testing ONLY)
    * @param tenant Okapi tenant
    * @param username username to use for getting token
    * @param getPasswordSupplier for providing the password
@@ -61,53 +61,61 @@ public class LoginClient implements Client {
   }
 
   Future<String> getTokenLegacy(JsonObject payload) {
-    return clientOptions.getWebClient()
-        .postAbs(clientOptions.getOkapiUrl() + LOGIN_LEGACY_PATH)
-        .putHeader(HttpHeaders.ACCEPT.toString(), "*/*")
-        .putHeader(XOkapiHeaders.TENANT, tenant)
-        .sendJsonObject(payload).map(res -> {
-          if (res.statusCode() != 201) {
-            throw new ClientException(res.bodyAsString());
-          }
-          String token = res.getHeader(XOkapiHeaders.TOKEN);
-          if (token == null) {
-            throw new ClientException(LOGIN_LEGACY_PATH + " did not return token");
-          }
-          if (cache != null) {
-            cache.put(tenant, username, token,
-                System.currentTimeMillis() + AGE_LEGACY_TOKEN * 1000);
-          }
-          return token;
-        });
+    try {
+      return clientOptions.getWebClient()
+          .postAbs(clientOptions.getOkapiUrl() + LOGIN_LEGACY_PATH)
+          .putHeader(HttpHeaders.ACCEPT.toString(), "*/*")
+          .putHeader(XOkapiHeaders.TENANT, tenant)
+          .sendJsonObject(payload).map(res -> {
+            if (res.statusCode() != 201) {
+              throw new ClientException(res.bodyAsString());
+            }
+            String token = res.getHeader(XOkapiHeaders.TOKEN);
+            if (token == null) {
+              throw new ClientException(LOGIN_LEGACY_PATH + " did not return token");
+            }
+            if (cache != null) {
+              cache.put(tenant, username, token,
+                  System.currentTimeMillis() + AGE_LEGACY_TOKEN * 1000);
+            }
+            return token;
+          });
+    } catch (Exception e) {
+      return Future.failedFuture(e);
+    }
   }
 
   Future<String> getTokenWithExpiry(JsonObject payload) {
-    return clientOptions.getWebClient()
-        .postAbs(clientOptions.getOkapiUrl() + LOGIN_EXPIRY_PATH)
-        .putHeader(HttpHeaders.ACCEPT.toString(), "*/*")
-        .putHeader(XOkapiHeaders.TENANT, tenant)
-        .sendJsonObject(payload).map(res -> {
-          if (res.statusCode() == 404) {
-            return null;
-          } else if (res.statusCode() != 201) {
-            throw new ClientException(res.bodyAsString());
-          }
-          for (String v: res.cookies()) {
-            Cookie cookie = ClientCookieDecoder.STRICT.decode(v);
-            if (Constants.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
-              long age = cookie.maxAge() - AGE_DIFF_TOKEN;
-              if (age < 0L) {
-                age = 0L;
-              }
-              if (cache != null) {
-                cache.put(tenant, username, cookie.value(),
-                    System.currentTimeMillis() + age * 1000);
-              }
-              return cookie.value();
+    try {
+      return clientOptions.getWebClient()
+          .postAbs(clientOptions.getOkapiUrl() + LOGIN_EXPIRY_PATH)
+          .putHeader(HttpHeaders.ACCEPT.toString(), "*/*")
+          .putHeader(XOkapiHeaders.TENANT, tenant)
+          .sendJsonObject(payload).map(res -> {
+            if (res.statusCode() == 404) {
+              return null;
+            } else if (res.statusCode() != 201) {
+              throw new ClientException(res.bodyAsString());
             }
-          }
-          throw new ClientException(LOGIN_EXPIRY_PATH + " did not return access token");
-        });
+            for (String v : res.cookies()) {
+              Cookie cookie = ClientCookieDecoder.STRICT.decode(v);
+              if (Constants.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
+                long age = cookie.maxAge() - AGE_DIFF_TOKEN;
+                if (age < 0L) {
+                  age = 0L;
+                }
+                if (cache != null) {
+                  cache.put(tenant, username, cookie.value(),
+                      System.currentTimeMillis() + age * 1000);
+                }
+                return cookie.value();
+              }
+            }
+            throw new ClientException(LOGIN_EXPIRY_PATH + " did not return access token");
+          });
+    } catch (Exception e) {
+      return Future.failedFuture(e);
+    }
   }
 
   @Override

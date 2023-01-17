@@ -1,4 +1,4 @@
-package org.folio.okapi.common.refreshtoken.client;
+package org.folio.okapi.common.refreshtoken.client.impl;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -16,6 +16,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Constants;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.common.refreshtoken.client.Client;
+import org.folio.okapi.common.refreshtoken.client.ClientOptions;
 import org.folio.okapi.common.refreshtoken.tokencache.RefreshTokenCache;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -242,4 +244,14 @@ public class RefreshClientTest {
         ));
   }
 
+  @Test
+  public void getTokenMalformedUrl(TestContext context) {
+    new RefreshClient(new ClientOptions()
+        .webClient(webClient)
+        .okapiUrl("x"), tokenCache, TENANT_OK, VALID_REFRESH_TOKEN)
+        .getToken()
+        .onComplete(context.asyncAssertFailure(e ->
+            assertThat(e.getMessage(), is("java.net.MalformedURLException: no protocol: x/authn/refresh")
+        )));
+  }
 }

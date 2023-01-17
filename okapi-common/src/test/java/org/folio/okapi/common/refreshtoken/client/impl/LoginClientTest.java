@@ -1,4 +1,4 @@
-package org.folio.okapi.common.refreshtoken.client;
+package org.folio.okapi.common.refreshtoken.client.impl;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -21,6 +21,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Constants;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.common.refreshtoken.client.Client;
+import org.folio.okapi.common.refreshtoken.client.ClientException;
+import org.folio.okapi.common.refreshtoken.client.ClientOptions;
 import org.folio.okapi.common.refreshtoken.tokencache.TenantUserCache;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -344,4 +347,23 @@ public class LoginClientTest {
         }));
   }
 
+  @Test
+  public void getTokenLegacyMalformedUrl(TestContext context) {
+    new LoginClient(new ClientOptions()
+        .webClient(webClient)
+        .okapiUrl("x"), tokenCache, TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK))
+        .getTokenLegacy(new JsonObject())
+        .onComplete(context.asyncAssertFailure(e ->
+            assertThat(e.getMessage(), is("java.net.MalformedURLException: no protocol: x/authn/login"))));
+  }
+
+  @Test
+  public void getTokenWithExpiryMalformedUrl(TestContext context) {
+    new LoginClient(new ClientOptions()
+        .webClient(webClient)
+        .okapiUrl("x"), tokenCache, TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK))
+        .getTokenWithExpiry(new JsonObject())
+        .onComplete(context.asyncAssertFailure(e ->
+            assertThat(e.getMessage(), is("java.net.MalformedURLException: no protocol: x/authn/login-with-expiry"))));
+  }
 }

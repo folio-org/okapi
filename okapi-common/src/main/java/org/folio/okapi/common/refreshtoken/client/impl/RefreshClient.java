@@ -6,6 +6,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
 import org.folio.okapi.common.Constants;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.refreshtoken.client.Client;
@@ -32,56 +33,41 @@ public class RefreshClient implements Client {
   private final String tenant;
 
   /**
-   * Create client that gets access token from given refresh token.
+   * Create client that gets access token from refresh token.
    * @param clientOptions common options
-   * @param refreshTokenCache cache for storing access tokens
+   * @param cache access token cache for storing access tokens
    * @param tenant the value passed in X-Okapi-Tenant
    * @param refreshToken the refresh token is used to obtain access token
    */
   public RefreshClient(
-      ClientOptions clientOptions, RefreshTokenCache refreshTokenCache,
+      ClientOptions clientOptions, RefreshTokenCache cache,
       String tenant, String refreshToken) {
     this.clientOptions = clientOptions;
-    this.cache = refreshTokenCache;
+    this.cache = cache;
     this.tenant = tenant;
     this.refreshToken = refreshToken;
   }
 
   @Override
   public Future<String> getToken() {
-    if (cache != null) {
-      String cacheValue = cache.get(refreshToken);
-      if (cacheValue != null) {
-        return Future.succeededFuture(cacheValue);
+    try {
+      if (cache != null) {
+        String cacheValue = cache.get(refreshToken);
+        if (cacheValue != null) {
+          return Future.succeededFuture(cacheValue);
+        }
       }
+      return clientOptions.getWebClient()
+          .postAbs(clientOptions.getOkapiUrl() + REFRESH_PATH)
+          .putHeader(HttpHeaders.ACCEPT.toString(), "*/*")
+          .putHeader(XOkapiHeaders.TENANT, tenant)
+          .putHeader(HttpHeaders.COOKIE.toString(),
+              Cookie.cookie(Constants.COOKIE_REFRESH_TOKEN, refreshToken).encode())
+          .send()
+          .map(this::tokenResponse);
+    } catch (Exception e) {
+      return Future.failedFuture(e);
     }
-    return clientOptions.getWebClient()
-        .postAbs(clientOptions.getOkapiUrl() + REFRESH_PATH)
-        .putHeader(HttpHeaders.ACCEPT.toString(), "*/*")
-        .putHeader(XOkapiHeaders.TENANT, tenant)
-        .putHeader(HttpHeaders.COOKIE.toString(),
-            Cookie.cookie(Constants.COOKIE_REFRESH_TOKEN, refreshToken).encode())
-        .send()
-        .map(res -> {
-          if (res.statusCode() != 201) {
-            throw new ClientException(res.bodyAsString());
-          }
-          for (String v: res.cookies()) {
-            io.netty.handler.codec.http.cookie.Cookie cookie = ClientCookieDecoder.STRICT.decode(v);
-            if (Constants.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
-              long age = cookie.maxAge() - AGE_DIFF_TOKEN;
-              if (age < 0L) {
-                age = 0L;
-              }
-              if (cache != null) {
-                cache.put(refreshToken, cookie.value(),
-                    System.currentTimeMillis() + age * 1000);
-              }
-              return cookie.value();
-            }
-          }
-          throw new ClientException(REFRESH_PATH + " did not return access token");
-        });
   }
 
   @Override
@@ -91,4 +77,26 @@ public class RefreshClient implements Client {
       return request;
     });
   }
+
+  String tokenResponse(HttpResponse<Buffer> res) {
+    if (res.statusCode() != 201) {
+      throw new ClientException(res.bodyAsString());
+    }
+    for (String v: res.cookies()) {
+      io.netty.handler.codec.http.cookie.Cookie cookie = ClientCookieDecoder.STRICT.decode(v);
+      if (Constants.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
+        long age = cookie.maxAge() - AGE_DIFF_TOKEN;
+        if (age < 0L) {
+          age = 0L;
+        }
+        if (cache != null) {
+          cache.put(refreshToken, cookie.value(),
+              System.currentTimeMillis() + age * 1000);
+        }
+        return cookie.value();
+      }
+    }
+    throw new ClientException(REFRESH_PATH + " did not return access token");
+  }
+
 }

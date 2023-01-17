@@ -11,14 +11,29 @@ import org.folio.okapi.common.refreshtoken.tokencache.TenantUserCache;
 
 public interface Client {
 
-  static Client createLoginClient(ClientOptions clientOptions, TenantUserCache tokenCache,
+  /**
+   * Construct login client. Used normally for each incoming request.
+   * @param clientOptions common options.
+   * @param cache access token cache; maybe null for no cache (testing ONLY)
+   * @param tenant Okapi tenant
+   * @param username username to use for getting token
+   * @param getPasswordSupplier for providing the password
+   */
+  static Client createLoginClient(ClientOptions clientOptions, TenantUserCache cache,
       String tenant, String username, Supplier<Future<String>> getPasswordSupplier) {
-    return new LoginClient(clientOptions, tokenCache, tenant, username, getPasswordSupplier);
+    return new LoginClient(clientOptions, cache, tenant, username, getPasswordSupplier);
   }
 
-  static Client createRefreshClient(ClientOptions clientOptions, RefreshTokenCache accessTokenCache,
+  /**
+   * Create client that gets access token from refresh token.
+   * @param clientOptions common options
+   * @param cache access token cache for storing access tokens
+   * @param tenant the value passed in X-Okapi-Tenant
+   * @param refreshToken the refresh token is used to obtain access token
+   */
+  static Client createRefreshClient(ClientOptions clientOptions, RefreshTokenCache cache,
       String tenant, String refreshToken) {
-    return new RefreshClient(clientOptions, accessTokenCache, tenant, refreshToken);
+    return new RefreshClient(clientOptions, cache, tenant, refreshToken);
   }
 
   /**
