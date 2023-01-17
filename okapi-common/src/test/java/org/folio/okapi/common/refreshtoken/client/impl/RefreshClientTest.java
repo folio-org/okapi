@@ -12,8 +12,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.handler.BodyHandler;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Constants;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.refreshtoken.client.Client;
@@ -31,8 +29,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(VertxUnitRunner.class)
 public class RefreshClientTest {
-
-  private static final Logger log = LogManager.getLogger(RefreshClientTest.class);
 
   static Vertx vertx;
 
@@ -186,6 +182,17 @@ public class RefreshClientTest {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
           assertThat(countWithRefresh, is(1));
         }));
+  }
+
+  @Test
+  public void refreshInvalidToken(TestContext context) {
+    Client client = getRefreshClient(tokenCache, "invalid_token");
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+            .putHeader("Content-Type", "text/xml")
+            .expect(ResponsePredicate.SC_BAD_REQUEST))
+        .onComplete(context.asyncAssertFailure(response ->
+          assertThat(response.getMessage(), is("Missing/bad refresh token"))
+        ));
   }
 
   @Test
