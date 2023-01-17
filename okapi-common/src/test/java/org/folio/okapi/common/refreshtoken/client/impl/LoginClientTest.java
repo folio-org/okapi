@@ -207,7 +207,6 @@ public class LoginClientTest {
 
   @Test
   public void nullPassword(TestContext context) {
-    Buffer xmlBody = Buffer.buffer("<hi/>");
     Client client = Client.createLoginClient(
         new ClientOptions().webClient(webClient).okapiUrl(OKAPI_URL),
         tokenCache,
@@ -299,7 +298,6 @@ public class LoginClientTest {
   public void withExpiryNoCookies(TestContext context) {
     enableLoginWithExpiry = true;
     returnCookies = false;
-    Buffer xmlBody = Buffer.buffer("<hi/>");
     Client client = getLoginClient(tokenCache);
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
@@ -332,7 +330,6 @@ public class LoginClientTest {
   @Test
   public void badPasswordWithExpiry(TestContext context) {
     enableLoginWithExpiry = true;
-    Buffer xmlBody = Buffer.buffer("<hi/>");
     Client client = Client.createLoginClient(
         new ClientOptions().webClient(webClient).okapiUrl(OKAPI_URL),
         tokenCache,
