@@ -647,7 +647,6 @@ public class ProxyService {
       logger.trace("ProxyRequestHttpClient request buf '{}'", bcontent);
       clientsEnd(bcontent, clientRequestList);
       clientRequest.end(bcontent);
-      ctx.response().closeHandler(x -> clientRequest.setTimeout(1));
       log(clientRequest);
       clientRequest.response()
           .onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res))
@@ -845,7 +844,6 @@ public class ProxyService {
         }
         streamHandle(stream, clientRequest, clientRequestList);
       }
-      ctx.response().closeHandler(x -> clientRequest.setTimeout(1));
       log(clientRequest);
       clientRequest.response()
           .onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res))
@@ -885,7 +883,6 @@ public class ProxyService {
       final Timer.Sample sample = MetricsHelper.getTimerSample();
       copyHeaders(clientRequest, ctx, mi);
       clientRequest.end();
-      ctx.response().closeHandler(x -> clientRequest.setTimeout(1));
       log(clientRequest);
       clientRequest.response()
           .onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res))
