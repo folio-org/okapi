@@ -1,3 +1,9 @@
+## 4.14.10 2023-01-19
+
+Fixes:
+
+* [OKAPI-1155](https://issues.folio.org/browse/OKAPI-1155) HTTP connection reset before response is sent (partly reverts [OKAPI-1144](https://issues.folio.org/browse/OKAPI-1144))
+
 ## 4.14.9 2022-12-22
 
 Fixes:
