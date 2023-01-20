@@ -156,15 +156,25 @@ public final class DepResolution {
   /**
    * Check if any of md's provided interfaces are used by any of the modules.
    *
-   * <p>A interface is used if it's a required interface dependency.
+   * <p>A interface is used if it's a required interface dependency. If the module is
+   * replaced by another module in the list of modules, none of the provided
+   * interfaces are considered "used".
    *
    * @param modules     the modules to check against
    * @param md          module to check
    * @return            true if modules do not require any of the provided interfaces
+   *                    or module is replaced.
    */
   public static boolean moduleDepRequired(Collection<ModuleDescriptor> modules,
       ModuleDescriptor md) {
 
+    String product = md.getProduct();
+    for (ModuleDescriptor md1 : modules) {
+      String [] replaces = md1.getReplaces();
+      if (replaces != null && Arrays.asList(replaces).contains(product)) {
+        return true;
+      }
+    }
     for (InterfaceDescriptor prov : md.getProvidesList()) {
       if (!prov.isRegularHandler()) {
         continue;
@@ -312,8 +322,8 @@ public final class DepResolution {
       TenantModuleDescriptor.Action action) {
     if (action == TenantModuleDescriptor.Action.enable && from != null
         && !new ModuleId(id).getProduct().equals(new ModuleId(from).getProduct())) {
-      // upgrading between two different products.. so this upgrade is turned into
-      // a disable, then en enable
+      // upgrading between two different products ... so this upgrade is turned into
+      // disable, followed by enable
       TenantModuleDescriptor tm = new TenantModuleDescriptor();
       tm.setAction(TenantModuleDescriptor.Action.disable);
       tm.setId(from);
@@ -394,8 +404,8 @@ public final class DepResolution {
    * <p>For each entry in providedInterfaces with more than one ModuleInterface add an error
    * message to errors.
    *
-   * <p>If fix is true and it is not listed in stickyModules also disable it by adding an
-   * disable entry to tml and by removing it from modsEnabled.
+   * <p>If fix is true, and it is not listed in stickyModules also disable it by adding an
+   * action=disable entry to tml and by removing it from modsEnabled.
    *
    * <p>If a module gets disabled the method stops and returns true without checking the
    * remaining interfaces.
@@ -651,10 +661,10 @@ public final class DepResolution {
         i++;
       } while (errors == null && i < maxIterations);
       logger.info("Dependency resolution done in {} iterations", i);
-      if (errors == null) {
-        throw new OkapiError(ErrorType.INTERNAL,
-            "Dependency resolution not completing in " + maxIterations + " iterations");
-      }
+    }
+    if (errors == null) {
+      throw new OkapiError(ErrorType.INTERNAL,
+          "Dependency resolution not completing in " + maxIterations + " iterations");
     }
     if (!errors.isEmpty()) {
       throw new OkapiError(ErrorType.USER, String.join(". ", errors));
@@ -745,8 +755,7 @@ public final class DepResolution {
 
     Set<String> replaceProducts = new HashSet<>();
     Map<String, ModuleDescriptor> productMd = new HashMap<>();
-    for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
-      ModuleDescriptor md = entry.getValue();
+    for (ModuleDescriptor md : modsAvailable.values()) {
       String product = md.getProduct();
       List<InterfaceDescriptor> list = provide
           ? md.getRequiresOptionalList() : Arrays.asList(md.getProvidesList());
@@ -870,7 +879,7 @@ public final class DepResolution {
       if (ent.getValue().size() > 1) {
         String permissionName = ent.getKey();
         String names = ent.getValue()
-            .stream().map(x -> x.getId()).collect(Collectors.joining(", "));
+            .stream().map(ModuleDescriptor::getId).collect(Collectors.joining(", "));
         for (ModuleDescriptor md : ent.getValue()) {
           errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Permission '"
               + permissionName + "' defined in multiple modules: " + names);
