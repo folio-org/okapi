@@ -40,16 +40,17 @@ public interface Client {
    * Get access token.
    *
    * <p>Use normally for each outgoing request.
-   * @return token value or null if none could be obtained.
+   * @return token value
+   * @throws ClientException if token could not be obtained.
    */
   Future<String> getToken();
 
   /**
-   * Populate access token for WebClient request.
+   * Get access token and put it into request as X-Okapi-Token header.
    *
    * <p>Normally used for each outgoing request.
    * @param request the value that is returned for WebClient,getAbs and others.
-   * @return request future result
+   * @return request with token header
    */
   Future<HttpRequest<Buffer>> getToken(HttpRequest<Buffer> request);
 

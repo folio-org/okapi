@@ -2,7 +2,7 @@ package org.folio.okapi.common.refreshtoken.tokencache;
 
 public interface ExpiryMap<K,V> {
   /**
-   * Put a cache.
+   * Put a cache entry.
    * @param key cache key
    * @param value cache value; should not be null
    * @param expiresTimeMillis the point where the entry expires.
