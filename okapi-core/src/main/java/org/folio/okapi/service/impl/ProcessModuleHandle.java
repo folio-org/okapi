@@ -180,7 +180,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     return promise.future()
         .compose(x -> tcpPortWaiting.waitReady(process).onFailure(y -> stopProcess()));
   }
-
+  
   Future<Void> waitPortToClose(int iter) {
     if (port == 0) {
       return Future.succeededFuture();
@@ -191,10 +191,12 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
         socket -> socket.close()
             .otherwiseEmpty().compose(x -> {
               if (iter == 0) {
+                c.close();
                 return Future.failedFuture(messages.getMessage("11503", Integer.toString(port)));
               }
               Promise<Void> promise = Promise.promise();
               vertx.setTimer(100, id -> waitPortToClose(iter - 1).onComplete(promise));
+              c.close();
               return promise.future();
             }),
         noSocket -> Future.succeededFuture());
