@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Collection;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -17,7 +16,6 @@ import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor.Action;
 import org.folio.okapi.common.OkapiLogger;
@@ -429,6 +427,20 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdE100);
     DepResolution.install(map(mdA100, mdA110, mdB, mdC, mdE100), map(), tml, false);
     assertThat(tml, contains(enable(mdC), enable(mdE100)));
+  }
+
+  @Test
+  public void testRequiredInterfacesReplaces() {
+    List<TenantModuleDescriptor> tml = enableList(mdE100, ot100);
+    DepResolution.install(map(mdE100, ot100, mdA100), map(), tml, false);
+    assertThat(tml, contains(enable(mdA100), enable(mdE100), enable(ot100)));
+
+    mdB.setReplaces(new String[]{mdA100.getProduct()});
+    tml = enableList(mdB);
+    tml.addAll(createList(Action.disable, ot100));
+
+    DepResolution.install(map(mdA100, ot100, mdB, mdE100), map(mdA100, mdE100, ot100), tml, false);
+    assertThat(tml, contains(enable(mdB), disable(ot100), disable(mdA100)));
   }
 
   @Test
