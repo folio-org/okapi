@@ -9,6 +9,12 @@ public class TenantUserCache {
     private final String user;
 
     TokenKey(String tenant, String user) {
+      if (tenant == null) {
+        throw new IllegalArgumentException("tenant must not be null");
+      }
+      if (user == null) {
+        throw new IllegalArgumentException("user must not be null");
+      }
       this.tenant = tenant;
       this.user = user;
     }
@@ -20,14 +26,14 @@ public class TenantUserCache {
       }
       if (o instanceof TokenKey) {
         TokenKey tokenKey = (TokenKey) o; // if on java17 we didn't have to do this
-        return tokenKey.tenant == tenant && tokenKey.user == user;
+        return tenant.equals(tokenKey.tenant) && user.equals(tokenKey.user);
       }
       return false;
     }
 
     @Override
     public int hashCode() {
-      return user.hashCode() + tenant.hashCode();
+      return user.hashCode() + 31 * tenant.hashCode();
     }
   }
 
