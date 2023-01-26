@@ -3,12 +3,19 @@ package org.folio.okapi.util;
 import com.zaxxer.nuprocess.NuProcess;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.net.NetClient;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 
+/**
+ * TCP port waiting utility for arbitrary hosts, uses {@link Webclient} because
+ * container ports are immediately ready.
+ *
+ * <p>See {@link PortChecker} for localhost ports, uses {@link NetClient}.
+ */
 public class TcpPortWaiting {
 
   private final Logger logger = OkapiLogger.get();
