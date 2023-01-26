@@ -14,7 +14,7 @@ import org.folio.okapi.common.Messages;
  *
  * <p>See also {@link TcpPortWaiting} that uses {@code WebClient}.
  */
-public class PortChecker {
+public final class PortChecker {
   private static final NetClientOptions NET_CLIENT_OPTIONS =
       new NetClientOptions().setConnectTimeout(200);
   private static final Map<Vertx, NetClient> NET_CLIENTS = new HashMap<>();

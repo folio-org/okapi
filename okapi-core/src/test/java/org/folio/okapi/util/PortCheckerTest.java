@@ -7,11 +7,17 @@ import io.vertx.junit5.Checkpoint;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import java.util.concurrent.atomic.AtomicReference;
+import org.folio.okapi.testing.UtilityClassTester;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(VertxExtension.class)
 class PortCheckerTest {
+
+  @Test
+  void utilityClass() {
+    UtilityClassTester.assertUtilityClass(PortChecker.class);
+  }
 
   @Test
   void openPort(Vertx vertx, VertxTestContext vtc) {
