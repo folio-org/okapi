@@ -19,6 +19,10 @@ public class PortChecker {
       new NetClientOptions().setConnectTimeout(200);
   private static final Map<Vertx, NetClient> NET_CLIENTS = new HashMap<>();
 
+  private PortChecker() {
+    throw new UnsupportedOperationException("Cannot instantiate utility class.");
+  }
+
   /**
    * Wait until localhost:port is closed.
    *
