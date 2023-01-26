@@ -19,11 +19,6 @@ public class RefreshClient implements Client {
 
   private static final String REFRESH_PATH = "/authn/refresh";
 
-  /**
-   * Subtract this many seconds of age, before considering expired.
-   */
-  private static final long AGE_DIFF_TOKEN = 10L;
-
   private final ClientOptions clientOptions;
 
   private final RefreshTokenCache cache;
@@ -85,11 +80,8 @@ public class RefreshClient implements Client {
     for (String v: res.cookies()) {
       io.netty.handler.codec.http.cookie.Cookie cookie = ClientCookieDecoder.STRICT.decode(v);
       if (Constants.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
-        long age = cookie.maxAge() - AGE_DIFF_TOKEN;
-        if (age < 0L) {
-          age = 0L;
-        }
         if (cache != null) {
+          long age = cookie.maxAge() / 2;
           cache.put(refreshToken, cookie.value(),
               System.currentTimeMillis() + age * 1000);
         }

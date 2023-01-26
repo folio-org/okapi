@@ -38,11 +38,6 @@ public class LoginClient implements Client {
   private static final long AGE_LEGACY_TOKEN = 86400L;
 
   /**
-   * Subtract this many seconds of age, before considering expired.
-   */
-  private static final long AGE_DIFF_TOKEN = 10L;
-
-  /**
    * Construct login client. Used normally for each incoming request.
    * @param clientOptions common options.
    * @param cache access token cache; maybe null for no cache (testing ONLY)
@@ -100,11 +95,8 @@ public class LoginClient implements Client {
             for (String v : res.cookies()) {
               Cookie cookie = ClientCookieDecoder.STRICT.decode(v);
               if (Constants.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
-                long age = cookie.maxAge() - AGE_DIFF_TOKEN;
-                if (age < 0L) {
-                  age = 0L;
-                }
                 if (cache != null) {
+                  long age = cookie.maxAge() / 2;
                   cache.put(tenant, username, cookie.value(),
                       System.currentTimeMillis() + age * 1000);
                 }
