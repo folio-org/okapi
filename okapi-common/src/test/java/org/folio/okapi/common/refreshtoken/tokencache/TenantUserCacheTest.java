@@ -12,11 +12,8 @@ public class TenantUserCacheTest {
   @Test
   public void lookup() {
     TenantUserCache tk = new TenantUserCache(10);
-    StringBuilder tenant = new StringBuilder("tenant");
-    tenant.append("1");
-
-    StringBuilder user = new StringBuilder("user");
-    user.append("1");
+    StringBuilder tenant = new StringBuilder("tenant1");
+    StringBuilder user = new StringBuilder("user1");
 
     tk.put(tenant.toString(), user.toString(), "v1", System.currentTimeMillis() + 10);
     assertThat(tk.get("tenant1", "user1"), is("v1"));
