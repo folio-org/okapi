@@ -40,17 +40,30 @@ public interface Client {
    * Get access token.
    *
    * <p>Use normally for each outgoing request.
-   * @return token value
-   * @throws ClientException if token could not be obtained.
+   * @return async result with token value if successful
    */
   Future<String> getToken();
 
   /**
    * Get access token and put it into request as X-Okapi-Token header.
    *
-   * <p>Normally used for each outgoing request.
-   * @param request the value that is returned for WebClient,getAbs and others.
-   * @return request with token header
+   * <p>Normally used for each outgoing request. Example:</p>
+   * <pre>
+   *   {@code
+   *     WebClient webClient = ... ; // usually one per Vert.x instance
+   *     Client client = Client.createLoginClient(...);
+   *     client.getToken(webClient.postAbs(okapiUrl + rest)
+   *           .putHeader("Content-Type", "application/json"))
+   *        .compose(request -> request.sendBuffer(requestBody))
+   *        .compose(response -> {
+   *           // handle response
+   *        });
+   *   }
+   * </pre>
+   * @param request the value that is returned for
+   * {@link io.vertx.ext.web.client.WebClient#getAbs} and others.
+   * @return async result with request if successful
+   *
    */
   Future<HttpRequest<Buffer>> getToken(HttpRequest<Buffer> request);
 
