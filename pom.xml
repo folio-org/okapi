@@ -135,6 +135,11 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <dependency>
+        <groupId>org.awaitility</groupId>
+        <artifactId>awaitility</artifactId>
+        <version>4.2.0</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
