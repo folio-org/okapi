@@ -53,7 +53,7 @@ public interface Client {
    *     WebClient webClient = ... ; // usually one per Vert.x instance
    *     Client client = Client.createLoginClient(...);
    *     client.getToken(webClient.postAbs(okapiUrl + rest)
-   *           .putHeader("Content-Type", "application/json"))
+   *             .putHeader("Content-Type", "application/json"))
    *        .compose(request -> request.sendBuffer(requestBody))
    *        .compose(response -> {
    *           // handle response
