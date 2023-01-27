@@ -191,7 +191,8 @@ public class RefreshClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_BAD_REQUEST))
         .onComplete(context.asyncAssertFailure(response ->
-          assertThat(response.getMessage(), is("Missing/bad refresh token"))
+          assertThat(response.getMessage(), is("POST /authn/refresh returned status 400: "
+              + "Missing/bad refresh token"))
         ));
   }
 
@@ -236,7 +237,7 @@ public class RefreshClientTest {
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .expect(ResponsePredicate.SC_CREATED))
         .onComplete(context.asyncAssertFailure(cause ->
-          assertThat(cause.getMessage(), is("Not found"))
+          assertThat(cause.getMessage(), is("POST /authn/refresh returned status 404: Not found"))
         ));
   }
 

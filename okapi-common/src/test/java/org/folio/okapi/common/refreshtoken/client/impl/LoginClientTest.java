@@ -215,7 +215,8 @@ public class LoginClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(ResponsePredicate.SC_BAD_REQUEST))
         .onComplete(context.asyncAssertFailure(t -> {
-          assertThat(t.getMessage(), is("Bad tenant/username/password"));
+          assertThat(t.getMessage(), is("POST /authn/login returned status 400: "
+              + "Bad tenant/username/password"));
           assertThat(countLoginWithExpiry, is(0));
         }));
   }
@@ -340,7 +341,8 @@ public class LoginClientTest {
         .onComplete(context.asyncAssertFailure(e -> {
           assertThat(countLoginWithExpiry, is(1));
           assertThat(e, Matchers.instanceOf(ClientException.class));
-          assertThat(e.getMessage(), is("Bad tenant/username/password"));
+          assertThat(e.getMessage(), is("POST /authn/login-with-expiry returned status 400: "
+              + "Bad tenant/username/password"));
         }));
   }
 

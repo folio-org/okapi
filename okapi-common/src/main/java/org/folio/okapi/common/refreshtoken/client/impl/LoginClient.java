@@ -63,7 +63,8 @@ public class LoginClient implements Client {
           .putHeader(XOkapiHeaders.TENANT, tenant)
           .sendJsonObject(payload).map(res -> {
             if (res.statusCode() != 201) {
-              throw new ClientException(res.bodyAsString());
+              throw new ClientException("POST " + LOGIN_LEGACY_PATH + " returned status "
+                  + res.statusCode() + ": " + res.bodyAsString());
             }
             String token = res.getHeader(XOkapiHeaders.TOKEN);
             if (token == null) {
@@ -90,7 +91,8 @@ public class LoginClient implements Client {
             if (res.statusCode() == 404) {
               return null;
             } else if (res.statusCode() != 201) {
-              throw new ClientException(res.bodyAsString());
+              throw new ClientException("POST " + LOGIN_EXPIRY_PATH + " returned status "
+                  + res.statusCode() + ": " + res.bodyAsString());
             }
             for (String v : res.cookies()) {
               Cookie cookie = ClientCookieDecoder.STRICT.decode(v);

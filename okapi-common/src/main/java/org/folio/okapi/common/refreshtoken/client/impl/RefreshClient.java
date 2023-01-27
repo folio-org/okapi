@@ -75,7 +75,8 @@ public class RefreshClient implements Client {
 
   String tokenResponse(HttpResponse<Buffer> res) {
     if (res.statusCode() != 201) {
-      throw new ClientException(res.bodyAsString());
+      throw new ClientException("POST " + REFRESH_PATH + " returned status "
+          + res.statusCode() + ": " + res.bodyAsString());
     }
     for (String v: res.cookies()) {
       io.netty.handler.codec.http.cookie.Cookie cookie = ClientCookieDecoder.STRICT.decode(v);
