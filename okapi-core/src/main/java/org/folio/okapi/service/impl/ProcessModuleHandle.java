@@ -7,8 +7,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.net.NetClient;
-import io.vertx.core.net.NetClientOptions;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import org.apache.logging.log4j.Logger;
@@ -20,6 +18,7 @@ import org.folio.okapi.common.Config;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
+import org.folio.okapi.util.PortChecker;
 import org.folio.okapi.util.TcpPortWaiting;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -71,23 +70,6 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     }
   }
 
-  private Future<Void> waitPortOpen(NetClient c, int iter) {
-    return c.connect(port, "localhost")
-        .compose(
-            socket -> socket.close()
-                .compose(y -> {
-                  if (iter == 0) {
-                    return Future.failedFuture(
-                        messages.getMessage("11502", Integer.toString(port)));
-                  }
-                  Promise<Void> promise = Promise.promise();
-                  vertx.setTimer(100, x ->
-                      waitPortOpen(c, iter - 1).onComplete(promise));
-                  return promise.future();
-                }),
-            noSocket -> Future.succeededFuture());
-  }
-
   @Override
   public Future<Void> start() {
     if (process != null) {
@@ -97,10 +79,7 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
       return start2();
     }
     // fail if port is already in use
-    NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
-    NetClient netClient = vertx.createNetClient(options);
-    return waitPortOpen(netClient, 5)
-        .onComplete(x -> netClient.close())
+    return PortChecker.waitPortToClose(vertx, port, 5)
         .compose(x -> start2());
   }
 
@@ -185,19 +164,8 @@ public class ProcessModuleHandle extends NuAbstractProcessHandler implements Mod
     if (port == 0) {
       return Future.succeededFuture();
     }
-    NetClientOptions options = new NetClientOptions().setConnectTimeout(50);
-    NetClient c = vertx.createNetClient(options);
-    return c.connect(port, "localhost").compose(
-        socket -> socket.close()
-            .otherwiseEmpty().compose(x -> {
-              if (iter == 0) {
-                return Future.failedFuture(messages.getMessage("11503", Integer.toString(port)));
-              }
-              Promise<Void> promise = Promise.promise();
-              vertx.setTimer(100, id -> waitPortToClose(iter - 1).onComplete(promise));
-              return promise.future();
-            }),
-        noSocket -> Future.succeededFuture());
+    return PortChecker.waitPortToClose(vertx, port, iter)
+        .recover(e -> Future.failedFuture(messages.getMessage("11503", Integer.toString(port))));
   }
 
   @Override
