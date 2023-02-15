@@ -425,7 +425,7 @@ public class DockerModuleHandle implements ModuleHandle {
         .compose(res -> startContainer())
         .compose(res -> getContainerLog())
         .compose(res -> tcpPortWaiting.waitReady(null))
-        .recover(e -> stop().compose(x -> Future.failedFuture(e), x -> Future.failedFuture(e)));
+        .recover(e -> stop().transform(x -> Future.failedFuture(e)));
   }
 
   @Override
