@@ -1,3 +1,93 @@
+## 5.0.0 2023-02-15
+
+New features:
+
+* [OKAPI-1139](https://issues.folio.org/browse/OKAPI-1139) Refresh token client
+* [OKAPI-1154](https://issues.folio.org/browse/OKAPI-1154) install: topological sort considers replaces
+* [OKAPI-1151](https://issues.folio.org/browse/OKAPI-1151) Pass replace property for permissions
+* [OKAPI-1148](https://issues.folio.org/browse/OKAPI-1148) includeTimeMillis in `log4j2-json.properties`
+* [OKAPI-1145](https://issues.folio.org/browse/OKAPI-1145) Add token cache configs to okapi.conf
+
+Fixes/updates:
+
+* [OKAPI-1159](https://issues.folio.org/browse/OKAPI-1159) Vert.x 4.3.8, Micrometer 1.10.3
+* [OKAPI-1157](https://issues.folio.org/browse/OKAPI-1157) Reuse NetClient when checking ports
+* [OKAPI-1140](https://issues.folio.org/browse/OKAPI-1140) Wait for containers to be closed and removed
+
+API changes:
+
+* [OKAPI-1078](https://issues.folio.org/browse/OKAPI-1078) Remove ExtendedAsyncResult
+
+## 4.14.10 2023-01-19
+
+Fixes:
+
+* [OKAPI-1155](https://issues.folio.org/browse/OKAPI-1155) HTTP connection reset before response is sent (partly reverts [OKAPI-1144](https://issues.folio.org/browse/OKAPI-1144))
+
+## 4.14.9 2022-12-22
+
+Fixes:
+
+* [OKAPI-1143](https://issues.folio.org/browse/OKAPI-1143), [OKAPI-1150](https://issues.folio.org/browse/OKAPI-1150): Vert.x 4.3.7, Netty 4.1.86 fixing CVE-2022-41881, CVE-2022-41915
+* [OKAPI-1144](https://issues.folio.org/browse/OKAPI-1144), [OKAPI-1146](https://issues.folio.org/browse/OKAPI-1146), [OKAPI-1147](https://issues.folio.org/browse/OKAPI-1147): log\_wait\_ms option to report missing HTTP client close
+
+## 4.14.8 2022-12-01
+
+Fixes:
+
+* [OKAPI-1137](https://issues.folio.org/browse/OKAPI-1137) Upgrade to Hazelcast 4.2.6
+* [OKAPI-1136](https://issues.folio.org/browse/OKAPI-1136) Upgrade to Vert.x 4.3.5, nuprocess 2.0.6
+
+## 4.14.7 2022-11-07
+
+Fixes:
+
+* [OKAPI-1130](https://issues.folio.org/browse/OKAPI-1130) Permission okapi.all must include timer management permissions
+* [OKAPI-1129](https://issues.folio.org/browse/OKAPI-1129) NPE in timer patch
+
+## 4.14.6 2022-10-24
+
+Fixes:
+
+* [OKAPI-1127](https://issues.folio.org/browse/OKAPI-1127) Fix Using -Dloglevel=$OKAPI_LOGLEVEL does not take effect
+
+## 4.14.5 2022-10-05
+
+Fixes:
+
+* [OKAPI-1122](https://issues.folio.org/browse/OKAPI-1122): nuprocess 2.0.5 fixing Arbitrary Command Injection CVE-2022-39243
+* [OKAPI-1125](https://issues.folio.org/browse/OKAPI-1125): Vert.x 4.3.4, micrometer 1.9.4, log4j 2.19.0 - CVE-2022-42003, CVE-2022-42004
+
+## 4.14.4 2022-09-01
+
+Fixes:
+
+ * [OKAPI-1117](https://issues.folio.org/browse/OKAPI-1117) Empty values in logging. Okapi 4.13 thrue 4.14.3 in default logging configuration logged empty values for context variables (those in []'s)
+ * [OKAPI-1118](https://issues.folio.org/browse/OKAPI-1118) cron-utils 9.2.0, clean up javax.el/jakarta.el
+
+## 4.14.3 2022-08-11
+
+Fixes:
+
+ * [OKAPI-1111](https://issues.folio.org/browse/OKAPI-1111) mod-authtoken tenant init not called
+ * [OKAPI-1114](https://issues.folio.org/browse/OKAPI-1114) Upgrade to Vert.x 4.3.3, micrometer 1.9.3
+
+## 4.14.2 2022-07-01
+
+Fixes:
+
+ * [OKAPI-1109](https://issues.folio.org/browse/OKAPI-1109): Log to /var/log/folio/okapi/okapi.log, not STDOUT, in Debian
+ * [OKAPI-1101](https://issues.folio.org/browse/OKAPI-1101): Publish javadoc and sources to maven repository
+
+## 4.14.1 2022-05-30
+
+Fixes:
+
+ * Upgrade mongo to 5.0.8 for testing
+ * Fix javadoc for HttpClientFactory methods
+ * [OKAPI-1098](https://issues.folio.org/browse/OKAPI-1098): Fix Jakarta Expression Language validation (CVE-2021-28170)
+ * [OKAPI-1100](https://issues.folio.org/browse/OKAPI-1100): Vert.x 4.3.1, micrometer 1.8.4, nuprocess 2.0.3, test deps
+
 ## 4.14.0 2022-05-06
 
 New features:
@@ -10,7 +100,7 @@ New features:
  * [OKAPI-1079](https://issues.folio.org/browse/OKAPI-1079) Enable HTTP compression for pull. For this to work,
    the registry okapi should be updated
  * [OKAPI-1094](https://issues.folio.org/browse/OKAPI-1094) Update Vert.x from 4.2.6 to 4.2.7
- * [OKAPI-1096](https://issues.folio.org/browse/OKAPI-1096) New API: HttpClientFactory (with WebClientFactory)
+ * [OKAPI-1095](https://issues.folio.org/browse/OKAPI-1095) New API: HttpClientFactory (with WebClientFactory)
 
 ## 4.13.2 2022-04-11
 
