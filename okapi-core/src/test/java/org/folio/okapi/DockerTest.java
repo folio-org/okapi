@@ -262,7 +262,7 @@ public class DockerTest {
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
       .assumingBaseUri("https://okapi.cloud");
 
-    // forward to 8090, which the module does not bind to..
+    // forward to 8090, but with no listening port.
     final String docUserDockerModule = "{" + LS
       + "  \"id\" : \"mod-users-5.0.0-bad-listening-port\"," + LS
       + "  \"name\" : \"users\"," + LS

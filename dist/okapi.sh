@@ -180,6 +180,10 @@ parse_okapi_conf()  {
       OKAPI_JAVA_OPTS+=" -Dtoken_cache_max_size=${token_cache_max_size}"
    fi
 
+   if [ "$log_wait_ms" ]; then
+      OKAPI_JAVA_OPTS+=" -Dlog_wait_ms=${log_wait_ms}"
+   fi
+
 }   # end parse_okapi_conf
 
 

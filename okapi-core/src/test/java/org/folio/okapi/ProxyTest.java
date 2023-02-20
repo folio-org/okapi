@@ -247,17 +247,16 @@ public class ProxyTest {
       request.handler(buf::appendBuffer);
       request.endHandler(res -> {
         try {
-          if (p.startsWith("/_/tenantpermissions")) {
-            logger.info("returning 200 in myTimerHandle");
-            response.setStatusCode(200);
-            response.end();
-          } else if (p.startsWith("/_/tenant")) {
+          if (p.startsWith("/_/tenant")) {
             response.setStatusCode(timerTenantInitStatus);
             response.end("timer response");
           } else if (p.startsWith("/permissionscall")) {
             JsonObject permObject = new JsonObject(buf);
             if (timerTenantPermissionsStatus == 200) {
               timerPermissions.put(permObject.getString("moduleId"), permObject.getJsonArray("perms"));
+              if (permObject.containsKey("replaces")) {
+                timerPermissions.put("replaces", permObject.getJsonArray("replaces"));
+              }
             }
             response.setStatusCode(timerTenantPermissionsStatus);
             response.end("timer permissions response");
@@ -3473,10 +3472,10 @@ public class ProxyTest {
 
     setupBasicTenant(tenant);
 
-    // test _tenantpermissions 1.0 vs 1.1 vs 2.0
-    for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1", "2.0")) {
+    // test _tenantpermissions 1.0, ... , 2.1
+    for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1", "2.0", "2.1")) {
       timerPermissions.clear();
-      setupBasicModule(tenant, moduleId, tenantPermissionsVersion, true, true, true);
+      setupBasicModule(tenant, moduleId, tenantPermissionsVersion, false, true, true);
       setupBasicAuth(tenant, authModuleId);
 
       JsonArray permissions = timerPermissions.getJsonArray(moduleId);
@@ -3485,12 +3484,13 @@ public class ProxyTest {
         Assert.assertEquals(2, permissions.size());
         Assert.assertFalse(hasPermReplaces(permissions));
       } else if (tenantPermissionsVersion.equals("1.1")) {
-        Assert.assertEquals(5, permissions.size());
+        Assert.assertEquals(4, permissions.size());
         Assert.assertFalse(hasPermReplaces(permissions));
       } else {
-        Assert.assertEquals(5, permissions.size());
+        Assert.assertEquals(4, permissions.size());
         Assert.assertTrue(hasPermReplaces(permissions));
       }
+      Assert.assertEquals(timerPermissions.containsKey("replaces"), tenantPermissionsVersion.equals("2.1"));
       // proxy calls
       Response r = given()
         .header("Content-Type", "application/json")
@@ -3642,6 +3642,7 @@ public class ProxyTest {
     String mdJson = new JsonObject()
       .put("id", authModuleId)
       .put("name", "auth")
+      .put("replaces", new JsonArray().add("oldauth"))
       .put("provides", new JsonArray()
         .add(new JsonObject()
           .put("id", "auth")

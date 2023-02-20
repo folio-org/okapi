@@ -4,6 +4,7 @@ import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.vertx.core.MultiMap;
 import java.util.List;
+import org.folio.okapi.common.Constants;
 import org.folio.okapi.common.XOkapiHeaders;
 
 public class TokenHeader {
@@ -37,9 +38,9 @@ public class TokenHeader {
       List<Cookie> cookies = ServerCookieDecoder.STRICT.decodeAll(cookieHeader);
       String accessToken = null;
       for (Cookie cookie : cookies) {
-        if (XOkapiHeaders.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
+        if (Constants.COOKIE_ACCESS_TOKEN.equals(cookie.name())) {
           if (accessToken != null) {
-            throw new IllegalArgumentException("Multiple " + XOkapiHeaders.COOKIE_ACCESS_TOKEN
+            throw new IllegalArgumentException("Multiple " + Constants.COOKIE_ACCESS_TOKEN
                 + " cookie names");
           }
           accessToken = cookie.value();
