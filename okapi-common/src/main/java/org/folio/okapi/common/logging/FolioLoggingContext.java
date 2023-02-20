@@ -61,6 +61,7 @@ public class FolioLoggingContext implements StrLookup {
    */
   @Override
   public String lookup(LogEvent event, String key) {
+    // needs try/catch until fixed: https://github.com/eclipse-vertx/vert.x/issues/4611
     try {
       if (key == null) {
         throw new IllegalArgumentException("Key cannot be null");
