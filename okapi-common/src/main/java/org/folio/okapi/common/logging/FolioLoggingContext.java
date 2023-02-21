@@ -61,17 +61,22 @@ public class FolioLoggingContext implements StrLookup {
    */
   @Override
   public String lookup(LogEvent event, String key) {
-    if (key == null) {
-      throw new IllegalArgumentException("Key cannot be null");
-    }
-    Context ctx = Vertx.currentContext();
-    if (ctx != null) {
-      String val = ctx.getLocal(LOGGING_VAR_PREFIX + key);
-      if (val != null) {
-        return val;
+    // needs try/catch until fixed: https://github.com/eclipse-vertx/vert.x/issues/4611
+    try {
+      if (key == null) {
+        throw new IllegalArgumentException("Key cannot be null");
       }
+      Context ctx = Vertx.currentContext();
+      if (ctx != null) {
+        String val = ctx.getLocal(LOGGING_VAR_PREFIX + key);
+        if (val != null) {
+          return val;
+        }
+      }
+      return EMPTY_VALUE;
+    } catch (NullPointerException e) {
+      return EMPTY_VALUE;
     }
-    return EMPTY_VALUE;
   }
 
   /**
