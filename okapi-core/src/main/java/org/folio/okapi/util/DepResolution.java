@@ -212,7 +212,7 @@ public final class DepResolution {
       }
     }
     List<InterfaceDescriptor> sortedList = new ArrayList<>(seenVersions);
-    sortedList.sort((a,b) -> a.compare(b));
+    sortedList.sort((a,b) -> b.compare(a));
     return sortedList;
   }
 

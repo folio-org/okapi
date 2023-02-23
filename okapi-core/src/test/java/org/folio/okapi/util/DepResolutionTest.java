@@ -825,7 +825,7 @@ public class DepResolutionTest {
     testList = new TreeSet<>();
     testList.add(mdB);
     testList.add(mdC);
-    Assert.assertEquals("Incompatible version for module moduleB-1.0.0 interface int. Need 1.0. Have 2.0/moduleC-1.0.0 3.0/moduleE-1.0.0",
+    Assert.assertEquals("Incompatible version for module moduleB-1.0.0 interface int. Need 1.0. Have 3.0/moduleE-1.0.0 2.0/moduleC-1.0.0",
         DepResolution.checkAvailable(available.values(), testList, false));
     Assert.assertTrue(testList.containsAll(List.of(mdB, mdC)));
 
