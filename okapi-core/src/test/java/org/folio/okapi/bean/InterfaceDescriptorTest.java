@@ -25,13 +25,15 @@ class InterfaceDescriptorTest {
     InterfaceDescriptor int13 = new InterfaceDescriptor("int", "1.3");
     InterfaceDescriptor int21 = new InterfaceDescriptor("int", "2.1");
     InterfaceDescriptor d12 = new InterfaceDescriptor("d", "1.2");
-    assertThat(d12.compare(int12)).isEqualTo(Integer.MAX_VALUE);
+    assertThat(d12.compare(int12)).isEqualTo(-4);
+    assertThat(int12.compare(d12)).isEqualTo(4);
     assertThat(int123.compare(int123)).isZero();
     assertThat(int123.compare(int12)).isEqualTo(1);
     assertThat(int12.compare(int123)).isEqualTo(-1);
     assertThat(int13.compare(int12)).isEqualTo(2);
     assertThat(int12.compare(int13)).isEqualTo(-2);
-    assertThat(int12.compare(int21)).isEqualTo(Integer.MAX_VALUE);
+    assertThat(int12.compare(int21)).isEqualTo(-3);
+    assertThat(int21.compare(int12)).isEqualTo(3);
   }
 
   @Test

@@ -191,11 +191,11 @@ public final class DepResolution {
     return true;
   }
 
-  private static Map<String, InterfaceDescriptor> checkPresenceDependency(
+  private static List<InterfaceDescriptor> checkPresenceDependency(
       ModuleDescriptor md, InterfaceDescriptor req,
       Map<String, List<InterfaceDescriptor>> ints) {
 
-    Map<String, InterfaceDescriptor> seenVersions = new HashMap<>();
+    Set<InterfaceDescriptor> seenVersions = new HashSet<>();
     List<InterfaceDescriptor> intsList = ints.get(req.getId());
     if (intsList != null) {
       for (InterfaceDescriptor pi : intsList) {
@@ -207,11 +207,13 @@ public final class DepResolution {
             logger.debug("Dependency OK");
             return null;
           }
-          seenVersions.put(pi.getVersion(), pi);
+          seenVersions.add(pi);
         }
       }
     }
-    return seenVersions;
+    List<InterfaceDescriptor> sortedList = new ArrayList<>(seenVersions);
+    sortedList.sort((a,b) -> b.compare(a));
+    return sortedList;
   }
 
   /**
@@ -228,7 +230,7 @@ public final class DepResolution {
       Collection<ModuleDescriptor> modList,
       boolean optional) {
 
-    Map<String, InterfaceDescriptor> seenVersions = checkPresenceDependency(md, req, ints);
+    Collection<InterfaceDescriptor> seenVersions = checkPresenceDependency(md, req, ints);
     if (seenVersions == null) { // found and compatible?
       return null;
     }
@@ -241,7 +243,7 @@ public final class DepResolution {
     // found but incompatible
     StringBuilder moduses = new StringBuilder();
     String sep = "";
-    for (InterfaceDescriptor seenVersion : seenVersions.values()) {
+    for (InterfaceDescriptor seenVersion : seenVersions) {
       moduses.append(sep).append(seenVersion.getVersion());
       sep = " ";
       for (ModuleDescriptor mdi : modList) {
