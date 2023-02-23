@@ -15,7 +15,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.ConfNames;
 import org.folio.okapi.bean.AnyDescriptor;
@@ -129,9 +128,7 @@ public class DockerModuleHandle implements ModuleHandle {
                 if (result.statusCode() == 204) {
                   promise.complete();
                 } else {
-                  String m = msg + " HTTP error "
-                      + result.statusCode() + "\n"
-                      + body.toString();
+                  String m = msg + " HTTP error " + result.statusCode() + "\n" + body;
                   logger.error(m);
                   promise.fail(m);
                 }
@@ -226,14 +223,12 @@ public class DockerModuleHandle implements ModuleHandle {
     res.handler(body::appendBuffer);
     res.endHandler(d -> {
       if (res.statusCode() != 200 && res.statusCode() != 201) {
-        String m = msg + " HTTP error "
-            + res.statusCode() + "\n"
-            + body.toString();
+        String m = msg + " HTTP error " + res.statusCode() + "\n" + body;
         logger.error(m);
         promise.fail(m);
         return;
       }
-      // Docker returns lines of JSON objects.. We just consider the first one
+      // Docker returns lines of JSON objects ... We just consider the first one
       // which is all we need.
       String line = body.toString();
       int idx = line.indexOf('\n');
@@ -395,9 +390,9 @@ public class DockerModuleHandle implements ModuleHandle {
     logger.info("create container from image {}", image);
 
     String doc = getCreateContainerDoc(exposedPort);
-    return postUrlJson("/containers/create", null,"createContainer", doc).compose(res -> {
+    return postUrlJson("/containers/create", null,"createContainer", doc).map(res -> {
       containerId = res.getString("Id");
-      return Future.succeededFuture();
+      return null;
     });
   }
 
@@ -407,14 +402,12 @@ public class DockerModuleHandle implements ModuleHandle {
       throw (new IllegalArgumentException(messages.getMessage("11302")));
     }
     JsonObject exposedPorts = config.getJsonObject("ExposedPorts");
-    if (exposedPorts != null) {
-      for (Map.Entry<String, Object> next : exposedPorts) {
-        String key = next.getKey();
-        String port = key.split("/")[0];
-        return Integer.parseInt(port);
-      }
+    if (exposedPorts == null || exposedPorts.isEmpty()) {
+      throw new IllegalArgumentException(messages.getMessage("11301"));
     }
-    throw (new IllegalArgumentException(messages.getMessage("11301")));
+    String key = exposedPorts.iterator().next().getKey();
+    String port = key.split("/")[0];
+    return Integer.parseInt(port);
   }
 
   private Future<Void> prepareContainer() {
@@ -429,16 +422,16 @@ public class DockerModuleHandle implements ModuleHandle {
         throw e;
       }
     }).compose(this::createContainer)
-        .compose(res -> startContainer().onFailure(cause -> deleteContainer()))
+        .compose(res -> startContainer())
         .compose(res -> getContainerLog())
         .compose(res -> tcpPortWaiting.waitReady(null))
-        .onFailure(cause -> stop());
+        .recover(e -> stop().transform(x -> Future.failedFuture(e)));
   }
 
   @Override
   public Future<Void> start() {
     if (dockerPull) {
-      // ignore error for pullImage.. if image is not present locally prepareContainer will fail
+      // ignore error for pullImage ... if image is not present locally prepareContainer will fail
       return pullImage().recover(x -> Future.succeededFuture()).compose(x -> prepareContainer());
     }
     return prepareContainer();

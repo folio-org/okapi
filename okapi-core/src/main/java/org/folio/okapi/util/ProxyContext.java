@@ -7,6 +7,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.ErrorType;
@@ -23,8 +24,9 @@ import org.folio.okapi.common.XOkapiHeaders;
  */
 @SuppressWarnings({"squid:S1192"})
 public class ProxyContext {
+  private static final Logger logger = OkapiLogger.get(); // logger name "okapi"
+  private static final Logger fullLogger = OkapiLogger.get("full");
 
-  private static final Logger logger = OkapiLogger.get();
   private List<ModuleInstance> modList;
   private final String reqId;
   private String tenant;
@@ -81,11 +83,9 @@ public class ProxyContext {
     if (curid == null || curid.isEmpty()) {
       reqId = newid.toString();
       ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
-      logger.debug("Assigning new reqId {}", newid);
     } else {
-      reqId = curid + ";" + newid.toString();
+      reqId = curid + ";" + newid;
       ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqId);
-      logger.debug("Appended a reqId {}", newid);
     }
     nanoTimeStart = 0;
     timerId = null;
@@ -100,9 +100,18 @@ public class ProxyContext {
     closeTimer();
     nanoTimeStart = System.nanoTime();
     if (waitMs > 0) {
-      timerId = ctx.vertx().setPeriodic(waitMs, res
-          -> logger.warn("{} WAIT {} {} {} {}", reqId, ctx.request().remoteAddress(), tenant,
-          ctx.request().method(), ctx.request().path())
+      timerId = ctx.vertx().setPeriodic(waitMs, res -> {
+            String mods = "";
+            if (modList != null) {
+              mods = modList.stream().map(x -> x.getModuleDescriptor().getId())
+                  .collect(Collectors.joining(" "));
+            }
+            OkapiMapMessage msg = new OkapiMapMessage(reqId, tenant, userId, mods,
+                String.format("%s WAIT %s %s %s %s %s", reqId,
+                    ctx.request().remoteAddress(), tenant, ctx.request().method(),
+                    ctx.request().path(), mods));
+            fullLogger.info(msg);
+          }
       );
     }
   }
@@ -203,20 +212,20 @@ public class ProxyContext {
   /**
    * Log that HTTP request has been received.
    * @param ctx routing context
-   * @param tenant tenant
    */
-  public final void logRequest(RoutingContext ctx, String tenant) {
+  public final void logRequest(RoutingContext ctx) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
-    StringBuilder mods = new StringBuilder();
-    if (modList != null && !modList.isEmpty()) {
-      for (ModuleInstance mi : modList) {
-        mods.append(" ").append(mi.getModuleDescriptor().getId());
+    if (fullLogger.isInfoEnabled()) {
+      String mods = "";
+      if (modList != null) {
+        mods = modList.stream().map(x -> x.getModuleDescriptor().getId())
+            .collect(Collectors.joining(" "));
       }
-    }
-    if (logger.isInfoEnabled()) {
-      logger.info("{} REQ {} {} {} {} {}", reqId,
-          ctx.request().remoteAddress(), tenant, ctx.request().method(),
-          ctx.request().path(), mods);
+      OkapiMapMessage msg = new OkapiMapMessage(reqId, tenant, userId, mods,
+          String.format("%s REQ %s %s %s %s %s", reqId,
+              ctx.request().remoteAddress(), tenant, ctx.request().method(),
+              ctx.request().path(), mods));
+      fullLogger.info(msg);
     }
     MetricsHelper.recordCodeExecutionTime(sample, "ProxyContext.logRequest");
   }
@@ -229,9 +238,11 @@ public class ProxyContext {
    */
   public void logResponse(String module, String url, int statusCode) {
     Timer.Sample sample = MetricsHelper.getTimerSample();
-    if (logger.isInfoEnabled()) {
-      logger.info("{} RES {} {} {} {}", reqId,
-          statusCode, timeDiff(), module, url);
+    if (fullLogger.isInfoEnabled()) {
+      OkapiMapMessage msg = new OkapiMapMessage(reqId, tenant, userId, module,
+          String.format("%s RES %s %s %s %s", reqId,
+              statusCode, timeDiff(), module, url));
+      fullLogger.info(msg);
     }
     MetricsHelper.recordCodeExecutionTime(sample, "ProxyContext.logResponse");
   }
@@ -272,9 +283,5 @@ public class ProxyContext {
 
   public void setUserId(String userId) {
     this.userId = userId;
-  }
-
-  public String getUserId() {
-    return userId;
   }
 }

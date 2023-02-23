@@ -1,6 +1,5 @@
 package org.folio.okapi.util;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,10 +7,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Collection;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -26,7 +27,7 @@ import org.junit.Test;
 import static org.folio.okapi.util.TenantModuleDescriptorMatcher.*;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.*;
 
 public class DepResolutionTest {
 
@@ -194,7 +195,7 @@ public class DepResolutionTest {
 
   @Test
   public void testMultipleInterfaces() {
-    List<TenantModuleDescriptor> tml = enableList(mdB,mdA100);
+    List<TenantModuleDescriptor> tml = enableList(mdB, mdA100);
 
     OkapiError error = Assert.assertThrows(OkapiError.class,
         () -> DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdE100), map(mdA100), tml, false));
@@ -212,7 +213,7 @@ public class DepResolutionTest {
   public void testUpgrade1() {
     List<TenantModuleDescriptor> tml = enableList(mdD200);
     DepResolution.install(map(mdA100, mdB, mdC, mdA110, mdA200, mdD100, mdD200), map(mdB), tml, false);
-    assertThat(tml, contains(disable(mdB), enable(mdA200), enable(mdD200)));
+    assertThat(tml, contains(enable(mdD200), disable(mdB), enable(mdA200)));
   }
 
   @Test
@@ -253,7 +254,7 @@ public class DepResolutionTest {
   public void testInstallMinorLeafOptional() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     DepResolution.install(map(mdA100, mdA110, mdA111, mdD100, mdD110, mdE100), map(mdA100), tml, false);
-    assertThat(tml, contains(upgrade(mdA111, mdA100), enable(mdD110)));
+    assertThat(tml, contains(enable(mdD110), upgrade(mdA111, mdA100)));
   }
 
   // upgrade base dependency which is still compatible with optional interface
@@ -269,7 +270,7 @@ public class DepResolutionTest {
   public void testInstallMinorLeafOptional2() {
     List<TenantModuleDescriptor> tml = enableList(mdD110);
     DepResolution.install(map(mdA100, mdA110, mdA111, mdD100, mdD110), map(mdA100, mdD100), tml, false);
-    assertThat(tml, contains(upgrade(mdA111, mdA100), upgrade(mdD110, mdD100)));
+    assertThat(tml, contains(upgrade(mdD110, mdD100), upgrade(mdA111, mdA100)));
   }
 
   // upgrade base dependency which is a major interface bump to optional interface
@@ -299,8 +300,8 @@ public class DepResolutionTest {
 
     List<TenantModuleDescriptor> tml = enableList(mdA200);
     OkapiError error = Assert.assertThrows(OkapiError.class,
-        () ->  DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200F),
-           map(mdA100, mdD100), tml, false));
+        () -> DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200F),
+            map(mdA100, mdD100), tml, false));
     Assert.assertEquals("interface unknown required by module moduleD-2.0.0 not found", error.getMessage());
   }
 
@@ -310,7 +311,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdD200);
     DepResolution.install(map(mdA100, mdA110, mdA200, mdD100, mdD110, mdD200, mdA200),
         map(mdA100, mdD100), tml, false);
-    assertThat(tml, contains(upgrade(mdA200, mdA100), upgrade(mdD200, mdD100)));
+    assertThat(tml, contains(upgrade(mdD200, mdD100), upgrade(mdA200, mdA100)));
   }
 
   // install optional with existing interface that needs upgrading, but
@@ -426,6 +427,20 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = enableList(mdE100);
     DepResolution.install(map(mdA100, mdA110, mdB, mdC, mdE100), map(), tml, false);
     assertThat(tml, contains(enable(mdC), enable(mdE100)));
+  }
+
+  @Test
+  public void testRequiredInterfacesReplaces() {
+    List<TenantModuleDescriptor> tml = enableList(mdE100, ot100);
+    DepResolution.install(map(mdE100, ot100, mdA100), map(), tml, false);
+    assertThat(tml, contains(enable(mdA100), enable(mdE100), enable(ot100)));
+
+    mdB.setReplaces(new String[]{mdA100.getProduct()});
+    tml = enableList(mdB);
+    tml.addAll(createList(Action.disable, ot100));
+
+    DepResolution.install(map(mdA100, ot100, mdB, mdE100), map(mdA100, mdE100, ot100), tml, false);
+    assertThat(tml, contains(enable(mdB), disable(ot100), disable(mdA100)));
   }
 
   @Test
@@ -633,14 +648,14 @@ public class DepResolutionTest {
     ModuleDescriptor modD = new ModuleDescriptor("modD-1.0.0");
     modD.setOptional(i2);
 
-    Assert.assertTrue(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1"), modA));
-    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1", "i2"), modB));
-    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), Set.of("i1", "i2", "i3"), modC));
+    Assert.assertTrue(DepResolution.moduleDepProvided(Collections.emptyList(), modA));
+    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), modB));
+    Assert.assertFalse(DepResolution.moduleDepProvided(Collections.emptyList(), modC));
 
-    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA), Set.of("i1"), modB));
-    Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), Set.of("i0", "i1"), modB));
-    Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), Set.of("i0", "i1", "i2", "i3"), modC));
-    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA, modB), Set.of("i1", "i2"), modC));
+    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA), modB));
+    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA), modB));
+    Assert.assertFalse(DepResolution.moduleDepProvided(List.of(modA), modC));
+    Assert.assertTrue(DepResolution.moduleDepProvided(List.of(modA, modB), modC));
 
     Assert.assertTrue(DepResolution.moduleDepRequired(Collections.emptyList(), modA));
     Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA), modA));
@@ -649,7 +664,7 @@ public class DepResolutionTest {
     Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modB), modB));
 
     Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modA));
-    Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD),modB));
+    Assert.assertFalse(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modB));
     Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modC));
     Assert.assertTrue(DepResolution.moduleDepRequired(List.of(modA, modB, modC, modD), modD));
 
@@ -748,7 +763,7 @@ public class DepResolutionTest {
       Map<String, ModuleDescriptor> modsAvailable = map(modA, modB, modC, modD);
       List<TenantModuleDescriptor> tml = enableList(modD, modB);
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(enable(modA), enable(modB), enable(modD)));
+      assertThat(tml, contains(enable(modD), enable(modA), enable(modB)));
     }
 
     {
@@ -756,7 +771,7 @@ public class DepResolutionTest {
       List<TenantModuleDescriptor> tml = enableList(modB, modD);
       tml.addAll(createList(Action.suggest, modA));
       DepResolution.install(modsAvailable, map(), tml, false);
-      assertThat(tml, contains(new TenantModuleDescriptorMatcher(Action.suggest, modA, null), enable(modA), enable(modB), enable(modD)));
+      assertThat(tml, contains(enable(modD), new TenantModuleDescriptorMatcher(Action.suggest, modA, null), enable(modA), enable(modB)));
     }
   }
 
@@ -908,7 +923,7 @@ public class DepResolutionTest {
 
       List<TenantModuleDescriptor> tml = enableList(st101);
       DepResolution.install(map(st100, st101, ot100, ot101, ot101_alt, os101_alt),
-              map(ot100, st100), tml, false);
+          map(ot100, st100), tml, false);
       assertThat(tml, contains(upgrade(st101, st100), upgrade(ot101, ot100)));
     }
   }
@@ -1068,11 +1083,11 @@ public class DepResolutionTest {
     ot100.setProvides(new InterfaceDescriptor[]{tenant20});
 
     ModuleDescriptor ot101 = new ModuleDescriptor("ot-1.0.1");
-    ot101.setRequires(new InterfaceDescriptor[] {int20});
+    ot101.setRequires(new InterfaceDescriptor[]{int20});
     ot101.setProvides(new InterfaceDescriptor[]{tenant20});
 
     ModuleDescriptor ot102 = new ModuleDescriptor("ot-1.0.2");
-    ot102.setRequires(new InterfaceDescriptor[] {int20, ont10});
+    ot102.setRequires(new InterfaceDescriptor[]{int20, ont10});
     ot102.setProvides(new InterfaceDescriptor[]{tenant20});
 
     ModuleDescriptor p100 = new ModuleDescriptor("p-1.0.0");
@@ -1102,7 +1117,7 @@ public class DepResolutionTest {
 
     errors = DepResolution.checkEnabled(map(mdA100, mdA110, mdA200));
     Assert.assertEquals("Multiple modules moduleA-1.1.0, moduleA-1.0.0, moduleA-2.0.0 provide interface int",
-            errors.get(0));
+        errors.get(0));
   }
 
   // see that order is right. mdE requires mdA (so mdA must be enabled first)
@@ -1137,14 +1152,14 @@ public class DepResolutionTest {
     available.put(mdA100.getId(), mdA100);
     available.put(mdB.getId(), mdB);
     InterfaceDescriptor req = new InterfaceDescriptor("int", "1.0");
-    Map<String,ModuleDescriptor> products = DepResolution.findModulesForRequiredInterface(available, req);
+    Map<String, ModuleDescriptor> products = DepResolution.findModulesForRequiredInterface(available, req);
     assertThat(products, is(Map.of(mdA111.getProduct(), mdA111, mdB.getProduct(), mdB)));
 
     req = new InterfaceDescriptor("int", "1.1");
     products = DepResolution.findModulesForRequiredInterface(available, req);
     assertThat(products, is(Map.of(mdA111.getProduct(), mdA111)));
 
-    mdA100.setReplaces(new String[] {mdB.getProduct()});
+    mdA100.setReplaces(new String[]{mdB.getProduct()});
     req = new InterfaceDescriptor("int", "1.0");
     products = DepResolution.findModulesForRequiredInterface(available, req);
     assertThat(products, is(Map.of(mdA111.getProduct(), mdA111)));
@@ -1158,10 +1173,10 @@ public class DepResolutionTest {
     available.put(mdE110.getId(), mdE110);
     available.put(mdE200.getId(), mdE200);
     InterfaceDescriptor prov = new InterfaceDescriptor("int", "1.1");
-    Map<String,ModuleDescriptor> products = DepResolution.findModuleWithProvidedInterface(available, prov);
+    Map<String, ModuleDescriptor> products = DepResolution.findModuleWithProvidedInterface(available, prov);
     assertThat(products, is(Map.of(mdE110.getProduct(), mdE110, ot100.getProduct(), ot100)));
 
-    mdE100.setReplaces(new String[] {ot100.getProduct()});
+    mdE100.setReplaces(new String[]{ot100.getProduct()});
     products = DepResolution.findModuleWithProvidedInterface(available, prov);
     assertThat(products, is(Map.of(mdE110.getProduct(), mdE110)));
   }
@@ -1169,15 +1184,15 @@ public class DepResolutionTest {
   @Test
   public void testIterations() {
     int numberOfModules = 5;
-    Map<String,ModuleDescriptor> available = new HashMap<>();
+    Map<String, ModuleDescriptor> available = new HashMap<>();
     ModuleDescriptor md = null;
     for (int i = 0; i < numberOfModules; i++) {
       md = new ModuleDescriptor("m" + i + "-1.0.0");
       if (i > 0) {
-        md.setRequires("i" + (i-1), "1.0");
+        md.setRequires("i" + (i - 1), "1.0");
       }
       InterfaceDescriptor interfaceDescriptor = new InterfaceDescriptor("i" + i, "1.0");
-      md.setProvides(new InterfaceDescriptor[] {interfaceDescriptor});
+      md.setProvides(new InterfaceDescriptor[]{interfaceDescriptor});
       available.put(md.getId(), md);
     }
     List<TenantModuleDescriptor> tml = enableList(md);
@@ -1195,13 +1210,269 @@ public class DepResolutionTest {
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     ModuleDescriptor md = new ModuleDescriptor("mod-1.0.0");
     md.setRequires("int", "1.0");
-    tm.setId(md.getId());
-    tm.setAction(Action.enable);
-    List<TenantModuleDescriptor> tml = new ArrayList<>();
-    tml.add(tm);
-    Map<String,ModuleDescriptor> modsAvailable = new HashMap<>();
+    List<TenantModuleDescriptor> tml = enableList(md);
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
     modsAvailable.put(md.getId(), md);
-    DepResolution.sortTenantModules(tml, modsAvailable, new HashSet<>(), Set.of("int"));
-    assertThat(tml, contains(tm));
+    OkapiError error = Assert.assertThrows(OkapiError.class, () ->
+        DepResolution.sortTenantModules(tml, modsAvailable, new HashSet<>()));
+    Assert.assertEquals("Some modules cannot be topological sorted: mod-1.0.0", error.getMessage());
   }
+
+  @Test
+  public void circularRequire() {
+    InterfaceDescriptor inta = new InterfaceDescriptor("inta", "1.0");
+    InterfaceDescriptor intb = new InterfaceDescriptor("intb", "1.0");
+
+    ModuleDescriptor mdA = new ModuleDescriptor("modA-1.0.0");
+    mdA.setProvides(new InterfaceDescriptor[]{inta});
+    mdA.setRequires(new InterfaceDescriptor[]{intb});
+
+    ModuleDescriptor mdB = new ModuleDescriptor("modB-1.0.0");
+    mdB.setProvides(new InterfaceDescriptor[]{intb});
+    mdB.setRequires(new InterfaceDescriptor[]{inta});
+
+    List<TenantModuleDescriptor> tml = enableList(mdA, mdB);
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.install(map(mdA, mdB), map(), tml, false));
+    Assert.assertEquals("Some modules cannot be topological sorted: modA-1.0.0, modB-1.0.0", error.getMessage());
+  }
+
+  @Test
+  public void circularOptional() {
+    InterfaceDescriptor inta = new InterfaceDescriptor("inta", "1.0");
+    InterfaceDescriptor intb = new InterfaceDescriptor("intb", "1.0");
+
+    ModuleDescriptor mdA = new ModuleDescriptor("modA-1.0.0");
+    mdA.setProvides(new InterfaceDescriptor[]{inta});
+    mdA.setOptional(new InterfaceDescriptor[]{intb});
+
+    ModuleDescriptor mdB = new ModuleDescriptor("modB-1.0.0");
+    mdB.setProvides(new InterfaceDescriptor[]{intb});
+    mdB.setRequires(new InterfaceDescriptor[]{inta});
+
+    List<TenantModuleDescriptor> tml = enableList(mdA, mdB);
+    DepResolution.install(map(mdA, mdB), map(), tml, false);
+    assertThat(tml, contains(enable(mdA), enable(mdB)));
+
+    tml = createList(Action.disable, mdA, mdB);
+    DepResolution.install(map(mdA, mdB), map(mdA, mdB), tml, false);
+    assertThat(tml, contains(disable(mdB), disable(mdA)));
+  }
+
+  @Test
+  public void permissionCheck() {
+    JsonObject mdaObject = new JsonObject()
+        .put("id", "moda-1.0.0")
+        .put("provides", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "inta")
+                .put("version", "1.0")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("GET"))
+                        .put("pathPattern", "/a")
+                        .put("permissionsRequired", new JsonArray().add("inta.get"))
+                    )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/a")
+                        .put("permissionsRequired", new JsonArray().add("inta.post"))
+                        .put("modulePermissions", new JsonArray().add("intb.get"))
+                    )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("PUT"))
+                        .put("pathPattern", "/a")
+                        .put("permissionsDesired", new JsonArray().add("intb.get"))
+                    )
+                )
+            )
+        )
+        .put("requires", new JsonArray())
+        .put("optional", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "intb")
+                .put("version", "1.0")
+            )
+        )
+        .put("permissionSets", new JsonArray()
+            .add(new JsonObject()
+                .put("permissionName", "inta.get")
+            )
+            .add(new JsonObject()
+                .put("permissionName", "inta.ppost") // deliberate typo
+            )
+        );
+
+    JsonObject mdbObject = new JsonObject()
+        .put("id", "modb-1.0.0")
+        .put("provides", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "intb")
+                .put("version", "1.0")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("GET"))
+                        .put("pathPattern", "/b")
+                        .put("permissionsRequired", new JsonArray().add("intb.get").add("intc.get"))
+                    )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/b")
+                        .put("permissionsRequired", new JsonArray().add("intb.post"))
+                        .put("modulePermissions", new JsonArray().add("intc.post"))
+                        .put("permissionsDesired", new JsonArray().add("intc.post"))
+                    )
+                )
+            )
+        )
+        .put("requires", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "inta")
+                .put("version", "1.0")
+            )
+        )
+        .put("optional", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "intc")
+                .put("version", "1.0")
+            )
+        )
+        .put("permissionSets", new JsonArray()
+            .add(new JsonObject()
+                .put("permissionName", "intb.get")
+            )
+            .add(new JsonObject()
+                .put("permissionName", "intb.post")
+            )
+            .add(new JsonObject()
+                .put("permissionName", "intb.all")
+                .put("subPermissions", new JsonArray().add("intc.delete").add("intb.get"))
+            )
+        );
+    ModuleDescriptor mda = Json.decodeValue(mdaObject.encode(), ModuleDescriptor.class);
+    ModuleDescriptor mdb = Json.decodeValue(mdbObject.encode(), ModuleDescriptor.class);
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mda.getId(), mda);
+    modsAvailable.put(mdb.getId(), mdb);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mda.getId(), mda);
+    modsEnabled.put(mdb.getId(), mdb);
+
+    Map<ModuleDescriptor, List<String>> errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
+    assertThat(errors.keySet(), contains(mda));
+    assertThat(errors.get(mda), contains("Undefined permission 'inta.post' in permissionsRequired"));
+
+    JsonObject mdcObject = new JsonObject()
+        .put("id", "modc-1.0.0")
+        .put("provides", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "intc")
+                .put("version", "1.0")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("GET"))
+                        .put("pathPattern", "/c")
+                        .put("permissionsRequired", new JsonArray().add("intc.get"))
+                    )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("POST"))
+                        .put("pathPattern", "/b")
+                        .put("permissionsRequired", new JsonArray().add("intc.post"))
+                    )
+                )
+            )
+        )
+        .put("requires", new JsonArray())
+        .put("optional", new JsonArray())
+        .put("permissionSets", new JsonArray()
+            .add(new JsonObject()
+                .put("permissionName", "intc.get")
+            )
+            .add(new JsonObject()
+                .put("permissionName", "intc.ppost") // deliberate typo
+            )
+            .add(new JsonObject()
+                .put("permissionName", "intc.ddelete") // deliberate typo
+            )
+            .add(new JsonObject()
+                .put("permissionName", "inta.get") // same as in moda
+            )
+        );
+    ModuleDescriptor mdc = Json.decodeValue(mdcObject.encode(), ModuleDescriptor.class);
+    modsAvailable.put(mdc.getId(), mdc);
+    errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
+    assertThat(errors.keySet(), contains(mda, mdb, mdc));
+    assertThat(errors.get(mda), contains("Undefined permission 'inta.post' in permissionsRequired",
+        "Permission 'inta.get' defined in multiple modules: moda-1.0.0, modc-1.0.0"));
+    assertThat(errors.get(mdb), contains("Undefined permission 'intc.post' in modulePermissions",
+        "Undefined permission 'intc.post' in permissionsDesired",
+        "Undefined permission 'intc.delete' in subPermissions"));
+    assertThat(errors.get(mdc), contains(
+        "Permission 'inta.get' defined in multiple modules: moda-1.0.0, modc-1.0.0"));
+
+    mdcObject.put("permissionSets", new JsonArray()
+        .add(new JsonObject()
+            .put("permissionName", "intc.get")
+        )
+        .add(new JsonObject()
+            .put("permissionName", "intc.post")
+        )
+        .add(new JsonObject()
+            .put("permissionName", "intc.delete")
+        )
+        .add(new JsonObject()
+            .put("permissionName", "inta.post")
+        )
+    );
+    mdc = Json.decodeValue(mdcObject.encode(), ModuleDescriptor.class);
+    modsAvailable.put(mdc.getId(), mdc);
+    errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
+    assertThat(errors.size(), is(0));
+  }
+
+  @Test
+  public void permissionCheckAlreadyMentioned() {
+    JsonObject mdaObject = new JsonObject()
+        .put("id", "moda-1.0.0")
+        .put("provides", new JsonArray()
+            .add(new JsonObject()
+                .put("id", "inta")
+                .put("version", "1.0")
+                .put("handlers", new JsonArray()
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("GET"))
+                        .put("pathPattern", "/a")
+                        .put("permissionsRequired", new JsonArray().add("inta.get"))
+                    )
+                    .add(new JsonObject()
+                        .put("methods", new JsonArray().add("PUT"))
+                        .put("pathPattern", "/a")
+                        .put("modulePermissions", new JsonArray().add("inta.get"))
+                        .put("permissionsRequired", new JsonArray().add("inta.post"))
+                    )
+                )
+            )
+        )
+        .put("requires", new JsonArray())
+        .put("permissionSets", new JsonArray()
+            .add(new JsonObject()
+                .put("permissionName", "inta.post")
+            )
+            .add(new JsonObject()
+                .put("permissionName", "inta.delete")
+                .put("subPermissions", new JsonArray().add("inta.get"))
+            )
+        );
+    ModuleDescriptor mda = Json.decodeValue(mdaObject.encode(), ModuleDescriptor.class);
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mda.getId(), mda);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mda.getId(), mda);
+
+    Map<ModuleDescriptor, List<String>> errors = DepResolution.checkPermissionNames(modsAvailable, modsEnabled);
+    assertThat(errors.get(mda), contains("Undefined permission 'inta.get' in permissionsRequired"));
+  }
+
 }

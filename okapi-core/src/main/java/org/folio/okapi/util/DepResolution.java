@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.bean.Permission;
+import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
@@ -127,57 +129,58 @@ public final class DepResolution {
   }
 
   /**
-   * Check if md's required and optional interfaces are provided by set of modules.
-   * Only interfaces listed in allProvided are checked, this allows for the exclusion of
-   * some optional interfaces from the check.
+   * Check if md's required interfaces are provided by set of modules.
    *
    * @param modules     the modules to check against
-   * @param allProvided interfaces for all modules
    * @param md          module to check.
-   * @return            true if interface requirements are met
+   * @return            true if interface requirements are met; false otherwise
    */
   public static boolean moduleDepProvided(
-      Collection<ModuleDescriptor> modules, Set<String> allProvided,
-      ModuleDescriptor md) {
+      Collection<ModuleDescriptor> modules, ModuleDescriptor md) {
 
-    for (InterfaceDescriptor req : md.getRequiresOptionalList()) {
-      if (!allProvided.contains(req.getId())) {
-        continue;
-      }
-      boolean found = false;
+    interfaceDescriptor:
+    for (InterfaceDescriptor req : md.getRequiresList()) {
       for (ModuleDescriptor md1 : modules) {
         InterfaceDescriptor[] providesList = md1.getProvidesList();
         for (InterfaceDescriptor prov : providesList) {
           if (prov.isRegularHandler() && prov.isCompatible(req)) {
-            found = true;
+            continue interfaceDescriptor;
           }
         }
       }
-      if (!found) {
-        return false;
-      }
+      return false;
     }
     return true;
   }
 
   /**
-   * Check if md's provided interfaces are required by any of the modules.
-   * Only interfaces listed in allProvided are checked, this allows for the exclusion of
-   * some optional interfaces from the check.
+   * Check if any of md's provided interfaces are used by any of the modules.
+   *
+   * <p>A interface is used if it's a required interface dependency. If the module is
+   * replaced by another module in the list of modules, none of the provided
+   * interfaces are considered "used".
    *
    * @param modules     the modules to check against
    * @param md          module to check
-   * @return            true if modules do not use any of the provided interfaces; false otherwise
+   * @return            true if modules do not require any of the provided interfaces
+   *                    or module is replaced.
    */
   public static boolean moduleDepRequired(Collection<ModuleDescriptor> modules,
       ModuleDescriptor md) {
 
+    String product = md.getProduct();
+    for (ModuleDescriptor md1 : modules) {
+      String [] replaces = md1.getReplaces();
+      if (replaces != null && Arrays.asList(replaces).contains(product)) {
+        return true;
+      }
+    }
     for (InterfaceDescriptor prov : md.getProvidesList()) {
       if (!prov.isRegularHandler()) {
         continue;
       }
       for (ModuleDescriptor md1 : modules) {
-        List<InterfaceDescriptor> requiresList = md1.getRequiresOptionalList();
+        InterfaceDescriptor [] requiresList = md1.getRequiresList();
         for (InterfaceDescriptor req : requiresList) {
           if (prov.isCompatible(req)) {
             return false;
@@ -321,8 +324,8 @@ public final class DepResolution {
       TenantModuleDescriptor.Action action) {
     if (action == TenantModuleDescriptor.Action.enable && from != null
         && !new ModuleId(id).getProduct().equals(new ModuleId(from).getProduct())) {
-      // upgrading between two different products.. so this upgrade is turned into
-      // a disable, then en enable
+      // upgrading between two different products ... so this upgrade is turned into
+      // disable, followed by enable
       TenantModuleDescriptor tm = new TenantModuleDescriptor();
       tm.setAction(TenantModuleDescriptor.Action.disable);
       tm.setId(from);
@@ -403,8 +406,8 @@ public final class DepResolution {
    * <p>For each entry in providedInterfaces with more than one ModuleInterface add an error
    * message to errors.
    *
-   * <p>If fix is true and it is not listed in stickyModules also disable it by adding an
-   * disable entry to tml and by removing it from modsEnabled.
+   * <p>If fix is true, and it is not listed in stickyModules also disable it by adding an
+   * action=disable entry to tml and by removing it from modsEnabled.
    *
    * <p>If a module gets disabled the method stops and returns true without checking the
    * remaining interfaces.
@@ -660,38 +663,39 @@ public final class DepResolution {
         i++;
       } while (errors == null && i < maxIterations);
       logger.info("Dependency resolution done in {} iterations", i);
-      if (errors == null) {
-        throw new OkapiError(ErrorType.INTERNAL,
-            "Dependency resolution not completing in " + maxIterations + " iterations");
-      }
+    }
+    if (errors == null) {
+      throw new OkapiError(ErrorType.INTERNAL,
+          "Dependency resolution not completing in " + maxIterations + " iterations");
     }
     if (!errors.isEmpty()) {
       throw new OkapiError(ErrorType.USER, String.join(". ", errors));
     }
-    // in reality this is not required as install sort as well
-    sortTenantModules(tml, modsAvailable, enabledModules, modsEnabled);
-  }
-
-  static void sortTenantModules(List<TenantModuleDescriptor> tml,
-      Map<String, ModuleDescriptor> modsAvailable, Collection<ModuleDescriptor> modules,
-      Map<String, ModuleDescriptor> modsEnabled) {
-
-    Set<String> allProvided = new HashSet<>();
-    for (ModuleDescriptor md : modsEnabled.values()) {
-      for (InterfaceDescriptor descriptor : md.getProvidesList()) {
-        if (descriptor.isRegularHandler()) {
-          allProvided.add(descriptor.getId());
-        }
+    Map<ModuleDescriptor, List<String>> permErrors = checkPermissionNames(modsAvailable,
+        modsEnabled);
+    for (Map.Entry<ModuleDescriptor, List<String>> ent : permErrors.entrySet()) {
+      for (String msg : ent.getValue()) {
+        logger.warn("{}: {}", ent.getKey().getId(), msg);
       }
     }
-    sortTenantModules(tml, modsAvailable, modules, allProvided);
+    sortTenantModules(tml, modsAvailable, enabledModules);
   }
 
+  /**
+   * Sort the modules honoring enable/disable actions.
+   *
+   * <p>This is topological sort where nodes represent modules and arcs represent
+   * interface dependencies.
+   * @see <a href="https://en.wikipedia.org/wiki/Topological_sorting">Topological sorting</a>
+   * @param tml the module list with actions and the resulting sorted list afterwards.
+   * @param modsAvailable all known modules
+   * @param modules the existing list of modules and current list as we go on
+   * @throws OkapiError if dependencies can not be satisfied - including circular dependencies
+   */
   static void sortTenantModules(List<TenantModuleDescriptor> tml,
-      Map<String, ModuleDescriptor> modsAvailable, Collection<ModuleDescriptor> modules,
-      Set<String> allProvided) {
+      Map<String, ModuleDescriptor> modsAvailable, Collection<ModuleDescriptor> modules) {
 
-    logger.info("sortTenantModules with list {}",
+    logger.info("sortTenantModules with list {}", () ->
         tml.stream().map(TenantModuleDescriptor::getId).collect(Collectors.joining(", ")));
     List<TenantModuleDescriptor> result = new ArrayList<>();
     Iterator<TenantModuleDescriptor> iterator = tml.iterator();
@@ -713,7 +717,7 @@ public final class DepResolution {
         logger.debug("See if module {} can be added to existing list of modules {}",
             md.getId(), modules.stream().map(ModuleDescriptor::getId)
                 .collect(Collectors.joining(", ")));
-        if (DepResolution.moduleDepProvided(modules, allProvided, md)) {
+        if (DepResolution.moduleDepProvided(modules, md)) {
           logger.debug("yes: adding {}", md.getId());
           iterator.remove();
           iterator = tml.iterator();
@@ -730,6 +734,11 @@ public final class DepResolution {
         iterator = tml.iterator();
         result.add(tm);
       }
+    }
+    if (!tml.isEmpty()) {
+      // it would be good to analyze this further with the interfaces that are problematic
+      throw new OkapiError(ErrorType.USER, "Some modules cannot be topological sorted: "
+          + tml.stream().map(TenantModuleDescriptor::getId).collect(Collectors.joining(", ")));
     }
     tml.addAll(result);
   }
@@ -748,8 +757,7 @@ public final class DepResolution {
 
     Set<String> replaceProducts = new HashSet<>();
     Map<String, ModuleDescriptor> productMd = new HashMap<>();
-    for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
-      ModuleDescriptor md = entry.getValue();
+    for (ModuleDescriptor md : modsAvailable.values()) {
       String product = md.getProduct();
       List<InterfaceDescriptor> list = provide
           ? md.getRequiresOptionalList() : Arrays.asList(md.getProvidesList());
@@ -780,7 +788,7 @@ public final class DepResolution {
    * Find modules that provide a required interface.
    * @param modsAvailable all modules known
    * @param req required interface to check
-   * @return newest modules that meets the requirements; empty if no modules are found
+   * @return newest modules that meet the requirements; empty if no modules are found
    */
   static Map<String, ModuleDescriptor> findModulesForRequiredInterface(
       Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor req) {
@@ -798,5 +806,142 @@ public final class DepResolution {
       Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor prov) {
 
     return findModulesForInterface(modsAvailable, prov, true);
+  }
+
+  static Map<ModuleDescriptor, List<String>> checkPermissionNames(
+      Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled) {
+
+    Map<String, Set<ModuleDescriptor>> defined = new HashMap<>();
+    Map<String, Set<ModuleDescriptor>> referRequired = new HashMap<>();
+    Map<String, Set<ModuleDescriptor>> referPermissionsDesired = new HashMap<>();
+    Map<String, Set<ModuleDescriptor>> referModulePermissions = new HashMap<>();
+    Map<String, Set<ModuleDescriptor>> referSubPermissions = new HashMap<>();
+    Set<String> unknown = new HashSet<>();
+
+    for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
+      ModuleDescriptor md = entry.getValue();
+      boolean optionalUnknown = false;
+      for (InterfaceDescriptor opt : md.getOptionalList()) {
+        if (!DepResolution.findModulesForRequiredInterface(modsEnabled, opt).isEmpty()) {
+          continue; // this optional interface is part of our enabled modules
+        }
+        Map<String, ModuleDescriptor> modules =
+            DepResolution.findModulesForRequiredInterface(modsAvailable, opt);
+        if (modules.isEmpty()) {
+          optionalUnknown = true;
+        } else {
+          addDefinedPermissions(defined, modules.values().iterator().next());
+        }
+      }
+      addReferPermissions(md, referRequired, referPermissionsDesired, referModulePermissions,
+          referSubPermissions, optionalUnknown ? unknown : null);
+      addDefinedPermissions(defined, md);
+    }
+    Map<ModuleDescriptor,List<String>> errors = new HashMap<>();
+    for (Map.Entry<String,Set<ModuleDescriptor>> ent : referModulePermissions.entrySet()) {
+      String permissionName = ent.getKey();
+      if (!defined.containsKey(permissionName) && !unknown.contains(permissionName)
+          && !referRequired.containsKey(permissionName)) {
+        for (ModuleDescriptor md : ent.getValue()) {
+          errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Undefined permission '"
+              + permissionName + "' in modulePermissions");
+        }
+      }
+    }
+    for (Map.Entry<String,Set<ModuleDescriptor>> ent : referRequired.entrySet()) {
+      String permissionName = ent.getKey();
+      if (!defined.containsKey(permissionName) && !unknown.contains(permissionName)) {
+        for (ModuleDescriptor md : ent.getValue()) {
+          errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Undefined permission '"
+              + permissionName + "' in permissionsRequired");
+        }
+      }
+    }
+    for (Map.Entry<String,Set<ModuleDescriptor>> ent : referPermissionsDesired.entrySet()) {
+      String permissionName = ent.getKey();
+      if (!defined.containsKey(permissionName) && !unknown.contains(permissionName)) {
+        for (ModuleDescriptor md : ent.getValue()) {
+          errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Undefined permission '"
+              + permissionName + "' in permissionsDesired");
+        }
+      }
+    }
+    for (Map.Entry<String,Set<ModuleDescriptor>> ent : referSubPermissions.entrySet()) {
+      String permissionName = ent.getKey();
+      if (!defined.containsKey(permissionName) && !unknown.contains(permissionName)
+          && !referRequired.containsKey(permissionName)) {
+        for (ModuleDescriptor md : ent.getValue()) {
+          errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Undefined permission '"
+              + permissionName + "' in subPermissions");
+        }
+      }
+    }
+    for (Map.Entry<String,Set<ModuleDescriptor>> ent: defined.entrySet()) {
+      if (ent.getValue().size() > 1) {
+        String permissionName = ent.getKey();
+        String names = ent.getValue()
+            .stream().map(ModuleDescriptor::getId).collect(Collectors.joining(", "));
+        for (ModuleDescriptor md : ent.getValue()) {
+          errors.computeIfAbsent(md, x -> new ArrayList<>()).add("Permission '"
+              + permissionName + "' defined in multiple modules: " + names);
+        }
+      }
+    }
+    return errors;
+  }
+
+  private static void addReferPermissions(ModuleDescriptor md, String [] permissions,
+      Map<String, Set<ModuleDescriptor>> refer, Set<String> unknownPermissions) {
+
+    if (permissions != null) {
+      for (String permission : permissions) {
+        refer.computeIfAbsent(permission, k -> new HashSet<>()).add(md);
+        if (unknownPermissions != null) {
+          unknownPermissions.add(permission);
+        }
+      }
+    }
+  }
+
+  private static void addReferPermissions(ModuleDescriptor md,
+      Map<String, Set<ModuleDescriptor>> referRequired,
+      Map<String, Set<ModuleDescriptor>> referPermissionDesired,
+      Map<String, Set<ModuleDescriptor>> referModulePermissions,
+      Map<String, Set<ModuleDescriptor>> referSubPermissions,
+      Set<String> unknownPermissions) {
+
+    for (InterfaceDescriptor descriptor : md.getProvidesList()) {
+      RoutingEntry[] handlers = descriptor.getHandlers();
+      if (!descriptor.isRegularHandler() || handlers == null) {
+        continue;
+      }
+      for (RoutingEntry re : handlers) {
+        addReferPermissions(md, re.getModulePermissions(), referModulePermissions,
+            unknownPermissions);
+        addReferPermissions(md, re.getPermissionsRequired(), referRequired,
+            unknownPermissions);
+        addReferPermissions(md, re.getPermissionsDesired(), referPermissionDesired,
+            unknownPermissions);
+      }
+    }
+    Permission[] permissionSets = md.getPermissionSets();
+    if (permissionSets != null) {
+      for (Permission permission: permissionSets) {
+        String[] subPermissions = permission.getSubPermissions();
+        addReferPermissions(md, subPermissions, referSubPermissions, unknownPermissions);
+      }
+    }
+  }
+
+  private static void addDefinedPermissions(Map<String, Set<ModuleDescriptor>> defined,
+      ModuleDescriptor md) {
+
+    Permission[] permissionSets = md.getPermissionSets();
+    if (permissionSets != null) {
+      for (Permission permission: permissionSets) {
+        defined.computeIfAbsent(permission.getPermissionName(), k -> new HashSet<>()).add(md);
+      }
+    }
   }
 }

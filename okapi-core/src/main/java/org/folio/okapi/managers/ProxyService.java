@@ -45,7 +45,6 @@ import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.FuturisedHttpClient;
 import org.folio.okapi.util.MetricsHelper;
@@ -54,6 +53,7 @@ import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.util.TokenCache;
 import org.folio.okapi.util.TokenCache.CacheEntry;
+import org.folio.okapi.util.TokenHeader;
 
 /**
  * Okapi's proxy service. Routes incoming requests to relevant modules, as
@@ -88,7 +88,7 @@ public class ProxyService {
 
   // request + response HTTP headers that are forwarded in the pipeline
   private static final String [] FORWARD_HEADERS =
-      new String [] { "Content-Type", "Content-Encoding"};
+      new String [] { "Content-Type" };
 
   /**
    * Construct Proxy service.
@@ -106,7 +106,7 @@ public class ProxyService {
     this.internalModule = im;
     this.discoveryManager = dm;
     this.okapiUrl = okapiUrl;
-    waitMs = config.getInteger("logWaitMs", 0);
+    waitMs = Config.getSysConfInteger(ConfNames.LOG_WAIT_MS, 0, config);
     enableSystemAuth = Config.getSysConfBoolean(ConfNames.ENABLE_SYSTEM_AUTH, true, config);
     enableTraceHeaders = Config.getSysConfBoolean(ConfNames.ENABLE_TRACE_HEADERS, false, config);
     HttpClientOptions opt = new HttpClientOptions();
@@ -230,7 +230,8 @@ public class ProxyService {
       logger.debug("getModulesForRequest: Checking {} '{}' '{}'",
           re.getPathPattern(), phase, re.getLevel());
 
-      if (skipAuth && phase != null && phase.equals(XOkapiHeaders.FILTER_AUTH)) {
+      if (phase != null && phase.equals(XOkapiHeaders.FILTER_AUTH)
+          && (skipAuth || !enableSystemAuth)) {
         logger.debug("Skipping auth, have cached token.");
         iter.remove();
       }
@@ -258,39 +259,32 @@ public class ProxyService {
    */
   private void parseTokenAndPopulateContext(ProxyContext pc) {
     RoutingContext ctx = pc.getCtx();
-    String auth = ctx.request().getHeader(XOkapiHeaders.AUTHORIZATION);
-    String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
-    if (auth != null) {
-      if (auth.startsWith("Bearer ")) {
-        auth = auth.substring(6).trim();
-      }
-      if (tok != null && !auth.equals(tok)) {
-        pc.responseError(400, messages.getMessage("10104"));
-        throw new IllegalArgumentException("X-Okapi-Token is not equal to Authorization token");
-      }
-      ctx.request().headers().set(XOkapiHeaders.TOKEN, auth);
-      ctx.request().headers().remove(XOkapiHeaders.AUTHORIZATION);
-      logger.debug("Moved Authorization header to X-Okapi-Token");
+    MultiMap headers = ctx.request().headers();
+    String token;
+    try {
+      token = TokenHeader.check(headers);
+    } catch (IllegalArgumentException e) {
+      pc.responseError(400, messages.getMessage("10104"));
+      throw e;
     }
-    String tenantId = ctx.request().getHeader(XOkapiHeaders.TENANT);
-    String userId = ctx.request().getHeader(XOkapiHeaders.USER_ID);
+    String tenantId = headers.get(XOkapiHeaders.TENANT);
 
     OkapiToken okapiToken = null;
-
     if (tenantId == null) {
       try {
-        okapiToken = new OkapiToken(ctx.request().getHeader(XOkapiHeaders.TOKEN));
+        okapiToken = new OkapiToken(token);
       } catch (IllegalArgumentException e) {
         pc.responseError(400, messages.getMessage("10105", e.getMessage()));
-        throw new IllegalArgumentException(e);
+        throw e;
       }
     }
 
     // userId does not exist all the time
+    String userId = headers.get(XOkapiHeaders.USER_ID);
     if (userId == null) {
       if (okapiToken == null) {
         try {
-          okapiToken = new OkapiToken(ctx.request().getHeader(XOkapiHeaders.TOKEN));
+          okapiToken = new OkapiToken(token);
         } catch (IllegalArgumentException e) {
           // ignoring bad token
         }
@@ -302,17 +296,11 @@ public class ProxyService {
 
     if (tenantId == null) {
       tenantId = okapiToken.getTenantWithoutValidation();
-      if (tenantId != null) {
-        ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
-        logger.debug("Recovered tenant from token: '{}'", tenantId);
-      }
       if (tenantId == null) {
-        logger.debug("No tenantId, defaulting to " + XOkapiHeaders.SUPERTENANT_ID);
         tenantId = XOkapiHeaders.SUPERTENANT_ID;
-        ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
       }
+      headers.add(XOkapiHeaders.TENANT, tenantId);
     }
-
     pc.setTenant(tenantId);
   }
 
@@ -510,6 +498,9 @@ public class ProxyService {
   }
 
   private void log(HttpClientRequest creq) {
+    if (! logger.isDebugEnabled()) {
+      return;
+    }
     logger.debug("{} {}", creq.getMethod().name(), creq.getURI());
     for (Map.Entry<String, String> next : creq.headers()) {
       logger.debug(" {}:{}", next.getKey(), next.getValue());
@@ -535,8 +526,8 @@ public class ProxyService {
    * @param ctx routing context
    */
   public void proxy(RoutingContext ctx) {
-    ctx.request().pause();
     ReadStream<Buffer> stream = ctx.request();
+    stream.pause();
     // Pause the request data stream before doing any slow ops, otherwise
     // it will get read into a buffer somewhere.
 
@@ -548,14 +539,6 @@ public class ProxyService {
     // modules will not accept the response. Maybe later...
     try {
       parseTokenAndPopulateContext(pc);
-      putAndRejectMdcLookups(pc,
-          FolioLoggingContext.TENANT_ID_LOGGING_VAR_NAME, pc.getTenant());
-      putAndRejectMdcLookups(pc,
-          FolioLoggingContext.REQUEST_ID_LOGGING_VAR_NAME, headers.get(XOkapiHeaders.REQUEST_ID));
-      putAndRejectMdcLookups(pc,
-          FolioLoggingContext.MODULE_ID_LOGGING_VAR_NAME, headers.get(XOkapiHeaders.MODULE_ID));
-      putAndRejectMdcLookups(pc,
-          FolioLoggingContext.USER_ID_LOGGING_VAR_NAME, pc.getUserId());
     } catch (IllegalArgumentException e) {
       stream.resume();
       return; // Error code already set in ctx
@@ -580,7 +563,7 @@ public class ProxyService {
 
           pc.setModList(l);
 
-          pc.logRequest(ctx, tenantId);
+          pc.logRequest(ctx);
 
           headers.set(XOkapiHeaders.URL, okapiUrl);
           headers.remove(XOkapiHeaders.MODULE_ID);
@@ -596,21 +579,6 @@ public class ProxyService {
             proxyR(l.iterator(), pc, stream, null, clientRequest);
           });
         });
-  }
-
-  /**
-   * Throw IllegalArgumentException if s contains ${ to disable MDC lookups
-   * mitigating any denial of service attack using recursive lookups
-   * (CVE-2021-45105, https://logging.apache.org/log4j/2.x/index.html ).
-   * Otherwise put (name, s) into FolioLoggingContext.
-   */
-  private static void putAndRejectMdcLookups(ProxyContext pc, String name, String s) {
-    if (s != null && s.contains("${")) {
-      var e = new IllegalArgumentException(name + " must not contain ${");
-      pc.responseError(400, e.getMessage());
-      throw e;
-    }
-    FolioLoggingContext.put(name, s);
   }
 
   private static void clientsEnd(Buffer bcontent, List<HttpClientRequest> clientRequestList) {
@@ -630,12 +598,12 @@ public class ProxyService {
       bcontent = pc.getAuthResBody();
     }
     if (bcontent != null) {
-      pc.closeTimer();
       clientsEnd(bcontent, clientRequestList);
       ctx.response().end(bcontent);
     } else {
       streamHandle(readStream, ctx.response(), clientRequestList);
     }
+    pc.closeTimer();
     MetricsHelper.recordHttpServerProcessingTime(pc.getSample(), pc.getTenant(),
         ctx.response().getStatusCode(), ctx.request().method().name(),
         pc.getHandlerModuleInstance());
@@ -645,7 +613,6 @@ public class ProxyService {
       ProxyContext pc, ModuleInstance mi, RequestOptions options, Throwable res) {
 
     String msg = res.getMessage() + ": " + options.getMethod() + " " + options.getURI();
-    logger.warn("proxyClientFailure: {}: {}", mi.getUrl(), msg);
     MetricsHelper.recordHttpClientError(pc.getTenant(), mi.getMethod().name(),
         mi.getRoutingEntry().getStaticPath());
     pc.responseError(500, messages.getMessage("10107",
@@ -857,7 +824,6 @@ public class ProxyService {
       final Timer.Sample sample = MetricsHelper.getTimerSample();
       copyHeaders(clientRequest, ctx, mi);
       if (bcontent != null) {
-        logger.trace("proxyRequestResponse request buf '{}'", bcontent);
         clientsEnd(bcontent, clientRequestList);
         clientRequest.end(bcontent);
       } else {
@@ -955,9 +921,9 @@ public class ProxyService {
   }
 
   private void proxyInternalBuffer(
-      Iterator<ModuleInstance> it,
-      ProxyContext pc, Buffer bcontent, List<HttpClientRequest> clientRequestList,
-      ModuleInstance mi) {
+      Iterator<ModuleInstance> it, ProxyContext pc, Buffer bcontent,
+      List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
+
     String req = bcontent.toString();
     logger.debug("proxyInternalBuffer {}", req);
     RoutingContext ctx = pc.getCtx();
@@ -965,8 +931,7 @@ public class ProxyService {
     clientsEnd(bcontent, clientRequestList);
     try {
       internalModule.internalService(req, pc)
-          .onFailure(cause -> pc.responseError(OkapiError.getType(cause), cause))
-          .onSuccess(resp -> {
+          .map(resp -> {
             int statusCode = pc.getCtx().response().getStatusCode();
             if (statusCode == 200 && resp.isEmpty()) {
               // Say "no content", if there isn't any
@@ -982,7 +947,9 @@ public class ProxyService {
               pc.closeTimer();
               ctx.response().end(respBuf);
             }
-          });
+            return null;
+          })
+          .onFailure(cause -> pc.responseError(OkapiError.getType(cause), cause));
     } catch (Exception e) {
       pc.responseError(OkapiError.getType(e), e);
     }
@@ -1155,12 +1122,18 @@ public class ProxyService {
       return doCallSystemInterface(headersIn, tenantId, null, inst, null, request);
     }
     return tenantManager.getEnabledModules(tenantId).compose(enabledModules -> {
+      RoutingEntry filt;
       for (ModuleDescriptor md : enabledModules) {
-        RoutingEntry filt = md.getAuthRoutingEntry();
+        filt = md.getAuthRoutingEntry();
         if (filt != null) {
           logger.debug("callSystemInterface: Found auth filter in {}", md.getId());
           return authForSystemInterface(md, filt, tenantId, inst, request, headersIn);
         }
+      }
+      ModuleDescriptor instMd = inst.getModuleDescriptor();
+      filt = instMd.getAuthRoutingEntry();
+      if (filt != null) {
+        return authForSystemInterface(instMd, filt, tenantId, inst, request, headersIn);
       }
       logger.debug("callSystemInterface: No auth for {} calling with "
           + "tenant header only", tenantId);
@@ -1201,17 +1174,24 @@ public class ProxyService {
         inst.getMethod(), inst.isHandler());
     return doCallSystemInterface(headers, tenantId, null, authInst, modPerms, "")
         .compose(cli -> {
-          String deftok = cli.getRespHeaders().get(XOkapiHeaders.TOKEN);
-          logger.debug("authForSystemInterface: {}",
-              () -> Json.encode(cli.getRespHeaders().entries()));
-          String modTok = cli.getRespHeaders().get(XOkapiHeaders.MODULE_TOKENS);
+          MultiMap authHeaders = cli.getRespHeaders();
+          String deftok = authHeaders.get(XOkapiHeaders.TOKEN);
+          String modTok = authHeaders.get(XOkapiHeaders.MODULE_TOKENS);
+          MultiMap headersOut = MultiMap.caseInsensitiveMultiMap();
+          headersOut.addAll(headers);
           String token = null;
           if (modTok != null) {
             JsonObject jo = new JsonObject(modTok);
             token = jo.getString(modId, deftok);
           }
-          logger.debug("authForSystemInterface: Got token {}", token);
-          return doCallSystemInterface(headers, tenantId, token, inst, null, request);
+          String okapiPermissions = authHeaders.get(XOkapiHeaders.PERMISSIONS);
+          if (okapiPermissions != null) {
+            headersOut.set(XOkapiHeaders.PERMISSIONS, okapiPermissions);
+          }
+          logger.info("authForSystemInterface: {} {}",
+              () -> inst.getModuleDescriptor().getId(),
+              () -> Json.encode(headersOut.entries()));
+          return doCallSystemInterface(headersOut, tenantId, token, inst, null, request);
         });
   }
 
@@ -1221,7 +1201,8 @@ public class ProxyService {
 
     Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
     headers.put(XOkapiHeaders.URL_TO, inst.getUrl());
-    logger.debug("syscall begin {} {}{}", inst.getMethod(), inst.getUrl(), inst.getPath());
+    logger.debug("syscall begin {} {} {}{}", inst.getModuleDescriptor().getId(),
+        inst.getMethod(), inst.getUrl(), inst.getPath());
     OkapiClient cli = new OkapiClient(httpClient.getHttpClient(), inst.getUrl(), vertx, headers);
     String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
     cli.newReqId(reqId); // "tenant" or "tenantpermissions"
@@ -1232,7 +1213,8 @@ public class ProxyService {
     final Timer.Sample sample = MetricsHelper.getTimerSample();
     Promise<OkapiClient> promise = Promise.promise();
     cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
-      logger.debug("syscall return {} {}{}", inst.getMethod(), inst.getUrl(), inst.getPath());
+      logger.debug("syscall return {} {} {}{}", inst.getModuleDescriptor().getId(),
+          inst.getMethod(), inst.getUrl(), inst.getPath());
       if (cres.failed()) {
         String msg = messages.getMessage("11101", inst.getMethod(),
             inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
@@ -1278,17 +1260,16 @@ public class ProxyService {
    * Helper to make request headers for the system requests we make. Copies all
    * X- headers over. Adds a tenant, and a token, if we have one.
    */
-  private static Map<String, String> sysReqHeaders(
-      MultiMap headersIn, String tenantId, String authToken,
-      ModuleInstance inst, String modPerms) {
+  private static Map<String, String> sysReqHeaders(MultiMap headersIn, String tenantId,
+      String authToken, ModuleInstance inst, String modPerms) {
+
     Map<String, String> headersOut = new HashMap<>();
     for (String hdr : headersIn.names()) {
-      if (hdr.matches("^X-.*$")) {
+      if (hdr.startsWith("X-")) {
         headersOut.put(hdr, headersIn.get(hdr));
       }
     }
     headersOut.put(XOkapiHeaders.TENANT, tenantId);
-    logger.debug("Added {} : {}", XOkapiHeaders.TENANT, tenantId);
     if (authToken == null) {
       headersOut.remove(XOkapiHeaders.TOKEN);
     } else {

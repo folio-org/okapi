@@ -4,13 +4,13 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetServer;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
-
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
@@ -292,26 +292,28 @@ public class ProcessModuleHandleTest {
     // program should operate OK
     desc.setExec("java " + testModuleArgs);
     int no = 3; // number of processes to spawn
-    ModuleHandle[] mhs = new ModuleHandle[no];
-    int i;
-    for (i = 0; i < no; i++) {
-      mhs[i] = createModuleHandle(desc, 9231+i);
+    List<Integer> ports = new LinkedList<>();
+    List<ModuleHandle> mhs = new LinkedList<>();
+    for (int i = 0; i < no; i++) {
+      ports.add(9231 + i);
+      mhs.add(createModuleHandle(desc, 9231 + i));
     }
     logger.debug("Start");
-    List<Future<Void>> futures = new LinkedList<>();
-    for (ModuleHandle mh : mhs) {
-      futures.add(mh.start());
-    }
-    Async async1 = context.async();
-    GenericCompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(res -> async1.complete()));
-    async1.await();
+    List<Future<Void>> start = mhs.stream().map(ModuleHandle::start).collect(Collectors.toList());
+    GenericCompositeFuture.join(start)
+        .onSuccess(x -> ports.forEach(port -> context.assertFalse(isFree(port), "port " + port)))
+        .map(x -> mhs.stream().map(ModuleHandle::stop).collect(Collectors.toList()))
+        .compose(stop -> GenericCompositeFuture.join(stop))
+        .onSuccess(x -> ports.forEach(port -> context.assertTrue(isFree(port), "port " + port)))
+        .onComplete(context.asyncAssertSuccess());
+  }
 
-    futures = new LinkedList<>();
-    for (ModuleHandle mh : mhs) {
-      futures.add(mh.stop());
+  private boolean isFree(int port) {
+    try {
+      new ServerSocket(port).close();
+      return true;
+    } catch (IOException e) {
+      return false;
     }
-    Async async2 = context.async();
-    GenericCompositeFuture.all(futures).onComplete(context.asyncAssertSuccess(res -> async2.complete()));
-    async2.await();
   }
 }

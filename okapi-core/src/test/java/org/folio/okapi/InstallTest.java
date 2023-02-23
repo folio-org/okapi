@@ -1,5 +1,9 @@
 package org.folio.okapi;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
@@ -23,6 +27,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.testutil.ModuleTenantInitAsync;
 import org.junit.After;
 import org.junit.Assert;
@@ -30,9 +35,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
 
 @RunWith(VertxUnitRunner.class)
 public class InstallTest {
@@ -79,8 +81,14 @@ public class InstallTest {
     vertx.close(context.asyncAssertSuccess());
   }
 
+  static void startModule(ModuleHandle moduleHandle, TestContext context) {
+    Async start = context.async();
+    moduleHandle.start().onComplete(context.asyncAssertSuccess(x -> start.complete()));
+    start.await();
+  }
+
   JsonObject pollComplete(TestContext context, String path) {
-    for (int i = 0; i < 20; i++) {
+    for (int i = 1; i < 20; i++) {
       RestAssuredClient c = api.createRestAssured3();
       logger.info("poll {}", i);
 
@@ -93,7 +101,7 @@ public class InstallTest {
         return job;
       }
       Async async = context.async();
-      vertx.setTimer(300, x -> async.complete());
+      vertx.setTimer(200 * i, x -> async.complete());
       async.await();
     }
     return new JsonObject();
@@ -1142,8 +1150,7 @@ public class InstallTest {
     createTenant(context, okapiTenant);
     postAsyncInitModule(context, module1);
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
-
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module1, portModule);
     JsonObject job = installAndWait(context, okapiTenant, module1, "enable", "?async=true");
@@ -1160,7 +1167,7 @@ public class InstallTest {
     final String module2 = "v2-module-1.0.1";
     postAsyncInitModule(context, module2);
     ModuleTenantInitAsync tModule2 = new ModuleTenantInitAsync(vertx, portModule2);
-    tModule2.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule2, context);
 
     deployAsyncInitModule(context, module2, portModule2);
     job = installAndWait(context, okapiTenant, module2, "enable", "?async=true");
@@ -1187,23 +1194,20 @@ public class InstallTest {
         ), job);
 
     // initial module called once..
-    context.assertEquals(tModule.getOperations().get(0),
-        new JsonObject()
-            .put("module_to", module1)
-            .put("purge", false));
+    JsonObject operation = tModule.getOperations().get(0);
+    assertThat(operation.getString("module_to"), is(module1));
+    assertThat(operation.getBoolean("purge"), is(false));
 
     // second module called on upgrade
-    context.assertEquals(tModule2.getOperations().get(0),
-        new JsonObject()
-            .put("module_to", module2)
-            .put("module_from", module1)
-            .put("purge", false));
+    operation = tModule2.getOperations().get(0);
+    assertThat(operation.getString("module_to"), is(module2));
+    assertThat(operation.getString("module_from"), is(module1));
+    assertThat(operation.getBoolean("purge"), is(false));
 
     // second module called on purge
-    context.assertEquals(tModule2.getOperations().get(1),
-        new JsonObject()
-            .put("module_from", module2)
-            .put("purge", true));
+    operation = tModule2.getOperations().get(1);
+    assertThat(operation.getString("module_from"), is(module2));
+    assertThat(operation.getBoolean("purge"), is(true));
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
     tModule2.stop().onComplete(context.asyncAssertSuccess());
@@ -1217,8 +1221,7 @@ public class InstallTest {
     createTenant(context, okapiTenant);
     postAsyncInitModule(context, module);
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
-
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
     JsonObject job = installAndWait(context, okapiTenant, module, "enable", "?async=true&purge=true");
@@ -1231,15 +1234,12 @@ public class InstallTest {
                 .put("stage", "done")
             )
         ), job);
-    context.assertEquals(tModule.getOperations().get(0),
-        new JsonObject()
-            .put("module_from", module)
-            .put("purge", true));
-
-    context.assertEquals(tModule.getOperations().get(1),
-        new JsonObject()
-            .put("module_to", module)
-            .put("purge", false));
+    JsonObject operation0 = tModule.getOperations().get(0);
+    assertThat(operation0.getString("module_from"), is(module));
+    assertThat(operation0.getBoolean("purge"), is(true));
+    JsonObject operation1 = tModule.getOperations().get(1);
+    assertThat(operation1.getString("module_to"), is(module));
+    assertThat(operation1.getBoolean("purge"), is(false));
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
 
@@ -1252,7 +1252,7 @@ public class InstallTest {
     postAsyncInitModule(context, module);
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
 
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
     tModule.setPurgeFail(true);
     deployAsyncInitModule(context, module, portModule);
     JsonObject job = installAndWait(context, okapiTenant, module, "enable", "?async=true&purge=true");
@@ -1265,15 +1265,12 @@ public class InstallTest {
                 .put("stage", "done")
             )
         ), job);
-    context.assertEquals(tModule.getOperations().get(0),
-        new JsonObject()
-            .put("module_from", module)
-            .put("purge", true));
-
-    context.assertEquals(tModule.getOperations().get(1),
-        new JsonObject()
-            .put("module_to", module)
-            .put("purge", false));
+    JsonObject operation0 = tModule.getOperations().get(0);
+    assertThat(operation0.getString("module_from"), is(module));
+    assertThat(operation0.getBoolean("purge"), is(true));
+    JsonObject operation1 = tModule.getOperations().get(1);
+    assertThat(operation1.getString("module_to"), is(module));
+    assertThat(operation1.getBoolean("purge"), is(false));
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
 
@@ -1314,8 +1311,7 @@ public class InstallTest {
         .body(md.encode()).post("/_/proxy/modules").then().statusCode(201);
 
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
-
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1371,8 +1367,7 @@ public class InstallTest {
         .body(md.encode()).post("/_/proxy/modules").then().statusCode(201);
 
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
-
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1401,7 +1396,7 @@ public class InstallTest {
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
 
     tModule.setOmitLocationInResponse(true);
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1429,7 +1424,7 @@ public class InstallTest {
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
 
     tModule.setOmitIdInResponse(true);
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1460,7 +1455,7 @@ public class InstallTest {
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
 
     tModule.setBadJsonResponse(true);
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1481,7 +1476,7 @@ public class InstallTest {
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
 
     tModule.setGetStatusResponse(400);
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1502,7 +1497,7 @@ public class InstallTest {
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
 
     tModule.setErrorMessage("foo bar error", null);
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     deployAsyncInitModule(context, module, portModule);
 
@@ -1517,6 +1512,15 @@ public class InstallTest {
         .getJsonObject(0).getString("message"));
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
+  }
+
+  void assertParallelRun(ModuleTenantInitAsync tModule, JsonObject moda, JsonObject modb) {
+    Assert.assertTrue(tModule.getStartTime(moda.getString("id")).isBefore(tModule.getEndTime(modb.getString("id"))));
+    Assert.assertTrue(tModule.getStartTime(modb.getString("id")).isBefore(tModule.getEndTime(moda.getString("id"))));
+  }
+
+  void assertSequenceRun(ModuleTenantInitAsync tModule, JsonObject moda, JsonObject modb) {
+    Assert.assertTrue(tModule.getEndTime(moda.getString("id")).isBefore(tModule.getStartTime(modb.getString("id"))));
   }
 
   @Test
@@ -1561,7 +1565,7 @@ public class InstallTest {
     deployAsyncInitModule(context, modb.getString("id"), portModule);
     deployAsyncInitModule(context, mid.getString("id"), portModule);
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     JsonArray installOp = new JsonArray()
         .add(new JsonObject()
@@ -1616,12 +1620,9 @@ public class InstallTest {
             )
         );
     context.assertEquals(jobExpected, job);
-    // moda , modb running in parallel
-    context.assertTrue(tModule.getStartTime(moda.getString("id")).isBefore(tModule.getEndTime(modb.getString("id"))));
-    context.assertTrue(tModule.getStartTime(modb.getString("id")).isBefore(tModule.getEndTime(moda.getString("id"))));
-    // midb comes after
-    context.assertTrue(tModule.getEndTime(moda.getString("id")).isBefore(tModule.getStartTime(mid.getString("id"))));
-    context.assertTrue(tModule.getEndTime(modb.getString("id")).isBefore(tModule.getStartTime(mid.getString("id"))));
+    assertParallelRun(tModule, moda, modb);
+    assertSequenceRun(tModule, moda, mid);
+    assertSequenceRun(tModule, modb, mid);
 
     installOp = new JsonArray()
         .add(new JsonObject()
@@ -1664,11 +1665,10 @@ public class InstallTest {
         );
     context.assertEquals(jobExpected, job);
     // mid disabled first
-    context.assertTrue(tModule.getEndTime(mid.getString("id")).isBefore(tModule.getStartTime(moda.getString("id"))));
-    context.assertTrue(tModule.getEndTime(mid.getString("id")).isBefore(tModule.getStartTime(modb.getString("id"))));
-    // moda , modb running in parallel
-    context.assertTrue(tModule.getStartTime(moda.getString("id")).isBefore(tModule.getEndTime(modb.getString("id"))));
-    context.assertTrue(tModule.getStartTime(modb.getString("id")).isBefore(tModule.getEndTime(moda.getString("id"))));
+    assertSequenceRun(tModule, mid, moda);
+    assertSequenceRun(tModule, mid, modb);
+    // then mode, modb
+    assertParallelRun(tModule, moda, modb);
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }
@@ -1734,7 +1734,7 @@ public class InstallTest {
     deployAsyncInitModule(context, modp.getString("id"), portModule);
     deployAsyncInitModule(context, mid.getString("id"), portModule);
     ModuleTenantInitAsync tModule = new ModuleTenantInitAsync(vertx, portModule);
-    tModule.start().onComplete(context.asyncAssertSuccess());
+    startModule(tModule, context);
 
     JsonArray installOp = new JsonArray()
         .add(new JsonObject()
@@ -1798,14 +1798,11 @@ public class InstallTest {
             )
         );
     context.assertEquals(jobExpected, job);
-    // moda , modb running in parallel
-    context.assertTrue(tModule.getStartTime(moda.getString("id")).isBefore(tModule.getEndTime(modb.getString("id"))));
-    context.assertTrue(tModule.getStartTime(modb.getString("id")).isBefore(tModule.getEndTime(moda.getString("id"))));
-    // modp comes after
-    context.assertTrue(tModule.getEndTime(moda.getString("id")).isBefore(tModule.getStartTime(modp.getString("id"))));
-    context.assertTrue(tModule.getEndTime(modb.getString("id")).isBefore(tModule.getStartTime(modp.getString("id"))));
-    // mid comes after
-    context.assertTrue(tModule.getEndTime(modp.getString("id")).isBefore(tModule.getStartTime(mid.getString("id"))));
+
+    assertParallelRun(tModule, moda, modb);
+    assertSequenceRun(tModule, moda, modp);
+    assertSequenceRun(tModule, modb, modp);
+    assertSequenceRun(tModule, modp, mid);
 
     installOp = new JsonArray()
         .add(new JsonObject()
@@ -1856,14 +1853,11 @@ public class InstallTest {
             )
         );
     context.assertEquals(jobExpected, job);
-    // modp disabled first
-    context.assertTrue(tModule.getEndTime(modp.getString("id")).isBefore(tModule.getStartTime(mid.getString("id"))));
-    // mid disabled next
-    context.assertTrue(tModule.getEndTime(mid.getString("id")).isBefore(tModule.getStartTime(moda.getString("id"))));
-    context.assertTrue(tModule.getEndTime(mid.getString("id")).isBefore(tModule.getStartTime(modb.getString("id"))));
-    // moda , modb running in parallel
-    context.assertTrue(tModule.getStartTime(moda.getString("id")).isBefore(tModule.getEndTime(modb.getString("id"))));
-    context.assertTrue(tModule.getStartTime(modb.getString("id")).isBefore(tModule.getEndTime(moda.getString("id"))));
+
+    assertSequenceRun(tModule, modp, mid);
+    assertSequenceRun(tModule, modp, moda);
+    assertSequenceRun(tModule, modp, modb);
+    assertParallelRun(tModule, moda, modb);
 
     tModule.stop().onComplete(context.asyncAssertSuccess());
   }

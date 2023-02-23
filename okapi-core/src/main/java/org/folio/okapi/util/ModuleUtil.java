@@ -210,8 +210,9 @@ public final class ModuleUtil {
 
   /**
    * Return list of obsolete modules (for clean up).
+   *
    * <p>A module is considered a snapshot if it's part of earlier releases than saveReleases
-   * *and* it is earlier than the latest saveSnapshots in that release</p>
+   * *and* it is earlier than the latest saveSnapshots in that release.
    * @param mdl list of modules to consider - will be modified.
    * @param saveReleases number of latest non-snapshot releases that are preserved,
    * @param saveSnapshots number of latest snapshots releases that are preserved.

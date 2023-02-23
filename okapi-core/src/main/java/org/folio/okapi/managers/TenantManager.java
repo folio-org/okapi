@@ -372,6 +372,9 @@ public class TenantManager implements Liveness {
     return future.compose(from -> invokeTenantInterface1(tenant, options, from, mdTo, pc));
   }
 
+  @SuppressWarnings("java:S2259")
+  // Suppress "A 'NullPointerException' could be thrown; 'md' is nullable here."
+  // This is a false positive because we check mdFrom and mdTo in enableAndDisableModule.
   private Future<Void> invokeTenantInterface1(Tenant tenant, TenantInstallOptions options,
       ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
       ProxyContext pc) {
@@ -632,6 +635,15 @@ public class TenantManager implements Liveness {
           pl = new PermissionList(mdFrom.getId(), new Permission[0]);
         }
         break;
+      case "2.1":
+        if (mdTo != null) {
+          pl = new PermissionList(mdTo.getId(), mdTo.getExpandedPermissionSets(),
+              mdTo.getReplaces());
+        } else  {
+          // attempt an empty list for the module being disabled
+          pl = new PermissionList(mdFrom.getId(), new Permission[0]);
+        }
+        break;
       default:
         return Future.failedFuture(new OkapiError(ErrorType.USER,
             "Unknown version of _tenantPermissions interface in use " + permIntVer + "."));
@@ -657,13 +669,14 @@ public class TenantManager implements Liveness {
     logger.debug("tenantPerms: {} and {}", permsModule.getId(), permPath);
     if (pc == null) {
       MultiMap headersIn = MultiMap.caseInsensitiveMultiMap();
-      return proxyService.doCallSystemInterface(headersIn, tenant.getId(), null,
-          permInst, null, pljson).mapEmpty();
+      return proxyService.doCallSystemInterface(headersIn, tenant.getId(), null, permInst,
+          null, pljson).mapEmpty();
     }
-    return proxyService.callSystemInterface(tenant.getId(), permInst, pljson, pc).compose(cres -> {
-      pc.passOkapiTraceHeaders(cres);
-      return Future.succeededFuture();
-    });
+    return proxyService.callSystemInterface(tenant.getId(), permInst, pljson, pc)
+        .map(cres -> {
+          pc.passOkapiTraceHeaders(cres);
+          return null;
+        });
   }
 
   /**
@@ -1041,17 +1054,17 @@ public class TenantManager implements Liveness {
   }
 
   private boolean depsOK(TenantModuleDescriptor tm, ModuleDescriptor md,
-      Collection<ModuleDescriptor> modules, Set<String> allProvided) {
+      Collection<ModuleDescriptor> modules) {
 
     if (tm.getAction() == Action.disable) {
       return DepResolution.moduleDepRequired(modules, md);
     }
-    return DepResolution.moduleDepProvided(modules, allProvided, md);
+    return DepResolution.moduleDepProvided(modules, md);
   }
 
   private void jobRunPending(Tenant t, ProxyContext pc, TenantInstallOptions options,
       List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
-      Set<String> allProvided, InstallJob job, AtomicInteger running, AtomicBoolean exclusive,
+      InstallJob job, AtomicInteger running, AtomicBoolean exclusive,
       Promise<Void> promise) {
 
     Iterator<TenantModuleDescriptor> iterator = tml.iterator();
@@ -1062,7 +1075,7 @@ public class TenantManager implements Liveness {
         continue;
       }
       ModuleDescriptor md = modsAvailable.get(tm.getId());
-      if (!depsOK(tm, md, getEnabledModules(t), allProvided)) {
+      if (!depsOK(tm, md, getEnabledModules(t))) {
         continue;
       }
       if (isExclusive(md)) {
@@ -1082,8 +1095,7 @@ public class TenantManager implements Liveness {
               promise.tryFail(x.cause());
               return;
             } else {
-              jobRunPending(t, pc, options, tml, modsAvailable, allProvided, job,
-                  running, exclusive, promise);
+              jobRunPending(t, pc, options, tml, modsAvailable, job, running, exclusive, promise);
             }
           });
       iterator = tml.iterator();
@@ -1100,16 +1112,8 @@ public class TenantManager implements Liveness {
       List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
-    Set<String> allProvided = new HashSet<>();
-    for (ModuleDescriptor md : modsEnabled.values()) {
-      for (InterfaceDescriptor descriptor : md.getProvidesList()) {
-        if (descriptor.isRegularHandler()) {
-          allProvided.add(descriptor.getId());
-        }
-      }
-    }
     return Future.future(f -> jobRunPending(t, pc, options, tml, modsAvailable,
-        allProvided, job, new AtomicInteger(), new AtomicBoolean(), f));
+        job, new AtomicInteger(), new AtomicBoolean(), f));
   }
 
   private Future<Void> jobInvokeSingle(Tenant t, ProxyContext pc, TenantInstallOptions options,

@@ -1,6 +1,6 @@
 # Okapi — a multitenant API Gateway
 
-Copyright (C) 2015-2022 The Open Library Foundation
+Copyright (C) 2015-2023 The Open Library Foundation
 
 This software is distributed under the terms of the Apache License,
 Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
@@ -24,6 +24,34 @@ shut down microservices that it has spawned, and they may need to be
 terminated manually.*
 
 ## Quick start
+
+Before buliding, make sure your `` $JAVA_HOME`` environment variable is set correctly.
+
+This can be done by one of the two ways described below:
+
+1. For e.g., on Debain(and Debian-based) distros, run the following command to set the
+$JAVA_HOME for the current session:
+
+```
+  $ export JAVA_HOME=`readlink -f /usr/bin/javac | sed "s:bin/javac::"`
+```
+
+
+2. Or, you can add the following at the end of the ``~/.profile`` for persistently setting ``$JAVA_HOME`` :
+
+```
+  $ echo export JAVA_HOME=`readlink -f /usr/bin/javac | sed "s:bin/javac::"` >> ~/.profile
+```
+
+Then run:
+
+```
+  $ source ~/.profile
+```
+
+
+You may need to log out and log in again or reboot for these changes to take effect.
+
 
 To build and run:
 
@@ -72,9 +100,15 @@ Ubuntu 20.04 LTS (Focal Fossa):
     wget -q -O - https://repository.folio.org/packages/debian/folio-apt-archive-key.asc | sudo apt-key add -
     sudo add-apt-repository "deb https://repository.folio.org/packages/ubuntu/ focal/"
 
+## Issue tracker
+
+See project [OKAPI](https://issues.folio.org/browse/OKAPI) at the
+[FOLIO issue tracker](https://dev.folio.org/guidelines/issue-tracker)
+
 ## Documentation
 
 * [Okapi Guide and Reference](doc/guide.md)
+* API: [RAML and schemas](okapi-core/src/main/raml) and generated [API documentation](https://dev.folio.org/reference/api/#okapi)
 * [Documentation index](doc/index.md)
 * [Contributing guidelines](CONTRIBUTING.md)
 * [Securing](doc/securing.md) in the doc directory shows how to enable
@@ -84,5 +118,7 @@ Modules](https://github.com/folio-org/folio-sample-modules). There is
 a decent README, and some minimal sample modules to get started with
 * Other FOLIO Developer documentation is at
   [dev.folio.org](https://dev.folio.org/)
-* See project [OKAPI](https://issues.folio.org/browse/OKAPI) at the
-[FOLIO issue tracker](https://dev.folio.org/guidelines/issue-tracker)
+
+## Code analysis
+
+[SonarQube analysis](https://sonarcloud.io/project/overview?id=org.folio.okapi%3Aokapi)

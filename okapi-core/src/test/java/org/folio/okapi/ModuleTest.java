@@ -141,7 +141,7 @@ public class ModuleTest {
         break;
       case "mongo":
         if (mongoDBContainer == null) {
-          mongoDBContainer = new MongoDBContainer("mongo:3.6.20");
+          mongoDBContainer = new MongoDBContainer("mongo:5.0.8");
           mongoDBContainer.start();
         }
         conf.put("mongo_port", mongoDBContainer.getFirstMappedPort().toString());
@@ -1366,9 +1366,7 @@ public class ModuleTest {
     final String docEnable2 = "{" + LS
       + "  \"id\" : \"sample-module2-1\"" + LS
       + "}";
-    final String expPerms2 = "{ "
-      + "\"moduleId\" : \"sample-module2-1\", "
-      + "\"perms\" : null }";
+    final String expPerms2 = "{\"moduleId\" : \"sample-module2-1\"}";
 
     String locSampleEnable2 = given()
       .header("Content-Type", "application/json")

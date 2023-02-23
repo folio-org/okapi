@@ -566,7 +566,7 @@ orchestrate the whole operation.
 Ignoring all the messy details, this how it works: The client (often
 on a web browser, but can really be anything) calls the `/authn/login`
 service to identify itself. Depending on the tenant, we may have
-different authorization modules serving the `/authn/login` request,
+different authentication modules serving the `/authn/login` request,
 and they may take different parameters (username and password are the
 most likely, but we can have anything from simple IP authentication to
 complex interactions with LDAP, OAuth, or other systems).
@@ -2546,7 +2546,7 @@ than the pull, because all/most modules have already been fetched.
 
 ```
 cat > /tmp/pull.json <<END
-{"urls" : [ "http://folio-registry.aws.indexdata.com:80" ]}
+{"urls" : [ "https://folio-registry.dev.folio.org" ]}
 END
 
 curl -w '\n' -X POST -d@/tmp/pull.json http://localhost:9130/_/proxy/pull/modules
@@ -2760,8 +2760,7 @@ This can be changed with the optional parameter `purge`, which when
 set to `true`, instructs a module to purge (remove) all persistent
 data. This only has an effect on modules that are also disabled ; has
 no effect on modules that are enabled or upgraded. The purge parameter
-was added in Okapi version 2.16.0. The purge mode invokes the `_tenant`
-interface with method DELETE if that is provided for the module.
+was added in Okapi version 2.16.0.
 
 ## Reference
 
@@ -2795,7 +2794,10 @@ Defaults to `localhost`
 system-generated UUID (in cluster mode), or `localhost` (in dev mode)
 * `storage`: Defines the storage back end, `postgres`, `mongo` or (the default)
 `inmemory`
-* `healthPort`: port for the GET `/readiness` and GET `/liveness` health checks. Use 0 to disable, this is the default. They return 204 if Okapi is ready/responsive and 500 otherwise.
+* `healthPort`: port for the GET `/readiness` and GET `/liveness` health checks.
+Use 0 to disable, this is the default. They return 204 if Okapi is ready/responsive and 500 otherwise.
+An alternative to check for liveness is to use `/_/proxy/health` on proxy port as this
+endpoint requires no permissions.
 * `lang`: Default language for messages returned by Okapi.
 * `loglevel`: The logging level. Defaults to `INFO`; other useful
 values are `DEBUG`, `TRACE`, `WARN` and `ERROR`.
@@ -2835,6 +2837,8 @@ Defaults to `localhost`.
   CA and the CA certificate. Defaults to none, allowing unencrypted
   connection only. If set, requires a TLSv1.3 connection and a valid
   server certificate.
+* `log_wait_ms`: Controls how often in milliseconds Okapi logs a `WAIT`
+line for ongoing request. A value of 0 disables this and is also the default.
 * `postgres_db_init`: For a value of `1`, Okapi will drop existing
 PostgreSQL database and prepare a new one. A value of `0` (null) will
 leave it unmodified (default).
@@ -2851,7 +2855,7 @@ leave it unmodified (default).
 This property appeared in Okapi 4.10.0; trace header was always enabled
 before 4.10.0.
 * `enable_system_auth`: Controls whether Okapi checks token by calling Auth module
-when invoking system interfaces such as `_tenant`.
+when invoking system interfaces such as `_tenant` or via regular proxy call.
 The value is a boolean - `true` for enable, `false` for disable.  Default is `true`.
 * `kube_config`: Filename/resource which is the Kubernetes configuration
 to use for Kubernetes integration. If defined, Okapi will perform
@@ -2906,7 +2910,7 @@ For example, to enable the JSON based logging, one could use:
 
 Okapi uses [AsyncLoggerContextSelector](https://logging.apache.org/log4j/2.x/manual/async.html)
 by default. Use
-`-Dlog4j2.contextSelector=org.apache.logging.log4j.core.osgi.BundleContextSelector`
+`-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector`
 to switch back to log4j2's default synchronous logger.
 
 ### Environment Variables

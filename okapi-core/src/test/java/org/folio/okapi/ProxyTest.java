@@ -8,6 +8,8 @@ import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
+import io.restassured.config.DecoderConfig;
+import io.restassured.config.RestAssuredConfig;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
@@ -112,11 +114,10 @@ public class ProxyTest {
     } else {
       ctx.response().setStatusCode(200);
       ctx.response().putHeader("Content-Type", ctx.request().getHeader("Content-Type"));
-      ctx.response().putHeader("Content-Encoding", "gzip");
       ctx.request().handler(preBuffer::appendBuffer);
       ctx.request().endHandler(res -> {
         logger.info("myPreHandle end=" + preBuffer.toString());
-        ctx.response().end();
+        ctx.response().end(preBuffer);
       });
     }
   }
@@ -132,7 +133,7 @@ public class ProxyTest {
       ctx.request().handler(postBuffer::appendBuffer);
       ctx.request().endHandler(res -> {
         logger.info("myPostHandle end=" + postBuffer.toString());
-        ctx.response().end();
+        ctx.response().end(postBuffer);
       });
     }
   }
@@ -234,10 +235,6 @@ public class ProxyTest {
       if (p.startsWith("/echo")) {
         response.setStatusCode(200);
         response.putHeader("Content-Type", request.getHeader("Content-Type"));
-        String contentEncoding = request.getHeader("Content-Encoding");
-        if (contentEncoding != null) {
-          response.putHeader("Content-Encoding", contentEncoding);
-        }
         response.setChunked(true);
         Pump pump = Pump.pump(request, response);
         pump.start();
@@ -250,17 +247,16 @@ public class ProxyTest {
       request.handler(buf::appendBuffer);
       request.endHandler(res -> {
         try {
-          if (p.startsWith("/_/tenantpermissions")) {
-            logger.info("returning 200 in myTimerHandle");
-            response.setStatusCode(200);
-            response.end();
-          } else if (p.startsWith("/_/tenant")) {
+          if (p.startsWith("/_/tenant")) {
             response.setStatusCode(timerTenantInitStatus);
             response.end("timer response");
           } else if (p.startsWith("/permissionscall")) {
             JsonObject permObject = new JsonObject(buf);
             if (timerTenantPermissionsStatus == 200) {
               timerPermissions.put(permObject.getString("moduleId"), permObject.getJsonArray("perms"));
+              if (permObject.containsKey("replaces")) {
+                timerPermissions.put("replaces", permObject.getJsonArray("replaces"));
+              }
             }
             response.setStatusCode(timerTenantPermissionsStatus);
             response.end("timer permissions response");
@@ -1128,7 +1124,7 @@ public class ProxyTest {
       .header("Origin", "http://foobar.com")
       .get("/testb")
       .then().statusCode(200)
-      .header("Access-Control-Allow-Origin", "*")
+      .header("Access-Control-Allow-Origin", "http://foobar.com")
       .header("Access-Control-Expose-Headers", startsWithIgnoringCase(
         "Location,X-Okapi-Trace,X-Okapi-Token,Authorization,X-Okapi-Request-Id"))
       .body(equalTo("It works"));
@@ -1209,6 +1205,16 @@ public class ProxyTest {
       .then()
       .header("X-Okapi-Tenant", okapiTenant)
       .statusCode(200);
+
+    // check that we accept Cookie and that's passed on to test module
+    String cookieVal = "folioRefreshToken=yy; folioAccessToken=" + okapiToken;
+    given().header("X-all-headers", "HB") // echo in body and in headers
+        .header("Cookie", cookieVal)
+        .get("/testb")
+        .then()
+        .statusCode(200)
+        .header("X-Okapi-Tenant", okapiTenant)
+        .body(containsString("Cookie:" + cookieVal)); // cookie received?
 
     // Check that we fail on conflicting X-Okapi-Token and Auth tokens
     given().header("X-all-headers", "H") // ask sample to report all headers
@@ -1560,7 +1566,6 @@ public class ProxyTest {
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
-      .log().ifValidationFails()
       .extract().response();
     final String locationTenantRoskilde = r.getHeader("Location");
 
@@ -1632,8 +1637,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/testr")
       .then().statusCode(200)
-      .body(containsString("It works"))
-      .log().ifValidationFails();
+      .body(containsString("It works"));
 
     // Set up, deploy, and enable the header module
     final String docHeaderModule = "{" + LS
@@ -1732,8 +1736,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/testb")
       .then().statusCode(200)
-      .body(containsString("It works"))
-      .log().ifValidationFails();
+      .body(containsString("It works"));
 
     // Actual redirecting request
     given()
@@ -1741,31 +1744,27 @@ public class ProxyTest {
       .get("/red")
       .then().statusCode(200)
       .body(containsString("It works"))
-      .header("X-Okapi-Trace", containsString("GET sample-module-1 http://localhost:9231/testr"))
-      .log().ifValidationFails();
+      .header("X-Okapi-Trace", containsString("GET sample-module-1 http://localhost:9231/testr"));
 
     // Bad redirect
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/badredirect")
       .then().statusCode(500)
-      .body(equalTo("Redirecting /badredirect to /nonexisting FAILED. No suitable module found"))
-      .log().ifValidationFails();
+      .body(equalTo("Redirecting /badredirect to /nonexisting FAILED. No suitable module found"));
 
     // catch redirect loops
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/simpleloop")
       .then().statusCode(500)
-      .body(containsString("loop:"))
-      .log().ifValidationFails();
+      .body(containsString("loop:"));
 
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/loop1")
       .then().statusCode(500)
-      .body(containsString("loop:"))
-      .log().ifValidationFails();
+      .body(containsString("loop:"));
 
     // redirect to multiple modules, but only one is executed
     given()
@@ -1774,16 +1773,14 @@ public class ProxyTest {
       .body("{}")
       .post("/multiple")
       .then().statusCode(200)
-      .body(containsString("Hello {}")) // test-module run once
-      .log().ifValidationFails();
+      .body(containsString("Hello {}")); // test-module run once
 
     // Redirect with parameters
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/red?foo=bar")
       .then().statusCode(200)
-      .body(containsString("It works"))
-      .log().ifValidationFails();
+      .body(containsString("It works"));
 
     // A longer chain of redirects
     given()
@@ -1791,9 +1788,8 @@ public class ProxyTest {
       .header("X-all-headers", "B")
       .get("/chain1")
       .then().statusCode(200)
-      .body(containsString("It works"))
+      .body(containsString("It works"));
       // No auth header should be included any more, since we don't have an auth filter
-      .log().ifValidationFails();
 
     // What happens on prefix match
     // /red matches, replaces with /testr, getting /testrlight which is not found
@@ -1802,15 +1798,13 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/redlight")
       .then().statusCode(404)
-      .header("X-Okapi-Trace", containsString("sample-module-1 http://localhost:9231/testrlight : 404"))
-      .log().ifValidationFails();
+      .header("X-Okapi-Trace", containsString("sample-module-1 http://localhost:9231/testrlight : 404"));
 
     // Verify that we replace only the beginning of the path
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/red/blue/red?color=/red")
-      .then().statusCode(404)
-      .log().ifValidationFails();
+      .then().statusCode(404);
 
     // Clean up
     given().delete(locationTenantRoskilde)
@@ -1910,6 +1904,18 @@ public class ProxyTest {
       + "      \"level\" : \"20\"," + LS
       + "      \"type\" : \"request-response\"," + LS
       + "      \"permissionsRequired\" : [ ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"path\" : \"/authn/listTenants\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/_/tenant\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
@@ -2039,6 +2045,13 @@ public class ProxyTest {
       .header("Content-Type", "text/xml")
       .body(equalTo("<test>Hello Okapi</test>"));
     Assert.assertEquals("Okapi", preBuffer.toString());
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .get("/authn/listTenants")
+      .then().statusCode(200).log().ifValidationFails()
+      .header("Content-Type", "application/json")
+      .body(equalTo(new JsonArray(List.of(okapiTenant)).encodePrettily()));
 
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
@@ -2474,11 +2487,11 @@ public class ProxyTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200);
 
-    Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
         () -> Assertions.assertThat(timerDelaySum.get(0)).isGreaterThan(1));
-    Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
         () -> Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(2));
-    Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
         () -> Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2));
 
     api.createRestAssured3().given()
@@ -2583,9 +2596,9 @@ public class ProxyTest {
 
     timerDelaySum.clear();
 
-    Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
         () -> Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(0));
-    Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
         () -> Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2));
     Assertions.assertThat(timerDelaySum.containsKey(0)).isFalse();
 
@@ -2649,10 +2662,6 @@ public class ProxyTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails();
 
-    try {
-      TimeUnit.MILLISECONDS.sleep(100);
-    } catch (InterruptedException ex) {
-    }
 
     // check that timer gone
     api.createRestAssured3().given()
@@ -2716,13 +2725,12 @@ public class ProxyTest {
         .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
         .then().statusCode(200);
 
-    try {
-      TimeUnit.MILLISECONDS.sleep(50);
-    } catch (InterruptedException ex) {
-    }
-    Assertions.assertThat(timerDelaySum.get(0)).isGreaterThan(1);
-    Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(1);
-    Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2);
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
+        () -> Assertions.assertThat(timerDelaySum.get(0)).isGreaterThan(1));
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
+        () -> Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(1));
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
+        () -> Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2));
 
     // disable and remove tenant as well
     api.createRestAssured3().given()
@@ -3464,10 +3472,10 @@ public class ProxyTest {
 
     setupBasicTenant(tenant);
 
-    // test _tenantpermissions 1.0 vs 1.1 vs 2.0
-    for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1", "2.0")) {
+    // test _tenantpermissions 1.0, ... , 2.1
+    for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1", "2.0", "2.1")) {
       timerPermissions.clear();
-      setupBasicModule(tenant, moduleId, tenantPermissionsVersion, true, true, true);
+      setupBasicModule(tenant, moduleId, tenantPermissionsVersion, false, true, true);
       setupBasicAuth(tenant, authModuleId);
 
       JsonArray permissions = timerPermissions.getJsonArray(moduleId);
@@ -3476,12 +3484,13 @@ public class ProxyTest {
         Assert.assertEquals(2, permissions.size());
         Assert.assertFalse(hasPermReplaces(permissions));
       } else if (tenantPermissionsVersion.equals("1.1")) {
-        Assert.assertEquals(5, permissions.size());
+        Assert.assertEquals(4, permissions.size());
         Assert.assertFalse(hasPermReplaces(permissions));
       } else {
-        Assert.assertEquals(5, permissions.size());
+        Assert.assertEquals(4, permissions.size());
         Assert.assertTrue(hasPermReplaces(permissions));
       }
+      Assert.assertEquals(timerPermissions.containsKey("replaces"), tenantPermissionsVersion.equals("2.1"));
       // proxy calls
       Response r = given()
         .header("Content-Type", "application/json")
@@ -3528,7 +3537,7 @@ public class ProxyTest {
       .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD.toString(), HttpMethod.POST.name())
       .options("/_/invoke/tenant/" + tenant + "/regularcall")
       .then()
-      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), "*")
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), "http://localhost")
       .header(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS.toString(), notNullValue())
       .header(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS.toString(), notNullValue())
       .statusCode(204)
@@ -3633,6 +3642,7 @@ public class ProxyTest {
     String mdJson = new JsonObject()
       .put("id", authModuleId)
       .put("name", "auth")
+      .put("replaces", new JsonArray().add("oldauth"))
       .put("provides", new JsonArray()
         .add(new JsonObject()
           .put("id", "auth")
@@ -4114,6 +4124,25 @@ public class ProxyTest {
     logger.info("Elapsed {} ms", (endTime - startTime) / 1000000);
   }
 
+  @Test
+  public void testCompression(TestContext context) {
+    given()
+        .get("/_/proxy/modules?full=true")
+        .then().statusCode(200)
+        .header("Content-Encoding", "gzip");
+
+    given()
+        .config(new RestAssuredConfig().decoderConfig(new DecoderConfig(DecoderConfig.ContentDecoder.DEFLATE)))
+        .get("/_/proxy/modules?full=true")
+        .then().statusCode(200)
+        .header("Content-Encoding", "deflate");
+
+    given()
+        .config(new RestAssuredConfig().decoderConfig(new DecoderConfig().noContentDecoders()))
+        .get("/_/proxy/modules?full=true")
+        .then().statusCode(200)
+        .header("Content-Encoding", is(nullValue()));
+  }
 
   @Test
   public void testRequestResponse(TestContext context) {
@@ -4214,7 +4243,6 @@ public class ProxyTest {
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=ISO-8859-1")
-        .header("Content-Encoding", nullValue())
         .body(equalTo("Okapi"));
 
     installReq = new JsonArray().add(new JsonObject().put("id",  "module-pre-1.0.0").put("action", "enable"));
@@ -4230,13 +4258,13 @@ public class ProxyTest {
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=UTF-8")
-        .header("Content-Encoding", "gzip");
+        .body(equalTo("Okapi"));
 
     given().header("X-Okapi-Tenant", okapiTenant)
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=ISO-8859-1")
-        .header("Content-Encoding", "gzip");
+        .body(equalTo("Okapi"));
 
     installReq = new JsonArray().add(new JsonObject().put("id",  "module-post-1.0.0").put("action", "enable"));
     api.createRestAssured3().given()
@@ -4251,7 +4279,7 @@ public class ProxyTest {
         .body("Okapi").post("/echo")
         .then().statusCode(200)
         .header("Content-Type", "text/plain; charset=UTF-8")
-        .header("Content-Encoding", "gzip");
+        .body(equalTo("Okapi"));
   }
 
 }
