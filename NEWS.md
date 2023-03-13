@@ -1,3 +1,11 @@
+## 5.0.1 2023-03-02
+
+Fixes:
+
+* [OKAPI-1149](https://issues.folio.org/browse/OKAPI-1149) FolioLoggingContext bootstrap NPE with debug log level
+* [OKAPI-1076](https://issues.folio.org/browse/OKAPI-1076) Sort interface versions when reporting mismatch
+* [OKAPI-1162](https://issues.folio.org/browse/OKAPI-1162) apt upgrade - OpenSSL 3.0.8 fixing 8 vulns
+
 ## 5.0.0 2023-02-15
 
 New features:
