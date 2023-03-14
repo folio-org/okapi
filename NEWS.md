@@ -1,3 +1,11 @@
+## 4.14.12 2023-03-15
+
+Fixes:
+
+* [OKAPI-1149](https://issues.folio.org/browse/OKAPI-1149) FolioLoggingContext bootstrap NPE with debug log level
+* [OKAPI-1162](https://issues.folio.org/browse/OKAPI-1162) apt upgrade - OpenSSL 3.0.8 fixing 8 vulns
+* [OKAPI-1163](https://issues.folio.org/browse/OKAPI-1163) Add time waited to the WAIT log message (log\_wait\_ms)
+
 ## 4.14.11 2023-02-16
 
 Rebuild to fix this issue:
