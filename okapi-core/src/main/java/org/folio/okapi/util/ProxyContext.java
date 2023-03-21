@@ -5,6 +5,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -106,10 +107,11 @@ public class ProxyContext {
               mods = modList.stream().map(x -> x.getModuleDescriptor().getId())
                   .collect(Collectors.joining(" "));
             }
+            var elapsedSeconds = (System.nanoTime() - nanoTimeStart) / 1000000000.0;
             OkapiMapMessage msg = new OkapiMapMessage(reqId, tenant, userId, mods,
-                String.format("%s WAIT %s %s %s %s %s", reqId,
+                String.format(Locale.ROOT, "%s WAIT %s %s %s %s %.3fs %s", reqId,
                     ctx.request().remoteAddress(), tenant, ctx.request().method(),
-                    ctx.request().path(), mods));
+                    ctx.request().path(), elapsedSeconds, mods));
             fullLogger.info(msg);
           }
       );
