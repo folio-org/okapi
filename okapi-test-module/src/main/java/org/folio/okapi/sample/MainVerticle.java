@@ -143,13 +143,19 @@ public class MainVerticle extends AbstractVerticle {
     ctx.request().resume();
   }
 
+  @SuppressWarnings("javasecurity:S5145")  // suppress
+  // "Change this code to not log user-controlled data.
+  //  Logging should not be vulnerable to injection attacks"
+  // because Okapi validates the path against the ModuleDescriptor,
+  // and this module is used for unit tests only.
+  private void log(String method, String path, String tenant) {
+    logger.info("{} {} to okapi-test-module for tenant {}", method, path, tenant);
+  }
+
   private void myTenantHandle(RoutingContext ctx) {
     String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     String meth = ctx.request().method().name();
-    if (logger.isInfoEnabled()) {
-      logger.info("{} {} to okapi-est-module for tenant {}",
-          meth, ctx.request().path(), tenant);
-    }
+    log(meth, ctx.request().path(), tenant);
     tenantParameters = null;
     if (ctx.request().method().equals(HttpMethod.DELETE)) {
       ctx.response().setStatusCode(204);
