@@ -1,0 +1,46 @@
+name: api-schema-lint
+
+# https://dev.folio.org/guides/describe-schema/
+
+# API_DIRECTORIES: string: The space-separated list of directories to search
+# for JSON Schema files.
+# e.g. 'src/main/resources/openapi'
+# NOTE: -- Also add each separate path to each of the "on: paths:" sections.
+# e.g. 'src/main/resources/openapi/**'
+#
+# API_EXCLUDES: string: The space-separated list of directories and files
+# to exclude from traversal, in addition to the default exclusions.
+# e.g. ''
+
+env:
+  API_DIRECTORIES: 'okapi-core/src/main/raml'
+  API_EXCLUDES: ''
+
+on:
+  push:
+    paths:
+      - 'okapi-core/src/main/raml/**'
+  pull_request:
+    paths:
+      - 'okapi-core/src/main/raml/**'
+
+jobs:
+  api-schema-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Prepare folio-tools
+        run: |
+          git clone https://github.com/folio-org/folio-tools
+          cd folio-tools/api-schema-lint \
+            && yarn install \
+            && pip3 install -r requirements.txt
+      - name: Do api-schema-lint
+        run: |
+          python3 folio-tools/api-schema-lint/api_schema_lint.py \
+            --loglevel info \
+            --directories ${{ env.API_DIRECTORIES }} \
+            --excludes ${{ env.API_EXCLUDES }}
