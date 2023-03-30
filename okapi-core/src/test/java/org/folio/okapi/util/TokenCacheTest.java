@@ -94,4 +94,24 @@ public class TokenCacheTest {
     cache.put("tenant", "method", "path", "userId", "xokapiPerms", "bar", "barTok");
     assertEquals(cap - 2, cache.size());
   }
+
+  @Test
+  public void testDifferentTenantsSameToken() {
+    TokenCache cache = TokenCache.builder()
+        .withMaxSize(2)
+        .build();
+
+    // create a cache item for tenant A
+    cache.put("tenantA", "method", "path", "userId", "xokapiPerms", "foo", "fooTok");
+    assertEquals("fooTok", cache.get("tenantA", "method", "path", "userId", "foo").token);
+    assertEquals(1, cache.size());
+
+    // cache should not return an item for tenant B
+    assertNull(cache.get("tenantB", "method", "path", "userId", "foo"));
+
+    // create a cache item for tenant B
+    cache.put("tenantB", "method", "path", "userId", "xokapiPerms", "foo", "fooTok");
+    assertEquals("fooTok", cache.get("tenantB", "method", "path", "userId", "foo").token);
+    assertEquals(2, cache.size());
+  }
 }

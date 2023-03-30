@@ -5,6 +5,7 @@ Fixes:
 * [OKAPI-1149](https://issues.folio.org/browse/OKAPI-1149) FolioLoggingContext bootstrap NPE with debug log level
 * [OKAPI-1076](https://issues.folio.org/browse/OKAPI-1076) Sort interface versions when reporting mismatch
 * [OKAPI-1162](https://issues.folio.org/browse/OKAPI-1162) apt upgrade - OpenSSL 3.0.8 fixing 8 vulns
+* [OKAPI-1168](https://issues.folio.org/browse/OKAPI-1168) Stronger Qualification for Token Cache Hits For Authorization
 
 ## 5.0.0 2023-02-15
 
@@ -488,7 +489,7 @@ Some performance improvements in various areas.
  * [OKAPI-777](https://issues.folio.org/browse/OKAPI-777) ModuleId and SemVer toString updates, offer ModuleId.getSemVer
  * [OKAPI-774](https://issues.folio.org/browse/OKAPI-774) Switch from Future to Promise and others  (Vert.x 3.7 series)
  * Upgrade to Vert.x 3.8.3 from Vert.x 3.8.1
-  
+
 ## 2.33.0 2019-09-26
  * [OKAPI-763](https://issues.folio.org/browse/OKAPI-763) Prevent X-Okapi-Token from being returned in some cases
    where they are simply returned by mistake. This is a workaround
