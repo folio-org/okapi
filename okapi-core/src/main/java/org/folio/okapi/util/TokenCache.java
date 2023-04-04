@@ -54,7 +54,7 @@ public class TokenCache {
       String keyToken, String token) {
     long now = System.currentTimeMillis();
     CacheEntry entry = new CacheEntry(token, userId, xokapiPerms, now + ttl);
-    String key = genKey(method, path, keyToken);
+    String key = genKey(tenant, method, path, keyToken);
     MetricsHelper.recordTokenCacheCached(tenant, method, path, userId);
     logger.debug("Caching: {} -> {}", key, token);
     cache.put(key, entry);
@@ -71,7 +71,7 @@ public class TokenCache {
    * @return cache entry or null
    */
   public CacheEntry get(String tenant, String method, String path, String userId, String token) {
-    String key = genKey(method, path, token);
+    String key = genKey(tenant, method, path, token);
     CacheEntry ret = cache.get(key);
     if (ret == null) {
       MetricsHelper.recordTokenCacheMiss(tenant, method, path, userId);
@@ -89,9 +89,9 @@ public class TokenCache {
     }
   }
 
-  private String genKey(String method, String path, String token) {
+  private String genKey(String tenantId, String method, String path, String token) {
     String tok = token == null ? "null" : token.replaceAll("[\n\t\r]", "");
-    return (method + "|" + path + "|" + tok);
+    return (tenantId + "|" + method + "|" + path + "|" + tok);
   }
 
   public static Builder builder() {
