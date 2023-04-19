@@ -240,7 +240,8 @@ public class ProxyService {
       }
     }
     if (!found) {
-      pc.responseError(404, messages.getMessage("10103", req.path(), pc.getTenant()), messages.getMessage("10102"));
+      pc.responseError(404, messages.getMessage("10103", req.path(), pc.getTenant()),
+          messages.getMessage("10102"));
       return null;
     }
     return mods;
