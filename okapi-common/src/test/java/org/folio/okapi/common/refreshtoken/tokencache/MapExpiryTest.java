@@ -4,7 +4,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import org.awaitility.Awaitility;
 import org.folio.okapi.common.refreshtoken.tokencache.impl.ExpiryMapImpl;
 import org.junit.Test;
 
@@ -43,10 +42,13 @@ public class MapExpiryTest {
   @Test
   public void testCapacityWithExpiration() {
     ExpiryMap tk = new ExpiryMapImpl(2);
-    tk.put("user1", "v1", System.currentTimeMillis() + 5);
-    tk.put("user2", "v2", System.currentTimeMillis() + 5);
-    Awaitility.await().pollInterval(1, TimeUnit.MILLISECONDS).atMost(10, TimeUnit.MILLISECONDS)
-        .until(() -> tk.get("user2") == null);
+    var expire = System.currentTimeMillis() + 5;
+    tk.put("user1", "v1", expire);
+    tk.put("user2", "v2", expire);
+    while (System.currentTimeMillis() <= expire) {
+      // wait
+    }
+    assertThat(tk.get("user2"), is(nullValue()));
     tk.put("user1", "w1", System.currentTimeMillis() + 100);
     tk.put("user3", "w3", System.currentTimeMillis() + 100);
     assertThat(tk.get("user1"), is("w1"));
