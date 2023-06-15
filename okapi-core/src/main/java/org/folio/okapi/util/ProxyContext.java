@@ -264,15 +264,26 @@ public class ProxyContext {
 
   /**
    * Log that a HTTP response was received with error status.
+   *
+   * @param code HTTP status for the HTTP response
+   * @param logMsg message for the log
+   * @param responseMsg message for the HTTP response
+   */
+  public void responseError(int code, String logMsg, String responseMsg) {
+    logResponse("okapi", logMsg, code);
+    closeTimer();
+    MetricsHelper.recordHttpServerProcessingTime(this.sample, this.tenant, code,
+        this.ctx.request().method().name(), this.handlerModuleInstance);
+    HttpResponse.responseError(ctx, code, responseMsg);
+  }
+
+  /**
+   * Log that a HTTP response was received with error status.
    * @param code HTTP status
    * @param msg message to go along with it
    */
   public void responseError(int code, String msg) {
-    logResponse("okapi", msg, code);
-    closeTimer();
-    MetricsHelper.recordHttpServerProcessingTime(this.sample, this.tenant, code,
-        this.ctx.request().method().name(), this.handlerModuleInstance);
-    HttpResponse.responseError(ctx, code, msg);
+    responseError(code, msg, msg);
   }
 
   public void addTraceHeaderLine(String h) {

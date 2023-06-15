@@ -3,7 +3,7 @@ kind: Config
 clusters:
 - name: "folio-eks-2-us-west-2"
   cluster:
-    server: "https://rancher.dev.folio.org/k8s/clusters/c-479xv"
+    server: "https://rancher.ci.folio.org/k8s/clusters/c-479xv"
 
 users:
 - name: "non-existing-user"
