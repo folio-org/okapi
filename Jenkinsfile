@@ -3,7 +3,7 @@
 buildMvn {
   publishModDescriptor = 'no'
   mvnDeploy = 'yes'
-  buildNode = 'jenkins-agent-java11'
+  buildNode = 'jenkins-agent-java17'
   buildDeb = true
 
   doDocker = {
@@ -12,7 +12,7 @@ buildMvn {
       overrideConfig  = 'no'
       publishMaster = 'yes'
       healthChk = 'yes'
-      healthChkCmd = 'curl --fail http://localhost:9130/_/proxy/health || exit 1'
+      healthChkCmd = 'wget --no-verbose --tries=1 --spider http://localhost:9130/_/proxy/health || exit 1'
       runArgs = 'dev'
     }
   }
