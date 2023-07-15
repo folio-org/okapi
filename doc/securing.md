@@ -427,19 +427,6 @@ curl -w '\n' -D - -X POST  \
    http://localhost:9130/_/proxy/tenants
 ```
 
-#### Verify that we can list the tenants
-
-Most of the read-only operations should be allowed for any user, even
-without the token.
-
-```script
-curl -w '\n' -D -  \
-  -H "X-Okapi-Tenant:supertenant" \
-   http://localhost:9130/_/proxy/tenants
-```
-
-This should have listed exactly two tenants.
-
 ### Cleaning up
 
 If you need to clean up the things you have created, you need to do two things:
