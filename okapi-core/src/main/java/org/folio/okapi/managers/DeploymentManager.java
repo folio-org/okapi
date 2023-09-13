@@ -166,7 +166,7 @@ public class DeploymentManager {
         }
         descriptor.setEnv(nenv);
       }
-      logger.info("Deploy {} {}", md.getSrvcId(), Json.encodePrettily(descriptor));
+      logger.info("Deploy {} {}", md.getSrvcId(), md.getDescriptor().getDockerImage());
       String moduleUrl = "http://" + host + ":" + usePort;
       String moduleHost = host;
       if (descriptor.getDockerImage() != null) {
