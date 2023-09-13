@@ -11,7 +11,7 @@ import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 
 /**
- * TCP port waiting utility for arbitrary hosts, uses {@link Webclient} because
+ * TCP port waiting utility for arbitrary hosts, uses {@link WebClient} because
  * container ports are immediately ready.
  *
  * <p>See {@link PortChecker} for localhost ports, uses {@link NetClient}.
