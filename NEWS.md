@@ -1,3 +1,16 @@
+## 5.0.2 2023-09-13
+
+Fixes:
+
+* [OKAPI-1163](https://issues.folio.org/browse/OKAPI-1163) Add time waited to the WAIT log message (log\_wait\_ms)
+* [OKAPI-1164](https://issues.folio.org/browse/OKAPI-1164) ctx.request().path() log injection in okapi-test-module MainVerticle
+* [OKAPI-1168](https://issues.folio.org/browse/OKAPI-1168) stronger qualification for token cache
+* [OKAPI-1039](https://issues.folio.org/browse/OKAPI-1039) Do not include user supplied path in 404 response
+* [OKAPI-1169](https://issues.folio.org/browse/OKAPI-1169) Sporadic MapExpiryTest failure
+* [OKAPI-1170](https://issues.folio.org/browse/OKAPI-1170) Update to Java 17
+* [OKAPI-835](https://issues.folio.org/browse/OKAPI-835) Update securing.md, read-only APIs require permissions
+* [OKAPI-1172](https://issues.folio.org/browse/OKAPI-1172) Reduce excessive logging on deploy
+
 ## 5.0.1 2023-03-02
 
 Fixes:
