@@ -153,9 +153,9 @@ public class DiscoveryManager implements NodeListener {
    * </ol>
    */
   private Future<DeploymentDescriptor> addAndDeploy0(DeploymentDescriptor dd) {
-    String tmp = Json.encodePrettily(dd);
-    logger.info("addAndDeploy: {}", tmp);
     final String id = dd.getSrvcId();
+    logger.info("addAndDeploy: {} {} {}", dd.getNodeId(), id,
+        dd.getDescriptor() == null ? null : dd.getDescriptor().getDockerImage());
     if (id == null) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10800")));
     }
