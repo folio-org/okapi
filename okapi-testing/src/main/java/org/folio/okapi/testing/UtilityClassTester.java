@@ -5,8 +5,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 /**
- * Unit test tool for utility classes.<p />
- * Also helps to get 100% code coverage because it invokes the private constructor.
+ * Unit test tool for utility classes.
+ *
+ * <p>Also helps to get 100% code coverage because it invokes the private constructor.
  */
 public final class UtilityClassTester {
   private UtilityClassTester() {
