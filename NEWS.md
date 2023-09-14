@@ -1,3 +1,9 @@
+## 4.14.13 2023-09-13
+
+Fix:
+
+* [OKAPI-1172](https://issues.folio.org/browse/OKAPI-1172) Reduce excessive logging on deploy
+
 ## 4.14.12 2023-03-15
 
 Fixes:
