@@ -58,7 +58,7 @@
       <dependency>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast</artifactId>
-        <version>4.2.8</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/4.4/pom.xml#L19 -->
+        <version>5.3.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/4.x/.github/workflows/ci-4.x.yml -->
       </dependency>
       <!-- END: versions that depend on the vertx-stack-depchain version -->
 
