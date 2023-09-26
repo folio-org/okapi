@@ -31,10 +31,18 @@
 
   <dependencyManagement>
     <dependencies>
+
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>2.20.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.3.8</version> <!-- also update depending versions below! -->
+        <version>4.4.5</version> <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -43,29 +51,17 @@
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.10.3</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
+        <version>1.11.4</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>com.hazelcast</groupId>
-        <artifactId>hazelcast-aws</artifactId>
-        <version>3.4</version>  <!-- https://github.com/hazelcast/hazelcast-aws#requirements -->
-      </dependency>
-      <dependency>
-        <groupId>com.hazelcast</groupId>
-        <artifactId>hazelcast-kubernetes</artifactId>
-        <version>2.2.3</version>  <!-- https://github.com/hazelcast/hazelcast-kubernetes#requirements-and-recommendations -->
+        <artifactId>hazelcast</artifactId>
+        <version>5.3.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/4.x/.github/workflows/ci-4.x.yml -->
       </dependency>
       <!-- END: versions that depend on the vertx-stack-depchain version -->
 
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-bom</artifactId>
-        <version>2.19.0</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
       <dependency>
         <groupId>org.hamcrest</groupId>
         <artifactId>hamcrest</artifactId>
@@ -86,7 +82,7 @@
       <dependency>
         <groupId>io.rest-assured</groupId>
         <artifactId>rest-assured</artifactId>
-        <version>5.3.0</version>
+        <version>5.3.2</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
@@ -96,7 +92,7 @@
       <dependency>
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
-        <version>3.23.1</version>
+        <version>3.24.2</version>
       </dependency>
       <dependency>
         <groupId>com.zaxxer</groupId>
@@ -107,7 +103,7 @@
       <dependency>
         <groupId>com.cronutils</groupId>
         <artifactId>cron-utils</artifactId>
-        <version>9.2.0</version>
+        <version>9.2.1</version>
       </dependency>
       <dependency>
         <groupId>com.ongres.scram</groupId>
@@ -117,21 +113,21 @@
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
-        <version>5.9.1</version>
+        <version>5.10.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
-        <version>1.17.6</version>
+        <version>1.19.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-bom</artifactId>
-        <version>4.8.0</version>
+        <version>5.5.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -148,12 +144,12 @@
       <extension>
         <groupId>org.apache.maven.wagon</groupId>
         <artifactId>wagon-ssh</artifactId>
-        <version>2.10</version>
+        <version>3.5.3</version>
       </extension>
       <extension>
         <groupId>org.apache.maven.wagon</groupId>
         <artifactId>wagon-ssh-external</artifactId>
-        <version>2.10</version>
+        <version>3.5.3</version>
       </extension>
     </extensions>
 
@@ -163,7 +159,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
-          <version>3.2.4</version>
+          <version>3.5.0</version>
           <configuration>
             <filters>
               <filter>
@@ -179,13 +175,13 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.2.0</version>
+          <version>3.3.0</version>
         </plugin>
 
         <plugin>
            <groupId>org.apache.maven.plugins</groupId>
            <artifactId>maven-resources-plugin</artifactId>
-           <version>3.2.0</version>
+           <version>3.3.1</version>
         </plugin>
 
         <plugin>
@@ -200,7 +196,7 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
+        <version>3.11.0</version>
         <configuration>
           <release>17</release>
           <compilerArgument>-Xlint:unchecked</compilerArgument>
@@ -226,7 +222,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>1.2.1</version>
+        <version>3.1.0</version>
         <executions>
           <execution>
             <id>default-cli</id>
@@ -264,7 +260,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.3</version>
+        <version>3.0.1</version>
         <configuration>
           <preparationGoals>clean verify</preparationGoals>
           <tagNameFormat>v@{project.version}</tagNameFormat>
@@ -302,12 +298,12 @@
 
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.2</version>
+        <version>3.1.2</version>
       </plugin>
 
       <plugin>
         <artifactId>maven-source-plugin</artifactId>
-        <version>3.2.1</version>
+        <version>3.3.0</version>
         <executions>
           <execution>
             <id>attach-sources</id>
@@ -321,7 +317,7 @@
 
       <plugin>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>3.6.0</version>
         <executions>
           <execution>
             <id>attach-javadocs</id>
@@ -335,7 +331,7 @@
 
       <plugin>
         <artifactId>maven-deploy-plugin</artifactId>
-        <version>3.0.0-M2</version>
+        <version>3.1.1</version>
         <executions>
           <execution>
             <id>deploy</id>
