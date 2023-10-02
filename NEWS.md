@@ -1,3 +1,9 @@
+## 5.1.0 2023-09-29
+
+New features:
+
+* [OKAPI-1175](https://issues.folio.org/browse/OKAPI-1175) Poppy dependency upgrades: Vert.x 4.4.5, Hazelcast 5.3.2, ...
+
 ## 5.0.2 2023-09-13
 
 Fixes:
