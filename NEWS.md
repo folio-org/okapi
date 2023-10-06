@@ -1,3 +1,9 @@
+## 5.1.1 2023-10-06
+
+Fix:
+
+* [OKAPI-1177](https://issues.folio.org/browse/OKAPI-1177) Disable reduced pom in shade plugin
+
 ## 5.1.0 2023-09-29
 
 New features:
