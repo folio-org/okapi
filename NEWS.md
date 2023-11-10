@@ -1,3 +1,9 @@
+## 5.1.2 2023-11-01
+
+Fix:
+
+* [OKAPI-1178](https://issues.folio.org/browse/OKAPI-1178) Vert.x 4.4.6 fixing netty-codec-http2 DoS (CVE-2023-44487)
+
 ## 5.1.1 2023-10-06
 
 Fix:
