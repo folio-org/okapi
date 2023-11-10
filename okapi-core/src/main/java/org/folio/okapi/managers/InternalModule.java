@@ -32,6 +32,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.UrlDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.GraphDot;
+import org.folio.okapi.util.JsonDecoder;
 import org.folio.okapi.util.ModuleUtil;
 import org.folio.okapi.util.ModuleVersionFilter;
 import org.folio.okapi.util.OkapiError;
@@ -711,7 +712,7 @@ public class InternalModule {
         + "],"
         + "\"requires\" : [ ]" // can not require any other interfaces.
         + "}";
-    return Json.decodeValue(doc, ModuleDescriptor.class);
+    return JsonDecoder.decode(doc, ModuleDescriptor.class);
   }
 
   /*
@@ -748,7 +749,7 @@ public class InternalModule {
 
   private Future<String> createTenant(ProxyContext pc, String body) {
     try {
-      final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
+      final TenantDescriptor td = JsonDecoder.decode(body, TenantDescriptor.class);
       if (td.getId() == null || td.getId().isEmpty()) {
         td.setId(UUID.randomUUID().toString());
       }
@@ -767,7 +768,7 @@ public class InternalModule {
 
   private Future<String> updateTenant(String tenantId, String body) {
     try {
-      final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
+      final TenantDescriptor td = JsonDecoder.decode(body, TenantDescriptor.class);
       if (!tenantId.equals(td.getId())) {
         return Future.failedFuture(new OkapiError(ErrorType.USER,
             messages.getMessage("11602", td.getId(), tenantId)));
@@ -803,7 +804,7 @@ public class InternalModule {
     try {
       TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
 
-      final TenantModuleDescriptor td = Json.decodeValue(body,
+      final TenantModuleDescriptor td = JsonDecoder.decode(body,
           TenantModuleDescriptor.class);
       return kubernetesManager.refresh()
           .compose(x -> tenantManager.enableAndDisableModule(tenantId, options, null, td, pc)
@@ -825,7 +826,7 @@ public class InternalModule {
     try {
       TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
 
-      final TenantModuleDescriptor[] tml = Json.decodeValue(body,
+      final TenantModuleDescriptor[] tml = JsonDecoder.decode(body,
           TenantModuleDescriptor[].class);
       List<TenantModuleDescriptor> tm = new LinkedList<>();
       Collections.addAll(tm, tml);
@@ -892,7 +893,7 @@ public class InternalModule {
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request().params());
     try {
       final String module_from = mod;
-      final TenantModuleDescriptor td = Json.decodeValue(body,
+      final TenantModuleDescriptor td = JsonDecoder.decode(body,
           TenantModuleDescriptor.class);
       return tenantManager.enableAndDisableModule(tenantId, options, module_from, td, pc)
           .map(res -> {
@@ -978,7 +979,7 @@ public class InternalModule {
 
   private Future<String> patchTimer(String tenantId, String body) {
     try {
-      final TimerDescriptor timerDescriptor = Json.decodeValue(body, TimerDescriptor.class);
+      final TimerDescriptor timerDescriptor = JsonDecoder.decode(body, TimerDescriptor.class);
       return timerManager.patchTimer(tenantId, timerDescriptor).map(res -> "");
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
@@ -987,7 +988,7 @@ public class InternalModule {
 
   private Future<String> patchTimer(String tenantId, String timerId, String body) {
     try {
-      final RoutingEntry routingEntry = Json.decodeValue(body, RoutingEntry.class);
+      final RoutingEntry routingEntry = JsonDecoder.decode(body, RoutingEntry.class);
       final TimerDescriptor timerDescriptor = new TimerDescriptor();
       timerDescriptor.setId(timerId);
       timerDescriptor.setRoutingEntry(routingEntry);
@@ -1017,7 +1018,7 @@ public class InternalModule {
 
   private Future<String> createModules(ProxyContext pc, String body) {
     try {
-      final ModuleDescriptor[] modules = Json.decodeValue(body, ModuleDescriptor[].class);
+      final ModuleDescriptor[] modules = JsonDecoder.decode(body, ModuleDescriptor[].class);
       return createModules(pc, Arrays.asList(modules)).map("");
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
@@ -1041,7 +1042,7 @@ public class InternalModule {
 
   private Future<String> createModule(ProxyContext pc, String body) {
     try {
-      final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
+      final ModuleDescriptor md = JsonDecoder.decode(body, ModuleDescriptor.class);
       return createModules(pc, Collections.singletonList(md))
           .map(res -> location(pc, md.getId(), null, Json.encodePrettily(md)));
     } catch (DecodeException ex) {
@@ -1057,7 +1058,7 @@ public class InternalModule {
     try {
       String [] skipModules = new String [0];
       if (!body.isEmpty()) {
-        skipModules = Json.decodeValue(body, skipModules.getClass());
+        skipModules = JsonDecoder.decode(body, skipModules.getClass());
       }
       return moduleManager.getModulesWithFilter(new ModuleVersionFilter(),
               Arrays.asList(skipModules))
@@ -1108,7 +1109,7 @@ public class InternalModule {
 
   private Future<String> createDeployment(ProxyContext pc, String body) {
     try {
-      final DeploymentDescriptor pmd = Json.decodeValue(body,
+      final DeploymentDescriptor pmd = JsonDecoder.decode(body,
           DeploymentDescriptor.class);
       return deploymentManager.deploy(pmd)
           .map(res -> location(pc, res.getInstId(), null, Json.encodePrettily(res)));
@@ -1128,7 +1129,7 @@ public class InternalModule {
 
   private Future<String> putDiscoveryNode(String id, String body) {
     try {
-      final NodeDescriptor nd = Json.decodeValue(body, NodeDescriptor.class);
+      final NodeDescriptor nd = JsonDecoder.decode(body, NodeDescriptor.class);
       return discoveryManager.updateNode(id, nd)
           .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
     } catch (DecodeException ex) {
@@ -1160,7 +1161,7 @@ public class InternalModule {
 
   private Future<String> discoveryDeploy(ProxyContext pc, String body) {
     try {
-      final DeploymentDescriptor pmd = Json.decodeValue(body,
+      final DeploymentDescriptor pmd = JsonDecoder.decode(body,
           DeploymentDescriptor.class);
       return discoveryManager.addAndDeploy(pmd).compose(md -> {
         final String s = Json.encodePrettily(md);
@@ -1215,7 +1216,7 @@ public class InternalModule {
 
   private Future<String> createEnv(ProxyContext pc, String body) {
     try {
-      final EnvEntry pmd = Json.decodeValue(body, EnvEntry.class);
+      final EnvEntry pmd = JsonDecoder.decode(body, EnvEntry.class);
       return envManager.add(pmd)
           .map(res -> location(pc, pmd.getName(), null, Json.encodePrettily(pmd)));
     } catch (DecodeException ex) {
@@ -1230,7 +1231,7 @@ public class InternalModule {
   private Future<String> pullModules(String body) {
 
     try {
-      final PullDescriptor pmd = Json.decodeValue(body, PullDescriptor.class);
+      final PullDescriptor pmd = JsonDecoder.decode(body, PullDescriptor.class);
       return pullManager.pull(pmd)
           .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
     } catch (DecodeException ex) {

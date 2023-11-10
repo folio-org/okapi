@@ -50,7 +50,7 @@ public class LockedTypedMap2<T> extends LockedStringMap {
       if (res == null) {
         return Future.succeededFuture(null);
       }
-      return Future.succeededFuture(Json.decodeValue(res, clazz));
+      return Future.succeededFuture(JsonDecoder.decode(res, clazz));
     });
   }
 
@@ -66,7 +66,7 @@ public class LockedTypedMap2<T> extends LockedStringMap {
       }
       LinkedList<T> t = new LinkedList<>();
       for (String s : res) {
-        t.add(Json.decodeValue(s, clazz));
+        t.add(JsonDecoder.decode(s, clazz));
       }
       return Future.succeededFuture(t);
     });
