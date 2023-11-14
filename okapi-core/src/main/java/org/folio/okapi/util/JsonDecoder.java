@@ -12,10 +12,14 @@ public class JsonDecoder {
       "^Failed to decode:Cannot deserialize value of type `\\[L([^;`]+);` from Object value "
       + "\\(token `JsonToken\\.START_OBJECT`\\)(.*)$", Pattern.DOTALL);
 
+  private JsonDecoder() {
+  }
+
   /**
    * Same as {@link Json#decodeValue(String, Class)} but with better error message
    * when `{` is found where an array is expected.
    */
+  @SuppressWarnings("java:S109")  // suppress "Assign this magic number 2 to a well-named constant"
   public static <T> T decode(String str, Class<T> clazz) throws DecodeException {
     try {
       return Json.decodeValue(str, clazz);
