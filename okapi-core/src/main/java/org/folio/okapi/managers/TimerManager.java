@@ -404,7 +404,8 @@ public class TimerManager {
       JsonObject o = new JsonObject((String) res.body());
       String tenantId = o.getString("tenantId");
       String timerDescriptorVal = o.getString("timerDescriptor");
-      TimerDescriptor timerDescriptor = JsonDecoder.decode(timerDescriptorVal, TimerDescriptor.class);
+      TimerDescriptor timerDescriptor =
+          JsonDecoder.decode(timerDescriptorVal, TimerDescriptor.class);
       final String runId = tenantId + TIMER_ENTRY_SEP + timerDescriptor.getId();
       Long id = timerRunning.get(runId);
       if (id != null) {
