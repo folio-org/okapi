@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 /**
  * Wrapper for {@link Json#decodeValue} with improved error message.
  */
-public class JsonDecoder {
+public final class JsonDecoder {
   private static final Pattern pattern = Pattern.compile(
       "^Failed to decode:Cannot deserialize value of type `\\[L([^;`]+);` from Object value "
       + "\\(token `JsonToken\\.START_OBJECT`\\)(.*)$", Pattern.DOTALL);
