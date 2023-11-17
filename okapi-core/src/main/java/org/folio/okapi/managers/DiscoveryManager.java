@@ -27,6 +27,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.util.FuturisedHttpClient;
+import org.folio.okapi.util.JsonDecoder;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.LockedTypedMap2;
 import org.folio.okapi.util.OkapiError;
@@ -194,7 +195,7 @@ public class DiscoveryManager implements NodeListener {
           return vertx.eventBus().request(url, Json.encode(dd), deliveryOptions)
               .recover(e -> Future.failedFuture(new OkapiError(ErrorType.USER, e.getMessage())));
         })
-        .map(message -> Json.decodeValue((String) message.body(), DeploymentDescriptor.class));
+        .map(message -> JsonDecoder.decode((String) message.body(), DeploymentDescriptor.class));
   }
 
   Future<Void> removeAndUndeploy(String srvcId, String instId) {

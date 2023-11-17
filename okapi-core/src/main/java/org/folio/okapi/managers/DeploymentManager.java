@@ -26,6 +26,7 @@ import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.service.impl.ModuleHandleFactory;
+import org.folio.okapi.util.JsonDecoder;
 import org.folio.okapi.util.OkapiError;
 
 /**
@@ -85,7 +86,7 @@ public class DeploymentManager {
     nd.setNodeName(nodeName);
     eventBus.consumer(nd.getUrl() + "/deploy", message -> {
       String b = (String) message.body();
-      DeploymentDescriptor dd = Json.decodeValue(b, DeploymentDescriptor.class);
+      DeploymentDescriptor dd = JsonDecoder.decode(b, DeploymentDescriptor.class);
       deploy(dd).onFailure(cause ->
           message.fail(OkapiError.getType(cause).ordinal(), cause.getMessage())
       ).onSuccess(res -> message.reply(Json.encodePrettily(res)));

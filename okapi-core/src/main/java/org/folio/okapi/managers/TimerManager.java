@@ -24,6 +24,7 @@ import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.TimerStore;
+import org.folio.okapi.util.JsonDecoder;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.OkapiError;
 
@@ -403,7 +404,8 @@ public class TimerManager {
       JsonObject o = new JsonObject((String) res.body());
       String tenantId = o.getString("tenantId");
       String timerDescriptorVal = o.getString("timerDescriptor");
-      TimerDescriptor timerDescriptor = Json.decodeValue(timerDescriptorVal, TimerDescriptor.class);
+      TimerDescriptor timerDescriptor =
+          JsonDecoder.decode(timerDescriptorVal, TimerDescriptor.class);
       final String runId = tenantId + TIMER_ENTRY_SEP + timerDescriptor.getId();
       Long id = timerRunning.get(runId);
       if (id != null) {
