@@ -1,3 +1,13 @@
+## 5.2.0 2023-12-08
+
+New feature:
+
+* [OKAPI-1179](https://issues.folio.org/browse/OKAPI-1179) Improve Json.decodeValue array error message
+
+Fix:
+
+* [OKAPI-1180](https://issues.folio.org/browse/OKAPI-1180) In Debian package upgrade openjdk from 11 to 17
+
 ## 5.1.2 2023-11-01
 
 Fix:
