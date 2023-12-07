@@ -75,7 +75,7 @@ public class LockedStringMap {
       }
       StringMap stringMap = new StringMap();
       Timer.Sample sample = MetricsHelper.getTimerSample();
-      StringMap oldList = Json.decodeValue(val, StringMap.class);
+      StringMap oldList = JsonDecoder.decode(val, StringMap.class);
       MetricsHelper.recordCodeExecutionTime(sample, "LockedStringMap.getString.decodeValue");
       stringMap.strings.putAll(oldList.strings);
       return Future.succeededFuture(stringMap.strings.get(k2));
@@ -92,7 +92,7 @@ public class LockedStringMap {
       if (val == null) {
         return Future.succeededFuture(null);
       }
-      StringMap map = Json.decodeValue(val, StringMap.class);
+      StringMap map = JsonDecoder.decode(val, StringMap.class);
       return Future.succeededFuture(map.strings.values());
     });
   }
@@ -125,7 +125,7 @@ public class LockedStringMap {
       } else {
         StringMap smap = new StringMap();
         if (oldVal != null) {
-          StringMap oldList = Json.decodeValue(oldVal, StringMap.class);
+          StringMap oldList = JsonDecoder.decode(oldVal, StringMap.class);
           smap.strings.putAll(oldList.strings);
         }
         if (!allowReplace && smap.strings.containsKey(k2)) {
@@ -197,7 +197,7 @@ public class LockedStringMap {
       }
       StringMap stringMap = new StringMap();
       if (k2 != null) {
-        stringMap = Json.decodeValue(val, StringMap.class);
+        stringMap = JsonDecoder.decode(val, StringMap.class);
         if (!stringMap.strings.containsKey(k2)) {
           return Future.succeededFuture(false);
         }

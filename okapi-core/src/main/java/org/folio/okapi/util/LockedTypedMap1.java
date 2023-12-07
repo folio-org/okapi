@@ -52,7 +52,7 @@ public class LockedTypedMap1<T> extends LockedStringMap {
         return Future.succeededFuture(null);
       }
       Timer.Sample sample = MetricsHelper.getTimerSample();
-      T t = Json.decodeValue(res, clazz);
+      T t = JsonDecoder.decode(res, clazz);
       MetricsHelper.recordCodeExecutionTime(sample, "LockedTypedMap1.get.decodeValue");
       return Future.succeededFuture(t);
     });
@@ -71,7 +71,7 @@ public class LockedTypedMap1<T> extends LockedStringMap {
       for (String key : keys) {
         futures.add(getString(key, null).compose(res -> {
           Timer.Sample sample = MetricsHelper.getTimerSample();
-          T t = Json.decodeValue(res, clazz);
+          T t = JsonDecoder.decode(res, clazz);
           MetricsHelper.recordCodeExecutionTime(sample, "LockedTypedMap1.getAll.decodeValue");
           results.put(key, t);
           return Future.succeededFuture();
