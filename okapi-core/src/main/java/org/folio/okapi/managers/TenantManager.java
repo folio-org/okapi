@@ -974,7 +974,9 @@ public class TenantManager implements Liveness {
       Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     List<TenantModuleDescriptor> tml = job.getModules();
-    DepResolution.install(modsAvailable, modsEnabled, tml, options.getReinstall());
+    if (options.getDepCheck()) {
+      DepResolution.install(modsAvailable, modsEnabled, tml, options.getReinstall());
+    }
     if (options.getSimulate()) {
       return Future.succeededFuture(tml);
     }
@@ -1075,8 +1077,10 @@ public class TenantManager implements Liveness {
         continue;
       }
       ModuleDescriptor md = modsAvailable.get(tm.getId());
-      if (!depsOK(tm, md, getEnabledModules(t))) {
-        continue;
+      if (options.getDepCheck()) {
+        if (!depsOK(tm, md, getEnabledModules(t))) {
+          continue;
+        }
       }
       if (isExclusive(md)) {
         if (running.get() > 0) {

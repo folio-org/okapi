@@ -1,30 +1,35 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.bean.InterfaceDescriptor;
-import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.ModuleInstance;
-import org.folio.okapi.bean.RoutingEntry;
-import org.folio.okapi.bean.Tenant;
-import org.folio.okapi.bean.TenantDescriptor;
+import org.folio.okapi.bean.*;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.impl.TenantStoreNull;
 import org.folio.okapi.util.LockedTypedMap1Faulty;
 import org.folio.okapi.util.OkapiError;
+import org.folio.okapi.util.TenantInstallOptions;
 import org.folio.okapi.util.TestBase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatchers;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @RunWith(VertxUnitRunner.class)
 public class TenantManagerTest extends TestBase {
@@ -465,5 +470,83 @@ public class TenantManagerTest extends TestBase {
           context.assertEquals("/_/tenantpath/{id}", instance.getPath());
           context.assertTrue(obj.getBoolean("purge"));
         }));
+  }
+
+  @Test
+  public void testDependencyCheck(TestContext testContext) {
+    String parentModuleId = "parentMod-1.0.0";
+    String childModuleId = "childMod-1.0.0";
+    String testTenantId = "testTenant";
+    // Child Module
+    InterfaceDescriptor[] childInterfaces = {new InterfaceDescriptor("Child Interface", "1.0")};
+    ModuleDescriptor childModuleDescriptor = new ModuleDescriptor(childModuleId);
+    childModuleDescriptor.setProvides(childInterfaces);
+
+    // Parent Module
+    InterfaceDescriptor[] parentInterfaces = {new InterfaceDescriptor("Parent Interface", "1.0")};
+    ModuleDescriptor parentModuleDescriptor = new ModuleDescriptor(parentModuleId);
+    parentModuleDescriptor.setProvides(parentInterfaces);
+    parentModuleDescriptor.setRequires(childInterfaces);
+
+    ModuleManager mockedModuleManager = mock(ModuleManager.class);
+    when(mockedModuleManager.getModulesWithFilter(any(), ArgumentMatchers.isNull()))
+        .thenReturn(Future.succeededFuture(Collections.singletonList(parentModuleDescriptor)));
+    when(mockedModuleManager.get(eq(parentModuleId))).thenReturn(Future.succeededFuture(parentModuleDescriptor));
+
+    TenantManager tenantManager = new TenantManager(mockedModuleManager, new TenantStoreNull(), true);
+    setUpTenantManager(testContext, vertx, tenantManager);
+    Tenant tenant = new Tenant(createTenantDescriptor(testTenantId, "Test Tenant"));
+    insertTenantToTenantManager(testContext, tenantManager, tenant);
+
+    TenantInstallOptions tenantInstallOptions = new TenantInstallOptions();
+    TenantModuleDescriptor tenantModuleDescriptor = new TenantModuleDescriptor();
+    tenantModuleDescriptor.setId(parentModuleId);
+    tenantModuleDescriptor.setAction(TenantModuleDescriptor.Action.enable);
+    List<TenantModuleDescriptor> moduleDescriptorList = new LinkedList<>();
+    moduleDescriptorList.add(tenantModuleDescriptor);
+    {
+      Async async = testContext.async();
+      tenantInstallOptions.setDepCheck(true);
+      tenantManager.installUpgradeCreate(testTenantId, "depCheck", null, tenantInstallOptions, moduleDescriptorList).onComplete(res -> {
+        testContext.assertFalse(res.succeeded());
+        Throwable cause = res.cause();
+        testContext.assertTrue(cause instanceof OkapiError);
+        testContext.assertEquals(cause.getMessage(), "interface Child Interface required by module parentMod-1.0.0 not found");
+        async.complete();
+      });
+      async.await();
+    }
+
+    {
+      Async async = testContext.async();
+      tenantInstallOptions.setDepCheck(false);
+      tenantManager.installUpgradeCreate(testTenantId, "depCheck", null, tenantInstallOptions, moduleDescriptorList).onComplete(res -> {
+        testContext.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+  }
+
+  private void setUpTenantManager(TestContext context, Vertx vertx, TenantManager tenantManager) {
+    Async async = context.async();
+    tenantManager.init(vertx).onComplete(context.asyncAssertSuccess(nothing -> async.complete()));
+    async.await();
+  }
+
+  private TenantDescriptor createTenantDescriptor(String id, String name) {
+    TenantDescriptor tenantDescriptor = new TenantDescriptor();
+    tenantDescriptor.setId(id);
+    tenantDescriptor.setName(name);
+    return tenantDescriptor;
+  }
+
+  private void insertTenantToTenantManager(TestContext context, TenantManager tenantManager, Tenant tenant) {
+    Async async = context.async();
+    tenantManager.insert(tenant).onComplete(result -> {
+      context.assertTrue(result.succeeded());
+      async.complete();
+    });
+    async.await();
   }
 }

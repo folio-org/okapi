@@ -36,6 +36,7 @@ public final class ModuleUtil {
     options.setIgnoreErrors(getParamBoolean(params, "ignoreErrors", false));
     options.setReinstall(getParamBoolean(params, "reinstall", false));
     options.setMaxParallel(getParamInteger(params, "parallel", 1));
+    options.setDepCheck(getParamBoolean(params, "depCheck", true));
     return options;
   }
 
