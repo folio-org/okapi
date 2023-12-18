@@ -506,7 +506,7 @@ public class TenantManagerTest extends TestBase {
     ModuleManager mockedModuleManager = mock(ModuleManager.class);
     when(mockedModuleManager.getModulesWithFilter(any(), ArgumentMatchers.isNull()))
         .thenReturn(Future.succeededFuture(Collections.singletonList(parentModuleDescriptor)));
-    when(mockedModuleManager.get(eq(parentModuleId))).thenReturn(Future.succeededFuture(parentModuleDescriptor));
+    when(mockedModuleManager.get(parentModuleId)).thenReturn(Future.succeededFuture(parentModuleDescriptor));
 
     TenantManager tenantManager = new TenantManager(mockedModuleManager, new TenantStoreNull(), true);
     return tenantManager.init(vertx)
