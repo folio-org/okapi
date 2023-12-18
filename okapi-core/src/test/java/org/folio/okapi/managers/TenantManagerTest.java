@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatchers;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -473,7 +474,21 @@ public class TenantManagerTest extends TestBase {
   }
 
   @Test
-  public void testDependencyCheck(TestContext testContext) {
+  public void depCheckTrue(TestContext testContext) {
+    depCheck(true)
+        .onComplete(testContext.asyncAssertFailure(e -> {
+          assertThat(e).isInstanceOf(OkapiError.class);
+          assertThat(e.getMessage()).isEqualTo("interface Child Interface required by module parentMod-1.0.0 not found");
+        }));
+  }
+
+  @Test
+  public void depCheckFalse(TestContext testContext) {
+    depCheck(false)
+        .onComplete(testContext.asyncAssertSuccess());
+  }
+
+  private Future<List<TenantModuleDescriptor>> depCheck(boolean depCheck) {
     String parentModuleId = "parentMod-1.0.0";
     String childModuleId = "childMod-1.0.0";
     String testTenantId = "testTenant";
@@ -494,59 +509,21 @@ public class TenantManagerTest extends TestBase {
     when(mockedModuleManager.get(eq(parentModuleId))).thenReturn(Future.succeededFuture(parentModuleDescriptor));
 
     TenantManager tenantManager = new TenantManager(mockedModuleManager, new TenantStoreNull(), true);
-    setUpTenantManager(testContext, vertx, tenantManager);
-    Tenant tenant = new Tenant(createTenantDescriptor(testTenantId, "Test Tenant"));
-    insertTenantToTenantManager(testContext, tenantManager, tenant);
+    return tenantManager.init(vertx)
+        .compose(x -> {
+          Tenant tenant = new Tenant(new TenantDescriptor(testTenantId, "Test Tenant"));
+          return tenantManager.insert(tenant);
+        })
+        .compose(x -> {
+          TenantInstallOptions tenantInstallOptions = new TenantInstallOptions();
+          tenantInstallOptions.setDepCheck(depCheck);
+          TenantModuleDescriptor tenantModuleDescriptor = new TenantModuleDescriptor();
+          tenantModuleDescriptor.setId(parentModuleId);
+          tenantModuleDescriptor.setAction(TenantModuleDescriptor.Action.enable);
+          List<TenantModuleDescriptor> moduleDescriptorList = new LinkedList<>();
+          moduleDescriptorList.add(tenantModuleDescriptor);
 
-    TenantInstallOptions tenantInstallOptions = new TenantInstallOptions();
-    TenantModuleDescriptor tenantModuleDescriptor = new TenantModuleDescriptor();
-    tenantModuleDescriptor.setId(parentModuleId);
-    tenantModuleDescriptor.setAction(TenantModuleDescriptor.Action.enable);
-    List<TenantModuleDescriptor> moduleDescriptorList = new LinkedList<>();
-    moduleDescriptorList.add(tenantModuleDescriptor);
-    {
-      Async async = testContext.async();
-      tenantInstallOptions.setDepCheck(true);
-      tenantManager.installUpgradeCreate(testTenantId, "depCheck", null, tenantInstallOptions, moduleDescriptorList).onComplete(res -> {
-        testContext.assertFalse(res.succeeded());
-        Throwable cause = res.cause();
-        testContext.assertTrue(cause instanceof OkapiError);
-        testContext.assertEquals(cause.getMessage(), "interface Child Interface required by module parentMod-1.0.0 not found");
-        async.complete();
-      });
-      async.await();
-    }
-
-    {
-      Async async = testContext.async();
-      tenantInstallOptions.setDepCheck(false);
-      tenantManager.installUpgradeCreate(testTenantId, "depCheck", null, tenantInstallOptions, moduleDescriptorList).onComplete(res -> {
-        testContext.assertTrue(res.succeeded());
-        async.complete();
-      });
-      async.await();
-    }
-  }
-
-  private void setUpTenantManager(TestContext context, Vertx vertx, TenantManager tenantManager) {
-    Async async = context.async();
-    tenantManager.init(vertx).onComplete(context.asyncAssertSuccess(nothing -> async.complete()));
-    async.await();
-  }
-
-  private TenantDescriptor createTenantDescriptor(String id, String name) {
-    TenantDescriptor tenantDescriptor = new TenantDescriptor();
-    tenantDescriptor.setId(id);
-    tenantDescriptor.setName(name);
-    return tenantDescriptor;
-  }
-
-  private void insertTenantToTenantManager(TestContext context, TenantManager tenantManager, Tenant tenant) {
-    Async async = context.async();
-    tenantManager.insert(tenant).onComplete(result -> {
-      context.assertTrue(result.succeeded());
-      async.complete();
-    });
-    async.await();
+          return tenantManager.installUpgradeCreate(testTenantId, "depCheck", null, tenantInstallOptions, moduleDescriptorList);
+        });
   }
 }
