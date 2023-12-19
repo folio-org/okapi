@@ -926,6 +926,9 @@ public class TenantManager implements Liveness {
         }
       }
     }
+    if (!options.getDepCheck() && options.getMaxParallel() > 1) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10411")));
+    }
     return tenants.getNotFound(tenantId).compose(tenant ->
         moduleManager.getModulesWithFilter(options.getModuleVersionFilter(), null)
             .compose(modules -> {
@@ -1077,10 +1080,8 @@ public class TenantManager implements Liveness {
         continue;
       }
       ModuleDescriptor md = modsAvailable.get(tm.getId());
-      if (options.getDepCheck()) {
-        if (!depsOK(tm, md, getEnabledModules(t))) {
-          continue;
-        }
+      if (options.getDepCheck() && !depsOK(tm, md, getEnabledModules(t))) {
+        continue;
       }
       if (isExclusive(md)) {
         if (running.get() > 0) {
