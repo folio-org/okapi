@@ -1712,8 +1712,8 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-    Assert.assertEquals("Install Option:parallel can not be greater than 1 " +
-        "when Install Option:depCheck is false", r.getBody().asString());
+    Assert.assertEquals("Install Option parallel can not be greater than 1 " +
+        "when Install Option depCheck is false", r.getBody().asString());
 
     // install module with depCheck disabled and parallel not set
     c = api.createRestAssured3();
