@@ -81,6 +81,7 @@ traits:
         description: |
           Number of parallel calls to tenant interfaces of modules.
           A value of 1 means calls are happening in sequence.
+          If depCheck=false and parallel>1, the invocation will be rejected.
         type: integer
         required: false
         default: 1
@@ -104,6 +105,14 @@ traits:
         description: Parameters for tenant init
         type: string
         required: false
+      depCheck:
+        description: |
+          Whether to check dependencies of modules before being installed. Modules are installed exactly
+            in the order supplied by the client. If depCheck=false and parallel>1, the invocation will be
+            rejected.
+        type: boolean
+        required: false
+        default: true
 
 /_/deployment/modules:
   description: |

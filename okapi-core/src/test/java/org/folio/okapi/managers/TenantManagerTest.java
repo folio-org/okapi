@@ -1,30 +1,36 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.bean.InterfaceDescriptor;
-import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.ModuleInstance;
-import org.folio.okapi.bean.RoutingEntry;
-import org.folio.okapi.bean.Tenant;
-import org.folio.okapi.bean.TenantDescriptor;
+import org.folio.okapi.bean.*;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.impl.TenantStoreNull;
 import org.folio.okapi.util.LockedTypedMap1Faulty;
 import org.folio.okapi.util.OkapiError;
+import org.folio.okapi.util.TenantInstallOptions;
 import org.folio.okapi.util.TestBase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatchers;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @RunWith(VertxUnitRunner.class)
 public class TenantManagerTest extends TestBase {
@@ -465,5 +471,59 @@ public class TenantManagerTest extends TestBase {
           context.assertEquals("/_/tenantpath/{id}", instance.getPath());
           context.assertTrue(obj.getBoolean("purge"));
         }));
+  }
+
+  @Test
+  public void depCheckTrue(TestContext testContext) {
+    depCheck(true)
+        .onComplete(testContext.asyncAssertFailure(e -> {
+          assertThat(e).isInstanceOf(OkapiError.class);
+          assertThat(e.getMessage()).isEqualTo("interface Child Interface required by module parentMod-1.0.0 not found");
+        }));
+  }
+
+  @Test
+  public void depCheckFalse(TestContext testContext) {
+    depCheck(false)
+        .onComplete(testContext.asyncAssertSuccess());
+  }
+
+  private Future<List<TenantModuleDescriptor>> depCheck(boolean depCheck) {
+    String parentModuleId = "parentMod-1.0.0";
+    String childModuleId = "childMod-1.0.0";
+    String testTenantId = "testTenant";
+    // Child Module
+    InterfaceDescriptor[] childInterfaces = {new InterfaceDescriptor("Child Interface", "1.0")};
+    ModuleDescriptor childModuleDescriptor = new ModuleDescriptor(childModuleId);
+    childModuleDescriptor.setProvides(childInterfaces);
+
+    // Parent Module
+    InterfaceDescriptor[] parentInterfaces = {new InterfaceDescriptor("Parent Interface", "1.0")};
+    ModuleDescriptor parentModuleDescriptor = new ModuleDescriptor(parentModuleId);
+    parentModuleDescriptor.setProvides(parentInterfaces);
+    parentModuleDescriptor.setRequires(childInterfaces);
+
+    ModuleManager mockedModuleManager = mock(ModuleManager.class);
+    when(mockedModuleManager.getModulesWithFilter(any(), ArgumentMatchers.isNull()))
+        .thenReturn(Future.succeededFuture(Collections.singletonList(parentModuleDescriptor)));
+    when(mockedModuleManager.get(parentModuleId)).thenReturn(Future.succeededFuture(parentModuleDescriptor));
+
+    TenantManager tenantManager = new TenantManager(mockedModuleManager, new TenantStoreNull(), true);
+    return tenantManager.init(vertx)
+        .compose(x -> {
+          Tenant tenant = new Tenant(new TenantDescriptor(testTenantId, "Test Tenant"));
+          return tenantManager.insert(tenant);
+        })
+        .compose(x -> {
+          TenantInstallOptions tenantInstallOptions = new TenantInstallOptions();
+          tenantInstallOptions.setDepCheck(depCheck);
+          TenantModuleDescriptor tenantModuleDescriptor = new TenantModuleDescriptor();
+          tenantModuleDescriptor.setId(parentModuleId);
+          tenantModuleDescriptor.setAction(TenantModuleDescriptor.Action.enable);
+          List<TenantModuleDescriptor> moduleDescriptorList = new LinkedList<>();
+          moduleDescriptorList.add(tenantModuleDescriptor);
+
+          return tenantManager.installUpgradeCreate(testTenantId, "depCheck", null, tenantInstallOptions, moduleDescriptorList);
+        });
   }
 }

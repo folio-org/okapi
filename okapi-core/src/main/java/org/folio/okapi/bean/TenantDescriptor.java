@@ -17,6 +17,14 @@ public class TenantDescriptor {
   private String name;
   private String description;
 
+  public TenantDescriptor() {
+  }
+
+  public TenantDescriptor(String id, String name) {
+    this.id = id;
+    this.name = name;
+  }
+
   public void setName(String name) {
     this.name = name;
   }

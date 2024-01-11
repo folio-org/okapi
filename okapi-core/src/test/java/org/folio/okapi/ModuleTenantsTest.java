@@ -1515,7 +1515,7 @@ public class ModuleTenantsTest {
   }
 
   @Test
-  public void testDepCheck() {
+  public void testRegisterDepCheck() {
     RestAssured.port = port;
     RestAssuredClient c;
     Response r;
@@ -1585,6 +1585,156 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+  }
+
+  @Test
+  public void testInstallDepCheck() {
+    final String okapiTenant = "roskilde";
+    RestAssured.port = port;
+    RestAssuredClient c;
+    Response r;
+
+    // create basic 1.0.0
+    final String docBasic_1_0_0 = "{" + LS
+        + "  \"id\" : \"basic-module-1.0.0-alpha\"," + LS
+        + "  \"name\" : \"this module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenant\"," + LS
+        + "    \"version\" : \"1.1\"," + LS
+        + "    \"interfaceType\" : \"system\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+        + "      \"pathPattern\" : \"/_/tenant\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    }, {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  }, {" + LS
+        + "    \"id\" : \"bint\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/foo\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ { " + LS
+        + "    \"id\" : \"unknown1\", \"version\" : \"1.0\""
+        + "  }, {"
+        + "    \"id\" : \"unknown2\", \"version\" : \"2.0\""
+        + "  } ]," + LS
+        + "  \"launchDescriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+        + "  }" + LS
+        + "}";
+
+    // add tenant
+    final String docTenantRoskilde = "{" + LS
+        + "  \"id\" : \"" + okapiTenant + "\"," + LS
+        + "  \"name\" : \"" + okapiTenant + "\"," + LS
+        + "  \"description\" : \"Roskilde bibliotek\"" + LS
+        + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body(docTenantRoskilde).post("/_/proxy/tenants")
+        .then().statusCode(201)
+        .body(equalTo(docTenantRoskilde))
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // register the module basic 1.0.0
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body(docBasic_1_0_0).post("/_/proxy/modules?check=false").then().statusCode(201)
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // deploy basic 1.0.0
+    final String docBasicDeployment_1_0_0 = "{" + LS
+        + "  \"srvcId\" : \"basic-module-1.0.0-alpha\"," + LS
+        + "  \"nodeId\" : \"localhost\"" + LS
+        + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body(docBasicDeployment_1_0_0).post("/_/discovery/modules")
+        .then()
+        .statusCode(201)
+        .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // install module with depCheck not set
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"basic-module-1.0.0-alpha\", \"action\" : \"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install")
+        .then().statusCode(400)
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    Assert.assertEquals("interface unknown2 required by module basic-module-1.0.0-alpha not found." +
+        " interface unknown1 required by module basic-module-1.0.0-alpha not found", r.getBody().asString());
+
+    // install module with depCheck enabled
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"basic-module-1.0.0-alpha\", \"action\" : \"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?depCheck=true")
+        .then().statusCode(400)
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    Assert.assertEquals("interface unknown2 required by module basic-module-1.0.0-alpha not found." +
+        " interface unknown1 required by module basic-module-1.0.0-alpha not found", r.getBody().asString());
+
+    // install module with depCheck disabled and parallel set to 3
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"basic-module-1.0.0-alpha\", \"action\" : \"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?depCheck=false&parallel=3")
+        .then().statusCode(400)
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    Assert.assertEquals("Install Option parallel can not be greater than 1 " +
+        "when Install Option depCheck is false", r.getBody().asString());
+
+    // install module with depCheck disabled and parallel not set
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"basic-module-1.0.0-alpha\", \"action\" : \"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?depCheck=false")
+        .then().statusCode(200)
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .delete("/_/discovery/modules")
+        .then()
+        .statusCode(204).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
   }
 
   @Test

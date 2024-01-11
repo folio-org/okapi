@@ -926,6 +926,9 @@ public class TenantManager implements Liveness {
         }
       }
     }
+    if (!options.getDepCheck() && options.getMaxParallel() > 1) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10411")));
+    }
     return tenants.getNotFound(tenantId).compose(tenant ->
         moduleManager.getModulesWithFilter(options.getModuleVersionFilter(), null)
             .compose(modules -> {
@@ -974,7 +977,9 @@ public class TenantManager implements Liveness {
       Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     List<TenantModuleDescriptor> tml = job.getModules();
-    DepResolution.install(modsAvailable, modsEnabled, tml, options.getReinstall());
+    if (options.getDepCheck()) {
+      DepResolution.install(modsAvailable, modsEnabled, tml, options.getReinstall());
+    }
     if (options.getSimulate()) {
       return Future.succeededFuture(tml);
     }
@@ -1075,7 +1080,7 @@ public class TenantManager implements Liveness {
         continue;
       }
       ModuleDescriptor md = modsAvailable.get(tm.getId());
-      if (!depsOK(tm, md, getEnabledModules(t))) {
+      if (options.getDepCheck() && !depsOK(tm, md, getEnabledModules(t))) {
         continue;
       }
       if (isExclusive(md)) {
