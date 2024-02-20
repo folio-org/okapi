@@ -15,7 +15,16 @@ class JsonDecoderTest {
     DecodeException e = assertThrowsExactly(DecodeException.class,
         () -> JsonDecoder.decode("{}", String[].class));
     assertThat(e.getMessage(), is("Expected `[` but found `{` when trying to deserialize "
-        + "an array of java.lang.String\n at [Source: (String)\"{}\"; line: 1, column: 1]"));
+        + "an array of java.lang.String at line: 1, column: 1"));
+    assertThat(e.getCause().getMessage(), startsWith("Failed to decode:Cannot deserialize"));
+  }
+
+  @Test
+  void decodeWithLocation() {
+    DecodeException e = assertThrowsExactly(DecodeException.class,
+        () -> JsonDecoder.decode("\n\n\n\n\n\n\n\n\n         {}", String[].class));
+    assertThat(e.getMessage(), is("Expected `[` but found `{` when trying to deserialize "
+        + "an array of java.lang.String at line: 10, column: 10"));
     assertThat(e.getCause().getMessage(), startsWith("Failed to decode:Cannot deserialize"));
   }
 }

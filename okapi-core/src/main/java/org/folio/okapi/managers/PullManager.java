@@ -41,7 +41,7 @@ public class PullManager {
    */
   public PullManager(Vertx vertx, ModuleManager moduleManager) {
     HttpClientOptions options = new HttpClientOptions()
-        .setTryUseCompression(true)
+        .setDecompressionSupported(true)
         .setMaxPoolSize(2); // suffice as pull is normally not performed concurrently
     this.httpClient = new FuturisedHttpClient(vertx, options);
     this.moduleManager = moduleManager;

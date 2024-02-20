@@ -443,7 +443,7 @@ public class DockerModuleHandle implements ModuleHandle {
         .compose(
             x -> deleteContainer(),
             // if stopContainer fails with e run deleteContainer but return original failure e
-            e -> deleteContainer().eventually(x -> Future.failedFuture(e)))
+            e -> deleteContainer().eventually(() -> Future.failedFuture(e)))
         .onComplete(x -> ports.free(hostPort));
   }
 }

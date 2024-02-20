@@ -9,8 +9,9 @@ import java.util.regex.Pattern;
  */
 public final class JsonDecoder {
   private static final Pattern pattern = Pattern.compile(
-      "^Failed to decode:Cannot deserialize value of type `\\[L([^;`]+);` from Object value "
-      + "\\(token `JsonToken\\.START_OBJECT`\\)(.*)$", Pattern.DOTALL);
+      "^Failed to decode:Cannot deserialize value of type `\\[L(?<listElement>[^;`]+);` "
+      + "from Object value \\(token `JsonToken\\.START_OBJECT`\\).*; "
+      + "(?<at>line: \\d+, column: \\d+)\\]$", Pattern.DOTALL);
 
   private JsonDecoder() {
   }
@@ -19,7 +20,6 @@ public final class JsonDecoder {
    * Same as {@link Json#decodeValue(String, Class)} but with better error message
    * when `{` is found where an array is expected.
    */
-  @SuppressWarnings("java:S109")  // suppress "Assign this magic number 2 to a well-named constant"
   public static <T> T decode(String str, Class<T> clazz) throws DecodeException {
     try {
       return Json.decodeValue(str, clazz);
@@ -28,10 +28,10 @@ public final class JsonDecoder {
       if (! matcher.find()) {
         throw e;
       }
-      var listElement = matcher.group(1);
-      var at = matcher.group(2);
+      var listElement = matcher.group("listElement");
+      var at = matcher.group("at");
       throw new DecodeException("Expected `[` but found `{` when trying to "
-          + "deserialize an array of " + listElement + at, e);
+          + "deserialize an array of " + listElement + " at " + at, e);
     }
   }
 }

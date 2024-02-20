@@ -56,7 +56,8 @@ public class CorsHelper {
       if (ctx.data().containsKey(DELEGATE_CORS)) {
         ctx.next();
       } else {
-        CorsHandler.create("*")
+        CorsHandler.create()
+            .addRelativeOrigin(".*")
             .allowedMethod(HttpMethod.PUT)
             .allowedMethod(HttpMethod.PATCH)
             .allowedMethod(HttpMethod.DELETE)
