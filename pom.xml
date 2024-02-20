@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>5.3.0-SNAPSHOT</version>
+  <version>5.2.2-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
@@ -42,7 +42,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.4.6</version> <!-- also update depending versions below! -->
+        <version>4.4.8</version> <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -51,14 +51,14 @@
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.11.4</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
+        <version>1.11.5</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast</artifactId>
-        <version>5.3.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/4.x/.github/workflows/ci-4.x.yml -->
+        <version>5.3.5</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/4.x/.github/workflows/ci-4.x.yml -->
       </dependency>
       <!-- END: versions that depend on the vertx-stack-depchain version -->
 

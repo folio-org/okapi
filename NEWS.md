@@ -1,3 +1,9 @@
+## 5.2.1 2024-02-20
+
+Fix:
+
+* [OKAPI-1183](https://folio-org.atlassian.net/browse/OKAPI-1183) Vert.x 4.4.8 fixing CVE-2024-1023
+
 ## 5.2.0 2023-12-08
 
 New feature:
