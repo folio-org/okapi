@@ -8,11 +8,13 @@ import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.assertj.core.api.WithAssertions;
+import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.util.ProxyContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @Timeout(5)
@@ -103,5 +105,14 @@ class InternalModuleTest implements WithAssertions {
       assertThat(cause).hasMessageContaining("Failed to decode");
       vtc.completeNow();
     }));
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  void validateTenantId(String tenantId) {
+    var td = new TenantDescriptor(tenantId, "foo");
+    assertThat(InternalModule.validateTenantId(td).succeeded()).isTrue();
+    assertThat(td.getId()).matches("t[0-9a-f]{30}");
+    assertThat(td.getName()).isEqualTo("foo");
   }
 }

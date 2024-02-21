@@ -38,6 +38,7 @@ import org.folio.okapi.util.ModuleVersionFilter;
 import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.util.TenantInstallOptions;
+import org.folio.okapi.util.TenantValidator;
 
 /**
  * Okapi's built-in module. Managing /_/ endpoints.
@@ -750,20 +751,19 @@ public class InternalModule {
   private Future<String> createTenant(ProxyContext pc, String body) {
     try {
       final TenantDescriptor td = JsonDecoder.decode(body, TenantDescriptor.class);
-      if (td.getId() == null || td.getId().isEmpty()) {
-        td.setId(UUID.randomUUID().toString());
-      }
-      final String tenantId = td.getId();
-      if (!tenantId.matches("^[a-z0-9_-]+$")) {
-        return Future.failedFuture(
-            new OkapiError(ErrorType.USER, messages.getMessage("11601", tenantId)));
-      }
-      Tenant t = new Tenant(td);
-      return tenantManager.insert(t).map(res ->
-        location(pc, tenantId, null, Json.encodePrettily(t.getDescriptor())));
+      return validateTenantId(td)
+          .compose(x -> tenantManager.insert(new Tenant(td)))
+          .map(x -> location(pc, td.getId(), null, Json.encodePrettily(td)));
     } catch (DecodeException ex) {
       return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
+  }
+
+  static Future<Void> validateTenantId(TenantDescriptor td) {
+    if (td.getId() == null || td.getId().isEmpty()) {
+      td.setId("t" + UUID.randomUUID().toString().replace("-", "").substring(2));
+    }
+    return TenantValidator.validate(td.getId());
   }
 
   private Future<String> updateTenant(String tenantId, String body) {
