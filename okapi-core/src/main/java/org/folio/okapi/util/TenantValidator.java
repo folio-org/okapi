@@ -12,7 +12,7 @@ import org.folio.okapi.common.Messages;
  * Technical Council decision.
  */
 public final class TenantValidator {
-  /** Maximum length of a tenant ID */
+  /** Maximum length of a tenant ID. */
   public static final int MAX_LENGTH = 31;
 
   // multi-byte sequences forbidden in pattern, so char length = byte length
