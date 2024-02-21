@@ -12,11 +12,15 @@ import org.folio.okapi.common.Messages;
  * Technical Council decision.
  */
 public final class TenantValidator {
+  /** Maximum length of a tenant ID */
+  public static final int MAX_LENGTH = 31;
 
   // multi-byte sequences forbidden in pattern, so char length = byte length
+  @SuppressWarnings("java:S5867")  // we want to forbid Unicode characters, therefore we
+  // suppress warning "Unicode-aware versions of character classes should be preferred"
   private static final String TENANT_PATTERN_STRING = "^[a-z][a-z0-9]{0,30}$";
   private static final Pattern TENANT_PATTERN = Pattern.compile(TENANT_PATTERN_STRING);
-  private static final Pattern STARTS_WITH_DIGIT = Pattern.compile("^[0-9]");
+  private static final Pattern STARTS_WITH_DIGIT = Pattern.compile("^\\d");
   private static final Messages MESSAGES = Messages.getInstance();
 
   private TenantValidator() {
@@ -32,27 +36,19 @@ public final class TenantValidator {
       return Future.succeededFuture();
     }
 
+    String message = "11601";
+
     if (tenantId.contains("_")) {
-      return failure("11609", tenantId);
+      message = "11609";
+    } else if (tenantId.contains("-")) {
+      message = "11610";
+    } else if (tenantId.length() > MAX_LENGTH) {
+      message = "11611";
+    } else if (STARTS_WITH_DIGIT.matcher(tenantId).matches()) {
+      message = "11612";
     }
 
-    if (tenantId.contains("-")) {
-      return failure("11610", tenantId);
-    }
-
-    if (tenantId.length() > 31) {
-      return failure("11611", tenantId);
-    }
-
-    if (STARTS_WITH_DIGIT.matcher(tenantId).matches()) {
-      return failure("11612", tenantId);
-    }
-
-    return failure("11601", tenantId);
-  }
-
-  private static Future<Void> failure(String errorMessage, String tenantId) {
     return Future.failedFuture(new OkapiError(ErrorType.USER,
-        MESSAGES.getMessage(errorMessage, tenantId)));
+        MESSAGES.getMessage(message, tenantId)));
   }
 }

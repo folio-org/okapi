@@ -761,7 +761,8 @@ public class InternalModule {
 
   static Future<Void> validateTenantId(TenantDescriptor td) {
     if (td.getId() == null || td.getId().isEmpty()) {
-      td.setId("t" + UUID.randomUUID().toString().replace("-", "").substring(2));
+      td.setId(("t" + UUID.randomUUID().toString().replace("-", ""))
+          .substring(0, TenantValidator.MAX_LENGTH));
     }
     return TenantValidator.validate(td.getId());
   }
