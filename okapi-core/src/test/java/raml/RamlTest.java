@@ -1,11 +1,12 @@
 package raml;
 
+import static guru.nidi.ramltester.junit.RamlMatchers.validates;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.core.RamlValidator;
 import guru.nidi.ramltester.core.Validation;
-import static guru.nidi.ramltester.junit.RamlMatchers.validates;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class RamlTest {
@@ -16,6 +17,6 @@ public class RamlTest {
     // Don't check Validation.DESCRIPTION
     RamlValidator v = api.validator().withChecks(Validation.URI_PARAMETER, Validation.PARAMETER, Validation.EMPTY);
 
-    Assert.assertThat(v.validate(), validates());
+    assertThat(v.validate(), validates());
   }
 }

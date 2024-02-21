@@ -1,11 +1,13 @@
 package org.folio.okapi.service.impl;
 
 import static org.folio.okapi.service.impl.DockerModuleHandle.DOCKER_REGISTRIES_EMPTY_LIST;
+import static org.mockito.Mockito.*;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
@@ -30,7 +32,6 @@ import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.AdditionalAnswers;
-import static org.mockito.Mockito.*;
 
 @RunWith(VertxUnitRunner.class)
 public class DockerModuleHandleTest implements WithAssertions {
@@ -41,7 +42,7 @@ public class DockerModuleHandleTest implements WithAssertions {
   public void testRequestException(TestContext testContext) {
     Vertx vertx = mock(Vertx.class);
     HttpClient httpClient = mock(HttpClient.class);
-    when(vertx.createHttpClient(any())).thenReturn(httpClient);
+    when(vertx.createHttpClient((HttpClientOptions) any())).thenReturn(httpClient);
     when(httpClient.request(any())).thenThrow(new RuntimeException("foo"));
     JsonObject conf = new JsonObject();
     new DockerModuleHandle(vertx, new LaunchDescriptor(), null, null, null, 0, conf)
