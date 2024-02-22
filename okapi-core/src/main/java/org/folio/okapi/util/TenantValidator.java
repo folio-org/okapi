@@ -36,7 +36,7 @@ public final class TenantValidator {
       return Future.succeededFuture();
     }
 
-    String message = "11601";
+    String message;
 
     if (tenantId.contains("_")) {
       message = "11609";
@@ -46,6 +46,8 @@ public final class TenantValidator {
       message = "11611";
     } else if (STARTS_WITH_DIGIT.matcher(tenantId).matches()) {
       message = "11612";
+    } else {
+      message = "11601";
     }
 
     return Future.failedFuture(new OkapiError(ErrorType.USER,
