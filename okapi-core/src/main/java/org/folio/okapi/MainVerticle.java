@@ -237,6 +237,10 @@ public class MainVerticle extends AbstractVerticle {
     return moduleManager.init(vertx);
   }
 
+  TenantManager getTenantManager() {
+    return tenantManager;
+  }
+
   private Future<Void> startTenants() {
     logger.info("startTenants");
     return tenantManager.init(vertx);

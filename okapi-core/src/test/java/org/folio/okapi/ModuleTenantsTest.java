@@ -20,7 +20,11 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.bean.Tenant;
+import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.managers.TenantManager;
+
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -36,6 +40,7 @@ public class ModuleTenantsTest {
   private static final String LS = System.lineSeparator();
   private final int port = 9230;
   private static RamlDefinition api;
+  private final String okapiTenant = "ros_kilde";
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -56,7 +61,12 @@ public class ModuleTenantsTest {
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(conf);
 
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
+    var mainVerticle = new MainVerticle();
+    vertx.deployVerticle(mainVerticle, opt, context.asyncAssertSuccess(x -> {
+      // directly create a legacy tenant id with underscore, POST /_/proxy/tenants rejects it
+      var tenantManager = mainVerticle.getTenantManager();
+      tenantManager.insert(new Tenant(new TenantDescriptor(okapiTenant, "the name")));
+    }));
   }
 
   @After
@@ -79,7 +89,6 @@ public class ModuleTenantsTest {
 
   @Test
   public void test1() {
-    final String okapiTenant = "roskilde";
     RestAssured.port = port;
     RestAssuredClient c;
     Response r;
@@ -225,24 +234,6 @@ public class ModuleTenantsTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-
-    // add tenant
-    final String docTenantRoskilde = "{" + LS
-      + "  \"id\" : \"" + okapiTenant + "\"," + LS
-      + "  \"name\" : \"" + okapiTenant + "\"," + LS
-      + "  \"description\" : \"Roskilde bibliotek\"" + LS
-      + "}";
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docTenantRoskilde).post("/_/proxy/tenants")
-      .then().statusCode(201)
-      .body(equalTo(docTenantRoskilde))
-      .extract().response();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    final String locationTenantRoskilde = r.getHeader("Location");
 
     // associate tenant for module
     final String docEnableSampleNoSemVer = "{" + LS
@@ -1067,7 +1058,6 @@ public class ModuleTenantsTest {
 
   @Test
   public void test2() {
-    final String okapiTenant = "roskilde";
     RestAssured.port = port;
     RestAssuredClient c;
     Response r;
@@ -1191,24 +1181,6 @@ public class ModuleTenantsTest {
     mdl = Json.decodeValue(r.asString(), ModuleDescriptor[].class);
     Assert.assertEquals(2, mdl.length);
 
-    // add tenant
-    final String docTenantRoskilde = "{" + LS
-      + "  \"id\" : \"" + okapiTenant + "\"," + LS
-      + "  \"name\" : \"" + okapiTenant + "\"," + LS
-      + "  \"description\" : \"Roskilde bibliotek\"" + LS
-      + "}";
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docTenantRoskilde).post("/_/proxy/tenants")
-      .then().statusCode(201)
-      .body(equalTo(docTenantRoskilde))
-      .extract().response();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    final String locationTenantRoskilde = r.getHeader("Location");
-
     // install with mult first
     c = api.createRestAssured3();
     c.given()
@@ -1281,28 +1253,9 @@ public class ModuleTenantsTest {
 
   @Test
   public void test3() {
-    final String okapiTenant = "roskilde";
     RestAssured.port = port;
     RestAssuredClient c;
     Response r;
-
-    // add tenant
-    final String docTenantRoskilde = "{" + LS
-      + "  \"id\" : \"" + okapiTenant + "\"," + LS
-      + "  \"name\" : \"" + okapiTenant + "\"," + LS
-      + "  \"description\" : \"Roskilde bibliotek\"" + LS
-      + "}";
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docTenantRoskilde).post("/_/proxy/tenants")
-      .then().statusCode(201)
-      .body(equalTo(docTenantRoskilde))
-      .extract().response();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    final String locationTenantRoskilde = r.getHeader("Location");
 
     final String doc1 = "{" + LS
       + "  \"id\" : \"basic-1.0.0\"," + LS
@@ -1416,28 +1369,9 @@ public class ModuleTenantsTest {
 
   @Test
   public void test4() {
-    final String okapiTenant = "roskilde";
     RestAssured.port = port;
     RestAssuredClient c;
     Response r;
-
-    // add tenant
-    final String docTenantRoskilde = "{" + LS
-      + "  \"id\" : \"" + okapiTenant + "\"," + LS
-      + "  \"name\" : \"" + okapiTenant + "\"," + LS
-      + "  \"description\" : \"Roskilde bibliotek\"" + LS
-      + "}";
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docTenantRoskilde).post("/_/proxy/tenants")
-      .then().statusCode(201)
-      .body(equalTo(docTenantRoskilde))
-      .extract().response();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    final String locationTenantRoskilde = r.getHeader("Location");
 
     final String doc1 = "{" + LS
       + "  \"id\" : \"sample-module-1.0.0\"," + LS
@@ -1589,7 +1523,6 @@ public class ModuleTenantsTest {
 
   @Test
   public void testInstallDepCheck() {
-    final String okapiTenant = "roskilde";
     RestAssured.port = port;
     RestAssuredClient c;
     Response r;
@@ -1630,23 +1563,6 @@ public class ModuleTenantsTest {
         + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
         + "  }" + LS
         + "}";
-
-    // add tenant
-    final String docTenantRoskilde = "{" + LS
-        + "  \"id\" : \"" + okapiTenant + "\"," + LS
-        + "  \"name\" : \"" + okapiTenant + "\"," + LS
-        + "  \"description\" : \"Roskilde bibliotek\"" + LS
-        + "}";
-    c = api.createRestAssured3();
-    r = c.given()
-        .header("Content-Type", "application/json")
-        .body(docTenantRoskilde).post("/_/proxy/tenants")
-        .then().statusCode(201)
-        .body(equalTo(docTenantRoskilde))
-        .extract().response();
-    Assert.assertTrue(
-        "raml: " + c.getLastReport().toString(),
-        c.getLastReport().isEmpty());
 
     // register the module basic 1.0.0
     c = api.createRestAssured3();
@@ -1739,28 +1655,9 @@ public class ModuleTenantsTest {
 
   @Test
   public void test641() {
-    final String okapiTenant = "roskilde";
     RestAssured.port = port;
     RestAssuredClient c;
     Response r;
-
-    // add tenant
-    final String docTenantRoskilde = "{" + LS
-      + "  \"id\" : \"" + okapiTenant + "\"," + LS
-      + "  \"name\" : \"" + okapiTenant + "\"," + LS
-      + "  \"description\" : \"Roskilde bibliotek\"" + LS
-      + "}";
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docTenantRoskilde).post("/_/proxy/tenants")
-      .then().statusCode(201)
-      .body(equalTo(docTenantRoskilde))
-      .extract().response();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    final String locationTenantRoskilde = r.getHeader("Location");
 
     final String docLevel1_1_0_0 = "{" + LS
       + "  \"id\" : \"level1-1.0.0\"," + LS
@@ -2044,28 +1941,9 @@ public class ModuleTenantsTest {
 
   @Test
   public void test648() {
-    final String okapiTenant = "roskilde";
     RestAssured.port = port;
     RestAssuredClient c;
     Response r;
-
-    // add tenant
-    final String docTenantRoskilde = "{" + LS
-      + "  \"id\" : \"" + okapiTenant + "\"," + LS
-      + "  \"name\" : \"" + okapiTenant + "\"," + LS
-      + "  \"description\" : \"Roskilde bibliotek\"" + LS
-      + "}";
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docTenantRoskilde).post("/_/proxy/tenants")
-      .then().statusCode(201)
-      .body(equalTo(docTenantRoskilde))
-      .extract().response();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    final String locationTenantRoskilde = r.getHeader("Location");
 
     final String docProv_1_0_0 = "{" + LS
       + "  \"id\" : \"prov-1.0.0\"," + LS
@@ -2142,28 +2020,9 @@ public class ModuleTenantsTest {
 
   @Test
   public void test666() {
-    final String okapiTenant = "roskilde";
     RestAssured.port = port;
     RestAssuredClient c;
     Response r;
-
-    // add tenant
-    final String docTenantRoskilde = "{" + LS
-      + "  \"id\" : \"" + okapiTenant + "\"," + LS
-      + "  \"name\" : \"" + okapiTenant + "\"," + LS
-      + "  \"description\" : \"Roskilde bibliotek\"" + LS
-      + "}";
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docTenantRoskilde).post("/_/proxy/tenants")
-      .then().statusCode(201)
-      .body(equalTo(docTenantRoskilde))
-      .extract().response();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    final String locationTenantRoskilde = r.getHeader("Location");
 
     final String docProv_1_0_0 = "{" + LS
       + "  \"id\" : \"prov-1.0.0-alpha\"," + LS
@@ -2236,7 +2095,6 @@ public class ModuleTenantsTest {
 
   @Test
   public void testNpmRelease() {
-    final String okapiTenant = "roskilde";
     RestAssured.port = port;
     RestAssuredClient c;
     Response r;
