@@ -751,7 +751,8 @@ public class InternalModule {
   private Future<String> createTenant(ProxyContext pc, String body) {
     try {
       final TenantDescriptor td = JsonDecoder.decode(body, TenantDescriptor.class);
-      return validateTenantId(td)
+      setDefaultId(td);
+      return TenantValidator.validate(td.getId())
           .compose(x -> tenantManager.insert(new Tenant(td)))
           .map(x -> location(pc, td.getId(), null, Json.encodePrettily(td)));
     } catch (DecodeException ex) {
@@ -759,12 +760,11 @@ public class InternalModule {
     }
   }
 
-  static Future<Void> validateTenantId(TenantDescriptor td) {
+  static void setDefaultId(TenantDescriptor td) {
     if (td.getId() == null || td.getId().isEmpty()) {
       td.setId(("t" + UUID.randomUUID().toString().replace("-", ""))
           .substring(0, TenantValidator.MAX_LENGTH));
     }
-    return TenantValidator.validate(td.getId());
   }
 
   private Future<String> updateTenant(String tenantId, String body) {

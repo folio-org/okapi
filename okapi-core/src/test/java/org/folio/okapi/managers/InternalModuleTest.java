@@ -109,9 +109,9 @@ class InternalModuleTest implements WithAssertions {
 
   @ParameterizedTest
   @NullAndEmptySource
-  void validateTenantId(String tenantId) {
+  void setDefaultId(String tenantId) {
     var td = new TenantDescriptor(tenantId, "foo");
-    assertThat(InternalModule.validateTenantId(td).succeeded()).isTrue();
+    InternalModule.setDefaultId(td);
     assertThat(td.getId()).matches("t[0-9a-f]{30}");
     assertThat(td.getName()).isEqualTo("foo");
   }
