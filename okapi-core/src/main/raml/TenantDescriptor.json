@@ -7,7 +7,7 @@
   "additionalProperties" : false,
   "properties": {
     "id": {
-      "description": "Tenant ID",
+      "description": "Tenant ID. A new tenant ID created via the POST /_/proxy/tenants API must match the ^[a-z][a-z0-9]{0,30}$ regexp as required by https://folio-org.atlassian.net/wiki/spaces/TC/pages/5053983/DR-000002+-+Tenant+Id+and+Module+Name+Restrictions Technical Council decision. All other APIs also accept a legacy tenant ID that matches ^[a-z0-9_-]+$ regexp and may pose security issues as explained on https://folio-org.atlassian.net/wiki/spaces/DD/pages/1779867/Tenant+Id+and+Module+Name+Restrictions",
       "type": "string"
     },
     "name": {
