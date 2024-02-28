@@ -77,6 +77,11 @@ public class ModuleTest {
   private static final String LS = System.lineSeparator();
   private final int port = 9230;
   private static RamlDefinition api;
+  /**
+   * Testcontainers startup config workaround for podman:
+   * https://github.com/testcontainers/testcontainers-java/issues/6640#issuecomment-1431636203
+   */
+  private static final int STARTUP_ATTEMPTS = 3;
   private static PostgreSQLContainer<?> postgresSQLContainer;
   private static MongoDBContainer mongoDBContainer;
 
@@ -130,7 +135,8 @@ public class ModuleTest {
     switch (value) {
       case "postgres":
         if (postgresSQLContainer == null) {
-          postgresSQLContainer = new PostgreSQLContainer<>("postgres:12-alpine");
+          postgresSQLContainer = new PostgreSQLContainer<>("postgres:12-alpine")
+              .withStartupAttempts(STARTUP_ATTEMPTS);
           postgresSQLContainer.start();
         }
         conf.put("postgres_username", postgresSQLContainer.getUsername());
@@ -141,7 +147,8 @@ public class ModuleTest {
         break;
       case "mongo":
         if (mongoDBContainer == null) {
-          mongoDBContainer = new MongoDBContainer("mongo:5.0.8");
+          mongoDBContainer = new MongoDBContainer("mongo:5.0.8")
+              .withStartupAttempts(STARTUP_ATTEMPTS);
           mongoDBContainer.start();
         }
         conf.put("mongo_port", mongoDBContainer.getFirstMappedPort().toString());
@@ -3062,7 +3069,7 @@ public class ModuleTest {
                   + " {\"id\":\"bar-4.5.6\", \"name\":\"bar\"} ]");
         })
         .listen(0)
-        .compose(registry -> vertx.executeBlocking(promise -> {
+        .compose(registry -> vertx.executeBlocking(() -> {
           given()
               .header("Content-Type", "application/json")
               .body("{ \"urls\" : [ \"http://localhost:" + registry.actualPort() + "\" ] }")
@@ -3079,7 +3086,7 @@ public class ModuleTest {
               .statusCode(200)
               .body("$", hasSize(0));
 
-          promise.complete();
+          return null;
         }))
         .onComplete(context.asyncAssertSuccess());
   }

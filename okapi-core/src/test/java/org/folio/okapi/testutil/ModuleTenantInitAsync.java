@@ -87,7 +87,7 @@ public class ModuleTenantInitAsync implements ModuleHandle {
   void tenantPost(RoutingContext ctx) {
     String path = ctx.request().path();
     if (path.equals("/_/tenant")) {
-      JsonObject tenantSchema = ctx.getBodyAsJson();
+      JsonObject tenantSchema = ctx.body().asJsonObject();
       operations.add(tenantSchema);
       if (tenantSchema.getBoolean("purge", false))
         if (purgeFail) {
@@ -99,7 +99,7 @@ public class ModuleTenantInitAsync implements ModuleHandle {
           ctx.response().end();
         return;
       }
-      JsonObject obj = ctx.getBodyAsJson();
+      JsonObject obj = ctx.body().asJsonObject();
       String module = obj.getString("module_to", obj.getString("module_from"));
       if (module != null) {
         logger.info("Tenant begin for module {}", module);

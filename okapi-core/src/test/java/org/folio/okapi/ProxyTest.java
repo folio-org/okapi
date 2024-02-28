@@ -30,7 +30,6 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.streams.Pump;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -236,8 +235,7 @@ public class ProxyTest {
         response.setStatusCode(200);
         response.putHeader("Content-Type", request.getHeader("Content-Type"));
         response.setChunked(true);
-        Pump pump = Pump.pump(request, response);
-        pump.start();
+        request.pipeTo(response);
         request.endHandler(e -> response.end());
         request.pause();
         vertx.setTimer(100, x -> request.resume()); // pause to provoke writeQueueFull()

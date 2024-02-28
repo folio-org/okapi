@@ -196,7 +196,6 @@ public class MainDeploy {
     hazelcastConfig.setProperty("hazelcast.logging.type", "log4j2");
 
     HazelcastClusterManager mgr = new HazelcastClusterManager(hazelcastConfig);
-    vopt.setClusterManager(mgr);
     EventBusOptions eventBusOptions = vopt.getEventBusOptions();
     if (clusterHost != null) {
       logger.info("clusterHost={}", clusterHost);
@@ -211,15 +210,13 @@ public class MainDeploy {
       logger.warn("clusterPort not set");
     }
 
-    Vertx.clusteredVertx(vopt, res -> {
-      if (res.succeeded()) {
-        MainVerticle v = new MainVerticle();
-        v.setClusterManager(mgr);
-        deployVerticle(v, res.result(), fut);
-      } else {
-        fut.handle(Future.failedFuture(res.cause()));
-      }
-    });
+    Vertx.builder().with(vopt).withClusterManager(mgr).buildClustered()
+    .onSuccess(vertx -> {
+      MainVerticle v = new MainVerticle();
+      v.setClusterManager(mgr);
+      deployVerticle(v, vertx, fut);
+    })
+    .onFailure(e -> fut.handle(Future.failedFuture(e)));
   }
 
   private void deployVerticle(Verticle v, Vertx vertx, Handler<AsyncResult<Vertx>> fut) {

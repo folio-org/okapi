@@ -1,14 +1,11 @@
 package org.folio.okapi.common;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 import org.assertj.core.api.WithAssertions;
 import org.junit.Test;
 
@@ -44,70 +41,6 @@ public class GenericCompositeFutureTest implements WithAssertions {
     assertThat(join.succeeded()).isTrue();
   }
 
-  class MyFuture<T> implements Future<T> {
-    @Override
-    public boolean isComplete() {
-      return false;
-    }
-
-    @Override
-    public Future<T> onComplete(Handler<AsyncResult<T>> handler) {
-      return null;
-    }
-
-    @Override
-    public T result() {
-      return null;
-    }
-
-    @Override
-    public Throwable cause() {
-      return null;
-    }
-
-    @Override
-    public boolean succeeded() {
-      return false;
-    }
-
-    @Override
-    public boolean failed() {
-      return false;
-    }
-
-    @Override
-    public <U> Future<U> compose(Function<T, Future<U>> successMapper, Function<Throwable, Future<U>> failureMapper) {
-      return null;
-    }
-
-    @Override
-    public <U> Future<U> transform(Function<AsyncResult<T>, Future<U>> mapper) {
-      return null;
-    }
-
-    @Override
-    public <U> Future<T> eventually(Function<Void, Future<U>> mapper) {
-      return null;
-    }
-
-    @Override
-    public <U> Future<U> map(Function<T, U> mapper) {
-      return null;
-    }
-
-    @Override
-    public <V> Future<V> map(V value) {
-      return null;
-    }
-
-    @Override
-    public Future<T> otherwise(Function<Throwable, T> mapper) {
-      return null;
-    }
-
-    @Override
-    public Future<T> otherwise(T value) {
-      return null;
-    }
-  };
+  abstract class MyFuture<T> implements Future<T> {
+  }
 }

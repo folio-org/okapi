@@ -4,11 +4,12 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.net.OpenSSLEngineOptions;
+import io.vertx.core.net.JdkSSLEngineOptions;
 import io.vertx.core.net.PemTrustOptions;
+import io.vertx.pgclient.PgBuilder;
 import io.vertx.pgclient.PgConnectOptions;
-import io.vertx.pgclient.PgPool;
 import io.vertx.pgclient.SslMode;
+import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
 import io.vertx.sqlclient.SqlConnection;
 import java.util.Collections;
@@ -42,7 +43,7 @@ import org.folio.okapi.common.OkapiLogger;
 class PostgresHandle {
 
   private final PgConnectOptions connectOptions;
-  private final PgPool pool;
+  private final Pool pool;
 
   PostgresHandle(Vertx vertx, JsonObject conf) {
     String val;
@@ -76,13 +77,13 @@ class PostgresHandle {
       connectOptions.setPemTrustOptions(
           new PemTrustOptions().addCertValue(Buffer.buffer(serverPem)));
       connectOptions.setEnabledSecureTransportProtocols(Collections.singleton("TLSv1.3"));
-      connectOptions.setOpenSslEngineOptions(new OpenSSLEngineOptions());
+      connectOptions.setJdkSslEngineOptions(new JdkSSLEngineOptions());
     }
 
     PoolOptions poolOptions = new PoolOptions();
     poolOptions.setMaxSize(5);
 
-    pool = PgPool.pool(vertx, connectOptions, poolOptions);
+    pool = PgBuilder.pool().using(vertx).connectingTo(connectOptions).with(poolOptions).build();
     logger.debug("created");
   }
 
