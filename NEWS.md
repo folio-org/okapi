@@ -1,3 +1,10 @@
+## 6.0.1 2024-04-05
+
+Quesnelia version.
+
+Fix:
+* [OKAPI-1185](https://folio-org.atlassian.net/browse/OKAPI-1185) Vert.x 4.5.7 fixing PostgreSQL SSL hostname verification
+
 ## 6.0.0 2024-03-01
 
 Quesnelia version.
