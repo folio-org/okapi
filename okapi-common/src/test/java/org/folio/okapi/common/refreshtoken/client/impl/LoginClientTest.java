@@ -1,5 +1,7 @@
 package org.folio.okapi.common.refreshtoken.client.impl;
 
+import static org.folio.okapi.common.ChattyResponsePredicate.SC_BAD_REQUEST;
+import static org.folio.okapi.common.ChattyResponsePredicate.SC_CREATED;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -15,10 +17,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.handler.BodyHandler;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Constants;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.refreshtoken.client.Client;
@@ -35,8 +34,6 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class LoginClientTest {
-  private static final Logger log = LogManager.getLogger(LoginClientTest.class);
-
   static Vertx vertx;
 
   private static final int MOCK_PORT = 9230;
@@ -198,7 +195,7 @@ public class LoginClientTest {
         TENANT_OK, USER_OK, () -> Future.succeededFuture(PASSWORD_OK));
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED))
+            .expect(SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertSuccess(response ->
             assertThat(response.bodyAsBuffer(), is(xmlBody))
@@ -213,7 +210,7 @@ public class LoginClientTest {
         TENANT_OK, USER_OK, () -> Future.succeededFuture(null));
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_BAD_REQUEST))
+            .expect(SC_BAD_REQUEST))
         .onComplete(context.asyncAssertFailure(t -> {
           assertThat(t.getMessage(), is("POST /authn/login returned status 400: "
               + "Bad tenant/username/password"));
@@ -234,12 +231,12 @@ public class LoginClientTest {
     Client client = getLoginClient(tokenCache);
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED))
+            .expect(SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertSuccess(response -> assertThat(response.bodyAsBuffer(), is(xmlBody))))
         .compose(x -> client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED)))
+            .expect(SC_CREATED)))
         .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertSuccess(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
@@ -253,7 +250,7 @@ public class LoginClientTest {
     Client client = getLoginClient(tokenCache);
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED))
+            .expect(SC_CREATED))
         .onComplete(context.asyncAssertFailure(cause ->
             assertThat(cause.getMessage(), is("/authn/login did not return token"))
         ));
@@ -266,12 +263,12 @@ public class LoginClientTest {
     Client client = getLoginClient(tokenCache);
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED))
+            .expect(SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertSuccess(response -> assertThat(response.bodyAsBuffer(), is(xmlBody))))
         .compose(x -> client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED)))
+            .expect(SC_CREATED)))
         .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertSuccess(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
@@ -287,7 +284,7 @@ public class LoginClientTest {
     Client client = getLoginClient(tokenCache);
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED))
+            .expect(SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertSuccess(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
@@ -302,7 +299,7 @@ public class LoginClientTest {
     Client client = getLoginClient(tokenCache);
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED))
+            .expect(SC_CREATED))
         .onComplete(context.asyncAssertFailure(response -> {
           assertThat(response.getMessage(), is("/authn/login-with-expiry did not return access token"));
         }));
@@ -315,12 +312,12 @@ public class LoginClientTest {
     Client client = getLoginClient(null);
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED))
+            .expect(SC_CREATED))
         .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertSuccess(response -> assertThat(response.bodyAsBuffer(), is(xmlBody))))
         .compose(x -> client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_CREATED)))
+            .expect(SC_CREATED)))
         .compose(request -> request.sendBuffer(xmlBody))
         .onComplete(context.asyncAssertSuccess(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
@@ -337,7 +334,7 @@ public class LoginClientTest {
         TENANT_OK, USER_OK, () -> Future.succeededFuture("bad"));
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .putHeader("Content-Type", "text/xml")
-            .expect(ResponsePredicate.SC_BAD_REQUEST))
+            .expect(SC_BAD_REQUEST))
         .onComplete(context.asyncAssertFailure(e -> {
           assertThat(countLoginWithExpiry, is(1));
           assertThat(e, Matchers.instanceOf(ClientException.class));
