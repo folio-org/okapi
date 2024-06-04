@@ -1,5 +1,6 @@
 package org.folio.okapi.service.impl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.folio.okapi.service.impl.DockerModuleHandle.DOCKER_REGISTRIES_EMPTY_LIST;
 import static org.mockito.Mockito.*;
 
@@ -143,7 +144,8 @@ public class DockerModuleHandleTest implements WithAssertions {
       lastFromImage = ctx.request().getParam("fromImage");
       String auth = ctx.request().getHeader("X-Registry-Auth");
       if (auth != null) {
-        JsonObject authObject = new JsonObject(new String(Base64.getDecoder().decode(auth)));
+        // requires URL decoding: https://github.com/moby/moby/issues/33434
+        JsonObject authObject = new JsonObject(new String(Base64.getUrlDecoder().decode(auth), UTF_8));
         String username = authObject.getString("username");
         String password = authObject.getString("password");
         if (username == null || !username.equals(password)) {
