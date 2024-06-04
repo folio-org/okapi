@@ -1,9 +1,8 @@
 package org.folio.okapi.common;
 
-import io.vertx.core.json.JsonObject;
-
 import static org.junit.Assert.assertNull;
 
+import io.vertx.core.json.JsonObject;
 import java.util.Base64;
 import org.junit.Assert;
 import org.junit.Test;
@@ -44,9 +43,15 @@ public class OkapiTokenTest {
 
   @Test
   public void noTenant() {
-    OkapiToken tok = new OkapiToken("a.eyB9Cg==.c"); // "{ }"
+    OkapiToken tok = new OkapiToken("a.eyB9Cg==.c"); // { }
     Assert.assertNull(tok.getTenantWithoutValidation());
     Assert.assertEquals("{}", tok.getPayloadWithoutValidation().encode());
+  }
+
+  @Test
+  public void usernameWithUmlaut() {
+    var token = new OkapiToken("x.eyJzdWIiOiJmb2_DpCJ9.x"); // {"sub":"fooä"}
+    Assert.assertEquals("fooä", token.getUsernameWithoutValidation());
   }
 
   private String exceptionMessage(String token) {

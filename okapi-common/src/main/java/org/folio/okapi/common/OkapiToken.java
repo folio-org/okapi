@@ -1,5 +1,7 @@
 package org.folio.okapi.common;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import java.util.Base64;
@@ -38,7 +40,7 @@ public class OkapiToken {
       throw new IllegalArgumentException("Missing . separator for token");
     }
     String encodedJson = token.substring(idx1, idx2);
-    String decodedJson = new String(Base64.getDecoder().decode(encodedJson));
+    String decodedJson = new String(Base64.getUrlDecoder().decode(encodedJson), UTF_8);
     try {
       return new JsonObject(decodedJson);
     } catch (DecodeException e) {
