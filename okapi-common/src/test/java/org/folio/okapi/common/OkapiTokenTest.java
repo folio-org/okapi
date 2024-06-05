@@ -42,6 +42,7 @@ public class OkapiTokenTest {
   }
 
   @Test
+  @SuppressWarnings("java:S125")  // false positive: "Sections of code should not be commented out"
   public void noTenant() {
     OkapiToken tok = new OkapiToken("a.eyB9Cg==.c"); // { }
     Assert.assertNull(tok.getTenantWithoutValidation());
@@ -49,6 +50,7 @@ public class OkapiTokenTest {
   }
 
   @Test
+  @SuppressWarnings("java:S125")  // false positive: "Sections of code should not be commented out"
   public void usernameWithUmlaut() {
     var token = new OkapiToken("x.eyJzdWIiOiJmb2_DpCJ9.x"); // {"sub":"fooä"}
     Assert.assertEquals("fooä", token.getUsernameWithoutValidation());
