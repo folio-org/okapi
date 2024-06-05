@@ -39,8 +39,8 @@ public class OkapiToken {
     if (idx2 == -1) {
       throw new IllegalArgumentException("Missing . separator for token");
     }
-    String encodedJson = token.substring(idx1, idx2);
-    String decodedJson = new String(Base64.getUrlDecoder().decode(encodedJson), UTF_8);
+    var encodedJson = token.substring(idx1, idx2);
+    var decodedJson = new String(Base64.getUrlDecoder().decode(encodedJson), UTF_8);
     try {
       return new JsonObject(decodedJson);
     } catch (DecodeException e) {
