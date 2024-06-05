@@ -220,7 +220,7 @@ class Auth {
       try {
         var okapiToken = new OkapiToken(tok);
         JsonObject jtok = okapiToken.getPayloadWithoutValidation();
-        logger.debug("test-auth: check payload: {}", jtok.encode());
+        logger.debug("test-auth: check payload: {}", () -> jtok.encode());
         userId = jtok.getString("sub", "");
         JsonArray jsonArray = jtok.getJsonArray("permissions");
         if (jsonArray != null) {
