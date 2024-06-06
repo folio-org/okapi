@@ -1,3 +1,10 @@
+## 6.0.2 2024-06-06
+
+Quesnelia version.
+
+Fix:
+* [OKAPI-1187](https://folio-org.atlassian.net/browse/OKAPI-1187) Illegal base64 character 5f on token with umlaut
+
 ## 6.0.1 2024-04-05
 
 Quesnelia version.
