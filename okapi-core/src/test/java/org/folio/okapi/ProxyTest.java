@@ -38,7 +38,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -55,6 +54,7 @@ import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.MetricsUtil;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.junit.After;
 import org.junit.Assert;
@@ -3621,17 +3621,11 @@ public class ProxyTest {
       .then().statusCode(200).extract().header("X-Okapi-Token");
   }
 
-  // decode X-Okapi-Token
-  private JsonObject decodeOkapiToken(String token) {
-    String encodedJson = token.substring(token.indexOf(".") + 1, token.lastIndexOf("."));
-    return new JsonObject(new String(Base64.getDecoder().decode(encodedJson)));
-  }
-
   // extract sub from token
   private String extractSubFromToken(RoutingContext ctx) {
     String token = ctx.request().getHeader("X-Okapi-Token");
     if (token != null) {
-      return decodeOkapiToken(token).getString("sub");
+      return new OkapiToken(token).getUsernameWithoutValidation();
     }
     return "";
   }
