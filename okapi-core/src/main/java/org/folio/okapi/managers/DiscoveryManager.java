@@ -193,7 +193,8 @@ public class DiscoveryManager implements NodeListener {
         .flatMap(nodeDescriptor -> {
           String url = nodeDescriptor.getUrl() + "/deploy";
           return vertx.eventBus().request(url, Json.encode(dd), deliveryOptions)
-              .recover(e -> Future.failedFuture(new OkapiError(ErrorType.USER, e.getMessage())));
+              .recover(e -> Future.failedFuture(
+                                      new OkapiError(ErrorType.USER, url + " " + e.getMessage())));
         })
         .map(message -> JsonDecoder.decode((String) message.body(), DeploymentDescriptor.class));
   }
