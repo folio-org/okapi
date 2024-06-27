@@ -1,5 +1,8 @@
 package org.folio.okapi.managers;
 
+import static org.folio.okapi.common.ChattyResponsePredicate.JSON;
+import static org.folio.okapi.common.ChattyResponsePredicate.SC_OK;
+
 import io.vertx.config.yaml.YamlProcessor;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -10,7 +13,6 @@ import io.vertx.core.net.PemTrustOptions;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
-import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -182,8 +184,8 @@ public class KubernetesManager {
       abs.putHeader("Authorization", "Bearer " + token);
     }
     return abs.putHeader("Accept", "application/json")
-        .expect(ResponsePredicate.SC_OK)
-        .expect(ResponsePredicate.JSON)
+        .expect(SC_OK)
+        .expect(JSON)
         .send()
         .map(res -> parseItems(res.bodyAsJsonObject()));
   }
