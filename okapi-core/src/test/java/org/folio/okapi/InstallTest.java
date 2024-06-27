@@ -345,7 +345,7 @@ public class InstallTest {
             .add(new JsonObject()
                 .put("id", "basic-module-1.0.0")
                 .put("action", "enable")
-                .put("message", "Service basic-module-1.0.0 returned with exit code 1")
+                .put("message", "http://localhost:9230/deploy Service basic-module-1.0.0 returned with exit code 1")
                 .put("stage", "deploy")
             )
         );

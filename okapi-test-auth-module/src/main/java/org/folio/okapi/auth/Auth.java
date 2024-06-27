@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.OkapiStringUtil;
+import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.XOkapiHeaders;
 
 /**
@@ -217,9 +218,9 @@ class Auth {
       String payload = splitTok[1];
 
       try {
-        String decodedJson = new String(Base64.getDecoder().decode(payload));
-        logger.debug("test-auth: check payload: {}", decodedJson);
-        JsonObject jtok = new JsonObject(decodedJson);
+        var okapiToken = new OkapiToken(tok);
+        JsonObject jtok = okapiToken.getPayloadWithoutValidation();
+        logger.debug("test-auth: check payload: {}", () -> jtok.encode());
         userId = jtok.getString("sub", "");
         JsonArray jsonArray = jtok.getJsonArray("permissions");
         if (jsonArray != null) {
