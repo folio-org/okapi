@@ -18,28 +18,44 @@ public class HttpResponse {
 
   /**
    * Produce HTTP response based on exception cause.
+
    * @param ctx routing context from where HTTP response is generated
    * @param t error type which maps to HTTP status
    * @param cause cause for error
    */
   public static void responseError(RoutingContext ctx, ErrorType t, Throwable cause) {
-    responseError(ctx, ErrorType.httpCode(t), cause);
+    responseError(ctx, ErrorType.httpCode(t), cause.getMessage(), cause);
   }
 
-  private static void responseError(RoutingContext ctx, int code, Throwable cause) {
-    responseError(ctx, code, cause.getMessage());
+  /**
+   * Produce HTTP response based on message.
+
+   * @param ctx routing context from where HTTP response is generated
+   * @param t error type which maps to HTTP status
+   * @param message error cause
+   */
+  public static void responseError(RoutingContext ctx, ErrorType t, String message) {
+    responseError(ctx, ErrorType.httpCode(t), message, null);
   }
 
   /**
    * Produce HTTP response with status code and text/plain message.
+   *
    * @param ctx routing context from where HTTP response is generated
    * @param code status code
    * @param msg message to be part of HTTP response
+   * @param cause the stacktrace to log; may be null for no stacktrace logging
    */
-  public static void responseError(RoutingContext ctx, int code, String msg) {
+  public static void responseError(RoutingContext ctx, int code, String msg, Throwable cause) {
     String text = (msg == null) ? "(null)" : msg;
     if (code < 200 || code >= 300) {
-      logger.error("HTTP response code={} msg={}", code, text);
+      var method = ctx.request().method();
+      var path = ctx.request().path();
+      if (cause == null) {
+        logger.error("HTTP response {} {} code={} msg={}", method, path, code, text);
+      } else {
+        logger.error("HTTP response {} {} code={} msg={}", method, path, code, text, cause);
+      }
     }
     HttpServerResponse res = responseText(ctx, code);
     if (!res.closed()) {
@@ -48,7 +64,19 @@ public class HttpResponse {
   }
 
   /**
+   * Produce HTTP response with status code and text/plain message.
+   *
+   * @param ctx routing context from where HTTP response is generated
+   * @param code status code
+   * @param msg message to be part of HTTP response
+   */
+  public static void responseError(RoutingContext ctx, int code, String msg) {
+    responseError(ctx, code, msg, null);
+  }
+
+  /**
    * Produce HTTP response with status code and text/plain header.
+   *
    * @param ctx routing context from where HTTP response is generated
    * @param code status code
    * @return HTTP server response
@@ -63,6 +91,7 @@ public class HttpResponse {
 
   /**
    * Produce HTTP response with status code and application/json header.
+   *
    * @param ctx routing context from where HTTP response is generated
    * @param code status code
    * @return HTTP server response
