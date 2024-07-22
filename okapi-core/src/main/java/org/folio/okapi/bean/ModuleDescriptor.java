@@ -37,6 +37,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
   private ModuleId[] replaces;
+  private AnyDescriptor extensions;
 
   public ModuleDescriptor() {
   }
@@ -391,6 +392,14 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   public void setMetadata(AnyDescriptor metadata) {
     this.metadata = metadata;
+  }
+
+  public AnyDescriptor getExtensions() {
+    return extensions;
+  }
+
+  public void setExtensions(AnyDescriptor extensions) {
+    this.extensions = extensions;
   }
 
   public RoutingEntry[] getFilters() {

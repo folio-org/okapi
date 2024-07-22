@@ -80,6 +80,10 @@
     "launchDescriptor": {
       "description": "Default deployment for this module",
       "$ref": "LaunchDescriptor.json"
+    },
+    "extensions" : {
+      "description": "Sets extensions for ModuleDescriptor that can store custom or meta information.",
+      "type": "object"
     }
   },
   "required": ["id"]
