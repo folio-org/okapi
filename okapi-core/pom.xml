@@ -127,6 +127,15 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- raml-tester uses vulnerable commons-io 2.2:
+         https://security.snyk.io/package/maven/commons-io:commons-io/2.2
+    -->
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.16.1</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-hazelcast</artifactId>
