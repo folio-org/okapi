@@ -33,4 +33,15 @@ public class TimerDescriptor {
   public void setModified(boolean modified) {
     this.modified = modified;
   }
+
+  /**
+   * Shallow copy.
+   */
+  public TimerDescriptor copy() {
+    var timerDescriptor = new TimerDescriptor();
+    timerDescriptor.setId(id);
+    timerDescriptor.setRoutingEntry(routingEntry);
+    timerDescriptor.setModified(modified);
+    return timerDescriptor;
+  }
 }

@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -34,8 +35,18 @@ public class TimerManager {
   private static final String TIMER_ENTRY_SEP = "_";
   private static final String MAP_NAME = "org.folio.okapi.timer.map";
   private static final String EVENT_NAME = "org.folio.okapi.timer.event";
+  /**
+   * Maps tenantId to {@code Map<tenant_product_seq, TimerDescriptor>}.
+   * tenant_product_seq is like "test_tenant_mod-foo_2".
+   */
   private final Map<String,LockedTypedMap1<TimerDescriptor>> tenantTimers = new HashMap<>();
+  /**
+   * Maps tenant_product_seq to timer id, tenantid_product_seq is like "test_tenant_mod-foo_2".
+   */
   private final Map<String,Long> timerRunning = new HashMap<>();
+  /**
+   * TimerDescriptor database storage, the id is tenantid_product_seq like "test_tenant_mod-foo_2".
+   */
   private final TimerStore timerStore;
 
   private final boolean local;
@@ -64,8 +75,8 @@ public class TimerManager {
     tenantManager.setTenantChange(this::tenantChange);
     return tenantManager.allTenants().compose(list -> {
       Future<Void> future = Future.succeededFuture();
-      for (String id : list) {
-        future = future.compose(y -> startTimers(id, true));
+      for (String tenantId : list) {
+        future = future.compose(y -> startTimers(tenantId, true));
       }
       return future;
     });
@@ -81,16 +92,11 @@ public class TimerManager {
 
   private Future<Void> loadFromStorage(String tenantId) {
     final LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
-    return timerStore.getAll().compose(list -> {
+    return get(timerStore, tenantId).compose(list -> {
           List<Future<Void>> futures = new LinkedList<>();
-          String prefix = tenantId + TIMER_ENTRY_SEP;
           for (TimerDescriptor timerDescriptor : list) {
-            String tenantTimerId = timerDescriptor.getId();
-            if (tenantTimerId.startsWith(prefix)) {
-              timerDescriptor.setId(tenantTimerId.substring(prefix.length()));
-              if (timerDescriptor.isModified()) {
-                futures.add(timerMap.put(timerDescriptor.getId(), timerDescriptor));
-              }
+            if (timerDescriptor.isModified()) {
+              futures.add(timerMap.put(timerDescriptor.getId(), timerDescriptor));
             }
           }
           return GenericCompositeFuture.all(futures).mapEmpty();
@@ -102,16 +108,15 @@ public class TimerManager {
     final LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
     return timerMap.getAll().compose(list -> {
       List<Future<Void>> futures = new LinkedList<>();
-      for (String timerId : list.keySet()) {
-        ModuleDescriptor md = getModuleForTimer(mdList, timerId);
+      for (String tenantPoductSeq : list.keySet()) {
+        ModuleDescriptor md = getModuleForTimer(mdList, tenantPoductSeq);
         if (md == null) {
-          final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
-          Long id = timerRunning.remove(runId);
+          Long id = timerRunning.remove(tenantPoductSeq);
           if (id != null) {
             vertx.cancelTimer(id);
           }
-          timerMap.remove(timerId);
-          futures.add(timerStore.delete(runId).mapEmpty());
+          timerMap.remove(tenantPoductSeq);
+          futures.add(timerStore.delete(tenantPoductSeq).mapEmpty());
         }
       }
       return GenericCompositeFuture.all(futures).mapEmpty();
@@ -127,15 +132,14 @@ public class TimerManager {
         List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
         int seq = 0;
         for (RoutingEntry re : routingEntries) {
-          String timerId = md.getProduct() + TIMER_ENTRY_SEP + seq;
+          var tenantProductSeq = new TenantProductSeq(tenantId, md.getProduct(), seq).toString();
           future = future
-              .compose(y -> timerMap.get(timerId))
+              .compose(y -> timerMap.get(tenantProductSeq))
               .compose(existing -> {
                 // patched timer descriptor takes precedence over updated module
-                final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
                 if (existing != null && existing.isModified()) {
                   // see if timers already going for this one.
-                  if (timerRunning.containsKey(runId)) {
+                  if (timerRunning.containsKey(tenantProductSeq)) {
                     return Future.succeededFuture();
                   }
                   waitTimer(tenantId, existing);
@@ -143,15 +147,15 @@ public class TimerManager {
                 }
                 // non-patched timer descriptor for module's routing entry
                 TimerDescriptor newTimerDescriptor = new TimerDescriptor();
-                newTimerDescriptor.setId(timerId);
+                newTimerDescriptor.setId(tenantProductSeq);
                 newTimerDescriptor.setRoutingEntry(re);
-                if (timerRunning.containsKey(runId)) {
+                if (timerRunning.containsKey(tenantProductSeq)) {
                   if (isSimilar(existing, newTimerDescriptor)) {
                     return Future.succeededFuture();
                   }
-                  vertx.cancelTimer(timerRunning.get(runId));
+                  vertx.cancelTimer(timerRunning.get(tenantProductSeq));
                 }
-                return timerMap.put(timerId, newTimerDescriptor)
+                return timerMap.put(tenantProductSeq, newTimerDescriptor)
                     .map(x -> {
                       waitTimer(tenantId, newTimerDescriptor);
                       return null;
@@ -204,28 +208,33 @@ public class TimerManager {
         timerDescriptor.getId(), md.getId(), tenantId);
     proxyService.callSystemInterface(headers, tenantId, inst, "")
         .onFailure(cause ->
-            logger.info("timer call failed to module {} for tenant {} : {}",
-                md.getId(), tenantId, cause.getMessage()))
+            logger.info("timer {} call failed to module {} for tenant {} : {}",
+                timerDescriptor.getId(), md.getId(), tenantId, cause.getMessage()))
         .onSuccess(res ->
-            logger.info("timer call succeeded to module {} for tenant {}",
-                md.getId(), tenantId));
+            logger.info("timer {} call succeeded to module {} for tenant {}",
+                timerDescriptor.getId(), md.getId(), tenantId));
   }
 
-  Future<ModuleDescriptor> getModuleForTimer(String tenantId, String timerId) {
+  Future<ModuleDescriptor> getModuleForTimer(String tenantId, String tenantProductSeq) {
     return tenantManager.getEnabledModules(tenantId)
-        .map(list -> getModuleForTimer(list, timerId))
+        .map(list -> getModuleForTimer(list, tenantProductSeq))
         .recover(cause -> Future.succeededFuture(null));
   }
 
-  ModuleDescriptor getModuleForTimer(List<ModuleDescriptor> list, String timerId) {
-    String product = timerId.substring(0, timerId.indexOf(TIMER_ENTRY_SEP));
-    int seq = Integer.parseInt(timerId.substring(timerId.indexOf(TIMER_ENTRY_SEP) + 1));
+  ModuleDescriptor getModuleForTimer(List<ModuleDescriptor> list, String tenantProductSeqString) {
+    TenantProductSeq tenantProductSeq;
+    try {
+      tenantProductSeq = new TenantProductSeq(tenantProductSeqString);
+    } catch (Exception e) {
+      logger.error("Invalid id of timer: {}", tenantProductSeqString, e);
+      return null;
+    }
     for (ModuleDescriptor md : list) {
-      if (product.equals(md.getProduct())) {
+      if (tenantProductSeq.getProduct().equals(md.getProduct())) {
         InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
         if (timerInt != null) {
           List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
-          if (seq < routingEntries.size()) {
+          if (tenantProductSeq.getSeq() < routingEntries.size()) {
             return md;
           }
         }
@@ -242,17 +251,16 @@ public class TimerManager {
    * @param tenantId tenant identifier
    * @param timerId timer identifier
    */
-  private void handleTimer(String tenantId, String timerId) {
-    logger.info("timer {} handle for tenant {}", timerId, tenantId);
-    tenantTimers.get(tenantId).get(timerId)
+  private void handleTimer(String tenantId, String tenantProductSeq) {
+    logger.info("timer {} handle for tenant {}", tenantProductSeq, tenantId);
+    tenantTimers.get(tenantId).get(tenantProductSeq)
         .compose(timerDescriptor ->
             // this timer is latest and current ... do the work ...
             // find module for this timer. If module is not found, it was disabled
             // in the meantime and timer is stopped.
-            getModuleForTimer(tenantId, timerId).map(md -> {
+            getModuleForTimer(tenantId, tenantProductSeq).map(md -> {
               if (md == null) {
-                final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
-                timerRunning.remove(runId);
+                timerRunning.remove(tenantProductSeq);
                 return null;
               }
               if (discoveryManager.isLeader()) {
@@ -264,7 +272,7 @@ public class TimerManager {
               return null;
             })
         )
-        .onFailure(cause -> logger.warn("handleTimer id={} {}", timerId,
+        .onFailure(cause -> logger.warn("handleTimer id={} {}", tenantProductSeq,
             cause.getMessage(), cause));
   }
 
@@ -280,41 +288,54 @@ public class TimerManager {
   private void waitTimer(String tenantId, TimerDescriptor timerDescriptor) {
     RoutingEntry routingEntry = timerDescriptor.getRoutingEntry();
     final long delay = routingEntry.getDelayMilliSeconds();
-    final String timerId = timerDescriptor.getId();
-    final String runId = tenantId + TIMER_ENTRY_SEP + timerId;
-    logger.info("waitTimer {} delay {} for tenant {}", timerId, delay, tenantId);
+    final String tenantProductSeq = timerDescriptor.getId();
+    logger.info("waitTimer {} delay {} for tenant {}", tenantProductSeq, delay, tenantId);
     if (delay > 0) {
-      timerRunning.put(runId, vertx.setTimer(delay, res -> handleTimer(tenantId, timerId)));
+      long timer = vertx.setTimer(delay, res -> handleTimer(tenantId, tenantProductSeq));
+      timerRunning.put(tenantProductSeq, timer);
     } else {
-      timerRunning.remove(runId);
+      var timer = timerRunning.remove(tenantProductSeq);
+      if (timer != null) {
+        vertx.cancelTimer(timer);
+      }
     }
   }
 
   /**
    * get timer descriptor.
    * @param tenantId tenant identifier
-   * @param timerId timer identifier
-   * @return timer descriptor
+   * @param productSeq timer identifier like mod-foo_0
+   * @return timer descriptor with id as productSeq like mod-foo_0
    */
-  public Future<TimerDescriptor> getTimer(String tenantId, String timerId) {
+  public Future<TimerDescriptor> getTimer(String tenantId, String productSeq) {
     LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
     if (timerMap == null) {
       return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, tenantId));
     }
-    return timerMap.getNotFound(timerId);
+    return timerMap.getNotFound(tenantId + TIMER_ENTRY_SEP + productSeq)
+        .map(timerDescriptor -> {
+          if (!productSeq.equals(timerDescriptor.getId())) {
+            timerDescriptor = timerDescriptor.copy();  // shallow copy
+            // replace [tenant]_[product]_[seq] with [product]_[seq]
+            timerDescriptor.setId(productSeq);
+          }
+          return timerDescriptor;
+        });
   }
 
   /**
    * timer list.
    * @param tenantId tenant identifier
-   * @return timer descriptors for the tenant
+   * @return timer descriptors for the tenant with id as productSeq like mod-foo_0
    */
   public Future<Collection<TimerDescriptor>> listTimers(String tenantId) {
     LockedTypedMap1<TimerDescriptor> timerMap = tenantTimers.get(tenantId);
     if (timerMap == null) {
       return Future.succeededFuture(Collections.emptyList());
     }
-    return timerMap.getAll().map(LinkedHashMap::values);
+    return timerMap.getAll()
+        .map(LinkedHashMap::values)
+        .map(TenantProductSeq::stripTenantIdFromTimerId);
   }
 
   static boolean isSimilar(TimerDescriptor a, TimerDescriptor b) {
@@ -332,15 +353,14 @@ public class TimerManager {
   /**
    * timer PATCH.
    * @param tenantId tenant identifier
-   * @param timerDescriptor timer descriptor
-   * @return future
+   * @param timerDescriptor timer descriptor; the id is [product]_[seq], for example mod_foo_2
    */
   public Future<Void> patchTimer(String tenantId, TimerDescriptor timerDescriptor) {
     return getTimer(tenantId, timerDescriptor.getId())
         .compose(existing -> {
+          final var tenantProductSeq = new TenantProductSeq(tenantId, timerDescriptor.getId());
+          timerDescriptor.setId(tenantProductSeq.toString());
           final String existingJson = Json.encode(existing);
-          final String timerId = timerDescriptor.getId();
-
           RoutingEntry patchEntry = timerDescriptor.getRoutingEntry();
           Future<TimerDescriptor> future;
           if (isPatchReset(patchEntry)) {
@@ -348,21 +368,23 @@ public class TimerManager {
             future = tenantManager.getEnabledModules(tenantId).compose(mdList -> {
               timerDescriptor.setModified(false);
               for (ModuleDescriptor md : mdList) {
-                InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
-                if (timerInt != null) {
-                  List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
-                  int seq = 0;
-                  for (RoutingEntry re : routingEntries) {
-                    String gotTimerId = md.getProduct() + TIMER_ENTRY_SEP + seq;
-                    if (gotTimerId.equals(timerId)) {
-                      timerDescriptor.setRoutingEntry(re);
-                      return Future.succeededFuture(timerDescriptor);
-                    }
-                    seq++;
-                  }
+                if (! md.getProduct().equals(tenantProductSeq.getProduct())) {
+                  continue;
                 }
+                InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
+                if (timerInt == null) {
+                  continue;
+                }
+                List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
+                if (tenantProductSeq.getSeq() >= routingEntries.size()) {
+                  continue;
+                }
+                RoutingEntry re = routingEntries.get(tenantProductSeq.getSeq());
+                timerDescriptor.setRoutingEntry(re);
+                return Future.succeededFuture(timerDescriptor);
               }
-              return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, timerId));
+              return Future.failedFuture(
+                  new OkapiError(ErrorType.NOT_FOUND, timerDescriptor.getId()));
             });
           } else {
             RoutingEntry existingEntry = existing.getRoutingEntry();
@@ -380,8 +402,6 @@ public class TimerManager {
             }
             TimerDescriptor newDescriptorStorage = new JsonObject(newJson)
                 .mapTo(TimerDescriptor.class);
-            String newId = tenantId + TIMER_ENTRY_SEP + newDescriptor.getId();
-            newDescriptorStorage.setId(newId);
             return timerStore.put(newDescriptorStorage)
                 .compose(y -> tenantTimers.get(tenantId).put(newDescriptor.getId(), newDescriptor)
                 .onSuccess(x -> {
@@ -406,12 +426,124 @@ public class TimerManager {
       String timerDescriptorVal = o.getString("timerDescriptor");
       TimerDescriptor timerDescriptor =
           JsonDecoder.decode(timerDescriptorVal, TimerDescriptor.class);
-      final String runId = tenantId + TIMER_ENTRY_SEP + timerDescriptor.getId();
-      Long id = timerRunning.get(runId);
+      Long id = timerRunning.get(timerDescriptor.getId());
       if (id != null) {
         vertx.cancelTimer(id);
       }
       waitTimer(tenantId, timerDescriptor);
     });
+  }
+
+  static boolean belongs(TimerDescriptor timerDescriptor, String tenantId) {
+    try {
+      var tenantProductSeq = new TenantProductSeq(timerDescriptor.getId());
+      return Objects.equals(tenantProductSeq.getTenantId(), tenantId);
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  static Future<List<TimerDescriptor>> get(TimerStore timerStore, String tenantId) {
+    return timerStore.getAll()
+        .map(list -> {
+          list.removeIf(timerDescriptor -> ! belongs(timerDescriptor, tenantId));
+          return list;
+        });
+  }
+
+  /**
+   * [tenant]_[product]_[seq] (like test_tenant_mod-foo_2) or [product]_[seq] (like mod-foo_2).
+   */
+  public static class TenantProductSeq {
+    private final String tenantId;
+    private final String product;
+    private final int seq;
+
+    /**
+     * Constructor using the three components.
+     */
+    public TenantProductSeq(String tenantId, String product, int seq) {
+      this.tenantId = tenantId;
+      this.product = product;
+      this.seq = seq;
+    }
+
+    /**
+     * Like {@link #TenantProductSeq(String tenantProductSeq)} but the parameter
+     * tenantId replaces the value from tenantProductSeq String.
+     *
+     * @param tenantId the replacement value; if null the value from
+     *     tenantProductSeq String is taken
+     */
+    public TenantProductSeq(String tenantId, String tenantProductSeq) {
+      int pos2 = tenantProductSeq.lastIndexOf(TIMER_ENTRY_SEP);
+      seq = Integer.parseInt(tenantProductSeq.substring(pos2 + 1));
+      int pos1 = tenantProductSeq.lastIndexOf(TIMER_ENTRY_SEP, pos2 - 1);
+      product = tenantProductSeq.substring(pos1 + 1, pos2);
+      if (tenantId != null) {
+        this.tenantId = tenantId;
+        return;
+      }
+      if (pos1 == -1) {
+        this.tenantId = null;
+      } else {
+        this.tenantId = tenantProductSeq.substring(0, pos1);
+      }
+    }
+
+    /**
+     * Parse a String [tenant]_[product]_[seq] like test_tenant_mod-foo_2
+     * or [product]_[seq] like mod-foo_2.
+     */
+    public TenantProductSeq(String tenantProductSeq) {
+      this(null, tenantProductSeq);
+    }
+
+    /**
+     * The tenant id.
+     */
+    public String getTenantId() {
+      return tenantId;
+    }
+
+    /**
+     * The product, like mod-foo.
+     */
+    public String getProduct() {
+      return product;
+    }
+
+    /**
+     * The timer number in the timer array in the module descriptor, starting with 0.
+     */
+    public int getSeq() {
+      return seq;
+    }
+
+    /**
+     * Concatenation of the components, like mod-foo_2 or test_tenant_mod-foo_2.
+     */
+    public String toString() {
+      if (tenantId == null) {
+        return product + TIMER_ENTRY_SEP + seq;
+      } else {
+        return tenantId + TIMER_ENTRY_SEP + product + TIMER_ENTRY_SEP + seq;
+      }
+    }
+
+    /**
+     * For each TimerDescriptor alter the id by removing the tenant id from the String.
+     *
+     * <p>For example test_tenant_mod-foo_2 becomes mod-foo_2.
+     */
+    public static Collection<TimerDescriptor> stripTenantIdFromTimerId(
+        Collection<TimerDescriptor> collection) {
+
+      collection.forEach(timerDescriptor -> {
+        var old = new TenantProductSeq(timerDescriptor.getId());
+        timerDescriptor.setId(old.getProduct() + TIMER_ENTRY_SEP + old.getSeq());
+      });
+      return collection;
+    }
   }
 }
