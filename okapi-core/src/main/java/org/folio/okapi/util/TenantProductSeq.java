@@ -1,7 +1,6 @@
 package org.folio.okapi.util;
 
 import java.util.Collection;
-
 import org.folio.okapi.bean.TimerDescriptor;
 
 /**
