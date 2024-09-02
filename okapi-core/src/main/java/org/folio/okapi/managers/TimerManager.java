@@ -446,7 +446,7 @@ public class TimerManager {
       return Objects.equals(tenantProductSeq.getTenantId(), tenantId);
     } catch (RuntimeException e) {
       var id = timerDescriptor == null ? "null" : timerDescriptor.getId();
-      logger.error("Comparing TimerDescriptor throws exception: id={}, tenantId={}", id, tenantId, e);
+      logger.error("Comparing TimerDescriptor fails: id={}, tenantId={}", id, tenantId, e);
       return false;
     }
   }
