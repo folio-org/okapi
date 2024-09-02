@@ -74,7 +74,7 @@ class TimerManagerTest {
     Assertions.assertThat(timerManager.getModuleForTimer(mds, "invalid")).isNull();
   }
 
-  ModuleDescriptor moduleDescriptor(String ModuleId, int timerEntryCount) {
+  ModuleDescriptor moduleDescriptor(String moduleId, int timerEntryCount) {
     var routingEntries = new RoutingEntry[timerEntryCount];
     for (int i = 0; i < routingEntries.length; i++) {
       var routingEntry = new RoutingEntry();
@@ -86,7 +86,7 @@ class TimerManagerTest {
     timers.setHandlers(routingEntries);
     timers.setInterfaceType("system");
     InterfaceDescriptor [] provides = { timers };
-    var moduleDescriptor = new ModuleDescriptor(ModuleId);
+    var moduleDescriptor = new ModuleDescriptor(moduleId);
     moduleDescriptor.setProvides(provides);
     return moduleDescriptor;
   }
