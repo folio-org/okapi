@@ -19,8 +19,8 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Schedule;
 import org.folio.okapi.bean.TimerDescriptor;
-import org.folio.okapi.service.TimerStore;
 import org.folio.okapi.service.impl.TimerStoreMemory;
+import org.folio.okapi.util.TenantProductSeq;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -136,15 +136,15 @@ class TimerManagerTest {
   @ParameterizedTest
   @MethodSource
   void tenantProductSeq(String tenantId, String product, int seq, String tenantProductSeq) {
-    var actual = new TimerManager.TenantProductSeq(tenantId, product, seq).toString();
+    var actual = new TenantProductSeq(tenantId, product, seq).toString();
     assertThat(actual, is(tenantProductSeq));
 
-    var actual2 = new TimerManager.TenantProductSeq(tenantProductSeq);
+    var actual2 = new TenantProductSeq(tenantProductSeq);
     assertThat(actual2.getTenantId(), is(tenantId));
     assertThat(actual2.getProduct(), is(product));
     assertThat(actual2.getSeq(), is(seq));
 
-    var actual3 = new TimerManager.TenantProductSeq("diku", tenantProductSeq);
+    var actual3 = new TenantProductSeq("diku", tenantProductSeq);
     assertThat(actual3.getTenantId(), is("diku"));
     assertThat(actual3.getProduct(), is(product));
     assertThat(actual3.getSeq(), is(seq));
@@ -161,6 +161,6 @@ class TimerManagerTest {
       "tenant_mod-foo_",
   })
   void tenantProductSeqFail(String tenantProductSeq) {
-    assertThrows(NumberFormatException.class, () -> new TimerManager.TenantProductSeq(tenantProductSeq));
+    assertThrows(NumberFormatException.class, () -> new TenantProductSeq(tenantProductSeq));
   }
 }
