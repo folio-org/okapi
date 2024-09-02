@@ -311,7 +311,13 @@ public class TimerManager {
     if (timerMap == null) {
       return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, tenantId));
     }
-    var tenantProductSeq = new TenantProductSeq(tenantId, productSeq).toString();
+    String tenantProductSeq;
+    try {
+      tenantProductSeq = new TenantProductSeq(tenantId, productSeq).toString();
+    } catch (RuntimeException e) {
+      logger.warn("Timer lookup with invalid productSeq: {}", productSeq);
+      return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, tenantId));
+    }
     return timerMap.getNotFound(tenantProductSeq)
         .map(timerDescriptor -> {
           if (!productSeq.equals(timerDescriptor.getId())) {
@@ -440,7 +446,7 @@ public class TimerManager {
       return Objects.equals(tenantProductSeq.getTenantId(), tenantId);
     } catch (RuntimeException e) {
       var id = timerDescriptor == null ? "null" : timerDescriptor.getId();
-      logger.warn("Comparing TimerDescriptor with id={} and tenantId={}", id, tenantId, e);
+      logger.error("Comparing TimerDescriptor throws exception: id={}, tenantId={}", id, tenantId, e);
       return false;
     }
   }
