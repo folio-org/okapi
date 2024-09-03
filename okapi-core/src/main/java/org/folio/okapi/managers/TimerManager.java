@@ -31,7 +31,7 @@ import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.TenantProductSeq;
 
 public class TimerManager {
-  private static final Logger logger = OkapiLogger.get();
+  private static final Logger LOGGER = OkapiLogger.get();
   private static final String MAP_NAME = "org.folio.okapi.timer.map";
   private static final String EVENT_NAME = "org.folio.okapi.timer.event";
   /**
@@ -204,14 +204,14 @@ public class TimerManager {
     HttpMethod httpMethod = routingEntry.getDefaultMethod(HttpMethod.POST);
     ModuleInstance inst = new ModuleInstance(md, routingEntry, path, httpMethod, true);
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-    logger.info("timer {} call start module {} for tenant {}",
+    LOGGER.info("timer {} call start module {} for tenant {}",
         timerDescriptor.getId(), md.getId(), tenantId);
     proxyService.callSystemInterface(headers, tenantId, inst, "")
         .onFailure(cause ->
-            logger.info("timer {} call failed to module {} for tenant {} : {}",
+            LOGGER.info("timer {} call failed to module {} for tenant {} : {}",
                 timerDescriptor.getId(), md.getId(), tenantId, cause.getMessage()))
         .onSuccess(res ->
-            logger.info("timer {} call succeeded to module {} for tenant {}",
+            LOGGER.info("timer {} call succeeded to module {} for tenant {}",
                 timerDescriptor.getId(), md.getId(), tenantId));
   }
 
@@ -226,7 +226,7 @@ public class TimerManager {
     try {
       tenantProductSeq = new TenantProductSeq(tenantProductSeqString);
     } catch (RuntimeException e) {
-      logger.error("Invalid id of timer: {}", tenantProductSeqString, e);
+      LOGGER.error("Invalid id of timer: {}", tenantProductSeqString, e);
       return null;
     }
     for (ModuleDescriptor md : list) {
@@ -252,7 +252,7 @@ public class TimerManager {
    * @param timerId timer identifier
    */
   private void handleTimer(String tenantId, String tenantProductSeq) {
-    logger.info("timer {} handle for tenant {}", tenantProductSeq, tenantId);
+    LOGGER.info("timer {} handle for tenant {}", tenantProductSeq, tenantId);
     tenantTimers.get(tenantId).get(tenantProductSeq)
         .compose(timerDescriptor ->
             // this timer is latest and current ... do the work ...
@@ -271,7 +271,7 @@ public class TimerManager {
               waitTimer(tenantId, timerDescriptor);
             })
         )
-        .onFailure(cause -> logger.warn("handleTimer id={} {}", tenantProductSeq,
+        .onFailure(cause -> LOGGER.warn("handleTimer id={} {}", tenantProductSeq,
             cause.getMessage(), cause));
   }
 
@@ -288,7 +288,7 @@ public class TimerManager {
     RoutingEntry routingEntry = timerDescriptor.getRoutingEntry();
     final long delay = routingEntry.getDelayMilliSeconds();
     final String tenantProductSeq = timerDescriptor.getId();
-    logger.info("waitTimer {} delay {} for tenant {}", tenantProductSeq, delay, tenantId);
+    LOGGER.info("waitTimer {} delay {} for tenant {}", tenantProductSeq, delay, tenantId);
     if (delay > 0) {
       long timer = vertx.setTimer(delay, res -> handleTimer(tenantId, tenantProductSeq));
       timerRunning.put(tenantProductSeq, timer);
@@ -315,7 +315,7 @@ public class TimerManager {
     try {
       tenantProductSeq = new TenantProductSeq(tenantId, productSeq).toString();
     } catch (RuntimeException e) {
-      logger.warn("Timer lookup with invalid productSeq: {}", productSeq);
+      LOGGER.warn("Timer lookup with invalid productSeq {}: {}", productSeq, e.getMessage());
       return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, tenantId));
     }
     return timerMap.getNotFound(tenantProductSeq)
@@ -440,13 +440,15 @@ public class TimerManager {
     });
   }
 
+  @SuppressWarnings("java:S2583")  // false positive as timerDescriptor can be null
+  // therefore suppress 'Change this condition so that it does not always evaluate to "false"'
   static boolean belongs(TimerDescriptor timerDescriptor, String tenantId) {
     try {
       var tenantProductSeq = new TenantProductSeq(timerDescriptor.getId());
       return Objects.equals(tenantProductSeq.getTenantId(), tenantId);
     } catch (RuntimeException e) {
       var id = timerDescriptor == null ? "null" : timerDescriptor.getId();
-      logger.error("Comparing TimerDescriptor fails: id={}, tenantId={}", id, tenantId, e);
+      LOGGER.error("Comparing TimerDescriptor fails: id={}, tenantId={}", id, tenantId, e);
       return false;
     }
   }
