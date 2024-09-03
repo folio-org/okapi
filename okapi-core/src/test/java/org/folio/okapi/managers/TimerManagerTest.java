@@ -1,7 +1,6 @@
 package org.folio.okapi.managers;
 
 import static io.vertx.core.Future.succeededFuture;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -18,12 +17,10 @@ import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Schedule;
 import org.folio.okapi.bean.TimerDescriptor;
 import org.folio.okapi.service.impl.TimerStoreMemory;
-import org.folio.okapi.util.TenantProductSeq;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 @Timeout(5000)
 @ExtendWith(VertxExtension.class)
