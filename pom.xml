@@ -120,9 +120,35 @@
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
-        <version>1.19.5</version>
+        <version>1.20.1</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <!-- testcontainers doesn't bump vulnerable commons-compress
+           https://github.com/testcontainers/testcontainers-java/pull/8354#issuecomment-1957345903 -->
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-compress</artifactId>
+        <version>1.27.0</version>
+      </dependency>
+      <!-- testcontainers requires a recent commons-lang3, io.rest-assured:xml-path downgrades it to 3.11 -->
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.16.0</version>
+      </dependency>
+      <!-- unmaintained raml-tester doesn't bump vulnerable commons-fileupload
+           https://github.com/nidi3/raml-tester -->
+      <dependency>
+        <groupId>commons-fileupload</groupId>
+        <artifactId>commons-fileupload</artifactId>
+        <version>1.5</version>
+      </dependency>
+      <!-- unmaintained raml-tester uses old commons-io 2.11.0, testcontainers requires a more recent one -->
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>2.16.1</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
