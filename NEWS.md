@@ -1,3 +1,13 @@
+## 6.0.3 2024-09-19
+
+Fixes:
+* [#1354](https://github.com/folio-org/okapi/pull/1354/files) Add module url to docker deploy error message
+* [OKAPI-1186](https://folio-org.atlassian.net/browse/OKAPI-1186) Add ChattyResponsePredicate to okapi-common
+* [OKAPI-1188](https://folio-org.atlassian.net/browse/OKAPI-1188) HttpResponse: Log method, path and stacktrace
+* [OKAPI-1192](https://folio-org.atlassian.net/browse/OKAPI-1192) commons-io 2.16.1
+* [OKAPI-1190](https://folio-org.atlassian.net/browse/OKAPI-1190) Upgrade testcontainers, commons-\*
+* [OKAPI-1191](https://folio-org.atlassian.net/browse/OKAPI-1191) NumberFormatException in timerId halts Okapi
+
 ## 6.0.2 2024-06-06
 
 Quesnelia version.
