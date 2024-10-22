@@ -17,11 +17,12 @@ import org.folio.okapi.common.refreshtoken.client.ClientException;
 import org.folio.okapi.common.refreshtoken.client.ClientOptions;
 import org.folio.okapi.common.refreshtoken.tokencache.RefreshTokenCache;
 
-@java.lang.SuppressWarnings({"squid:S1075"}) // URIs should not be hardcoded
+@SuppressWarnings({"squid:S1075"}) // URIs should not be hardcoded
 public class RefreshClient implements Client {
 
-  private static final Logger logger = LogManager.getLogger(RefreshClient.class);
+  private static final Logger LOGGER = LogManager.getLogger(RefreshClient.class);
 
+  private static final int PAYLOAD_LOGGING_MAX_LENGTH = 200;
   private static final String REFRESH_PATH = "/authn/refresh";
 
   private final ClientOptions clientOptions;
@@ -83,7 +84,7 @@ public class RefreshClient implements Client {
       var msg = "Token refresh failed. POST " + REFRESH_PATH
           + " for tenant '" + tenant + "' and refreshtoken '" + payload()
           + "' returned status " + res.statusCode() + ": " + res.bodyAsString();
-      logger.error("{}", msg);
+      LOGGER.error("{}", msg);
       throw new ClientException(msg);
     }
     for (String v: res.cookies()) {
@@ -100,14 +101,17 @@ public class RefreshClient implements Client {
     var msg = "Token refresh failed. POST " + REFRESH_PATH
         + " for tenant '" + tenant + "' and refreshtoken '" + payload()
         + "' did not return access token";
-    logger.error("{}", msg);
+    LOGGER.error("{}", msg);
     throw new ClientException(msg);
   }
 
+  @SuppressWarnings({ // don't throw exceptions while logging an error
+      "java:S1166", // suppress "Either log or rethrow this exception."
+      "java:S2221", // suppress "Catch a list of specific exception subtypes instead."
+  })
   String payload() {
-    final var maxlength = 200;
-    if (refreshToken != null && refreshToken.length() > maxlength) {
-      return "too long: " + refreshToken.substring(0, maxlength) + "...";
+    if (refreshToken != null && refreshToken.length() > PAYLOAD_LOGGING_MAX_LENGTH) {
+      return "too long: " + refreshToken.substring(0, PAYLOAD_LOGGING_MAX_LENGTH) + "...";
     }
     try {
       return new OkapiToken(refreshToken).getPayloadWithoutValidation().encode();

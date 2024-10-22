@@ -20,7 +20,7 @@ import org.folio.okapi.common.refreshtoken.tokencache.TenantUserCache;
 @java.lang.SuppressWarnings({"squid:S1075"}) // URIs should not be hardcoded
 public class LoginClient implements Client {
 
-  private static final Logger logger = LogManager.getLogger(LoginClient.class);
+  private static final Logger LOGGER = LogManager.getLogger(LoginClient.class);
 
   private static final String LOGIN_EXPIRY_PATH = "/authn/login-with-expiry";
 
@@ -67,18 +67,15 @@ public class LoginClient implements Client {
           .putHeader(XOkapiHeaders.TENANT, tenant)
           .sendJsonObject(payload).map(res -> {
             if (res.statusCode() != 201) {
-              var msg = "Login failed. POST " + LOGIN_LEGACY_PATH
-                  + " for tenant '" + tenant + "' and username '" + username
-                  + "' returned status " + res.statusCode() + ": " + res.bodyAsString();
-              logger.error("{}", msg);
+              var msg = loginFailed(LOGIN_LEGACY_PATH)
+                  + " returned status " + res.statusCode() + ": " + res.bodyAsString();
+              LOGGER.error("{}", msg);
               throw new ClientException(msg);
             }
             String token = res.getHeader(XOkapiHeaders.TOKEN);
             if (token == null) {
-              var msg = "Login failed. POST " + LOGIN_LEGACY_PATH
-                  + " for tenant '" + tenant + "' and username '" + username
-                  + "' did not return token.";
-              logger.error("{}", msg);
+              var msg = loginFailed(LOGIN_LEGACY_PATH) + " did not return token.";
+              LOGGER.error("{}", msg);
               throw new ClientException(msg);
             }
             if (cache != null) {
@@ -102,10 +99,9 @@ public class LoginClient implements Client {
             if (res.statusCode() == 404) {
               return null;
             } else if (res.statusCode() != 201) {
-              var msg = "Login failed. POST " + LOGIN_EXPIRY_PATH
-                  + " for tenant '" + tenant + "' and username '" + username
-                  + "' returned status " + res.statusCode() + ": " + res.bodyAsString();
-              logger.error("{}", msg);
+              var msg = loginFailed(LOGIN_EXPIRY_PATH)
+                  + " returned status " + res.statusCode() + ": " + res.bodyAsString();
+              LOGGER.error("{}", msg);
               throw new ClientException(msg);
             }
             for (String v : res.cookies()) {
@@ -119,15 +115,18 @@ public class LoginClient implements Client {
                 return cookie.value();
               }
             }
-            var msg = "Login failed. POST " + LOGIN_EXPIRY_PATH
-                + " for tenant '" + tenant + "' and username '" + username
-                + "' did not return access token";
-            logger.error("{}", msg);
+            var msg = loginFailed(LOGIN_EXPIRY_PATH) + " did not return access token";
+            LOGGER.error("{}", msg);
             throw new ClientException(msg);
           });
     } catch (Exception e) {
       return Future.failedFuture(e);
     }
+  }
+
+  private String loginFailed(String path) {
+    return "Login failed. POST " + path
+        + " for tenant '" + tenant + "' and username '" + username + "'";
   }
 
   @Override
