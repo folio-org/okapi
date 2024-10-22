@@ -212,7 +212,8 @@ public class LoginClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(SC_BAD_REQUEST))
         .onComplete(context.asyncAssertFailure(t -> {
-          assertThat(t.getMessage(), is("POST /authn/login returned status 400: "
+          assertThat(t.getMessage(), is("Login failed. POST /authn/login "
+              + "for tenant 'diku' and username 'dikuuser' returned status 400: "
               + "Bad tenant/username/password"));
           assertThat(countLoginWithExpiry, is(0));
         }));
@@ -252,7 +253,8 @@ public class LoginClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(SC_CREATED))
         .onComplete(context.asyncAssertFailure(cause ->
-            assertThat(cause.getMessage(), is("/authn/login did not return token"))
+            assertThat(cause.getMessage(), is("Login failed. POST /authn/login "
+                + "for tenant 'diku' and username 'dikuuser' did not return token."))
         ));
   }
 
@@ -301,7 +303,8 @@ public class LoginClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(SC_CREATED))
         .onComplete(context.asyncAssertFailure(response -> {
-          assertThat(response.getMessage(), is("/authn/login-with-expiry did not return access token"));
+          assertThat(response.getMessage(), is("Login failed. POST /authn/login-with-expiry "
+              + "for tenant 'diku' and username 'dikuuser' did not return access token"));
         }));
   }
 
@@ -338,8 +341,8 @@ public class LoginClientTest {
         .onComplete(context.asyncAssertFailure(e -> {
           assertThat(countLoginWithExpiry, is(1));
           assertThat(e, Matchers.instanceOf(ClientException.class));
-          assertThat(e.getMessage(), is("POST /authn/login-with-expiry returned status 400: "
-              + "Bad tenant/username/password"));
+          assertThat(e.getMessage(), is("Login failed. POST /authn/login-with-expiry "
+              + "for tenant 'diku' and username 'dikuuser' returned status 400: Bad tenant/username/password"));
         }));
   }
 

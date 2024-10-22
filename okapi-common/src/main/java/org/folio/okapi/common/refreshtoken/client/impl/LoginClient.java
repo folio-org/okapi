@@ -8,6 +8,8 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import java.util.function.Supplier;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Constants;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.refreshtoken.client.Client;
@@ -17,6 +19,8 @@ import org.folio.okapi.common.refreshtoken.tokencache.TenantUserCache;
 
 @java.lang.SuppressWarnings({"squid:S1075"}) // URIs should not be hardcoded
 public class LoginClient implements Client {
+
+  private static final Logger LOGGER = LogManager.getLogger(LoginClient.class);
 
   private static final String LOGIN_EXPIRY_PATH = "/authn/login-with-expiry";
 
@@ -63,12 +67,16 @@ public class LoginClient implements Client {
           .putHeader(XOkapiHeaders.TENANT, tenant)
           .sendJsonObject(payload).map(res -> {
             if (res.statusCode() != 201) {
-              throw new ClientException("POST " + LOGIN_LEGACY_PATH + " returned status "
-                  + res.statusCode() + ": " + res.bodyAsString());
+              var msg = loginFailed(LOGIN_LEGACY_PATH)
+                  + " returned status " + res.statusCode() + ": " + res.bodyAsString();
+              LOGGER.error("{}", msg);
+              throw new ClientException(msg);
             }
             String token = res.getHeader(XOkapiHeaders.TOKEN);
             if (token == null) {
-              throw new ClientException(LOGIN_LEGACY_PATH + " did not return token");
+              var msg = loginFailed(LOGIN_LEGACY_PATH) + " did not return token.";
+              LOGGER.error("{}", msg);
+              throw new ClientException(msg);
             }
             if (cache != null) {
               cache.put(tenant, username, token,
@@ -91,8 +99,10 @@ public class LoginClient implements Client {
             if (res.statusCode() == 404) {
               return null;
             } else if (res.statusCode() != 201) {
-              throw new ClientException("POST " + LOGIN_EXPIRY_PATH + " returned status "
-                  + res.statusCode() + ": " + res.bodyAsString());
+              var msg = loginFailed(LOGIN_EXPIRY_PATH)
+                  + " returned status " + res.statusCode() + ": " + res.bodyAsString();
+              LOGGER.error("{}", msg);
+              throw new ClientException(msg);
             }
             for (String v : res.cookies()) {
               Cookie cookie = ClientCookieDecoder.STRICT.decode(v);
@@ -105,11 +115,18 @@ public class LoginClient implements Client {
                 return cookie.value();
               }
             }
-            throw new ClientException(LOGIN_EXPIRY_PATH + " did not return access token");
+            var msg = loginFailed(LOGIN_EXPIRY_PATH) + " did not return access token";
+            LOGGER.error("{}", msg);
+            throw new ClientException(msg);
           });
     } catch (Exception e) {
       return Future.failedFuture(e);
     }
+  }
+
+  private String loginFailed(String path) {
+    return "Login failed. POST " + path
+        + " for tenant '" + tenant + "' and username '" + username + "'";
   }
 
   @Override
