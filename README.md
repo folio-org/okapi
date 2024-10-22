@@ -15,7 +15,7 @@ The Okapi software has the following compile-time dependencies:
 
 The test suite has these additional dependencies:
 
-* Docker, for details see https://java.testcontainers.org/supported\_docker\_environment/
+* Docker, for details see https://java.testcontainers.org/supported_docker_environment/
 
 * Ports 9230-9239 must be free
 
@@ -25,12 +25,12 @@ terminated manually.*
 
 ## Quick start
 
-Before buliding, make sure your `` $JAVA_HOME`` environment variable is set correctly.
+Before buliding, make sure your `$JAVA_HOME` environment variable is set correctly.
 
 This can be done by one of the two ways described below:
 
 1. For e.g., on Debain(and Debian-based) distros, run the following command to set the
-$JAVA\_HOME for the current session:
+`$JAVA_HOME` for the current session:
 
 ```
   $ export JAVA_HOME=`readlink -f /usr/bin/javac | sed "s:bin/javac::"`
