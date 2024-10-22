@@ -2,8 +2,13 @@ package org.folio.okapi.common.refreshtoken.client.impl;
 
 import static org.folio.okapi.common.ChattyResponsePredicate.SC_BAD_REQUEST;
 import static org.folio.okapi.common.ChattyResponsePredicate.SC_CREATED;
+import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -11,6 +16,7 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
@@ -192,8 +198,8 @@ public class RefreshClientTest {
             .putHeader("Content-Type", "text/xml")
             .expect(SC_BAD_REQUEST))
         .onComplete(context.asyncAssertFailure(response ->
-          assertThat(response.getMessage(), is("POST /authn/refresh returned status 400: "
-              + "Missing/bad refresh token"))
+          assertThat(response.getMessage(), is("Token refresh failed. POST /authn/refresh "
+              + "for tenant 'diku' and refreshtoken 'invalid: invalid_token' returned status 400: Missing/bad refresh token"))
         ));
   }
 
@@ -238,7 +244,8 @@ public class RefreshClientTest {
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .expect(SC_CREATED))
         .onComplete(context.asyncAssertFailure(cause ->
-          assertThat(cause.getMessage(), is("POST /authn/refresh returned status 404: Not found"))
+          assertThat(cause.getMessage(), is("Token refresh failed. POST /authn/refresh "
+              + "for tenant 'diku' and refreshtoken 'invalid: diku' returned status 404: Not found"))
         ));
   }
 
@@ -249,7 +256,8 @@ public class RefreshClientTest {
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
             .expect(SC_CREATED))
         .onComplete(context.asyncAssertFailure(cause ->
-            assertThat(cause.getMessage(), is("/authn/refresh did not return access token"))
+            assertThat(cause.getMessage(), is("Token refresh failed. POST /authn/refresh "
+                + "for tenant 'diku' and refreshtoken 'invalid: diku' did not return access token"))
         ));
   }
 
@@ -262,5 +270,31 @@ public class RefreshClientTest {
         .onComplete(context.asyncAssertFailure(e ->
             assertThat(e.getMessage(), is("java.net.MalformedURLException: no protocol: x/authn/refresh")
         )));
+  }
+
+  @Test
+  public void payload() {
+    var payload = new RefreshClient(null, null, "diku", "foo." + urlEncode("{}") + ".baz").payload();
+    assertThat(payload, is("{}"));
+  }
+
+  @Test
+  public void payloadTooLong() {
+    var json = new JsonObject().put("x", "s".repeat(200)).encode();
+    var payload = new RefreshClient(null, null, "diku", "foo." + urlEncode(json) + ".baz").payload();
+    assertThat(payload, startsWith("too long: foo.eyJ4Ijoic3Nz"));
+    assertThat(payload, endsWith("..."));
+  }
+
+  @Test
+  public void payloadInvalid() {
+    var payload = new RefreshClient(null, null, "diku", "foo.bar.baz").payload();
+    assertThat(payload, is("invalid: foo.bar.baz"));
+  }
+
+  private String urlEncode(String s) {
+    return new String(
+        Base64.getUrlEncoder().encode(s.getBytes(StandardCharsets.UTF_8)),
+        StandardCharsets.UTF_8);
   }
 }

@@ -7,7 +7,10 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Constants;
+import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.refreshtoken.client.Client;
 import org.folio.okapi.common.refreshtoken.client.ClientException;
@@ -16,6 +19,8 @@ import org.folio.okapi.common.refreshtoken.tokencache.RefreshTokenCache;
 
 @java.lang.SuppressWarnings({"squid:S1075"}) // URIs should not be hardcoded
 public class RefreshClient implements Client {
+
+  private static final Logger logger = LogManager.getLogger(RefreshClient.class);
 
   private static final String REFRESH_PATH = "/authn/refresh";
 
@@ -75,8 +80,11 @@ public class RefreshClient implements Client {
 
   String tokenResponse(HttpResponse<Buffer> res) {
     if (res.statusCode() != 201) {
-      throw new ClientException("POST " + REFRESH_PATH + " returned status "
-          + res.statusCode() + ": " + res.bodyAsString());
+      var msg = "Token refresh failed. POST " + REFRESH_PATH
+          + " for tenant '" + tenant + "' and refreshtoken '" + payload()
+          + "' returned status " + res.statusCode() + ": " + res.bodyAsString();
+      logger.error("{}", msg);
+      throw new ClientException(msg);
     }
     for (String v: res.cookies()) {
       io.netty.handler.codec.http.cookie.Cookie cookie = ClientCookieDecoder.STRICT.decode(v);
@@ -89,7 +97,22 @@ public class RefreshClient implements Client {
         return cookie.value();
       }
     }
-    throw new ClientException(REFRESH_PATH + " did not return access token");
+    var msg = "Token refresh failed. POST " + REFRESH_PATH
+        + " for tenant '" + tenant + "' and refreshtoken '" + payload()
+        + "' did not return access token";
+    logger.error("{}", msg);
+    throw new ClientException(msg);
   }
 
+  String payload() {
+    final var maxlength = 200;
+    if (refreshToken != null && refreshToken.length() > maxlength) {
+      return "too long: " + refreshToken.substring(0, maxlength) + "...";
+    }
+    try {
+      return new OkapiToken(refreshToken).getPayloadWithoutValidation().encode();
+    } catch (Exception e) {
+      return "invalid: " + refreshToken;
+    }
+  }
 }
