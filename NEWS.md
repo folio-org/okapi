@@ -1,3 +1,9 @@
+## 6.1.0 2024-10-30
+
+Ramsons version.
+* [OKAPI-1193](https://folio-org.atlassian.net/browse/OKAPI-1193) Clearly log which user/tenant has invalid credentials in LoginClient and RefreshClient
+* [OKAPI-1195](https://folio-org.atlassian.net/browse/OKAPI-1195) Upgrade dependencies for Ramsons: Vert.x, commons-\*, ...
+
 ## 6.0.3 2024-09-19
 
 Fixes:
