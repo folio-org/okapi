@@ -1973,7 +1973,7 @@ Assuming `test-basic.get.list` and `test-basic-view.list` were defined in previo
 1. Update any permission assignments so that any users that were granted  `test-basic.get.list` or `test-basic.view.list` are automatically granted `test-basic.collection.get`
 1. Update any `childOf`/`subPermission` relationships.  `test-basic.collection.get` would be added to any permission's `childOf` or `subPermissions` fields which contain `test-basic.get.list` or `test-basic.view.list`
 
-These "replaces" actions get only executed when migrating to that version of the module. Afterwards all modules must use the new permissions only. Therefore developers need to manually replace the old permission name with the new permission name in all module descriptors.
+These "replaces" actions get only executed when migrating to that version of the module. Afterwards all modules must use the new permissions only. Therefore developers need to manually replace the old permission name with the new permission name in all module descriptor and package.json files.
 
 See the following for additional details of how this is handled by the permissions module:
 * [Migration of Static Permissions Upon Upgrade](https://wiki.folio.org/display/DD/Migration+of+Static+Permissions+Upon+Upgrade "Migration of Static Permissions Upon Upgrade")
