@@ -3,9 +3,15 @@ package org.folio.okapi;
 import static io.restassured.RestAssured.get;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import io.netty.handler.codec.DecoderResult;
 import io.restassured.RestAssured;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.BeforeAll;
@@ -46,5 +52,21 @@ class MainVerticleTest {
         .then()
         .statusCode(431)
         .body(is("Your HTTP request header fields are too large."));
+  }
+
+  @Test
+  void default400() {
+    var httpServerRequest = mock(HttpServerRequest.class);
+    var decoderResult = mock(DecoderResult.class);
+    var httpServerResponse = mock(HttpServerResponse.class);
+    when(httpServerRequest.decoderResult()).thenReturn(decoderResult);
+    when(httpServerRequest.response()).thenReturn(httpServerResponse);
+    when(httpServerResponse.setStatusCode(400)).thenReturn(httpServerResponse);
+
+    MainVerticle.invalidRequestHandler(httpServerRequest);
+
+    verify(httpServerResponse).setStatusCode(400);
+    verify(httpServerResponse).end();
+    verify(httpServerResponse).close();
   }
 }
