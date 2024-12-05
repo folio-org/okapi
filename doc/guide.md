@@ -1955,17 +1955,67 @@ As desribed earlier, permissions and permissionSets can be defined in the Module
 
 When mod-permissions is enabled for a tenant, OKAPI will invoke the `_tenantPermissions` API for all modules currently enabled for that tenant.  This is needed to inform the permissions module of any permissions defined in module descriptors enabled for the tenant prior to mod-permissions.
 
-Note that OKAPI is only responsible for providing the permissions and the corresponding moduleId to the `_tenantPermissions` API.  Determination of the appropriate actions to be taken is the responsibility of the permissions module.   Most of this will happen without explicit or special provisioning in the ModuleDescriptor.  Adding, removing or updating the permissions in the `permissionsSet` property is sufficient.  One exception to that is renaming or replaceing one or more permissions with another.   This is accomplished via the `replaces` property on the permission object, e.g. 
+Note that OKAPI is only responsible for providing the permissions and the corresponding moduleId to the `_tenantPermissions` API.  Determination of the appropriate actions to be taken is the responsibility of the permissions module.   Most of this will happen without explicit or special provisioning in the ModuleDescriptor.  Adding, removing or updating the permissions in the `permissionsSet` property is sufficient.  One exception to that is renaming or replaceing one or more permissions with another.   This is accomplished via the `replaces` property on the permission object.
+
+Example for a permission rename:
+
+mod-foo-1.0.0 has
 ```
-...
+   "permissionSets": [
+     { "permissionName": "foo.beg" }
+   ]
+```
+
+mod-foo-2.0.0 has
+```
+  "permissionSets": [
+    { "permissionName": "foo.get", "replaces": ["foo.beg"] }
+  ]
+```
+
+Note that mod-foo-2.0.0 doesn’t have an entry with `"permissionName": "foo.beg"`, therefore `foo.beg` will be deprecated when migrating from mod-foo-1.0.0 to mod-foo-2.0.0. And the deprecated permission will be removed when calling mod-permissions' `/perms/purge-deprecated` API.
+
+A user that has permission `foo.beg` in mod-foo-1.0.0 will have the regular (= not deprecated) permission `foo.get` and the deprecated permission `foo.beg` in mod-foo-2.0.0 after the migration. When calling mod-permissions' `/perms/purge-deprecated` API the permission `foo.beg` will be removed from the user.
+
+On migration any `childOf`/`subPermission` relationships with `foo.beg` gets expanded/duplicated to also cover `foo.get`.
+
+When installing mod-foo-2.0.0 from scratch for a tenant (no migration from mod-foo-1.0.0) there won’t be any `foo.beg` permission. Therefore all other modules that reference `foo.geb` in "subPermissions" need a rename it their module descriptor.
+
+Example for a permission split that retains the old permission name:
+
+mod-x-1.0.0 has
+```
+  "permissionSets": [
+    { "permissionName": "retain.a" }
+  ]
+```
+
+mod-x-2.0.0 has
+```
+  "permissionSets": [
+    { "permissionName": "retain.a" },
+    { "permissionName": "retain.x", "replaces": ["retain.a"] }
+  ]
+```
+
+Note that mod-x-2.0.0 still has an entry with `"permissionName": "retain.a"`, therefore `retain.a` will not be deprecated when migrating from mod-x-1.0.0 to mod-x-2.0.0, and calling mod-permissions' `/perms/purge-deprecated` API won't remove `retain.a`.
+
+A user that has permission `retain.a` in mod-x-1.0.0 will have two regular (= not deprecated) permission in mod-foo-2.0.0 after the migration: `retain.a` and `retain.x`.
+
+On migration any `childOf`/`subPermission` relationships of `retain.a` gets expanded/duplicated to also cover `retain.x`.
+
+Conclusion: Permission `retain.a` has been split into `retain.a` and `retain.x`.
+
+Example for replacing two permissions with one new permission:
+```
   "permissionSets": [
     {
       "permissionName": "test-basic.collection.get",
       "displayName": "test-basic list records",
       "description": "Get a list of records",
       "replaces": [ "test-basic.get.list", "test-basic.view.list" ]
-    }, 
-...
+    }
+  ]
 ```
 Assuming `test-basic.get.list` and `test-basic-view.list` were defined in previous versions of the ModuleDescriptor, this would result in:
 1. `test-basic.get.list` and `test-basic.view.list` being deprecated.
@@ -1973,7 +2023,7 @@ Assuming `test-basic.get.list` and `test-basic-view.list` were defined in previo
 1. Update any permission assignments so that any users that were granted  `test-basic.get.list` or `test-basic.view.list` are automatically granted `test-basic.collection.get`
 1. Update any `childOf`/`subPermission` relationships.  `test-basic.collection.get` would be added to any permission's `childOf` or `subPermissions` fields which contain `test-basic.get.list` or `test-basic.view.list`
 
-These "replaces" actions get only executed when migrating to that version of the module. Afterwards all modules must use the new permissions only. Therefore developers need to manually replace the old permission name with the new permission name in all module descriptor and package.json files.
+These "replaces" actions get only executed when migrating to that version of the module. Afterwards all modules must use regular (not deprecated) permissions only. Therefore developers need to manually replace the old permission name with the new permission name in all module descriptor and package.json files.
 
 See the following for additional details of how this is handled by the permissions module:
 * [Migration of Static Permissions Upon Upgrade](https://wiki.folio.org/display/DD/Migration+of+Static+Permissions+Upon+Upgrade "Migration of Static Permissions Upon Upgrade")
