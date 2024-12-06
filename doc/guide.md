@@ -1975,7 +1975,7 @@ mod-foo-2.0.0 has
 
 Note that mod-foo-2.0.0 doesn’t have an entry with `"permissionName": "foo.beg"`, therefore `foo.beg` will be deprecated when migrating from mod-foo-1.0.0 to mod-foo-2.0.0. And the deprecated permission will be removed when calling mod-permissions' `/perms/purge-deprecated` API.
 
-A user that has permission `foo.beg` in mod-foo-1.0.0 will have the regular (= not deprecated) permission `foo.get` and the deprecated permission `foo.beg` in mod-foo-2.0.0 after the migration. When calling mod-permissions' `/perms/purge-deprecated` API the permission `foo.beg` will be removed from the user.
+A user that has permission `foo.beg` in mod-foo-1.0.0 will get the regular (= not deprecated) permission `foo.get` and the deprecated permission `foo.beg` when the migrating to mod-foo-2.0.0 takes place. When calling mod-permissions' `/perms/purge-deprecated` API the permission `foo.beg` will be removed from the user.
 
 On migration any `childOf`/`subPermission` relationships with `foo.beg` gets expanded/duplicated to also cover `foo.get`.
 
@@ -2000,11 +2000,13 @@ mod-x-2.0.0 has
 
 Note that mod-x-2.0.0 still has an entry with `"permissionName": "retain.a"`, therefore `retain.a` will not be deprecated when migrating from mod-x-1.0.0 to mod-x-2.0.0, and calling mod-permissions' `/perms/purge-deprecated` API won't remove `retain.a`.
 
-A user that has permission `retain.a` in mod-x-1.0.0 will have two regular (= not deprecated) permission in mod-foo-2.0.0 after the migration: `retain.a` and `retain.x`.
+A user that has permission `retain.a` in mod-x-1.0.0 will get the `retain.x` permission when the migration to mod-foo-2.0.0 takes place and will have two regular (= not deprecated) permissions after the migration: `retain.a` and `retain.x`.
 
 On migration any `childOf`/`subPermission` relationships of `retain.a` gets expanded/duplicated to also cover `retain.x`.
 
 Conclusion: Permission `retain.a` has been split into `retain.a` and `retain.x`.
+
+The split happens when migrating a module to new version. It does not happen afterwards: Adding permission `retain.a` to a user will not automatically add `retain.x`.
 
 Example for replacing two permissions with one new permission:
 ```
