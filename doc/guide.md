@@ -1979,7 +1979,7 @@ A user that has permission `foo.beg` in mod-foo-1.0.0 will get the regular (= no
 
 On migration any `childOf`/`subPermission` relationships with `foo.beg` gets expanded/duplicated to also cover `foo.get`.
 
-When installing mod-foo-2.0.0 from scratch for a tenant (no migration from mod-foo-1.0.0) there won’t be any `foo.beg` permission. Therefore all other modules that reference `foo.geb` in "subPermissions" need a rename it their module descriptor.
+When installing mod-foo-2.0.0 from scratch for a tenant (no migration from mod-foo-1.0.0) there won’t be any `foo.beg` permission. Therefore all other modules that reference `foo.geb` in "subPermissions" need a rename it in their module descriptor.
 
 Example for a permission split that retains the old permission name:
 
@@ -2026,6 +2026,8 @@ Assuming `test-basic.get.list` and `test-basic-view.list` were defined in previo
 1. Update any `childOf`/`subPermission` relationships.  `test-basic.collection.get` would be added to any permission's `childOf` or `subPermissions` fields which contain `test-basic.get.list` or `test-basic.view.list`
 
 These "replaces" actions get only executed when migrating to that version of the module. Afterwards all modules must use regular (not deprecated) permissions only. Therefore developers need to manually replace the old permission name with the new permission name in all module descriptor and package.json files.
+
+"replaces" automatically assigns permissions to users. It doesn't deprecate or remove permissions. To deprecate permissions remove their "permissionName" entry from "permissionsSet", to delete deprecated permissions call `/perms/purge-deprecated` API.
 
 See the following for additional details of how this is handled by the permissions module:
 * [Migration of Static Permissions Upon Upgrade](https://wiki.folio.org/display/DD/Migration+of+Static+Permissions+Upon+Upgrade "Migration of Static Permissions Upon Upgrade")
