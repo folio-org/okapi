@@ -1,11 +1,15 @@
 package org.folio.okapi;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.TooLongHttpHeaderException;
+import io.netty.handler.codec.http.TooLongHttpLineException;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
@@ -51,6 +55,8 @@ import org.folio.okapi.util.OkapiError;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
+
+  private static final int MAX_INITIAL_LINE_LENGTH = 8192;
 
   private final Logger logger = OkapiLogger.get();
 
@@ -329,9 +335,11 @@ public class MainVerticle extends AbstractVerticle {
     logger.debug("About to start HTTP server");
     HttpServerOptions so = new HttpServerOptions()
         .setCompressionSupported(true)
-        .setHandle100ContinueAutomatically(true);
+        .setHandle100ContinueAutomatically(true)
+        .setMaxInitialLineLength(MAX_INITIAL_LINE_LENGTH);
     return vertx.createHttpServer(so)
         .requestHandler(router)
+        .invalidRequestHandler(MainVerticle::invalidRequestHandler)
         .listen(port)
         .onComplete(result -> {
           if (result.succeeded()) {
@@ -342,6 +350,22 @@ public class MainVerticle extends AbstractVerticle {
           }
         })
         .mapEmpty();
+  }
+
+  static void invalidRequestHandler(HttpServerRequest httpServerRequest) {
+    var cause = httpServerRequest.decoderResult().cause();
+    var response = httpServerRequest.response();
+    if (cause instanceof TooLongHttpLineException) {
+      response.setStatusCode(HttpResponseStatus.REQUEST_URI_TOO_LONG.code())
+          .end("Your request URI is too long.");
+    } else if (cause instanceof TooLongHttpHeaderException) {
+      response.setStatusCode(HttpResponseStatus.REQUEST_HEADER_FIELDS_TOO_LARGE.code())
+          .end("Your HTTP request header fields are too large.");
+    } else {
+      HttpServerRequest.DEFAULT_INVALID_REQUEST_HANDLER.handle(httpServerRequest);
+      return;
+    }
+    httpServerRequest.connection().close();
   }
 
   private Future<Void> startRedeploy() {
