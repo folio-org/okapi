@@ -1,0 +1,26 @@
+name: postgres
+on:
+  workflow_dispatch:
+    inputs:
+      postgres:
+        description: "List of postgres container images, to be injected as TESTCONTAINERS_POSTGRES_IMAGE"
+        default: '["postgres:16-alpine", "postgres:18-alpine"]'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        postgres: ${{ fromJSON(github.event.inputs.postgres) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: maven
+      - run: mvn --batch-mode verify
+        env:
+          TESTCONTAINERS_POSTGRES_IMAGE: ${{ matrix.postgres }}
