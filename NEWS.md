@@ -1,3 +1,8 @@
+## 6.1.1 2024-12-19
+
+* [OKAPI-1196](https://folio-org.atlassian.net/browse/OKAPI-1196) ChattyHttpResponseExpectation, deprecating ChattyResponsePredicate
+* [OKAPI-1198](https://folio-org.atlassian.net/browse/OKAPI-1198) Increase max URI length from 4096 to 8192
+
 ## 6.1.0 2024-10-30
 
 Ramsons version.
