@@ -30,6 +30,9 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
   static void exec(String... command) {
     try {
       ExecResult execResult = POSTGRESQL_CONTAINER.execInContainer(command);
+      if (execResult.getExitCode() != 0) {
+        throw new RuntimeException(String.join(" ", command) + " " + execResult);
+      }
       OkapiLogger.get().debug(() -> String.join(" ", command) + " " + execResult);
     } catch (InterruptedException | IOException | UnsupportedOperationException e) {
       throw new RuntimeException(e);
@@ -54,7 +57,7 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
     MountableFile serverCrtFile = MountableFile.forClasspathResource("server.crt");
     POSTGRESQL_CONTAINER.copyFileToContainer(serverKeyFile, KEY_PATH);
     POSTGRESQL_CONTAINER.copyFileToContainer(serverCrtFile, CRT_PATH);
-    exec("chown", "postgres.postgres", KEY_PATH, CRT_PATH);
+    exec("chown", "postgres:postgres", KEY_PATH, CRT_PATH);
     exec("chmod", "400", KEY_PATH, CRT_PATH);
     exec("cp", "-p", CONF_PATH, CONF_BAK_PATH);
 

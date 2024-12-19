@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.UrlDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.util.PgTestBase;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -135,9 +136,7 @@ public class ModuleTest {
     switch (value) {
       case "postgres":
         if (postgresSQLContainer == null) {
-          postgresSQLContainer = new PostgreSQLContainer<>("postgres:12-alpine")
-              .withStartupAttempts(STARTUP_ATTEMPTS);
-          postgresSQLContainer.start();
+          postgresSQLContainer = PgTestBase.createPostgreSQLContainer();
         }
         conf.put("postgres_username", postgresSQLContainer.getUsername());
         conf.put("postgres_password", postgresSQLContainer.getPassword());

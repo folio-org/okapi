@@ -7,11 +7,21 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * Singleton PostgreSQL instance from testcontainers.org.
  */
 public abstract class PgTestBase extends TestBase {
-  public static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER;
+  private static final String DEFAULT_POSTGRESQL_IMAGE_NAME = "postgres:16-alpine";
+  private static final String POSTGRESQL_IMAGE_NAME =
+      System.getenv().getOrDefault("TESTCONTAINERS_POSTGRES_IMAGE", DEFAULT_POSTGRESQL_IMAGE_NAME);
+  /**
+   * Testcontainers startup config workaround for podman:
+   * https://github.com/testcontainers/testcontainers-java/issues/6640#issuecomment-1431636203
+   */
+  private static final int STARTUP_ATTEMPTS = 3;
+  public static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = createPostgreSQLContainer();
 
-  static {
-    POSTGRESQL_CONTAINER = new PostgreSQLContainer<>("postgres:12-alpine");
-    POSTGRESQL_CONTAINER.start();
+  public static PostgreSQLContainer<?> createPostgreSQLContainer() {
+    var container = new PostgreSQLContainer<>(POSTGRESQL_IMAGE_NAME)
+        .withStartupAttempts(STARTUP_ATTEMPTS);
+    container.start();
+    return container;
   }
 
   public static PgConnectOptions getPgConnectOptions() {
