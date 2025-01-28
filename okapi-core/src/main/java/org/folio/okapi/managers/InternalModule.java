@@ -119,7 +119,6 @@ public class InternalModule {
         + " }, {"
         + "   \"id\" : \"okapi\","
         + "   \"version\" : \"" + INTERFACE_VERSION + "\","
-        + "   \"interfaceType\" : \"internal\","
         + "   \"handlers\" : [ "
         // Deployment service
         + "   {"
