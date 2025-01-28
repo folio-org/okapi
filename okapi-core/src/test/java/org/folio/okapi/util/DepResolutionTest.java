@@ -1493,16 +1493,16 @@ public class DepResolutionTest {
     DepResolution.install(map(mdA, mdOkapi), map(mdOkapi), tml2, false);
     assertThat(tml2, contains(enable(mdA)));
 
-    ModuleDescriptor mdB = new ModuleDescriptor("modB-1.0.0");
-    mdB.setProvides(new InterfaceDescriptor[]{intOkapi});
+    ModuleDescriptor modOkapiB = new ModuleDescriptor("modB-1.0.0");
+    modOkapiB.setProvides(new InterfaceDescriptor[]{intOkapi});
 
     List<TenantModuleDescriptor> tml3 = enableList(mdA);
     error = Assert.assertThrows(OkapiError.class,
-      () -> DepResolution.install(map(mdA, mdB, mdOkapi), map(), tml3, false));
+      () -> DepResolution.install(map(mdA, modOkapiB, mdOkapi), map(), tml3, false));
       Assert.assertEquals("interface okapi required by module modA-1.0.0 is provided by multiple products: okapi, modB", error.getMessage());
 
-    List<TenantModuleDescriptor> tml4 = enableList(mdA, mdB);
-    DepResolution.install(map(mdA, mdB, mdOkapi), map(), tml4, false);
-    assertThat(tml4, contains(enable(mdB), enable(mdA)));
+    List<TenantModuleDescriptor> tml4 = enableList(mdA, modOkapiB);
+    DepResolution.install(map(mdA, modOkapiB, mdOkapi), map(), tml4, false);
+    assertThat(tml4, contains(enable(modOkapiB), enable(mdA)));
   }
 }
