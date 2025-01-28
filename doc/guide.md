@@ -3013,8 +3013,7 @@ detailed ModuleDescriptor in version 1.10.0.
 The internal module is always available, but only enabled by default
 for `supertenant`.
 Other tenants must enable the okapi module to use the Okapi API.
-Individual modules should require optionally or explicitly the
-`okapi` interface.
+Individual modules should add the `okapi` interface to the `"requires"` or `"optional"` property of their module descriptor.
 
 ### Deployment
 
