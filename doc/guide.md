@@ -3010,6 +3010,11 @@ expected that this interface will remain fairly stable over time.
 The internal module was introduced in Okapi version 1.9.0, and a fully
 detailed ModuleDescriptor in version 1.10.0.
 
+The internal module is always available, but only enabled by default
+for `supertenant`.
+Other tenants must enable the okapi module to use the Okapi API.
+Individual modules should add the `okapi` interface to the `"requires"` or `"optional"` property of their module descriptor.
+
 ### Deployment
 
 Deployment is specified by schemas

@@ -19,6 +19,7 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor.Action;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.managers.InternalModule;
 import org.folio.okapi.testing.UtilityClassTester;
 import org.junit.Assert;
 import org.junit.Before;
@@ -1475,4 +1476,33 @@ public class DepResolutionTest {
     assertThat(errors.get(mda), contains("Undefined permission 'inta.get' in permissionsRequired"));
   }
 
+  @Test
+  public void okapiInterface() {
+    InterfaceDescriptor intOkapi = new InterfaceDescriptor("okapi", "1.0");
+
+    ModuleDescriptor mdA = new ModuleDescriptor("modA-1.0.0");
+    mdA.setRequires(new InterfaceDescriptor[]{intOkapi});
+
+    List<TenantModuleDescriptor> tml1 = enableList(mdA);
+    OkapiError error = Assert.assertThrows(OkapiError.class,
+        () -> DepResolution.install(map(mdA), map(), tml1, false));
+    assertThat(error.getMessage(), is("interface okapi required by module modA-1.0.0 not found"));
+
+    ModuleDescriptor mdOkapi = InternalModule.moduleDescriptor("1.0");
+    List<TenantModuleDescriptor> tml2 = enableList(mdA);
+    DepResolution.install(map(mdA, mdOkapi), map(mdOkapi), tml2, false);
+    assertThat(tml2, contains(enable(mdA)));
+
+    ModuleDescriptor modOkapiB = new ModuleDescriptor("modB-1.0.0");
+    modOkapiB.setProvides(new InterfaceDescriptor[]{intOkapi});
+
+    List<TenantModuleDescriptor> tml3 = enableList(mdA);
+    error = Assert.assertThrows(OkapiError.class,
+      () -> DepResolution.install(map(mdA, modOkapiB, mdOkapi), map(), tml3, false));
+    assertThat(error.getMessage(), is("interface okapi required by module modA-1.0.0 is provided by multiple products: okapi, modB"));
+
+    List<TenantModuleDescriptor> tml4 = enableList(mdA, modOkapiB);
+    DepResolution.install(map(mdA, modOkapiB, mdOkapi), map(), tml4, false);
+    assertThat(tml4, contains(enable(modOkapiB), enable(mdA)));
+  }
 }
