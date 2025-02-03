@@ -1,3 +1,7 @@
+## 6.1.2 2025-02-03
+
+* [OKAPI-1199](https://folio-org.atlassian.net/browse/OKAPI-1199) incorrect type 'internal' for okapi interface enables mod-okapi-facade
+
 ## 6.1.1 2024-12-19
 
 * [OKAPI-1196](https://folio-org.atlassian.net/browse/OKAPI-1196) ChattyHttpResponseExpectation, deprecating ChattyResponsePredicate
