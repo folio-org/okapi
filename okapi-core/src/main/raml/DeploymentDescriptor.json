@@ -19,7 +19,7 @@
       "type": ["string", "null"]
     },
     "url": {
-      "description": "URL where module is deployed (not managed by Okapi)",
+      "description": "URL where module is deployed (not managed by Okapi). Must not end with a slash unless a slash should be added. Examples with url and where a request for /foo will be proxied to: http://example.com results in http://example.com/foo, and http://example.com/ results in http://example.com//foo, and http://example.com/xyz results in http://example.com/xyz/foo, and http://example.com/xyz/ results in http://example.com/xyz//foo.",
       "type": ["string", "null"]
     },
     "descriptor" : {
