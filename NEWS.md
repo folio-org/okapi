@@ -1,3 +1,9 @@
+## 6.1.3 2025-02-17
+
+* [OKAPI-1201](https://folio-org.atlassian.net/browse/OKAPI-1201) Proxy should NOT relay Host header
+* [OKAPI-1202](https://folio-org.atlassian.net/browse/OKAPI-1202) HttpResponse: Sanitize HTTP status code outside 100...999
+* [OKAPI-1203](https://folio-org.atlassian.net/browse/OKAPI-1203) Vert.x 4.5.13 fixing bugs
+
 ## 6.1.2 2025-02-03
 
 * [OKAPI-1199](https://folio-org.atlassian.net/browse/OKAPI-1199) incorrect type 'internal' for okapi interface enables mod-okapi-facade
