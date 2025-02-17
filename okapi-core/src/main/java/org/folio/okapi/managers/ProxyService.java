@@ -737,6 +737,7 @@ public class ProxyService {
     }
     clientRequest.headers().setAll(ctx.request().headers());
     clientRequest.headers().remove("Content-Length");
+    clientRequest.headers().remove("Host");
     final String phase = mi == null ? "" : mi.getRoutingEntry().getPhase();
     if (!XOkapiHeaders.FILTER_AUTH.equals(phase)) {
       clientRequest.headers().remove(XOkapiHeaders.ADDITIONAL_TOKEN);
