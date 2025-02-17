@@ -23,7 +23,6 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.managers.TenantManager;
 
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
