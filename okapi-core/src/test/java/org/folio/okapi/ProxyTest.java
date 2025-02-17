@@ -623,7 +623,7 @@ public class ProxyTest {
       .extract().response();
     Assert.assertTrue(r.body().asString().contains("X-Okapi-Match-Path-Pattern:/testb/{id}"));
     // check that the Host header is address of module (not Okapi)
-    Assert.assertTrue(r.body().asString().contains("host:localhost:9231\n"));
+    Assert.assertTrue(r.body().asString().contains(" host:localhost:9231\n"));
 
     r = given()
       .header("X-Okapi-Tenant", okapiTenant)
