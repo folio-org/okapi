@@ -1,19 +1,12 @@
 package org.folio.okapi.managers;
 
-import static org.mockito.Mockito.*;
-
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.core.streams.WriteStream;
-import io.vertx.ext.web.RoutingContext;
 import java.util.Arrays;
-import java.util.Base64;
 import org.assertj.core.api.WithAssertions;
 import org.junit.Test;
 
