@@ -84,7 +84,7 @@ public class HttpResponse {
   public static HttpServerResponse responseText(RoutingContext ctx, int code) {
     HttpServerResponse res = ctx.response();
     if (!res.closed()) {
-      res.setStatusCode(code).putHeader("Content-Type", "text/plain");
+      res.setStatusCode(sanitizeStatusCode(code)).putHeader("Content-Type", "text/plain");
     }
     return res;
   }
@@ -99,8 +99,19 @@ public class HttpResponse {
   public static HttpServerResponse responseJson(RoutingContext ctx, int code) {
     HttpServerResponse res = ctx.response();
     if (!res.closed()) {
-      res.setStatusCode(code).putHeader("Content-Type", "application/json");
+      res.setStatusCode(sanitizeStatusCode(code)).putHeader("Content-Type", "application/json");
     }
     return res;
+  }
+
+  /**
+   * Replace statusCode with 500 if outside of 100..999,
+   * see <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15">RFC 9110 section 15</a>.
+   */
+  static int sanitizeStatusCode(int statusCode) {
+    if (statusCode < 100 || statusCode > 999) {
+      return 500;
+    }
+    return statusCode;
   }
 }
