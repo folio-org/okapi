@@ -46,6 +46,7 @@ public class HttpResponse {
    * @param msg message to be part of HTTP response
    * @param cause the stacktrace to log; may be null for no stacktrace logging
    */
+  @SuppressWarnings("java:S109")  // false positive: Magic numbers should not be used
   public static void responseError(RoutingContext ctx, int code, String msg, Throwable cause) {
     String text = (msg == null) ? "(null)" : msg;
     if (code < 200 || code >= 300) {
@@ -84,7 +85,7 @@ public class HttpResponse {
   public static HttpServerResponse responseText(RoutingContext ctx, int code) {
     HttpServerResponse res = ctx.response();
     if (!res.closed()) {
-      res.setStatusCode(code).putHeader("Content-Type", "text/plain");
+      res.setStatusCode(sanitizeStatusCode(code)).putHeader("Content-Type", "text/plain");
     }
     return res;
   }
@@ -99,8 +100,20 @@ public class HttpResponse {
   public static HttpServerResponse responseJson(RoutingContext ctx, int code) {
     HttpServerResponse res = ctx.response();
     if (!res.closed()) {
-      res.setStatusCode(code).putHeader("Content-Type", "application/json");
+      res.setStatusCode(sanitizeStatusCode(code)).putHeader("Content-Type", "application/json");
     }
     return res;
+  }
+
+  /**
+   * Replace statusCode with 500 if outside of 100..999,
+   * see <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15">RFC 9110 section 15</a>.
+   */
+  @SuppressWarnings("java:S109")  // false positive: Magic numbers should not be used
+  static int sanitizeStatusCode(int statusCode) {
+    if (statusCode < 100 || statusCode > 999) {
+      return 500;
+    }
+    return statusCode;
   }
 }
