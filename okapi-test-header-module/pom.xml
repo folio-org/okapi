@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.folio.okapi</groupId>
     <artifactId>okapi</artifactId>
-    <version>6.2.0-SNAPSHOT</version>
+    <version>6.1.3</version>
   </parent>
 
   <artifactId>okapi-test-header-module</artifactId>
