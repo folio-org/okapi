@@ -1,3 +1,14 @@
+## 6.2.0 2025-02-28
+
+Sunflower version.
+
+This Okapi version can be used with Sunflower, Ramsons, Quesnelia and Poppy.
+
+Modules may use the okapi-commons library that is suitable for both Eureka/Keycloak based and Okapi based installations.
+
+* [OKAPI-1204](https://folio-org.atlassian.net/browse/OKAPI-1204) Migrate Java from 17 to 21
+* [OKAPI-1205](https://folio-org.atlassian.net/browse/OKAPI-1205) Upgrade dependencies for Sunflower
+
 ## 6.1.3 2025-02-17
 
 * [OKAPI-1201](https://folio-org.atlassian.net/browse/OKAPI-1201) Proxy should NOT relay Host header
