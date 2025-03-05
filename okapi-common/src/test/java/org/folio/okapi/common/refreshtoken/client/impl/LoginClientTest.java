@@ -4,18 +4,22 @@ import static org.folio.okapi.common.ChattyResponsePredicate.SC_BAD_REQUEST;
 import static org.folio.okapi.common.ChattyResponsePredicate.SC_CREATED;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.folio.okapi.common.Constants;
@@ -364,5 +368,43 @@ public class LoginClientTest {
         .getTokenWithExpiry(new JsonObject())
         .onComplete(context.asyncAssertFailure(e ->
             assertThat(e.getMessage(), is("java.net.MalformedURLException: no protocol: x/authn/login-with-expiry"))));
+  }
+
+  private void assertBody(String contentType, String bufferString, String expectedBody) {
+    var buffer = Buffer.buffer(bufferString);
+    HttpResponse<Buffer> httpResponse = mock(HttpResponse.class);
+    when(httpResponse.bodyAsBuffer()).thenReturn(buffer);
+    when(httpResponse.getHeader(HttpHeaders.CONTENT_TYPE)).thenReturn(contentType);
+    assertThat(LoginClient.body(httpResponse), is(expectedBody));
+  }
+
+  @Test
+  public void bodyEmpty() {
+    assertBody("application/json", "", "");
+  }
+
+  @Test
+  public void bodyNoContentType() {
+    assertBody(null, " { } ", " { } ");
+  }
+
+  @Test
+  public void bodyText() {
+    assertBody("text/plain", " { } ", " { } ");
+  }
+
+  @Test
+  public void bodyJson() {
+    assertBody("application/json", " { } ", "{}");
+  }
+
+  @Test
+  public void bodyJsonSemicolon() {
+    assertBody("Application/JSON;xyz", " { } ", "{}");
+  }
+
+  @Test
+  public void bodyInvalidJson() {
+    assertBody("application/json", " } ", " } ");
   }
 }

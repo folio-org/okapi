@@ -83,7 +83,7 @@ public class RefreshClient implements Client {
     if (res.statusCode() != 201) {
       var msg = "Token refresh failed. POST " + REFRESH_PATH
           + " for tenant '" + tenant + "' and refreshtoken '" + payload()
-          + "' returned status " + res.statusCode() + ": " + res.bodyAsString();
+          + "' returned status " + res.statusCode() + ": " + LoginClient.body(res);
       LOGGER.error("{}", msg);
       throw new ClientException(msg);
     }
