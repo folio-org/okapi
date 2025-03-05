@@ -1,5 +1,6 @@
 package org.folio.okapi.common.refreshtoken.client;
 
+import org.folio.okapi.common.refreshtoken.client.impl.LoginClient;
 import org.folio.okapi.common.refreshtoken.client.impl.RefreshClient;
 
 /**
