@@ -7,6 +7,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
 import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,7 +18,6 @@ import org.folio.okapi.common.refreshtoken.client.ClientException;
 import org.folio.okapi.common.refreshtoken.client.ClientOptions;
 import org.folio.okapi.common.refreshtoken.tokencache.TenantUserCache;
 
-@java.lang.SuppressWarnings({"squid:S1075"}) // URIs should not be hardcoded
 public class LoginClient implements Client {
 
   private static final Logger LOGGER = LogManager.getLogger(LoginClient.class);
@@ -68,7 +68,7 @@ public class LoginClient implements Client {
           .sendJsonObject(payload).map(res -> {
             if (res.statusCode() != 201) {
               var msg = loginFailed(LOGIN_LEGACY_PATH)
-                  + " returned status " + res.statusCode() + ": " + res.bodyAsString();
+                  + " returned status " + res.statusCode() + ": " + body(res);
               LOGGER.error("{}", msg);
               throw new ClientException(msg);
             }
@@ -100,7 +100,7 @@ public class LoginClient implements Client {
               return null;
             } else if (res.statusCode() != 201) {
               var msg = loginFailed(LOGIN_EXPIRY_PATH)
-                  + " returned status " + res.statusCode() + ": " + res.bodyAsString();
+                  + " returned status " + res.statusCode() + ": " + body(res);
               LOGGER.error("{}", msg);
               throw new ClientException(msg);
             }
@@ -121,6 +121,30 @@ public class LoginClient implements Client {
           });
     } catch (Exception e) {
       return Future.failedFuture(e);
+    }
+  }
+
+  static String body(HttpResponse<Buffer> httpResponse) {
+    var buffer = httpResponse.bodyAsBuffer();
+    if (buffer.length() == 0) {
+      return "";
+    }
+    var contentType = httpResponse.getHeader(HttpHeaders.CONTENT_TYPE);
+    if (contentType == null) {
+      return buffer.toString();
+    }
+    var pos = contentType.indexOf(';');
+    if (pos != -1) {
+      contentType = contentType.substring(0, pos);
+    }
+    if (! "application/json".equalsIgnoreCase(contentType)) {
+      return buffer.toString();
+    }
+    try {
+      // convert from multi-line pretty JSON to single line compact JSON
+      return new JsonObject(buffer).encode();
+    } catch (Exception e) {
+      return buffer.toString();
     }
   }
 
