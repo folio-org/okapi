@@ -1,3 +1,7 @@
+## 6.2.1 2025-03-07
+
+* [OKAPI-1207](https://folio-org.atlassian.net/browse/OKAPI-1207) LoginClient/RefreshClient: Suppress stacktrace, compress JSON
+
 ## 6.2.0 2025-02-28
 
 Sunflower version.
