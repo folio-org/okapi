@@ -223,7 +223,8 @@ public class MainDeploy {
     DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
     vertx.deployVerticle(v, opt, dep -> {
       if (dep.failed()) {
-        fut.handle(Future.failedFuture(dep.cause()));
+        logger.error("AD: Failed to deploy verticle: {}", dep.cause().getMessage());
+        vertx.close().onComplete(x -> fut.handle(Future.failedFuture(dep.cause())));
       } else {
         fut.handle(Future.succeededFuture(vertx));
       }
