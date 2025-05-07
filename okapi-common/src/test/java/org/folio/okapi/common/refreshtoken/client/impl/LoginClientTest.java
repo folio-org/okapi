@@ -159,7 +159,7 @@ public class LoginClientTest {
       if (!TENANT_OK.equals(request.getHeader(XOkapiHeaders.TENANT))) {
         response.setStatusCode(401);
         response.putHeader("Content-Type", "text/plain");
-        response.end("No tenant header provided");
+        response.end("X-Okapi-Header mismatch");
         return;
       }
       if (!"text/xml".equals(request.getHeader("Content-Type"))) {
