@@ -156,7 +156,7 @@ public class LoginClientTest {
         response.end("No token provided");
         return;
       }
-      if (request.getHeader(XOkapiHeaders.TENANT) == null) {
+      if (!TENANT_OK.equals(request.getHeader(XOkapiHeaders.TENANT))) {
         response.setStatusCode(401);
         response.putHeader("Content-Type", "text/plain");
         response.end("No tenant header provided");

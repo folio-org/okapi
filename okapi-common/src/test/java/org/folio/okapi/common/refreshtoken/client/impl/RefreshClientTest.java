@@ -45,7 +45,7 @@ public class RefreshClientTest {
 
   private static final String TENANT_OK = "diku";
 
-  private static final String VALID_REFRESH_TOKEN = "diku";
+  private static final String VALID_REFRESH_TOKEN = "dikucookie";
 
   WebClient webClient;
 
@@ -132,7 +132,7 @@ public class RefreshClientTest {
         response.end("No token provided");
         return;
       }
-      if (request.getHeader(XOkapiHeaders.TENANT) == null) {
+      if (!TENANT_OK.equals(request.getHeader(XOkapiHeaders.TENANT))) {
         response.setStatusCode(401);
         response.putHeader("Content-Type", "text/plain");
         response.end("No tenant header provided");
@@ -251,7 +251,7 @@ public class RefreshClientTest {
             .expect(SC_CREATED))
         .onComplete(context.asyncAssertFailure(cause ->
           assertThat(cause.getMessage(), is("Token refresh failed. POST /authn/refresh "
-              + "for tenant 'diku' and refreshtoken 'invalid: diku' returned status 404: Not found"))
+              + "for tenant 'diku' and refreshtoken 'invalid: dikucookie' returned status 404: Not found"))
         ));
   }
 
@@ -263,7 +263,7 @@ public class RefreshClientTest {
             .expect(SC_CREATED))
         .onComplete(context.asyncAssertFailure(cause ->
             assertThat(cause.getMessage(), is("Token refresh failed. POST /authn/refresh "
-                + "for tenant 'diku' and refreshtoken 'invalid: diku' did not return access token"))
+                + "for tenant 'diku' and refreshtoken 'invalid: dikucookie' did not return access token"))
         ));
   }
 
