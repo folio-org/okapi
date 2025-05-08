@@ -1,3 +1,7 @@
+## 6.2.2 2025-05-08
+
+* [OKAPI-1208](https://folio-org.atlassian.net/browse/OKAPI-1208) LoginClient and RefreshClient set X-Okapi-Tenant HTTP header
+
 ## 6.2.1 2025-03-07
 
 * [OKAPI-1207](https://folio-org.atlassian.net/browse/OKAPI-1207) LoginClient/RefreshClient: Suppress stacktrace, compress JSON
