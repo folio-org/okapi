@@ -74,6 +74,7 @@ public class RefreshClient implements Client {
   @Override
   public Future<HttpRequest<Buffer>> getToken(HttpRequest<Buffer> request) {
     return getToken().map(token -> {
+      request.putHeader(XOkapiHeaders.TENANT, tenant);
       request.putHeader(XOkapiHeaders.TOKEN, token);
       return request;
     });
