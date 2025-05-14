@@ -735,10 +735,12 @@ public final class DepResolution {
         result.add(tm);
       }
     }
-    if (!tml.isEmpty()) {
-      // it would be good to analyze this further with the interfaces that are problematic
-      throw new OkapiError(ErrorType.USER, "Some modules cannot be topological sorted: "
+    for (TenantModuleDescriptor tm : tml) {
+      if (tm.getAction() == TenantModuleDescriptor.Action.enable) {
+        // it would be good to analyze this further with the interfaces that are problematic
+        throw new OkapiError(ErrorType.USER, "Some modules cannot be topological sorted: "
           + tml.stream().map(TenantModuleDescriptor::getId).collect(Collectors.joining(", ")));
+      }
     }
     tml.addAll(result);
   }
