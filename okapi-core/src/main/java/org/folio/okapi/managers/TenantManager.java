@@ -921,8 +921,7 @@ public class TenantManager implements Liveness {
     if (tml != null) {
       for (TenantModuleDescriptor tm : tml) {
         if (tm.getAction() == null) {
-          return Future.failedFuture(new OkapiError(ErrorType.USER,
-              messages.getMessage("10405", tm.getId())));
+          tm.setAction(Action.enable);
         }
       }
     }

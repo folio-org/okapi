@@ -597,17 +597,9 @@ public class ProxyTest {
       .header("Content-Type", "application/json")
       .body(docBasic_1_0_0).post("/_/proxy/modules").then().statusCode(201);
 
-    /* missing action so this will fail */
     api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"basic-module-1.0.0\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
-      .then().statusCode(400)
-      .body(equalTo("Missing action for id basic-module-1.0.0"));
-
-    api.createRestAssured3().given()
-      .header("Content-Type", "application/json")
-      .body("[ {\"id\" : \"basic-module-1.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
