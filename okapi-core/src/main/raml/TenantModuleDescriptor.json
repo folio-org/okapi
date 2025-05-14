@@ -15,7 +15,7 @@
       "type": "string"
     },
     "action" : {
-      "description": "Module action",
+      "description": "Module action, default value is enable",
       "type" : "string",
       "enum" : [ "enable", "disable", "uptodate", "suggest", "conflict" ]
     },
