@@ -1508,7 +1508,7 @@ public class DepResolutionTest {
 
   @Test
   public void replaceModules() {
-    // mdE100 is an interface proviced by both mdA100 and mdB
+    // mdE100 is an interface provided by both mdA100 and mdB
     List<TenantModuleDescriptor> tml = enableList(mdE100, mdA100);
     DepResolution.install(map(mdA100, mdB, mdE100), map(), tml, false);
     assertThat(tml, contains(enable(mdA100), enable(mdE100)));
