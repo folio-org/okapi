@@ -1505,4 +1505,15 @@ public class DepResolutionTest {
     DepResolution.install(map(mdA, modOkapiB, mdOkapi), map(), tml4, false);
     assertThat(tml4, contains(enable(modOkapiB), enable(mdA)));
   }
+
+  @Test
+  public void replaceModules() {
+    // mdE100 is an interface provided by both mdA100 and mdB
+    List<TenantModuleDescriptor> tml = enableList(mdE100, mdA100);
+    DepResolution.install(map(mdA100, mdB, mdE100), map(), tml, false);
+    assertThat(tml, contains(enable(mdA100), enable(mdE100)));
+    tml = enableList(mdB);
+    DepResolution.install(map(mdA100, mdB, mdE100), map(mdA100, mdE100), tml, false);
+    assertThat(tml, contains(disable(mdA100), enable(mdB)));
+  }
 }
