@@ -226,8 +226,10 @@ public class MainVerticle extends AbstractVerticle {
     fut.onComplete(x -> {
       if (x.failed()) {
         logger.error(x.cause().getMessage());
-      }
-      if (initMode != InitMode.NORMAL) {
+      } else if (initMode == InitMode.NORMAL) {
+        // normal startup, no errors
+      } else {
+        // must stop the Verticle from going further if initdatabase or similar
         vertx.close();
       }
       promise.handle(x);
