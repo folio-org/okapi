@@ -1,3 +1,9 @@
+## 6.2.3 2025-05-16
+
+* [OKAPI-1210](https://folio-org.atlassian.net/browse/OKAPI-1210) install: default action is enable
+* [OKAPI-1209](https://folio-org.atlassian.net/browse/OKAPI-1209) fix install when replacing module
+* [OKAPI-1200](https://folio-org.atlassian.net/browse/OKAPI-1200) Test ModuleTest.testInitdatabaseBadCredentials fails
+
 ## 6.2.2 2025-05-08
 
 * [OKAPI-1208](https://folio-org.atlassian.net/browse/OKAPI-1208) LoginClient and RefreshClient set X-Okapi-Tenant HTTP header
