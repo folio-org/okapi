@@ -2661,7 +2661,9 @@ public class ModuleTest {
   @Test
   public void testInitdatabase(TestContext context) {
     conf.put("mode", "initdatabase");
-    redeploy().onComplete(context.asyncAssertSuccess());
+    redeploy().onComplete(context.asyncAssertFailure(cause -> {
+      context.assertTrue(cause instanceof StopVerticle);
+    }));
   }
 
   @Test
@@ -2680,7 +2682,9 @@ public class ModuleTest {
   @Test
   public void testPurgedatabase(TestContext context) {
     conf.put("mode", "purgedatabase");
-    redeploy().onComplete(context.asyncAssertSuccess());
+    redeploy().onComplete(context.asyncAssertFailure(cause -> {
+      context.assertTrue(cause instanceof StopVerticle);
+    }));
   }
 
   @Test

@@ -18,6 +18,9 @@ class MainCluster {
     MainDeploy d = new MainDeploy();
     d.init(args, res -> {
       if (res.failed()) {
+        if (res.cause() instanceof StopVerticle) {
+          System.exit(0);
+        }
         logger.error(res.cause().getMessage(), res.cause());
         System.exit(1);
       }

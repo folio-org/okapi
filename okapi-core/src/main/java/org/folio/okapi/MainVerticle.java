@@ -230,7 +230,7 @@ public class MainVerticle extends AbstractVerticle {
         // normal startup, no errors
       } else {
         // must stop the Verticle from going further if initdatabase or similar
-        vertx.close();
+        x = Future.failedFuture(new StopVerticle("Stopping after initdatabase"));
       }
       promise.handle(x);
     });
