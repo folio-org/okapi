@@ -1,1 +1,0 @@
-extend-diff-ignore = "(^|/)(.DS_Store|.git|deb-src)$"

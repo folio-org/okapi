@@ -4,7 +4,7 @@ buildMvn {
   publishModDescriptor = 'no'
   mvnDeploy = 'yes'
   buildNode = 'jenkins-agent-java21'
-  buildDeb = true
+  buildDeb = false
 
   doDocker = {
     buildJavaDocker {
