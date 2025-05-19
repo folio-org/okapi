@@ -126,7 +126,7 @@ public class LoginClient implements Client {
 
   static String body(HttpResponse<Buffer> httpResponse) {
     var buffer = httpResponse.bodyAsBuffer();
-    if (buffer.length() == 0) {
+    if (buffer == null || buffer.length() == 0) {
       return "";
     }
     var contentType = httpResponse.getHeader(HttpHeaders.CONTENT_TYPE);

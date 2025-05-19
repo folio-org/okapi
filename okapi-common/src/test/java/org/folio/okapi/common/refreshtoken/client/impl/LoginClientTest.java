@@ -116,7 +116,10 @@ public class LoginClientTest {
           || !USER_OK.equals(username) || !PASSWORD_OK.equals(password)) {
         response.setStatusCode(400);
         response.putHeader("Content-Type", "text/plain");
-        response.end("Bad tenant/username/password");
+        if ("empty".equals(password)) {
+          response.end();
+        } else
+          response.end("Bad tenant/username/password");
         return;
       }
       response.setStatusCode(201);
@@ -353,6 +356,24 @@ public class LoginClientTest {
           assertThat(e, Matchers.instanceOf(ClientException.class));
           assertThat(e.getMessage(), is("Login failed. POST /authn/login-with-expiry "
               + "for tenant 'diku' and username 'dikuuser' returned status 400: Bad tenant/username/password"));
+        }));
+  }
+
+  @Test
+  public void badPasswordWithExpiryEmpty(TestContext context) {
+    enableLoginWithExpiry = true;
+    Client client = Client.createLoginClient(
+        new ClientOptions().webClient(webClient).okapiUrl(OKAPI_URL),
+        tokenCache,
+        TENANT_OK, USER_OK, () -> Future.succeededFuture("empty"));
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
+            .putHeader("Content-Type", "text/xml")
+            .expect(SC_BAD_REQUEST))
+        .onComplete(context.asyncAssertFailure(e -> {
+          assertThat(countLoginWithExpiry, is(1));
+          assertThat(e, Matchers.instanceOf(ClientException.class));
+          assertThat(e.getMessage(), is("Login failed. POST /authn/login-with-expiry "
+              + "for tenant 'diku' and username 'dikuuser' returned status 400: "));
         }));
   }
 
