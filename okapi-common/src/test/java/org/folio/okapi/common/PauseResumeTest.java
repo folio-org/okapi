@@ -1,6 +1,5 @@
 package org.folio.okapi.common;
 
-import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -37,7 +36,8 @@ public class PauseResumeTest {
         return;
       }
       req.result().end();
-      req.result().response(res -> {
+      req.result().response()
+      .onComplete(res -> {
         if (res.failed()) {
           ctx.response().setStatusCode(500);
           ctx.response().end(res.cause().getMessage());
@@ -64,13 +64,16 @@ public class PauseResumeTest {
     router.post("/test2").handler(this::myStreamHandle2);
 
     HttpServer server = vertx.createHttpServer()
-      .requestHandler(router)
-      .listen(PORT, context.asyncAssertSuccess());
+      .requestHandler(router);
+
+    server.listen(PORT)
+    .onComplete(context.asyncAssertSuccess());
   }
 
   @After
   public void tearDown(TestContext context) {
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close()
+    .onComplete(context.asyncAssertSuccess());
   }
 
   @Test
@@ -80,7 +83,8 @@ public class PauseResumeTest {
     HttpClient cli = vertx.createHttpClient();
     cli.request(HttpMethod.POST, PORT,"localhost", "/test1").onComplete(context.asyncAssertSuccess(req -> {
       req.end();
-      req.response(context.asyncAssertSuccess(res -> {
+      req.response()
+      .onComplete(context.asyncAssertSuccess(res -> {
         Buffer b = Buffer.buffer();
         res.handler(b::appendBuffer);
         res.endHandler(res2 -> {
@@ -100,7 +104,8 @@ public class PauseResumeTest {
     HttpClient cli = vertx.createHttpClient();
     cli.request(HttpMethod.POST, PORT,"localhost", "/test2").onComplete(context.asyncAssertSuccess(req -> {
       req.end();
-      req.response(context.asyncAssertSuccess(res -> {
+      req.response()
+      .onComplete(context.asyncAssertSuccess(res -> {
         Buffer b = Buffer.buffer();
         res.handler(b::appendBuffer);
         res.endHandler(res2 -> {

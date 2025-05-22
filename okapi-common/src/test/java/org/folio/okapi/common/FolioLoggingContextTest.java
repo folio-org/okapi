@@ -1,10 +1,11 @@
 package org.folio.okapi.common;
 
+import org.folio.okapi.common.logging.FolioLocal;
 import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.runner.RunWith;
 
 import io.vertx.core.Vertx;
@@ -15,8 +16,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 @RunWith(VertxUnitRunner.class)
 public class FolioLoggingContextTest {
 
-
-  private static final String KEY = "KEY";
+  private static final String KEY = "requestId";
   private static final String VALUE = "VALUE";
   private static final String EMPTY_STRING = "";
 
@@ -24,6 +24,7 @@ public class FolioLoggingContextTest {
 
   @Before
   public void setup() {
+    FolioLocal.REQUEST_ID.toString();
     vertx = Vertx.vertx();
   }
 
@@ -64,9 +65,8 @@ public class FolioLoggingContextTest {
   @Test
   public void lookupNullTest(TestContext context) {
     Async async = context.async();
-    FolioLoggingContext loggingContext = new FolioLoggingContext();
-    vertx.runOnContext(run -> context.verify(block -> {
-      Assert.assertThrows(IllegalArgumentException.class, () -> loggingContext.lookup(null));
+    vertx.runOnContext(x -> context.verify(y -> {
+      context.assertEquals("", new FolioLoggingContext().lookup(null));
       async.complete();
     }));
   }

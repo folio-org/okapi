@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Timer.Sample;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,14 +25,14 @@ public class MetricsUtilTest {
 
   @Test
   public void testEnableMetricsWithoutSwitch() {
-    MetricsUtil.init(new VertxOptions());
+    MetricsUtil.init(Vertx.builder());
     verifyNotEnabled();
   }
 
   @Test
   public void testEnableMetricsWithoutBackendOptions() {
     System.getProperties().setProperty(MetricsUtil.ENABLE_METRICS, "true");
-    MetricsUtil.init(new VertxOptions());
+    MetricsUtil.init(Vertx.builder());
     verifyNotEnabled();
     MetricsUtil.stop();
     System.getProperties().remove(MetricsUtil.ENABLE_METRICS);
@@ -63,7 +64,7 @@ public class MetricsUtilTest {
       } else {
         props.remove(MetricsUtil.METRICS_FILTER);
       }
-      MetricsUtil.init(new VertxOptions());
+      MetricsUtil.init(Vertx.builder());
       assertTrue(MetricsUtil.isEnabled());
       assertNotNull(MetricsUtil.getTimerSample());
       assertEquals(1, MetricsUtil.getRegistry().getRegistries().size());

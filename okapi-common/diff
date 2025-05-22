@@ -1,0 +1,90 @@
+diff --git a/okapi-common/src/main/java/org/folio/okapi/common/HttpResponse.java b/okapi-common/src/main/java/org/folio/okapi/common/HttpResponse.java
+index 877cd56c..5190da46 100644
+--- a/okapi-common/src/main/java/org/folio/okapi/common/HttpResponse.java
++++ b/okapi-common/src/main/java/org/folio/okapi/common/HttpResponse.java
+@@ -56,7 +56,7 @@ public class HttpResponse {
+   public static HttpServerResponse responseText(RoutingContext ctx, int code) {
+     HttpServerResponse res = ctx.response();
+     if (!res.closed()) {
+-      res.setStatusCode(code).putHeader("Content-Type", "text/plain");
++      res.setStatusCode(sanitiseStatusCode(code)).putHeader("Content-Type", "text/plain");
+     }
+     return res;
+   }
+@@ -70,8 +70,19 @@ public class HttpResponse {
+   public static HttpServerResponse responseJson(RoutingContext ctx, int code) {
+     HttpServerResponse res = ctx.response();
+     if (!res.closed()) {
+-      res.setStatusCode(code).putHeader("Content-Type", "application/json");
++      res.setStatusCode(sanitiseStatusCode(code)).putHeader("Content-Type", "application/json");
+     }
+     return res;
+   }
++
++  /**
++   * Replace statusCode with 500 if outside of 100..999,
++   * see <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15">RFC 9110 section 15</a>.
++   */
++  static int sanitiseStatusCode(int statusCode) {
++    if (statusCode < 100 || statusCode > 999) {
++      return 500;
++    }
++    return statusCode;
++  }
+ }
+diff --git a/okapi-common/src/test/java/org/folio/okapi/common/HttpResponseTest.java b/okapi-common/src/test/java/org/folio/okapi/common/HttpResponseTest.java
+index 67e8d54c..3c1effa0 100644
+--- a/okapi-common/src/test/java/org/folio/okapi/common/HttpResponseTest.java
++++ b/okapi-common/src/test/java/org/folio/okapi/common/HttpResponseTest.java
+@@ -1,5 +1,7 @@
+ package org.folio.okapi.common;
+ 
++import static org.hamcrest.MatcherAssert.assertThat;
++import static org.hamcrest.Matchers.is;
+ import static org.mockito.Mockito.*;
+ 
+ import io.vertx.core.http.HttpMethod;
+@@ -8,6 +10,9 @@ import io.vertx.core.http.HttpServerResponse;
+ import io.vertx.ext.web.RoutingContext;
+ import java.io.FileNotFoundException;
+ import org.junit.jupiter.api.Test;
++import org.junit.jupiter.params.ParameterizedTest;
++import org.junit.jupiter.params.provider.CsvSource;
++import org.junit.jupiter.params.provider.ValueSource;
+ 
+ class HttpResponseTest {
+ 
+@@ -48,6 +53,14 @@ class HttpResponseTest {
+     verify(ctx.response()).end("foo");
+   }
+ 
++  @Test
++  void status0() {
++    var ctx = ctx();
++    HttpResponse.responseError(ctx, 0, "zero");
++    verify(ctx.response()).setStatusCode(500);
++    verify(ctx.response()).end("zero");
++  }
++
+   @Test
+   void closed() {
+     var ctx = ctx();
+@@ -57,6 +70,18 @@ class HttpResponseTest {
+     verify(ctx.response(), never()).end(anyString());
+   }
+ 
++  @ParameterizedTest
++  @ValueSource(ints = { -200, -1, 0, 99, 1000, 200000 })
++  void invalidStatusCode(int code) {
++    assertThat(HttpResponse.sanitiseStatusCode(code), is(500));
++  }
++
++  @ParameterizedTest
++  @ValueSource(ints = { 100, 200, 599, 600, 999 })
++  void validStatusCode(int code) {
++    assertThat(HttpResponse.sanitiseStatusCode(code), is(code));
++  }
++
+   private RoutingContext ctx() {
+     HttpServerRequest request = mock(HttpServerRequest.class);
+     when(request.method()).thenReturn(HttpMethod.PUT);
