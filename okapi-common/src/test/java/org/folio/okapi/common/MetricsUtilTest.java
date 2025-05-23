@@ -7,7 +7,6 @@ import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Timer.Sample;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
