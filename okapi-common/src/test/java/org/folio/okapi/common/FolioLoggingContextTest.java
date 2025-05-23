@@ -1,12 +1,18 @@
 package org.folio.okapi.common;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.startsWith;
+
 import org.folio.okapi.common.logging.FolioLocal;
 import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.runner.RunWith;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.Async;
@@ -24,7 +30,7 @@ public class FolioLoggingContextTest {
 
   @Before
   public void setup() {
-    FolioLocal.REQUEST_ID.toString();
+    new FolioLocal().init(null);
     vertx = Vertx.vertx();
   }
 
@@ -55,7 +61,8 @@ public class FolioLoggingContextTest {
       FolioLoggingContext loggingContext = new FolioLoggingContext();
       FolioLoggingContext.put(KEY, VALUE);
       vertx.runOnContext(c -> {
-            context.assertEquals(VALUE, loggingContext.lookup(KEY));
+        context.assertEquals(VALUE, loggingContext.lookup(KEY));
+        context.assertEquals(VALUE, loggingContext.lookup(null, KEY));
             async.complete();
           }
       );
@@ -67,6 +74,17 @@ public class FolioLoggingContextTest {
     Async async = context.async();
     vertx.runOnContext(x -> context.verify(y -> {
       context.assertEquals("", new FolioLoggingContext().lookup(null));
+      async.complete();
+    }));
+  }
+
+  @Test
+  public void lookupUnknownTest(TestContext context) {
+    Async async = context.async();
+    vertx.runOnContext(x -> context.verify(y -> {
+      var e = assertThrows(IllegalArgumentException.class, () -> new FolioLoggingContext().lookup("foo"));
+      assertThat(e.getMessage(),
+          allOf(startsWith("key expected to be one of ["), endsWith("] but was: foo")));
       async.complete();
     }));
   }
