@@ -124,9 +124,8 @@ public class PauseResumeTest {
 
     // ignore first attempt because of Vert.x bug
     // https://github.com/eclipse-vertx/vert.x/issues/5577
-    cli.request(HttpMethod.POST, PORT, "localhostxxx", "/test2");
-
     cli.request(HttpMethod.POST, PORT, "localhostxxx", "/test2")
+    .recover(e -> cli.request(HttpMethod.POST, PORT, "localhostxxx", "/test2"))
     .onComplete(context.asyncAssertFailure(res -> {
       context.assertTrue(res.getMessage().contains("localhostxxx"), res.getMessage());
     }));
