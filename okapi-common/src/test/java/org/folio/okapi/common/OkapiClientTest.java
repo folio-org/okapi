@@ -1,5 +1,6 @@
 package org.folio.okapi.common;
 
+import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -29,10 +30,8 @@ public class OkapiClientTest {
 
   private Vertx vertx;
   private static final int PORT = 9230;
-  private static final int BAD_PORT = PORT + 1;
   private static final String LOCALHOST = "localhost";
   private static final String URL = "http://" + LOCALHOST + ":" + PORT;
-  private static final String BAD_URL = "http://" + LOCALHOST + ":" + BAD_PORT;
   private final Logger logger = OkapiLogger.get();
   private HttpServer server;
 
@@ -93,6 +92,11 @@ public class OkapiClientTest {
     logger.debug("setUp");
     vertx = Vertx.vertx();
 
+    spinUpServer()
+    .onComplete(context.asyncAssertSuccess());
+  }
+
+  private Future<Void> spinUpServer() {
     Router router = Router.router(vertx);
     router.get("/test1").handler(this::myStreamHandle1);
     router.head("/test1").handler(this::myStreamHandle1);
@@ -102,17 +106,19 @@ public class OkapiClientTest {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     server = vertx.createHttpServer(so)
-      .requestHandler(router)
-      .listen(PORT, context.asyncAssertSuccess());
+      .requestHandler(router);
+
+    return server.listen(PORT).mapEmpty();
   }
 
   @After
   public void tearDown(TestContext context) {
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close()
+    .onComplete(context.asyncAssertSuccess());
   }
 
   @Test(expected = NullPointerException.class)
-  public void testNullUrl(TestContext context) {
+  public void testNullUrl() {
     new OkapiClient(URL, vertx, null).setOkapiUrl(null);
   }
 
@@ -354,67 +360,58 @@ public class OkapiClientTest {
 
   @Test
   public void testClosed1(TestContext context) {
-    Async async = context.async();
-
     context.assertTrue(server != null);
-    server.close(res -> {
+    server.close()
+    .compose(res -> {
       OkapiClient cli = new OkapiClient(URL, vertx, null);
       cli.setClosedRetry(0);
-      cli.get("/test1", res2 -> {
-        context.assertTrue(res2.failed());
-        ErrorTypeException e = (ErrorTypeException) res2.cause();
-        context.assertEquals(ErrorType.INTERNAL, e.getErrorType());
-        async.complete();
-      });
-    });
+      return cli.get("/test1");
+    })
+    .onComplete(context.asyncAssertFailure(res2 -> {
+      ErrorTypeException e = (ErrorTypeException) res2;
+      context.assertEquals(ErrorType.INTERNAL, e.getErrorType());
+    }));
   }
 
   @Test
   public void testClosed2(TestContext context) {
-    Async async = context.async();
-
     context.assertTrue(server != null);
-    server.close(res -> {
+    server.close()
+    .compose(res -> {
       OkapiClient cli = new OkapiClient(URL, vertx, null);
       cli.setClosedRetry(90);
-      cli.get("/test1", res2 -> {
-        context.assertTrue(res2.failed());
-        context.assertEquals(ErrorType.INTERNAL, ErrorTypeException.getType(res2));
-        async.complete();
-      });
-    });
+      return cli.get("/test1");
+    })
+    .onComplete(context.asyncAssertFailure(res2 -> {
+      context.assertEquals(ErrorType.INTERNAL, ErrorTypeException.getType(res2));
+    }));
   }
 
   @Test
   public void testClosed3(TestContext context) {
-    Async async = context.async();
-
     context.assertTrue(server != null);
-    server.close(res -> {
-      context.assertTrue(res.succeeded());
-      vertx.setTimer(40, res1 -> server.listen(PORT));
-    });
-    OkapiClient cli = new OkapiClient(URL, vertx, null);
-    cli.setClosedRetry(90);
-    cli.get("/test1", res2 -> {
-      context.assertTrue(res2.succeeded());
-      async.complete();
-    });
+    server.close()
+    .compose(res -> {
+      vertx.setTimer(40, res1 -> spinUpServer());
+      OkapiClient cli = new OkapiClient(URL, vertx, null);
+      cli.setClosedRetry(90);
+      return cli.get("/test1");
+    })
+    .onComplete(context.asyncAssertSuccess());
   }
 
   @Test
   public void testLegacyPostOk(TestContext context) {
-    StringBuilder b = new StringBuilder();
-
     context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
     client.request(HttpMethod.POST, PORT, LOCALHOST, URL + "/test1")
-        .onComplete(context.asyncAssertSuccess(request -> {
-          request.end();
-          request.response(context.asyncAssertSuccess(response -> {
-            context.assertEquals(200, response.statusCode());
-          }));
-        }));
+    .compose(request -> {
+      request.end();
+      return request.response();
+    })
+    .onComplete(context.asyncAssertSuccess(response -> {
+      context.assertEquals(200, response.statusCode());
+    }));
   }
 
 }

@@ -16,9 +16,11 @@ import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.core.instrument.simple.SimpleConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.influx.InfluxMeterRegistry;
+import io.vertx.core.VertxBuilder;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
+import io.vertx.micrometer.MicrometerMetricsFactory;
 import io.vertx.micrometer.MicrometerMetricsOptions;
 import io.vertx.micrometer.VertxInfluxDbOptions;
 import io.vertx.micrometer.VertxJmxMetricsOptions;
@@ -75,10 +77,8 @@ public class MetricsUtil {
 
   /**
    * Initialize metrics utility.
-   *
-   * @param vertxOptions - {@link VertxOptions}
    */
-  public static void init(VertxOptions vertxOptions) {
+  public static void init(VertxBuilder vertxBuilder) {
 
     if (!"true".equalsIgnoreCase(System.getProperty(ENABLE_METRICS))) {
       logger.debug("Metrics is not enabled");
@@ -158,9 +158,10 @@ public class MetricsUtil {
     new ProcessorMetrics().bindTo(registry);
     new JvmThreadMetrics().bindTo(registry);
 
-    vertxOptions.setMetricsOptions(new MicrometerMetricsOptions()
-        .setEnabled(true)
-        .setMicrometerRegistry(registry));
+    vertxBuilder
+        .with(new VertxOptions()
+            .setMetricsOptions(new MicrometerMetricsOptions().setEnabled(true)))
+        .withMetrics(new MicrometerMetricsFactory(registry));
     enabled = true;
     logger.info("Metrics enabled for " + HOST_ID);
   }
@@ -198,10 +199,10 @@ public class MetricsUtil {
 
   /**
    * Record a {@link Counter} meter.
-   * 
+   *
    * @param meterName - name of the {@link Counter} meter
    * @param tags      - tags associated with the meter
-   * 
+   *
    * @return {@link Counter} or null if metrics is not enabled
    */
   public static Counter recordCounter(String meterName, Iterable<Tag> tags) {
@@ -216,11 +217,11 @@ public class MetricsUtil {
 
   /**
    * Record a {@link Timer} meter.
-   * 
+   *
    * @param sample    - a {@link Sample} that tells the starting time of the Timer
    * @param meterName - name of the {@link Counter} meter
    * @param tags      - tags associated with the meter
-   * 
+   *
    * @return @return {@link Timer} or null if metrics is not enabled
    */
   public static Timer recordTimer(Sample sample, String meterName, Iterable<Tag> tags) {

@@ -1,3 +1,9 @@
+## 7.0.0
+
+Breaking changes:
+* `ChattyResponsePredicate` removed. Use `ChattyHttpResponseExpectation` instead.
+* `GenericCompositeFuture` removed. Methods exists in Vert.x' `Future` since Vert.x 5.
+
 ## 6.2.3 2025-05-16
 
 * [OKAPI-1210](https://folio-org.atlassian.net/browse/OKAPI-1210) install: default action is enable

@@ -1,7 +1,6 @@
 package org.folio.okapi.common.refreshtoken.client.impl;
 
-import static org.folio.okapi.common.ChattyResponsePredicate.SC_BAD_REQUEST;
-import static org.folio.okapi.common.ChattyResponsePredicate.SC_CREATED;
+import static org.folio.okapi.common.ChattyHttpResponseExpectation.SC_CREATED;
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.startsWith;
@@ -183,14 +182,12 @@ public class RefreshClientTest {
     Buffer xmlBody = Buffer.buffer("<hi/>");
     Client client = getRefreshClient(tokenCache, VALID_REFRESH_TOKEN);
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-            .putHeader("Content-Type", "text/xml")
-            .expect(SC_CREATED))
-        .compose(request -> request.sendBuffer(xmlBody))
+            .putHeader("Content-Type", "text/xml"))
+        .compose(request -> request.sendBuffer(xmlBody).expecting(SC_CREATED))
         .onComplete(context.asyncAssertSuccess(response -> assertThat(response.bodyAsBuffer(), is(xmlBody))))
         .compose(x -> client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-            .putHeader("Content-Type", "text/xml")
-            .expect(SC_CREATED)))
-        .compose(request -> request.sendBuffer(xmlBody))
+            .putHeader("Content-Type", "text/xml")))
+        .compose(request -> request.sendBuffer(xmlBody).expecting(SC_CREATED))
         .onComplete(context.asyncAssertSuccess(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
           assertThat(countWithRefresh, is(1));
@@ -201,8 +198,7 @@ public class RefreshClientTest {
   public void refreshInvalidToken(TestContext context) {
     Client client = getRefreshClient(tokenCache, "invalid_token");
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-            .putHeader("Content-Type", "text/xml")
-            .expect(SC_BAD_REQUEST))
+            .putHeader("Content-Type", "text/xml"))
         .onComplete(context.asyncAssertFailure(response ->
           assertThat(response.getMessage(), is("Token refresh failed. POST /authn/refresh "
               + "for tenant 'diku' and refreshtoken 'invalid: invalid_token' returned status 400: Missing/bad refresh token"))
@@ -214,14 +210,12 @@ public class RefreshClientTest {
     Buffer xmlBody = Buffer.buffer("<hi/>");
     Client client = getRefreshClient(null, VALID_REFRESH_TOKEN);
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-            .putHeader("Content-Type", "text/xml")
-            .expect(SC_CREATED))
-        .compose(request -> request.sendBuffer(xmlBody))
+            .putHeader("Content-Type", "text/xml"))
+        .compose(request -> request.sendBuffer(xmlBody).expecting(SC_CREATED))
         .onComplete(context.asyncAssertSuccess(response -> assertThat(response.bodyAsBuffer(), is(xmlBody))))
         .compose(x -> client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-            .putHeader("Content-Type", "text/xml")
-            .expect(SC_CREATED)))
-        .compose(request -> request.sendBuffer(xmlBody))
+            .putHeader("Content-Type", "text/xml")))
+        .compose(request -> request.sendBuffer(xmlBody).expecting(SC_CREATED))
         .onComplete(context.asyncAssertSuccess(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
           assertThat(countWithRefresh, is(2));
@@ -234,9 +228,8 @@ public class RefreshClientTest {
     Buffer xmlBody = Buffer.buffer("<hi/>");
     Client client = getRefreshClient(tokenCache, VALID_REFRESH_TOKEN);
     client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-            .putHeader("Content-Type", "text/xml")
-            .expect(SC_CREATED))
-        .compose(request -> request.sendBuffer(xmlBody))
+            .putHeader("Content-Type", "text/xml"))
+        .compose(request -> request.sendBuffer(xmlBody).expecting(SC_CREATED))
         .onComplete(context.asyncAssertSuccess(response -> {
           assertThat(response.bodyAsBuffer(), is(xmlBody));
           assertThat(countWithRefresh, is(1));
@@ -247,8 +240,7 @@ public class RefreshClientTest {
   public void refreshNotFound(TestContext context) {
     enableRefresh = false;
     Client client = getRefreshClient(tokenCache, VALID_REFRESH_TOKEN);
-    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-            .expect(SC_CREATED))
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo"))
         .onComplete(context.asyncAssertFailure(cause ->
           assertThat(cause.getMessage(), is("Token refresh failed. POST /authn/refresh "
               + "for tenant 'diku' and refreshtoken 'invalid: dikucookie' returned status 404: Not found"))
@@ -259,8 +251,7 @@ public class RefreshClientTest {
   public void refreshNoCookiesReturned(TestContext context) {
     returnCookies = false;
     Client client = getRefreshClient(tokenCache, VALID_REFRESH_TOKEN);
-    client.getToken(webClient.postAbs(OKAPI_URL + "/echo")
-            .expect(SC_CREATED))
+    client.getToken(webClient.postAbs(OKAPI_URL + "/echo"))
         .onComplete(context.asyncAssertFailure(cause ->
             assertThat(cause.getMessage(), is("Token refresh failed. POST /authn/refresh "
                 + "for tenant 'diku' and refreshtoken 'invalid: dikucookie' did not return access token"))

@@ -1,9 +1,0 @@
-# Generate server private key and a self-signed server certificate using elliptic curves.
-# 172.17.0.1 is used by Jenkins:
-# https://www.testcontainers.org/supported_docker_environment/continuous_integration/dind_patterns/
-openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes \
-  -keyout server.key -out server.crt -days 25000 -config server.cnf -extensions req_ext
-
-# Show content of certificate
-openssl x509 -in server.crt -text -noout
-
