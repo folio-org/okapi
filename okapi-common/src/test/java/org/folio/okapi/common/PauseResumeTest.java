@@ -18,8 +18,10 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class PauseResumeTest {
 
-  private Vertx vertx;
   private static final int PORT = 9230;
+  private Vertx vertx;
+  private HttpServer server;
+  private HttpClient cli;  // needed here, see https://github.com/eclipse-vertx/vert.x/issues/5577
 
   private void myStreamHandle1(RoutingContext ctx) {
     ctx.response().end("OK1");
@@ -27,7 +29,6 @@ public class PauseResumeTest {
 
   private void myStreamHandle2(RoutingContext ctx) {
     ctx.request().pause();
-    HttpClient cli = vertx.createHttpClient();
 
     cli.request(HttpMethod.POST, PORT, "localhost", "/test1").onComplete(req -> {
       if (req.failed()) {
@@ -63,11 +64,13 @@ public class PauseResumeTest {
     router.post("/test1").handler(this::myStreamHandle1);
     router.post("/test2").handler(this::myStreamHandle2);
 
-    HttpServer server = vertx.createHttpServer()
+    server = vertx.createHttpServer()
       .requestHandler(router);
 
     server.listen(PORT)
     .onComplete(context.asyncAssertSuccess());
+
+    cli = vertx.createHttpClient();
   }
 
   @After
@@ -80,7 +83,6 @@ public class PauseResumeTest {
   public void test1(TestContext context) {
     Async async = context.async();
 
-    HttpClient cli = vertx.createHttpClient();
     cli.request(HttpMethod.POST, PORT,"localhost", "/test1").onComplete(context.asyncAssertSuccess(req -> {
       req.end();
       req.response()
@@ -101,7 +103,6 @@ public class PauseResumeTest {
   public void test2(TestContext context) {
     Async async = context.async();
 
-    HttpClient cli = vertx.createHttpClient();
     cli.request(HttpMethod.POST, PORT,"localhost", "/test2").onComplete(context.asyncAssertSuccess(req -> {
       req.end();
       req.response()
@@ -120,12 +121,7 @@ public class PauseResumeTest {
 
   @Test
   public void test4(TestContext context) {
-    HttpClient cli = vertx.createHttpClient();
-
-    // ignore first attempt because of Vert.x bug
-    // https://github.com/eclipse-vertx/vert.x/issues/5577
     cli.request(HttpMethod.POST, PORT, "localhostxxx", "/test2")
-    .recover(e -> cli.request(HttpMethod.POST, PORT, "localhostxxx", "/test2"))
     .onComplete(context.asyncAssertFailure(res -> {
       context.assertTrue(res.getMessage().contains("localhostxxx"), res.getMessage());
     }));
