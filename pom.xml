@@ -11,11 +11,6 @@
   <modules>
     <module>okapi-testing</module>
     <module>okapi-common</module>
-    <module>okapi-test-module</module>
-    <module>okapi-test-auth-module</module>
-    <module>okapi-test-header-module</module>
-    <!-- okapi-core must be last because its tests rely on the previous ones -->
-    <module>okapi-core</module>
   </modules>
 
   <licenses>
@@ -42,31 +37,25 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.5.13</version> <!-- also update depending versions below! -->
+        <version>5.0.0</version>  <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-
-      <!-- START: versions that depend on the vertx-stack-depchain version -->
+      
+       <!-- START: versions that depend on the vertx-stack-depchain version -->
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.12.13</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
+        <version>1.15.0</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      <dependency>
-        <groupId>com.hazelcast</groupId>
-        <artifactId>hazelcast</artifactId>
-        <version>5.3.8</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/4.x/.github/workflows/ci-4.x.yml -->
-      </dependency>
       <!-- END: versions that depend on the vertx-stack-depchain version -->
-
+      
       <dependency>
         <groupId>org.hamcrest</groupId>
         <artifactId>hamcrest</artifactId>
         <version>3.0</version>
-        <scope>test</scope>
       </dependency>
       <!-- http://hamcrest.org/JavaHamcrest/distributables#upgrading-from-hamcrest-1x -->
       <dependency>
@@ -93,22 +82,6 @@
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
         <version>3.27.3</version>
-      </dependency>
-      <dependency>
-        <groupId>com.zaxxer</groupId>
-        <artifactId>nuprocess</artifactId>
-        <version>3.0.0</version>
-        <scope>compile</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.cronutils</groupId>
-        <artifactId>cron-utils</artifactId>
-        <version>9.2.1</version>
-      </dependency>
-      <dependency>
-        <groupId>com.ongres.scram</groupId>
-        <artifactId>client</artifactId>
-        <version>2.1</version>
       </dependency>
       <dependency>
         <groupId>org.junit</groupId>
@@ -166,47 +139,19 @@
   </dependencyManagement>
 
   <build>
+
     <pluginManagement>
       <plugins>
-
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-shade-plugin</artifactId>
-          <version>3.6.0</version>
-          <configuration>
-            <createDependencyReducedPom>false</createDependencyReducedPom>
-            <filters>
-              <filter>
-                <artifact>*:*</artifact>
-                <excludes>
-                  <exclude>**/Log4j2Plugins.dat</exclude>
-                </excludes>
-              </filter>
-            </filters>
-          </configuration>
-        </plugin>
 
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.4.2</version>
         </plugin>
-
-        <plugin>
-           <groupId>org.apache.maven.plugins</groupId>
-           <artifactId>maven-resources-plugin</artifactId>
-           <version>3.3.1</version>
-        </plugin>
-
-        <plugin>
-          <groupId>pl.project13.maven</groupId>
-          <artifactId>git-commit-id-plugin</artifactId>
-          <version>4.9.10</version>
-        </plugin>
-
+        
       </plugins>
     </pluginManagement>
-
+        
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -231,44 +176,6 @@
         <configuration>
           <multiRelease>base</multiRelease>
         </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.5.0</version>
-        <executions>
-          <execution>
-            <id>default-cli</id>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>java</executable>
-              <arguments>
-                <argument>-jar</argument>
-                <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
-                <argument>dev</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <execution>
-            <id>debug</id>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>java</executable>
-              <arguments>
-                <argument>-Xdebug</argument>
-                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</argument>
-                <argument>-jar</argument>
-                <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
-                <argument>dev</argument>
-              </arguments>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
 
       <plugin>

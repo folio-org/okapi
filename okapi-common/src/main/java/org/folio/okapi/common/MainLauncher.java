@@ -1,13 +1,11 @@
 package org.folio.okapi.common;
 
-import io.vertx.core.Launcher;
+import io.vertx.launcher.application.VertxApplication;
 
-class MainLauncher extends Launcher {
-
-  public static void main(String[] args) {
+class MainLauncher extends VertxApplication {
+  public MainLauncher(String[] args) {
+    super(args);
     System.setProperty("vertx.logger-delegate-factory-class-name",
         "io.vertx.core.logging.Log4jLogDelegateFactory");
-    MainLauncher m = new MainLauncher();
-    m.dispatch(args);
   }
 }

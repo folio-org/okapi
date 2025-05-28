@@ -38,6 +38,11 @@
       <artifactId>vertx-web-client</artifactId>
       <optional>true</optional>
     </dependency>
+	<dependency>
+	  <groupId>io.vertx</groupId>
+	  <artifactId>vertx-launcher-application</artifactId>
+      <optional>true</optional>
+	</dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-micrometer-metrics</artifactId>

@@ -2,6 +2,8 @@ package org.folio.okapi.common.logging;
 
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
+import io.vertx.core.spi.context.storage.ContextLocal;
+import java.util.Map;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.lookup.StrLookup;
@@ -31,27 +33,13 @@ import org.apache.logging.log4j.core.lookup.StrLookup;
 public class FolioLoggingContext implements StrLookup {
 
   private static final String EMPTY_VALUE = "";
-
-  private static final String LOGGING_VAR_PREFIX = "folio_";
-
-  public static final String TENANT_ID_LOGGING_VAR_NAME = "tenantid";
-
-  public static final String REQUEST_ID_LOGGING_VAR_NAME = "requestid";
-
-  public static final String MODULE_ID_LOGGING_VAR_NAME = "moduleid";
-
-  public static final String USER_ID_LOGGING_VAR_NAME = "userid";
-
-  /**
-   * Lookup value by key.
-   *
-   * @param key the name of logging variable, {@code null} key isn't allowed
-   * @return value for key or *empty string* if there is no such key
-   */
-  @Override
-  public String lookup(String key) {
-    return lookup(null, key);
-  }
+  private static final Map<String, ContextLocal<String>> LOCAL = Map.of(
+      "tenantId", FolioLocal.TENANT_ID,
+      "requestId", FolioLocal.REQUEST_ID,
+      "moduleId", FolioLocal.MODULE_ID,
+      "userId", FolioLocal.USER_ID
+      );
+  private static final String ALLOWED_KEYS = "[" + String.join(", ", LOCAL.keySet()) + "]";
 
   /**
    * Lookup value by key. LogEvent isn't used.
@@ -61,14 +49,22 @@ public class FolioLoggingContext implements StrLookup {
    */
   @Override
   public String lookup(LogEvent event, String key) {
+    return lookup(key);
+  }
+
+  /**
+   * Lookup value by key.
+   *
+   * @param key the name of logging variable, {@code null} key isn't allowed
+   * @return value for key or *empty string* if there is no such key
+   */
+  @Override
+  public String lookup(String key) {
     // needs try/catch until fixed: https://github.com/eclipse-vertx/vert.x/issues/4611
     try {
-      if (key == null) {
-        throw new IllegalArgumentException("Key cannot be null");
-      }
       Context ctx = Vertx.currentContext();
       if (ctx != null) {
-        String val = ctx.getLocal(LOGGING_VAR_PREFIX + key);
+        String val = ctx.getLocal(localKey(key));
         if (val != null) {
           return val;
         }
@@ -89,11 +85,19 @@ public class FolioLoggingContext implements StrLookup {
     Context ctx = Vertx.currentContext();
     if (ctx != null) {
       if (value != null) {
-        ctx.putLocal(LOGGING_VAR_PREFIX + key, value);
+        ctx.putLocal(localKey(key), value);
       } else {
-        ctx.removeLocal(LOGGING_VAR_PREFIX + key);
+        ctx.removeLocal(localKey(key));
       }
     }
   }
 
+  private static ContextLocal<String> localKey(String key) {
+    var contextLocal = LOCAL.get(key);
+    if (contextLocal == null) {
+      throw new IllegalArgumentException(
+          "key expected to be one of " + ALLOWED_KEYS + " but was: " + key);
+    }
+    return contextLocal;
+  }
 }
