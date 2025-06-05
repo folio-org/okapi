@@ -1,19 +1,18 @@
-package org.folio.okapi.common;
+package org.folio.okapi.common.logging;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertThrows;
 
-import org.folio.okapi.common.logging.FolioLocal;
-import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.spi.context.storage.ContextLocal;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -69,10 +68,21 @@ public class FolioLoggingContextTest {
   }
 
   @Test
-  public void lookupNullTest(TestContext context) {
+  public void lookupNullStringTest(TestContext context) {
     Async async = context.async();
     vertx.runOnContext(x -> context.verify(y -> {
-      context.assertEquals("", new FolioLoggingContext().lookup(null));
+      assertThrows(NullPointerException.class,
+          () -> new FolioLoggingContext().lookup((String)null));
+      async.complete();
+    }));
+  }
+
+  @Test
+  public void lookupNullContextLocalTest(TestContext context) {
+    Async async = context.async();
+    vertx.runOnContext(x -> context.verify(y -> {
+      assertThrows(NullPointerException.class,
+          () -> new FolioLoggingContext().lookup((ContextLocal<String>)null));
       async.complete();
     }));
   }
@@ -100,6 +110,19 @@ public class FolioLoggingContextTest {
           async.complete();
         }
     );
+  }
+
+  @Test
+  public void putFolioLocalTest(TestContext context) {
+    Async async = context.async();
+    FolioLoggingContext loggingContext = new FolioLoggingContext();
+    vertx.runOnContext(e -> {
+      FolioLoggingContext.put(FolioLocal.TENANT_ID, "ten10");
+      context.assertEquals("ten10", loggingContext.lookup(FolioLocal.TENANT_ID));
+      FolioLoggingContext.put(FolioLocal.TENANT_ID, null);
+      context.assertEquals(EMPTY_STRING, loggingContext.lookup(KEY));
+      async.complete();
+    });
   }
 
 }
