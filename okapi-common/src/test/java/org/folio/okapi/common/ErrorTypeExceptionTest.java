@@ -27,11 +27,11 @@ class ErrorTypeExceptionTest {
 
   @Test
   void testAsyncResult() {
-    Future f = Future.failedFuture("error");
+    Future<Void> f = Future.failedFuture("error");
     assertThat(ErrorTypeException.getType(f), is(ErrorType.ANY));
     assertThat(f.cause().getMessage(), is("error"));
 
-    Future s = Future.succeededFuture();
+    Future<Void> s = Future.succeededFuture();
     Assertions.assertThrows(IllegalArgumentException.class, () -> ErrorTypeException.getType(s));
   }
 

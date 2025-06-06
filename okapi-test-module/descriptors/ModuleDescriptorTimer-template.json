@@ -1,0 +1,77 @@
+{
+  "id": "test-timer-1.0.0",
+  "name": "Okapi timer module",
+  "provides": [
+    {
+      "id": "test-timer",
+      "version": "2.2",
+      "handlers": [
+        {
+          "methods": [ "GET", "POST" ],
+          "pathPattern": "/testb/timer",
+          "permissionsRequired": []
+        }
+      ]
+    },
+    {
+      "id": "_tenant",
+      "version": "1.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": ["POST"],
+          "pathPattern": "/_/tenant",
+          "permissionsRequired": []
+        },
+        {
+          "methods": ["DELETE"],
+          "pathPattern": "/_/tenant",
+          "permissionsRequired": []
+        }
+      ]
+    },
+    {
+      "id": "_timer",
+      "version": "1.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/testb/timer/20",
+          "unit": "second",
+          "delay": "20"
+        },
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/testb/timer/1",
+          "schedule": {
+            "cron":"*/1 * * * *"
+          }
+        },
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/testb/timer/3",
+          "schedule": {
+            "cron":"*/3 * * * *"
+          }
+        }
+      ]
+    },
+    {
+      "id": "recurse",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": [ "GET" ],
+          "pathPattern": "/recurse",
+          "permissionsRequired": []
+        }
+      ]
+    }
+  ],
+  "requires": [],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar ${basedir}/target/okapi-test-module-fat.jar"
+  }
+}
+
