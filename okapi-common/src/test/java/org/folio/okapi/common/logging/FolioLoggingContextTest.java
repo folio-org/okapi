@@ -71,8 +71,8 @@ public class FolioLoggingContextTest {
   public void lookupNullStringTest(TestContext context) {
     Async async = context.async();
     vertx.runOnContext(x -> context.verify(y -> {
-      assertThrows(NullPointerException.class,
-          () -> new FolioLoggingContext().lookup((String)null));
+      var folioLoggingContext = new FolioLoggingContext();
+      assertThrows(NullPointerException.class, () -> folioLoggingContext.lookup((String)null));
       async.complete();
     }));
   }
@@ -81,8 +81,8 @@ public class FolioLoggingContextTest {
   public void lookupNullContextLocalTest(TestContext context) {
     Async async = context.async();
     vertx.runOnContext(x -> context.verify(y -> {
-      assertThrows(NullPointerException.class,
-          () -> new FolioLoggingContext().lookup((ContextLocal<String>)null));
+      var folioLoggingContext = new FolioLoggingContext();
+      assertThrows(NullPointerException.class, () -> folioLoggingContext.lookup((ContextLocal<String>)null));
       async.complete();
     }));
   }
