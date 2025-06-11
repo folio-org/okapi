@@ -486,7 +486,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     if (this == that) {
       return true;
     }
-    if (that.getClass() != this.getClass()) {
+    if (that == null || that.getClass() != this.getClass()) {
       return false;
     }
     return compareTo((ModuleDescriptor) that) == 0;
