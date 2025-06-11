@@ -3,10 +3,9 @@ package org.folio.okapi;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.TooLongHttpHeaderException;
 import io.netty.handler.codec.http.TooLongHttpLineException;
-import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
+import io.vertx.core.VerticleBase;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
@@ -55,7 +54,7 @@ import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.util.OkapiError;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
-public class MainVerticle extends AbstractVerticle {
+public class MainVerticle extends VerticleBase {
 
   public class StopException extends Exception {
 
@@ -206,24 +205,22 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void stop(Promise<Void> promise) {
+  public Future<Void> stop() {
     logger.info("stop");
     MetricsUtil.stop();
     Future<Void> future = Future.succeededFuture();
     if (deploymentManager != null) {
       future = future.compose(x -> deploymentManager.shutdown());
     }
-    future.compose(x -> discoveryManager.shutdown()).onComplete(promise);
+    return future.compose(x -> discoveryManager.shutdown());
   }
 
   @Override
-  public void start(Promise<Void> promise) {
+  public Future<Void> start() {
     Future<Void> fut = startDatabases();
     if (initMode != InitMode.NORMAL) {
-      fut
-          .<Void>compose(xxx -> Future.failedFuture(new StopException("stop db")))
-          .onComplete(promise);
-      return;
+      return fut
+          .<Void>compose(xxx -> Future.failedFuture(new StopException("stop db")));
     }
     fut = fut.compose(x -> EventBusChecker.check(vertx, clusterManager)
         .recover(cause -> {
@@ -242,7 +239,7 @@ public class MainVerticle extends AbstractVerticle {
     fut = fut.compose(x -> tenantManager.prepareModules(okapiVersion));
     fut = fut.compose(x -> startTimers());
     fut = fut.compose(x -> healthManager.init(vertx, Collections.singletonList(tenantManager)));
-    fut.onComplete(promise);
+    return fut;
   }
 
   private Future<Void> startDatabases() {

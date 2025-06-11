@@ -8,7 +8,7 @@ import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.UrlXmlConfig;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
-import io.vertx.core.Verticle;
+import io.vertx.core.VerticleBase;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxBuilder;
 import io.vertx.core.VertxOptions;
@@ -211,7 +211,7 @@ public class MainDeploy {
     });
   }
 
-  private Future<Vertx> deployVerticle(Verticle v, Vertx vertx) {
+  private Future<Vertx> deployVerticle(VerticleBase v, Vertx vertx) {
     DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
     return vertx.deployVerticle(v, opt)
       .map(vertx);

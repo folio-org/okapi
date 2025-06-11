@@ -5,10 +5,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.LaunchDescriptor;
-import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.service.EnvStore;
 import org.folio.okapi.service.impl.EnvStoreNull;
@@ -20,9 +18,6 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class DeploymentManagerTest {
-
-  private final Logger logger = OkapiLogger.get();
-
   private Vertx vertx;
   private DeploymentManager dm;
 
@@ -48,7 +43,7 @@ public class DeploymentManagerTest {
           async.complete();
         }));
     async.await();
-}
+  }
 
   private void createDeploymentManager(TestContext context) {
     DeploymentManagerTest.this.createDeploymentManager(context, new EnvStoreNull(), new JsonObject());
@@ -119,7 +114,6 @@ public class DeploymentManagerTest {
   public void testUndeployNotFound(TestContext context) {
     createDeploymentManager(context);
     Async async = context.async();
-    LaunchDescriptor descriptor = new LaunchDescriptor();
     dm.undeploy("1234").onComplete(res -> {
       context.assertFalse(res.succeeded());
       context.assertEquals("not found: 1234", res.cause().getMessage());
