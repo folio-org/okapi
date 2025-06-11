@@ -23,7 +23,9 @@ import org.folio.okapi.common.XOkapiHeaders;
  * used for Okapi's own services, without the modList. Also has lots of helpers
  * for logging, in order to get the request-id in most log messages.
  */
-@SuppressWarnings({"squid:S1192"})
+// S1192: String literals should not be duplicated
+// S2245: Using pseudorandom number generators (PRNGs) is security-sensitive
+@SuppressWarnings({"squid:S1192", "squid:S2245"})
 public class ProxyContext {
   private static final Logger logger = OkapiLogger.get(); // logger name "okapi"
   private static final Logger fullLogger = OkapiLogger.get("full");
@@ -76,7 +78,7 @@ public class ProxyContext {
 
     StringBuilder newid = new StringBuilder();
     // Not used for security, just for request id uniqueness
-    Random r = new Random(); //NOSONAR
+    Random r = new Random();
     newid.append(String.format("%06d", r.nextInt(1000000)));
 
     int start = 0;
