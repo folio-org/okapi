@@ -393,7 +393,6 @@ public class DiscoveryManager implements NodeListener {
   }
 
   Future<HealthDescriptor> fail(Throwable cause, HealthDescriptor hd) {
-
     hd.setHealthMessage("Fail: " + cause.getMessage());
     hd.setHealthStatus(false);
     return Future.succeededFuture(hd);
@@ -410,25 +409,23 @@ public class DiscoveryManager implements NodeListener {
       hd.setHealthStatus(false);
       return Future.succeededFuture(hd);
     }
-    Promise<HealthDescriptor> promise = Promise.promise();
-    httpClient.request(new RequestOptions().setAbsoluteURI(url).setMethod(HttpMethod.GET), req -> {
-      if (req.failed()) {
-        promise.handle(fail(req.cause(), hd));
-        return;
-      }
-      req.result().end();
-      req.result().response().onFailure(cause ->
-          promise.handle(fail(cause, hd))
-      ).onSuccess(response -> {
-        response.endHandler(x -> {
-          hd.setHealthMessage("OK");
-          hd.setHealthStatus(true);
-          promise.complete(hd);
-        });
-        response.exceptionHandler(e -> promise.handle(fail(e.getCause(), hd)));
-      });
-    });
-    return promise.future();
+
+    return httpClient.request(new RequestOptions().setAbsoluteURI(url).setMethod(HttpMethod.GET))
+      .compose(req -> {
+        req.end();
+        return req.response()
+          .compose(response -> {
+            Promise<HealthDescriptor> promise = Promise.promise();
+            response.endHandler(x -> {
+              hd.setHealthMessage("OK");
+              hd.setHealthStatus(true);
+              promise.complete(hd);
+            });
+            response.exceptionHandler(promise::fail);
+            return promise.future();
+          });
+      })
+      .recover(e -> fail(e.getCause(), hd));
   }
 
   Future<List<HealthDescriptor>> health() {

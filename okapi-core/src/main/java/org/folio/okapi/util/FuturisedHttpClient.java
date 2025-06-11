@@ -42,16 +42,6 @@ public class FuturisedHttpClient {
     }
   }
 
-  /**
-   * Create an HTTP request to send to the server.
-   *
-   * @param handler the HttpClientRequest on success, a Throwable if any was thrown or on failure
-   */
-  public void request(RequestOptions options,
-                      Handler<AsyncResult<HttpClientRequest>> handler) {
-    request(options).onComplete(handler);
-  }
-
   public HttpClient getHttpClient() {
     return httpClient;
   }
