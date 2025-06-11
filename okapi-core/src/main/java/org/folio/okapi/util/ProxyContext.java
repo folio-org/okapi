@@ -78,7 +78,8 @@ public class ProxyContext {
     // here with the '?'.
     Random r = new Random();
     StringBuilder newid = new StringBuilder();
-    newid.append(String.format("%06d", r.nextInt(1000000)));
+    // Not used for security, just for request id uniqueness
+    newid.append(String.format("%06d", r.nextInt(1000000))); //NOSONAR
     newid.append(path);
     String curid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
     if (curid == null || curid.isEmpty()) {
