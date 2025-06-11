@@ -97,18 +97,18 @@ public class TokenCache {
   public static Builder builder() {
     return new Builder();
   }
-  
+
   public int size() {
     return cache.size();
   }
-  
+
   public static final class LruCache extends LinkedHashMap<String, CacheEntry> {
 
     private static final long serialVersionUID = -6197036022604882327L;
     private final int maxEntries;
 
     public LruCache(final int maxEntries) {
-      super((int) (maxEntries / 0.75f), 0.75f, true);
+      super((int) (maxEntries / 0.75), 0.75f, true);
       this.maxEntries = maxEntries;
     }
 
