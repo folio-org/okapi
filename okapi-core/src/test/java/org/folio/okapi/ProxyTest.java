@@ -496,8 +496,8 @@ public class ProxyTest {
 
   private void upload(TestContext context, String tenant, String uri, int offset) {
     Async async = context.async();
-    int bufSz = 10000;
-    long bufCnt = 1000;
+    int bufSz = 100000;
+    long bufCnt = 100;
     long total = bufSz * bufCnt;
     logger.info("Sending {} GB", total / 1e9);
 
