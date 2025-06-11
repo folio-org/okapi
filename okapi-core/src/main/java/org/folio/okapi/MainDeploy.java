@@ -6,10 +6,8 @@ import com.hazelcast.config.FileSystemXmlConfig;
 import com.hazelcast.config.InterfacesConfig;
 import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.UrlXmlConfig;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxBuilder;
@@ -36,9 +34,9 @@ public class MainDeploy {
   private static final String CANNOT_LOAD_STR = "Cannot load ";
 
   private final VertxOptions vopt = new VertxOptions();
-  private Config hazelcastConfig = null;
+  private Config hazelcastConfig;
   private JsonObject conf;
-  private String clusterHost = null;
+  private String clusterHost;
   private int clusterPort = -1;
   private final Messages messages = Messages.getInstance();
 
