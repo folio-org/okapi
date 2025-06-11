@@ -221,8 +221,8 @@ public class MainVerticle extends AbstractVerticle {
     Future<Void> fut = startDatabases();
     if (initMode != InitMode.NORMAL) {
       fut
-          .onSuccess(suc -> promise.fail(new StopException("stop db")))
-          .onFailure(e -> promise.fail(e));
+          .<Void>compose(xxx -> Future.failedFuture(new StopException("stop db")))
+          .onComplete(promise);
       return;
     }
     fut = fut.compose(x -> EventBusChecker.check(vertx, clusterManager)
@@ -242,9 +242,7 @@ public class MainVerticle extends AbstractVerticle {
     fut = fut.compose(x -> tenantManager.prepareModules(okapiVersion));
     fut = fut.compose(x -> startTimers());
     fut = fut.compose(x -> healthManager.init(vertx, Collections.singletonList(tenantManager)));
-    fut.onComplete(x -> {
-      promise.handle(x);
-    });
+    fut.onComplete(promise);
   }
 
   private Future<Void> startDatabases() {

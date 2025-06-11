@@ -206,12 +206,14 @@ public class MainDeploy {
     .compose(vertx -> {
       MainVerticle v = new MainVerticle();
       v.setClusterManager(mgr);
-      return deployVerticle(v, vertx).map(x -> vertx);
+      return deployVerticle(v, vertx)
+         .map(vertx);
     });
   }
 
   private Future<Vertx> deployVerticle(Verticle v, Vertx vertx) {
     DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-    return vertx.deployVerticle(v, opt).map(x -> vertx);
+    return vertx.deployVerticle(v, opt)
+      .map(vertx);
   }
 }
