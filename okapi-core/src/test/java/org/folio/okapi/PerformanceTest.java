@@ -44,7 +44,7 @@ public class PerformanceTest {
     DeploymentOptions opt = new DeploymentOptions()
             .setConfig(conf);
     vertx.deployVerticle(MainVerticle.class.getName(),
-            opt, context.asyncAssertSuccess());
+            opt).onComplete(context.asyncAssertSuccess());
     httpClient = vertx.createHttpClient();
   }
 
@@ -52,9 +52,9 @@ public class PerformanceTest {
   public void tearDown(TestContext context) {
     async = context.async();
     httpClient.request(HttpMethod.DELETE, port,
-        "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
+        "localhost", "/_/discovery/modules").onComplete(context.asyncAssertSuccess(request -> {
           request.end();
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> {
               httpClient.close();
@@ -63,7 +63,7 @@ public class PerformanceTest {
           }));
         }));
     async.await();
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Test(timeout = 600000)
@@ -95,7 +95,7 @@ public class PerformanceTest {
     httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules")
         .onComplete(context.asyncAssertSuccess(req -> {
           req.end(doc);
-          req.response(context.asyncAssertSuccess(response -> {
+          req.response().onComplete(context.asyncAssertSuccess(response -> {
             logger.debug("declareAuth: " + response.statusCode() + " " + response.statusMessage());
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
@@ -113,10 +113,11 @@ public class PerformanceTest {
         + "\"java -Dport=%p -jar ../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar\"" + LS
         + "  }" + LS
         + "}";
-    httpClient.request(HttpMethod.POST, port, "localhost", "/_/deployment/modules",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/deployment/modules")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             logger.debug("deployAuth: " + response.statusCode() + " " + response.statusMessage());
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
@@ -141,10 +142,11 @@ public class PerformanceTest {
         + "  } ]" + LS
         + "}";
 
-    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.handler(body -> {
               context.assertEquals(doc, body.toString());
@@ -164,10 +166,11 @@ public class PerformanceTest {
         + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
         + "  }" + LS
         + "}";
-    httpClient.request(HttpMethod.POST, port, "localhost", "/_/deployment/modules",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/deployment/modules")
+        .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               createTenant(context);
@@ -182,10 +185,11 @@ public class PerformanceTest {
         + "  \"name\" : \"" + okapiTenant + "\"," + LS
         + "  \"description\" : \"Roskilde bibliotek\"" + LS
         + "}";
-    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             locationTenant = response.getHeader("Location");
             response.handler(body -> {
@@ -202,10 +206,11 @@ public class PerformanceTest {
     final String doc = "{" + LS
         + "  \"id\" : \"auth\"" + LS
         + "}";
-    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules")
+        .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> tenantEnableModuleSample(context));
           }));
@@ -216,10 +221,11 @@ public class PerformanceTest {
     final String doc = "{" + LS
         + "  \"id\" : \"sample-module\"" + LS
         + "}";
-    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> doLogin(context));
           }));
@@ -232,26 +238,27 @@ public class PerformanceTest {
             + "  \"username\" : \"peter\"," + LS
             + "  \"password\" : \"peter-password\"" + LS
             + "}";
-    httpClient.request(HttpMethod.POST, port, "localhost", "/authn/login", context.asyncAssertSuccess(request -> {
-      request.putHeader("X-Okapi-Tenant", okapiTenant);
-      request.end(doc);
-      request.response(context.asyncAssertSuccess(response -> {
-        context.assertEquals(200, response.statusCode());
-        String headers = response.headers().entries().toString();
-        okapiToken = response.getHeader("X-Okapi-Token");
-        response.endHandler(x -> useItWithGet(context));
-      }));
+    httpClient.request(HttpMethod.POST, port, "localhost", "/authn/login")
+      .onComplete(
+        context.asyncAssertSuccess(request -> {
+          request.putHeader("X-Okapi-Tenant", okapiTenant);
+          request.end(doc);
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
+            context.assertEquals(200, response.statusCode());
+            okapiToken = response.getHeader("X-Okapi-Token");
+            response.endHandler(x -> useItWithGet(context));
+          }));
     }));
   }
 
   public void useItWithGet(TestContext context) {
-    httpClient.request(HttpMethod.GET, port, "localhost", "/testb",
+    httpClient.request(HttpMethod.GET, port, "localhost", "/testb")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.putHeader("X-Okapi-Tenant", okapiTenant);
           request.end();
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(200, response.statusCode());
-            String headers = response.headers().entries().toString();
             response.handler(x -> {
               context.assertEquals("It works", x.toString());
             });
@@ -270,14 +277,15 @@ public class PerformanceTest {
     headers.add("Accept", "text/xml");
     headers.add("Content-Type", "text/plain");
 
-    httpClient.request(HttpMethod.POST, port, "localhost", "/testb",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/testb")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.putHeader("X-Okapi-Token", okapiToken);
           request.putHeader("X-Okapi-Tenant", okapiTenant);
           request.putHeader("Accept", "text/xml");
           request.putHeader("Content-Type", "text/plain");
           request.end("Okapi");
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(200, response.statusCode());
             response.handler(body::appendBuffer);
             response.endHandler(x -> {
@@ -299,10 +307,11 @@ public class PerformanceTest {
         + "    \"type\" : \"request-response\"" + LS
         + "  } ]" + LS
         + "}";
-    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               deploySample2(context);
@@ -317,10 +326,11 @@ public class PerformanceTest {
         + "  \"srvcId\" : \"sample-module2-1.0.0\"," + LS
         + "  \"url\" : \"http://localhost:9232\"" + LS
         + "}";
-    httpClient.request(HttpMethod.POST, port, "localhost", "/_/discovery/modules",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/discovery/modules")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               tenantEnableModuleSample2(context);
@@ -333,10 +343,11 @@ public class PerformanceTest {
     final String doc = "{" + LS
         + "  \"id\" : \"sample-module2\"" + LS
         + "}";
-    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               declareSample3(context);
@@ -366,10 +377,11 @@ public class PerformanceTest {
         + "    \"type\" : \"request-only\"" + LS
         + "  } ]" + LS
         + "}";
-    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/modules")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               deploySample3(context);
@@ -383,10 +395,11 @@ public class PerformanceTest {
         + "  \"instId\" : \"sample3-inst\"," + LS
         + "  \"srvcId\" : \"sample-module3-1.0.0\"," + LS
         + "  \"url\" : \"http://localhost:9232\"" + LS            + "}";
-    httpClient.request(HttpMethod.POST, port, "localhost", "/_/discovery/modules",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/discovery/modules")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               tenantEnableModuleSample3(context);
@@ -399,10 +412,11 @@ public class PerformanceTest {
     final String doc = "{" + LS
         + "  \"id\" : \"sample-module3-1.0.0\"" + LS
         + "}";
-    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end(doc);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(201, response.statusCode());
             response.endHandler(x -> {
               repeatPostInit(context);
@@ -439,14 +453,14 @@ public class PerformanceTest {
       logger.debug("repeatPost " + max + " iterations");
     }
     Buffer body = Buffer.buffer();
-    httpClient.request(HttpMethod.POST, port, "localhost", "/testb",
+    httpClient.request(HttpMethod.POST, port, "localhost", "/testb")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.putHeader("X-Okapi-Token", okapiToken);
           request.putHeader("X-Okapi-Tenant", okapiTenant);
           request.end(msg);
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(200, response.statusCode());
-            String headers = response.headers().entries().toString();
             response.handler(body::appendBuffer);
             response.endHandler(x -> {
               context.assertEquals("Hello Hello " + msg, body.toString());
@@ -458,9 +472,10 @@ public class PerformanceTest {
   }
 
   public void deleteTenant(TestContext context) {
-    httpClient.request(HttpMethod.DELETE, port, "localhost", locationTenant,
+    httpClient.request(HttpMethod.DELETE, port, "localhost", locationTenant)
+      .onComplete(
         context.asyncAssertSuccess(request -> {
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> done(context));
           }));

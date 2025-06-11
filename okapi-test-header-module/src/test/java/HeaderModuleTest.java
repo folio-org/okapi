@@ -38,13 +38,13 @@ public class HeaderModuleTest {
     System.setProperty("port", Integer.toString(PORT));
 
     DeploymentOptions opt = new DeploymentOptions();
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
+    vertx.deployVerticle(MainVerticle.class.getName(), opt).onComplete(context.asyncAssertSuccess());
   }
 
   @AfterClass
   public static void tearDown(TestContext context) {
     System.clearProperty("port");
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Test

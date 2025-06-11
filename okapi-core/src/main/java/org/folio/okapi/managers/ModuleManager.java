@@ -14,7 +14,6 @@ import java.util.TreeSet;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
@@ -70,7 +69,7 @@ public class ModuleManager {
         for (ModuleDescriptor md : res) {
           futures.add(modules.add(md.getId(), md));
         }
-        return GenericCompositeFuture.all(futures).mapEmpty();
+        return Future.all(futures).mapEmpty();
       });
     });
   }
@@ -182,7 +181,7 @@ public class ModuleManager {
       futures.add(modules.add(md.getId(), md));
     }
     return storeFuture
-        .compose(x -> GenericCompositeFuture.all(futures))
+        .compose(x -> Future.all(futures))
         .mapEmpty();
   }
 
@@ -259,3 +258,4 @@ public class ModuleManager {
     });
   }
 }
+

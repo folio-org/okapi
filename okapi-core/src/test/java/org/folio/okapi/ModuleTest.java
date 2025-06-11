@@ -21,6 +21,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -171,7 +172,7 @@ public class ModuleTest {
     config.put("mongo_db_init", "1");
 
     DeploymentOptions opt = new DeploymentOptions().setConfig(config);
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
+    vertx.deployVerticle(MainVerticle.class.getName(), opt).onComplete(context.asyncAssertSuccess());
   }
 
   @After
@@ -179,17 +180,18 @@ public class ModuleTest {
     logger.debug("Cleaning up after ModuleTest");
     if (httpClient != null) {
       Async async = context.async();
-      httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules",
+      httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
+      .onComplete(
           context.asyncAssertSuccess(request -> {
             request.end();
-            request.response(context.asyncAssertSuccess(response -> {
+            request.response().onComplete(context.asyncAssertSuccess(response -> {
               context.assertEquals(204, response.statusCode());
               response.endHandler(x -> async.complete());
             }));
           }));
       async.await();
     }
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
 
@@ -1877,9 +1879,7 @@ public class ModuleTest {
       Async async = context.async();
       undeployAll().onComplete(x -> {
         DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-        vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-          async.complete();
-        });
+        vertx.deployVerticle(MainVerticle.class.getName(), opt).onComplete(y -> async.complete());
       });
       async.await();
     }
@@ -2661,7 +2661,9 @@ public class ModuleTest {
   @Test
   public void testInitdatabase(TestContext context) {
     conf.put("mode", "initdatabase");
-    redeploy().onComplete(context.asyncAssertSuccess());
+    redeploy().onComplete(context.asyncAssertFailure(cause ->
+        context.assertTrue(cause instanceof MainVerticle.StopException,
+          "Expected StopException, got " + cause.getClass().getName() + ": " + cause.getMessage())));
   }
 
   @Test
@@ -2680,8 +2682,10 @@ public class ModuleTest {
   @Test
   public void testPurgedatabase(TestContext context) {
     conf.put("mode", "purgedatabase");
-    redeploy().onComplete(context.asyncAssertSuccess());
-  }
+    redeploy().onComplete(context.asyncAssertFailure(cause ->
+        context.assertTrue(cause instanceof MainVerticle.StopException,
+          "Expected StopException, got " + cause.getClass().getName() + ": " + cause.getMessage())));
+   }
 
   @Test
   public void testInternalModule(TestContext context) {

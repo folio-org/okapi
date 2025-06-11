@@ -36,12 +36,12 @@ public class HealthCheckTest {
 
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(new JsonObject().put("port", Integer.toString(port)));
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
+    vertx.deployVerticle(MainVerticle.class.getName(), opt).onComplete(context.asyncAssertSuccess());
   }
 
   @After
   public void tearDown(TestContext context) {
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Test

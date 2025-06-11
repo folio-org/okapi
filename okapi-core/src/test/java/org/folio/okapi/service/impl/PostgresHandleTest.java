@@ -118,7 +118,7 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
     new PostgresHandle(vertx, config()).getConnection().onComplete(vtc.succeeding(connection -> vtc.verify(() -> {
       assertThat(connection.isSSL()).isTrue();
       String sql = "SELECT version FROM pg_stat_ssl WHERE pid = pg_backend_pid()";
-      connection.query(sql).execute(vtc.succeeding(rowset -> vtc.verify(() -> {
+      connection.query(sql).execute().onComplete(vtc.succeeding(rowset -> vtc.verify(() -> {
         assertThat(rowset.iterator().next().getString(0)).isEqualTo("TLSv1.3");
         vtc.completeNow();
       })));

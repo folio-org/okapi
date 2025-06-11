@@ -7,7 +7,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
@@ -109,9 +108,7 @@ public class ProxyService {
     waitMs = Config.getSysConfInteger(ConfNames.LOG_WAIT_MS, 0, config);
     enableSystemAuth = Config.getSysConfBoolean(ConfNames.ENABLE_SYSTEM_AUTH, true, config);
     enableTraceHeaders = Config.getSysConfBoolean(ConfNames.ENABLE_TRACE_HEADERS, false, config);
-    HttpClientOptions opt = new HttpClientOptions();
-    opt.setMaxPoolSize(1000);
-    httpClient = new FuturisedHttpClient(vertx, opt);
+    httpClient = new FuturisedHttpClient(vertx);
 
     String tcTtlMs = Config.getSysConf(TOKEN_CACHE_TTL_MS, null, config);
     String tcMaxSize = Config.getSysConf(TOKEN_CACHE_MAX_SIZE, null, config);

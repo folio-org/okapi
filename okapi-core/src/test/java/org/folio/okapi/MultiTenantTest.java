@@ -118,21 +118,15 @@ public class MultiTenantTest {
 
   @Before
   public void setUp(TestContext context) {
-    Async async = context.async();
-
     RestAssured.port = port;
     JsonObject conf = new JsonObject();
     conf.put("port", Integer.toString(port));
 
     MainDeploy d = new MainDeploy(conf);
     String[] args = {"dev"};
-    d.init(args, res -> {
-      if (res.succeeded()) {
-        vertx = res.result();
-      }
-      context.assertTrue(res.succeeded());
-      async.complete();
-    });
+    d.init(args).onComplete(context.asyncAssertSuccess(vertx1 -> {
+      vertx = vertx1;
+    }));
   }
 
   @After
@@ -140,9 +134,10 @@ public class MultiTenantTest {
     Async async = context.async();
     HttpClient httpClient = vertx.createHttpClient();
     httpClient.request(HttpMethod.DELETE, port,
-        "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
+        "localhost", "/_/discovery/modules")
+        .onComplete(context.asyncAssertSuccess(request -> {
           request.end();
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> {
               httpClient.close();
@@ -151,7 +146,7 @@ public class MultiTenantTest {
           }));
         }));
     async.await();
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Test

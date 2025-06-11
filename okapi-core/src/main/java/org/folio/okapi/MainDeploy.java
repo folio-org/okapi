@@ -6,12 +6,11 @@ import com.hazelcast.config.FileSystemXmlConfig;
 import com.hazelcast.config.InterfacesConfig;
 import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.UrlXmlConfig;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxBuilder;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.eventbus.EventBusOptions;
 import io.vertx.core.file.FileSystemOptions;
@@ -35,9 +34,9 @@ public class MainDeploy {
   private static final String CANNOT_LOAD_STR = "Cannot load ";
 
   private final VertxOptions vopt = new VertxOptions();
-  private Config hazelcastConfig = null;
+  private Config hazelcastConfig;
   private JsonObject conf;
-  private String clusterHost = null;
+  private String clusterHost;
   private int clusterPort = -1;
   private final Messages messages = Messages.getInstance();
 
@@ -51,33 +50,33 @@ public class MainDeploy {
 
   // suppress "Catch Exception instead of Throwable" to also log Throwable
   @SuppressWarnings({"squid:S1181"})
-  void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
+  Future<Vertx> init(String[] args) {
     vopt.setPreferNativeTransport(true);
     try {
       Messages.setLanguage(System.getProperty("lang", "en"));
       if (args.length < 1) {
         printUsage();
-        fut.handle(Future.failedFuture(messages.getMessage("10600")));
-        return;
+        return Future.failedFuture(messages.getMessage("10600"));
       }
-      if (parseOptions(args, fut)) {
-        return;
-      }
-      final String mode = conf.getString("mode", "dev");
-      switch (mode) {
-        case "dev":
-        case "initdatabase":
-        case "purgedatabase":
-          deploy(false, fut);
-          break;
-        case "cluster":
-        case "proxy":
-        case "deployment":
-          deploy(true, fut);
-          break;
-        default:
-          fut.handle(Future.failedFuture(messages.getMessage("10601", mode)));
-      }
+      return parseOptions(args).compose(help -> {
+        if (help) {
+          // If we only wanted help, we are done
+          return Future.succeededFuture(null);
+        }
+        final String mode = conf.getString("mode", "dev");
+        switch (mode) {
+          case "dev":
+          case "initdatabase":
+          case "purgedatabase":
+            return deploy(false);
+          case "cluster":
+          case "proxy":
+          case "deployment":
+            return deploy(true);
+          default:
+            return Future.failedFuture(messages.getMessage("10601", mode));
+        }
+      });
     } catch (Throwable t) {
       String message = t.getMessage();
       if ("Failed to create cache dir".equals(message)) {
@@ -86,30 +85,28 @@ public class MainDeploy {
         message += " " + FileSystemOptions.DEFAULT_FILE_CACHING_DIR;
         t = new RuntimeException(message, t);
       }
-      fut.handle(Future.failedFuture(t));
+      return Future.failedFuture(t);
     }
   }
 
-  private boolean readConf(String fileName, Handler<AsyncResult<Vertx>> fut) {
+  private Future<Void> readConf(String fileName) {
     try {
       byte[] encoded = Files.readAllBytes(Paths.get(fileName));
       this.conf = new JsonObject(new String(encoded, StandardCharsets.UTF_8));
     } catch (IOException ex) {
-      fut.handle(Future.failedFuture(CANNOT_LOAD_STR + fileName));
-      return true;
+      return Future.failedFuture(CANNOT_LOAD_STR + fileName);
     }
-    return false;
+    return Future.succeededFuture();
   }
 
-  private boolean parseOptions(String[] args, Handler<AsyncResult<Vertx>> fut) {
+  private Future<Boolean> parseOptions(String[] args) {
     int i = 0;
     String mode = null;
     while (i < args.length) {
       if (!args[i].startsWith("-")) {
         if ("help".equals(args[i])) {
           printUsage();
-          fut.handle(Future.succeededFuture(null));
-          return true;
+          return Future.succeededFuture(true);
         }
         mode = args[i];
       } else if ("-hazelcast-config-cp".equals(args[i]) && i < args.length - 1) {
@@ -117,43 +114,37 @@ public class MainDeploy {
         try {
           hazelcastConfig = new ClasspathXmlConfig(resource);
         } catch (Exception e) {
-          fut.handle(Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e));
-          return true;
+          return Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e);
         }
       } else if ("-hazelcast-config-file".equals(args[i]) && i < args.length - 1) {
         String resource = args[++i];
         try {
           hazelcastConfig = new FileSystemXmlConfig(resource);
         } catch (Exception e) {
-          fut.handle(Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e));
-          return true;
+          return Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e);
         }
       } else if ("-hazelcast-config-url".equals(args[i]) && i < args.length - 1) {
         String resource = args[++i];
         try {
           hazelcastConfig = new UrlXmlConfig(resource);
         } catch (Exception e) {
-          fut.handle(Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e));
-          return true;
+          return Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e);
         }
       } else if ("-cluster-host".equals(args[i]) && i < args.length - 1) {
         clusterHost = args[++i];
       } else if ("-cluster-port".equals(args[i]) && i < args.length - 1) {
         clusterPort = Integer.parseInt(args[++i]);
       } else if ("-conf".equals(args[i]) && i < args.length - 1) {
-        if (readConf(args[++i], fut)) {
-          return true;
-        }
+        return readConf(args[++i]).map(x -> false);
       } else {
-        fut.handle(Future.failedFuture(messages.getMessage("10602", args[i])));
-        return true;
+        return Future.failedFuture(messages.getMessage("10602", args[i]));
       }
       i++;
     }
     if (mode != null) {
       conf.put("mode", mode);
     }
-    return false;
+    return Future.succeededFuture(false);
   }
 
   // Suppress "Standard outputs should not be used directly"
@@ -175,16 +166,17 @@ public class MainDeploy {
         + "  -cluster-port port            Vertx cluster port\n");
   }
 
-  private void deploy(boolean clustered, Handler<AsyncResult<Vertx>> fut) {
-    MetricsUtil.init(vopt);
+  private Future<Vertx> deploy(boolean clustered) {
+    VertxBuilder vb = Vertx.builder();
+    MetricsUtil.init(vb);
     if (clustered) {
-      deployClustered(fut);
+      return deployClustered(vb);
     } else {
-      deployVerticle(new MainVerticle(), Vertx.vertx(vopt), fut);
+      return deployVerticle(new MainVerticle(), vb.with(vopt).build());
     }
   }
 
-  private void deployClustered(Handler<AsyncResult<Vertx>> fut) {
+  private Future<Vertx> deployClustered(VertxBuilder vb) {
     if (hazelcastConfig == null) {
       hazelcastConfig = ConfigUtil.loadConfig();
       if (clusterHost != null) {
@@ -210,23 +202,16 @@ public class MainDeploy {
       logger.warn("clusterPort not set");
     }
 
-    Vertx.builder().with(vopt).withClusterManager(mgr).buildClustered()
-    .onSuccess(vertx -> {
+    return vb.with(vopt).withClusterManager(mgr).buildClustered()
+    .compose(vertx -> {
       MainVerticle v = new MainVerticle();
       v.setClusterManager(mgr);
-      deployVerticle(v, vertx, fut);
-    })
-    .onFailure(e -> fut.handle(Future.failedFuture(e)));
+      return deployVerticle(v, vertx).map(x -> vertx);
+    });
   }
 
-  private void deployVerticle(Verticle v, Vertx vertx, Handler<AsyncResult<Vertx>> fut) {
+  private Future<Vertx> deployVerticle(Verticle v, Vertx vertx) {
     DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-    vertx.deployVerticle(v, opt, dep -> {
-      if (dep.failed()) {
-        fut.handle(Future.failedFuture(dep.cause()));
-      } else {
-        fut.handle(Future.succeededFuture(vertx));
-      }
-    });
+    return vertx.deployVerticle(v, opt).map(x -> vertx);
   }
 }

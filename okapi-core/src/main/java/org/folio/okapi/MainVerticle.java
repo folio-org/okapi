@@ -8,6 +8,7 @@ import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
@@ -55,6 +56,20 @@ import org.folio.okapi.util.OkapiError;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
+
+  public class StopException extends Exception {
+
+    private static final long serialVersionUID = 1L;
+
+    public StopException(String message) {
+      super(message);
+    }
+  }
+
+  /**
+   * Maximum length of the initial line in an HTTP request.
+   * It is the maximum length of the request line, which includes the method, URI, and HTTP version.
+   */
 
   private static final int MAX_INITIAL_LINE_LENGTH = 8192;
 
@@ -204,34 +219,30 @@ public class MainVerticle extends AbstractVerticle {
   @Override
   public void start(Promise<Void> promise) {
     Future<Void> fut = startDatabases();
-    if (initMode == InitMode.NORMAL) {
-      fut = fut.compose(x -> EventBusChecker.check(vertx, clusterManager)
-          .recover(cause -> {
-            logger.warn("event bus check failed {}", cause.getMessage());
-            return Future.succeededFuture();
-          }));
-      fut = fut.compose(x -> startModuleManager());
-      fut = fut.compose(x -> startTenants());
-      fut = fut.compose(x -> checkInternalModules());
-      fut = fut.compose(x -> startEnv());
-      fut = fut.compose(x -> startDiscovery());
-      fut = fut.compose(x -> startDeployment());
-      fut = fut.compose(x -> kubernetesManager.init(vertx));
-      fut = fut.compose(x -> startListening());
-      fut = fut.compose(x -> startRedeploy());
-      fut = fut.compose(x -> tenantManager.prepareModules(okapiVersion));
-      fut = fut.compose(x -> startTimers());
-      fut = fut.compose(x -> healthManager.init(vertx, Collections.singletonList(tenantManager)));
+    if (initMode != InitMode.NORMAL) {
+      fut
+          .onSuccess(suc -> promise.fail(new StopException("stop db")))
+          .onFailure(e -> promise.fail(e));
+      return;
     }
+    fut = fut.compose(x -> EventBusChecker.check(vertx, clusterManager)
+        .recover(cause -> {
+          logger.warn("event bus check failed {}", cause.getMessage());
+          return Future.succeededFuture();
+        }));
+    fut = fut.compose(x -> startModuleManager());
+    fut = fut.compose(x -> startTenants());
+    fut = fut.compose(x -> checkInternalModules());
+    fut = fut.compose(x -> startEnv());
+    fut = fut.compose(x -> startDiscovery());
+    fut = fut.compose(x -> startDeployment());
+    fut = fut.compose(x -> kubernetesManager.init(vertx));
+    fut = fut.compose(x -> startListening());
+    fut = fut.compose(x -> startRedeploy());
+    fut = fut.compose(x -> tenantManager.prepareModules(okapiVersion));
+    fut = fut.compose(x -> startTimers());
+    fut = fut.compose(x -> healthManager.init(vertx, Collections.singletonList(tenantManager)));
     fut.onComplete(x -> {
-      if (x.failed()) {
-        logger.error(x.cause().getMessage());
-      } else if (initMode == InitMode.NORMAL) {
-        // normal startup, no errors
-      } else {
-        // must stop the Verticle from going further if initdatabase or similar
-        vertx.close();
-      }
       promise.handle(x);
     });
   }
@@ -367,7 +378,10 @@ public class MainVerticle extends AbstractVerticle {
       HttpServerRequest.DEFAULT_INVALID_REQUEST_HANDLER.handle(httpServerRequest);
       return;
     }
-    httpServerRequest.connection().close();
+    HttpConnection conn = httpServerRequest.connection();
+    if (conn != null) {
+      conn.close();
+    }
   }
 
   private Future<Void> startRedeploy() {

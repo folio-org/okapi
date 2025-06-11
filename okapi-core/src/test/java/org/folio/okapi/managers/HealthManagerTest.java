@@ -32,7 +32,7 @@ public class HealthManagerTest {
     m.init(vertx, Collections.emptyList()).onComplete(context.succeeding(res -> {
       WebClient client = WebClient.create(vertx);
       client.get(PORT, "localhost", "/readiness")
-          .send(context.succeeding(response -> {
+          .send().onComplete(context.succeeding(response -> {
             assertThat(response.statusCode()).isEqualTo(204);
             context.completeNow();
           }));
@@ -45,7 +45,7 @@ public class HealthManagerTest {
     m.init(vertx, Arrays.asList(new IsAlive())).onComplete(context.succeeding(res -> {
       WebClient client = WebClient.create(vertx);
       client.get(PORT, "localhost", "/liveness")
-          .send(context.succeeding(response -> {
+          .send().onComplete(context.succeeding(response -> {
             assertThat(response.statusCode()).isEqualTo(204);
             context.completeNow();
           }));
@@ -58,7 +58,7 @@ public class HealthManagerTest {
     m.init(vertx, Arrays.asList(new IsAlive(), new IsNotAlive())).onComplete(context.succeeding(res -> {
       WebClient client = WebClient.create(vertx);
       client.get(PORT, "localhost", "/liveness")
-          .send(context.succeeding(response -> {
+          .send().onComplete(context.succeeding(response -> {
             assertThat(response.statusCode()).isEqualTo(500);
             assertThat(response.bodyAsString()).isEqualTo("my error");
             context.completeNow();

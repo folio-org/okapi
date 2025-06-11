@@ -106,6 +106,11 @@ public class ProxyServiceTest implements WithAssertions {
       handler.handle(Future.succeededFuture());
     }
 
+    public Future<Void> end() {
+      end = true;
+      return Future.succeededFuture();
+    }
+
     public WriteStream<Buffer> setWriteQueueMaxSize(int maxSize) {
       this.maxSize = maxSize;
       return this;

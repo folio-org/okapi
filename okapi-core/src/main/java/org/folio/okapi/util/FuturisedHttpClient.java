@@ -7,6 +7,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.PoolOptions;
 import io.vertx.core.http.RequestOptions;
 
 /**
@@ -18,12 +19,14 @@ import io.vertx.core.http.RequestOptions;
 public class FuturisedHttpClient {
   HttpClient httpClient;
 
-  public FuturisedHttpClient(Vertx vertx, HttpClientOptions httpClientOptions) {
-    httpClient = vertx.createHttpClient(httpClientOptions);
+  public FuturisedHttpClient(Vertx vertx, HttpClientOptions httpClientOptions,
+      PoolOptions poolOptions) {
+    httpClient = vertx.createHttpClient(httpClientOptions, poolOptions);
   }
 
   public FuturisedHttpClient(Vertx vertx) {
-    this(vertx, new HttpClientOptions());
+    this(vertx, new HttpClientOptions(), new PoolOptions().setHttp1MaxSize(1000));
+    // default max size is 30, which is too small for Okapi
   }
 
   /**

@@ -5,23 +5,20 @@ import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.RequestOptions;
+import io.vertx.core.http.HttpResponseExpectation;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.client.WebClient;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
@@ -32,28 +29,25 @@ import org.junit.runner.RunWith;
 @java.lang.SuppressWarnings({"squid:S1166", "squid:S1192"})
 @RunWith(VertxUnitRunner.class)
 public class DockerTest {
+  VertxOptions options = new VertxOptions()
+    .setBlockedThreadCheckInterval(60000) // in ms
+    .setWarningExceptionTime(60000) // in ms
+    .setPreferNativeTransport(true);
 
+  private Vertx vertx = Vertx.vertx(options);
   private final Logger logger = OkapiLogger.get();
-  private Vertx vertx;
   private final int port = 9230;
   private static final String LS = System.lineSeparator();
   private boolean haveDocker = false;
-  private HttpClient client;
   private JsonArray dockerImages = new JsonArray();
+  private String verticleId;
 
   @Before
   public void setUp(TestContext context) {
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-    Async async = context.async();
-    VertxOptions options = new VertxOptions();
-    options.setBlockedThreadCheckInterval(60000); // in ms
-    options.setWarningExceptionTime(60000); // in ms
-    options.setPreferNativeTransport(true);
-    vertx = Vertx.vertx(options);
     RestAssured.port = port;
-    client = vertx.createHttpClient();
-
-    checkDocker(res -> {
+    Async async = context.async();
+    checkDocker().onComplete(res -> {
       haveDocker = res.succeeded();
       if (res.succeeded()) {
         dockerImages = res.result();
@@ -69,8 +63,13 @@ public class DockerTest {
           .put("port_end", Integer.toString(port + 6)));
 
       vertx.deployVerticle(MainVerticle.class.getName(),
-        opt, x -> async.complete());
+        opt).onComplete(context.asyncAssertSuccess(id -> {
+          logger.info("Verticle deployed: " + id);
+          verticleId = id;
+          async.complete();
+        }));
     });
+    async.await();
   }
 
   @After
@@ -80,60 +79,38 @@ public class DockerTest {
     Async async = context.async();
     HttpClient httpClient = vertx.createHttpClient();
     httpClient.request(HttpMethod.DELETE, port,
-        "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
+        "localhost", "/_/discovery/modules").onComplete(context.asyncAssertSuccess(request -> {
           request.end();
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> {
-              httpClient.close();
-              vertx.close(context.asyncAssertSuccess());
               async.complete();
             });
           }));
         }));
+    async.await();
+    vertx.undeploy(verticleId).onComplete(context.asyncAssertSuccess());
   }
 
-  private void checkDocker(Handler<AsyncResult<JsonArray>> future) {
-    final SocketAddress socketAddress
-      = SocketAddress.domainSocketAddress("/var/run/docker.sock");
-    final String url = "http://localhost/images/json?all=1";
-    client.request(new RequestOptions().setURI(url).setServer(socketAddress).setMethod(HttpMethod.GET),
-    res1 -> {
-      if (res1.failed()) {
-        future.handle(Future.failedFuture(res1.cause()));
-        return;
-      }
-      res1.result().end();
-      res1.result().response(res2 -> {
-        if (res2.failed()) {
-          future.handle(Future.failedFuture(res2.cause()));
-          return;
-        }
-        HttpClientResponse res = res2.result();
-        Buffer body = Buffer.buffer();
-        res.handler(body::appendBuffer);
-        res.endHandler(d -> {
-          if (res.statusCode() == 200) {
-            try {
-              JsonArray ar = body.toJsonArray();
-              future.handle(Future.succeededFuture(ar));
-            } catch (Exception ex) {
-              logger.warn(ex);
-              future.handle(Future.failedFuture(ex));
-            }
-          } else {
-            String m = "checkDocker HTTP error " + res.statusCode() + "\n"
-                + body.toString();
-            logger.error(m);
-            future.handle(Future.failedFuture(m));
-          }
-        });
-        res.exceptionHandler(d -> {
-          logger.warn("exceptionHandler 2 " + d, d);
-          future.handle(Future.failedFuture(d));
-        });
+  private Future<JsonArray> checkDocker() {
+    WebClient client = WebClient.create(vertx);
+    SocketAddress serverAddress = SocketAddress
+      .domainSocketAddress("/var/run/docker.sock");
+
+    return client
+      .request(
+        HttpMethod.GET,
+        serverAddress,
+        8080,
+        "localhost",
+        "/images/json?all=1")
+      .send()
+      .expecting(HttpResponseExpectation.SC_SUCCESS)
+      .expecting(HttpResponseExpectation.JSON)
+      .map(res -> {
+        System.out.println("Current Docker images" + res);
+        return res.bodyAsJsonArray();
       });
-    });
   }
 
   private static boolean checkTestModulePresent(JsonArray ar) {

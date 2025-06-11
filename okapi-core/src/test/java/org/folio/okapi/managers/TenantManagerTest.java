@@ -11,10 +11,8 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.*;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.impl.TenantStoreNull;
 import org.folio.okapi.util.LockedTypedMap1Faulty;
 import org.folio.okapi.util.OkapiError;
@@ -33,8 +31,6 @@ import static org.mockito.Mockito.when;
 
 @RunWith(VertxUnitRunner.class)
 public class TenantManagerTest extends TestBase {
-  private final Logger logger = OkapiLogger.get();
-
   private Vertx vertx;
 
   @Before
@@ -44,7 +40,7 @@ public class TenantManagerTest extends TestBase {
 
   @After
   public void tearDown(TestContext context) {
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Test

@@ -21,7 +21,6 @@ import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
@@ -115,7 +114,7 @@ public class DeploymentManager {
       logger.info("shutting down {}", dd.getSrvcId());
       futures.add(mh.stop());
     }
-    return GenericCompositeFuture.all(futures).mapEmpty();
+    return Future.all(futures).mapEmpty();
   }
 
   Future<DeploymentDescriptor> deploy(DeploymentDescriptor md1) {

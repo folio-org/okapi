@@ -14,17 +14,20 @@ class JsonDecoderTest {
   void decode() {
     DecodeException e = assertThrowsExactly(DecodeException.class,
         () -> JsonDecoder.decode("{}", String[].class));
-    assertThat(e.getMessage(), is("Expected `[` but found `{` when trying to deserialize "
-        + "an array of java.lang.String at line: 1, column: 1"));
-    assertThat(e.getCause().getMessage(), startsWith("Failed to decode:Cannot deserialize"));
+    assertThat(e.getMessage(), is(
+    "Failed to decode:Cannot deserialize value of type `java.lang.String[]` from Object value (token `JsonToken.START_OBJECT`)\n at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 1]"
+
+    ));
+    assertThat(e.getCause().getMessage(), startsWith("Cannot deserialize value of type"));
   }
 
   @Test
   void decodeWithLocation() {
     DecodeException e = assertThrowsExactly(DecodeException.class,
         () -> JsonDecoder.decode("\n\n\n\n\n\n\n\n\n         {}", String[].class));
-    assertThat(e.getMessage(), is("Expected `[` but found `{` when trying to deserialize "
-        + "an array of java.lang.String at line: 10, column: 10"));
-    assertThat(e.getCause().getMessage(), startsWith("Failed to decode:Cannot deserialize"));
+    assertThat(e.getMessage(), is(
+     "Failed to decode:Cannot deserialize value of type `java.lang.String[]` from Object value (token `JsonToken.START_OBJECT`)\n at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 10, column: 10]"
+        ));
+    assertThat(e.getCause().getMessage(), startsWith("Cannot deserialize value of type"));
   }
 }

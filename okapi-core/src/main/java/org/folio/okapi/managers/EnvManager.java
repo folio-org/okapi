@@ -7,7 +7,6 @@ import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.EnvStore;
@@ -43,7 +42,7 @@ public class EnvManager {
           for (EnvEntry e : x) {
             futures.add(add1(e));
           }
-          return GenericCompositeFuture.all(futures).mapEmpty();
+          return Future.all(futures).mapEmpty();
         });
   }
 

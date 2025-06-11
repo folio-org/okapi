@@ -51,14 +51,14 @@ public class TenantRATest {
 
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(new JsonObject().put("port", Integer.toString(PORT)));
-    vertx.deployVerticle(mainVerticle, opt, context.asyncAssertSuccess(x -> {
+    vertx.deployVerticle(mainVerticle, opt).onComplete(context.asyncAssertSuccess(x -> {
       tenantManager = mainVerticle.getTenantManager();
     }));
   }
 
   @After
   public void tearDown(TestContext context) {
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Test

@@ -2,6 +2,7 @@ package org.folio.okapi.header;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -25,6 +26,19 @@ public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = OkapiLogger.get();
   private Map<String,JsonArray> savedPermissions = new HashMap<>();
+
+  /** main for header module. */
+  public static void main(String[] args) {
+    System.setProperty("vertx.logger-delegate-factory-class-name",
+        "io.vertx.core.logging.Log4jLogDelegateFactory");
+
+    Vertx vertx = Vertx.vertx();
+    vertx.deployVerticle(new MainVerticle()).onFailure(x -> {
+      Logger logger = OkapiLogger.get();
+      logger.error("Failed to deploy module", x);
+      System.exit(1);
+    });
+  }
 
   private void myHeaderHandle(RoutingContext ctx) {
     String h = ctx.request().getHeader("X-my-header");
@@ -90,6 +104,6 @@ public class MainVerticle extends AbstractVerticle {
 
     vertx.createHttpServer()
         .requestHandler(router)
-        .listen(port, result -> promise.handle(result.mapEmpty()));
+        .listen(port).onComplete(result -> promise.handle(result.mapEmpty()));
   }
 }

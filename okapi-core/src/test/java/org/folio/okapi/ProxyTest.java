@@ -14,9 +14,8 @@ import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
+import io.vertx.core.VertxBuilder;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
@@ -147,7 +146,7 @@ public class ProxyTest {
       HttpClientRequest req = req1.result();
       req.putHeader("X-Okapi-Token", token);
       req.end();
-      req.response(res1 -> {
+      req.response().onComplete(res1 -> {
         if (res1.failed()) {
           ctx.response().setStatusCode(500);
           ctx.response().end();
@@ -198,7 +197,7 @@ public class ProxyTest {
               .putHeader("Accept", "application/json")
               .putHeader("X-Okapi-Tenant", tenant);
           request.end(docLogin);
-          request.response(res1 -> {
+          request.response().onComplete(res1 -> {
             if (res1.failed()) {
               ctx.response().setStatusCode(500);
               ctx.response().end();
@@ -298,12 +297,10 @@ public class ProxyTest {
 
     router.routeWithRegex("/.*").handler(this::myPreHandle);
 
-    Promise<Void> promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-    vertx.createHttpServer(so)
+    return vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(portPre, x -> promise.handle(x.mapEmpty()));
-    return promise.future();
+        .listen(portPre).mapEmpty();
   }
 
   Future<Void> startPostServer() {
@@ -311,12 +308,10 @@ public class ProxyTest {
 
     router.routeWithRegex("/.*").handler(this::myPostHandle);
 
-    Promise<Void> promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-    vertx.createHttpServer(so)
+    return vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(portPost, x -> promise.handle(x.mapEmpty()));
-    return promise.future();
+        .listen(portPost).mapEmpty();
   }
 
   Future<Void> startTimerServer() {
@@ -324,12 +319,12 @@ public class ProxyTest {
 
     router.routeWithRegex("/.*").handler(this::myTimerHandle);
 
-    Promise<Void> promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+
     listenTimer = vertx.createHttpServer(so)
-        .requestHandler(router)
-        .listen(portTimer, x -> promise.handle(x.mapEmpty()));
-    return promise.future();
+        .requestHandler(router);
+
+    return listenTimer.listen(portTimer).mapEmpty();
   }
 
   Future<Void> startEdgeServer() {
@@ -338,11 +333,9 @@ public class ProxyTest {
     router.routeWithRegex("/.*").handler(this::myEdgeHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-    Promise<Void> promise = Promise.promise();
-    vertx.createHttpServer(so)
+    return vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(portEdge, x -> promise.handle(x.mapEmpty()));
-    return promise.future();
+        .listen(portEdge).mapEmpty();
   }
 
   Future<Void> startOkapi() {
@@ -352,16 +345,14 @@ public class ProxyTest {
             .put("port", Integer.toString(port))
             .put("healthPort", Integer.toString(portHealth))
             .put(ConfNames.ENABLE_TRACE_HEADERS, true));
-    Promise<Void> promise = Promise.promise();
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, x -> promise.handle(x.mapEmpty()));
-    return promise.future();
+    return vertx.deployVerticle(MainVerticle.class.getName(), opt).mapEmpty();
   }
 
   @Before
   public void setUp(TestContext context) {
-    VertxOptions vopt = new VertxOptions();
-    MetricsUtil.init(vopt);
-    vertx = Vertx.vertx(vopt);
+    VertxBuilder vb = Vertx.builder();
+    MetricsUtil.init(vb);
+    vertx = vb.build();
     httpClient = vertx.createHttpClient();
 
     timerTenantInitStatus = 200;
@@ -379,10 +370,11 @@ public class ProxyTest {
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();
-    httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules",
+    httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
+      .onComplete(
         context.asyncAssertSuccess(request -> {
           request.end();
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
             response.endHandler(x -> {
               httpClient.close();
@@ -391,7 +383,7 @@ public class ProxyTest {
           }));
         }));
     async.await();
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Test
@@ -504,13 +496,13 @@ public class ProxyTest {
 
   private void upload(TestContext context, String tenant, String uri, int offset) {
     Async async = context.async();
-    int bufSz = 10000;
-    long bufCnt = 1000;
+    int bufSz = 100000;
+    long bufCnt = 100;
     long total = bufSz * bufCnt;
     logger.info("Sending {} GB", total / 1e9);
 
-    httpClient.request(HttpMethod.POST, port, "localhost", uri, context.asyncAssertSuccess(request -> {
-      request.response(context.asyncAssertSuccess(res -> {
+    httpClient.request(HttpMethod.POST, port, "localhost", uri).onComplete(context.asyncAssertSuccess(request -> {
+      request.response().onComplete(context.asyncAssertSuccess(res -> {
         context.assertEquals(200, res.statusCode());
         AtomicLong cnt = new AtomicLong();
         res.handler(h -> cnt.addAndGet(h.length()));
@@ -648,7 +640,7 @@ public class ProxyTest {
     if (i == cnt) {
       req.end();
     } else {
-      req.write(buffer, res -> endRequest(req, buffer, i + 1, cnt));
+      req.write(buffer).onComplete(res -> endRequest(req, buffer, i + 1, cnt));
     }
   }
 
@@ -3984,7 +3976,7 @@ public class ProxyTest {
     given()
         .header("Content-Type", "application/json")
         .body("{\"id\":").post("/_/proxy/import/modules")
-        .then().statusCode(400).body(containsString("Expected `[` but found `{`"));
+        .then().statusCode(400).body(containsString("Failed to decode:Cannot deserialize value of type"));
 
     given()
         .header("Content-Type", "application/json")

@@ -2,16 +2,20 @@ package org.folio.okapi.service.impl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.folio.okapi.service.impl.DockerModuleHandle.DOCKER_REGISTRIES_EMPTY_LIST;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientAgent;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.PoolOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -42,9 +46,9 @@ public class DockerModuleHandleTest implements WithAssertions {
   @Test
   public void testRequestException(TestContext testContext) {
     Vertx vertx = mock(Vertx.class);
-    HttpClient httpClient = mock(HttpClient.class);
-    when(vertx.createHttpClient((HttpClientOptions) any())).thenReturn(httpClient);
-    when(httpClient.request(any())).thenThrow(new RuntimeException("foo"));
+    HttpClientAgent httpClientAgent = mock(HttpClientAgent.class);
+    when(vertx.createHttpClient((HttpClientOptions) any(), (PoolOptions) any())).thenReturn(httpClientAgent);
+    when(httpClientAgent.request(any())).thenThrow(new RuntimeException("foo"));
     JsonObject conf = new JsonObject();
     new DockerModuleHandle(vertx, new LaunchDescriptor(), null, null, null, 0, conf)
         .postUrl(null, null)
@@ -226,8 +230,9 @@ public class DockerModuleHandleTest implements WithAssertions {
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     Async async1 = context.async();
     HttpServer listen = vertx.createHttpServer(so)
-        .requestHandler(router)
-        .listen(MOCK_PORT, context.asyncAssertSuccess(x -> async1.complete()));
+        .requestHandler(router);
+
+    listen.listen(MOCK_PORT).onComplete(context.asyncAssertSuccess(x -> async1.complete()));
     async1.await();
 
     dockerPullJson = new JsonObject().put("message", "some message");
@@ -264,7 +269,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     assertThat(pullImage(context, vertx, conf)).isEqualTo("succeeded");
     context.assertEquals("localhost:5000/folioci/mod-x", lastFromImage);
 
-    listen.close(context.asyncAssertSuccess());
+    listen.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Test
@@ -277,8 +282,9 @@ public class DockerModuleHandleTest implements WithAssertions {
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     Async async1 = context.async();
     HttpServer listen = vertx.createHttpServer(so)
-        .requestHandler(router)
-        .listen(MOCK_PORT, context.asyncAssertSuccess(x -> async1.complete()));
+        .requestHandler(router);
+
+    listen.listen(MOCK_PORT).onComplete(context.asyncAssertSuccess(x -> async1.complete()));
     async1.await();
 
     dockerImageMatch = "foo";
@@ -300,7 +306,7 @@ public class DockerModuleHandleTest implements WithAssertions {
     dockerImageMatch = "reg3/folioci/mod-x";
     assertThat(getImage(context, vertx, conf)).contains("not found");
     dockerImageMatch = null;
-    listen.close(context.asyncAssertSuccess());
+    listen.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Test
@@ -312,8 +318,9 @@ public class DockerModuleHandleTest implements WithAssertions {
     Async async1 = context.async();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     HttpServer listen = vertx.createHttpServer(so)
-        .requestHandler(router)
-        .listen(MOCK_PORT, context.asyncAssertSuccess(x -> async1.complete()));
+        .requestHandler(router);
+
+    listen.listen(MOCK_PORT).onComplete(context.asyncAssertSuccess(x -> async1.complete()));
     async1.await();
 
     LaunchDescriptor ld = new LaunchDescriptor();
@@ -510,7 +517,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       async.await();
     }
 
-    listen.close(context.asyncAssertSuccess());
+    listen.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Test

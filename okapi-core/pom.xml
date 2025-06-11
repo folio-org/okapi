@@ -140,6 +140,10 @@
       <artifactId>vertx-hazelcast</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-launcher-application</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
       <scope>test</scope>
@@ -258,7 +262,7 @@
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
-                    <Main-Class>org.folio.okapi.common.MainLauncher</Main-Class>
+                    <Main-Class>io.vertx.launcher.application.VertxApplication</Main-Class>
                     <Main-Verticle>org.folio.okapi.MainVerticle</Main-Verticle>
                   </manifestEntries>
                 </transformer>

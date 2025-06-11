@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.PoolOptions;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
@@ -41,9 +42,10 @@ public class PullManager {
    */
   public PullManager(Vertx vertx, ModuleManager moduleManager) {
     HttpClientOptions options = new HttpClientOptions()
-        .setDecompressionSupported(true)
-        .setMaxPoolSize(2); // suffice as pull is normally not performed concurrently
-    this.httpClient = new FuturisedHttpClient(vertx, options);
+        .setDecompressionSupported(true);
+    PoolOptions poolOptions = new PoolOptions()
+        .setHttp1MaxSize(2); // suffice as pull is normally not performed concurrently
+    this.httpClient = new FuturisedHttpClient(vertx, options, poolOptions);
     this.moduleManager = moduleManager;
   }
 

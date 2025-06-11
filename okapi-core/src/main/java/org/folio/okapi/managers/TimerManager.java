@@ -22,7 +22,6 @@ import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.TimerDescriptor;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.TimerStore;
 import org.folio.okapi.util.JsonDecoder;
@@ -98,7 +97,7 @@ public class TimerManager {
               futures.add(timerMap.put(timerDescriptor.getId(), timerDescriptor));
             }
           }
-          return GenericCompositeFuture.all(futures).mapEmpty();
+          return Future.all(futures).mapEmpty();
         }
     );
   }
@@ -118,7 +117,7 @@ public class TimerManager {
           futures.add(timerStore.delete(tenantPoductSeq).mapEmpty());
         }
       }
-      return GenericCompositeFuture.all(futures).mapEmpty();
+      return Future.all(futures).mapEmpty();
     });
   }
 

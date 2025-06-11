@@ -7,7 +7,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.GenericCompositeFuture;
 
 public class LockedTypedMap1<T> extends LockedStringMap {
 
@@ -77,7 +76,7 @@ public class LockedTypedMap1<T> extends LockedStringMap {
           return Future.succeededFuture();
         }));
       }
-      return GenericCompositeFuture.all(futures).map(results);
+      return Future.all(futures).map(results);
     });
   }
 

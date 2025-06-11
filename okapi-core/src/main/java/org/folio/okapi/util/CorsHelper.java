@@ -57,7 +57,7 @@ public class CorsHelper {
         ctx.next();
       } else {
         CorsHandler.create()
-            .addRelativeOrigin(".*")
+            .addOriginWithRegex(".*")
             .allowedMethod(HttpMethod.PUT)
             .allowedMethod(HttpMethod.PATCH)
             .allowedMethod(HttpMethod.DELETE)

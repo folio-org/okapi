@@ -15,7 +15,6 @@ import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
 import org.junit.Assume;
@@ -44,7 +43,7 @@ public class ProcessModuleHandleTest {
 
   @After
   public void tearDown(TestContext context) {
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Rule
@@ -172,7 +171,7 @@ public class ProcessModuleHandleTest {
   @Test
   public void testPortAlreadyInUse(TestContext context) {
     final NetServer ns = vertx.createNetServer().connectHandler( res -> { res.close(); });
-    ns.listen(9231, context.asyncAssertSuccess(res -> {
+    ns.listen(9231).onComplete(context.asyncAssertSuccess(res -> {
       LaunchDescriptor desc = new LaunchDescriptor();
       desc.setExec("java " + testModuleArgs);
       ModuleHandle mh = createModuleHandle(desc, 9231);
@@ -188,7 +187,7 @@ public class ProcessModuleHandleTest {
   @Test
   public void testWaitPortClose(TestContext context) {
     final NetServer ns = vertx.createNetServer().connectHandler( res -> { res.close(); });
-    ns.listen(9231, context.asyncAssertSuccess(res -> {
+    ns.listen(9231).onComplete(context.asyncAssertSuccess(res -> {
       LaunchDescriptor desc = new LaunchDescriptor();
       desc.setExec("java " + testModuleArgs);
       ProcessModuleHandle pmh = new ProcessModuleHandle(
@@ -300,10 +299,10 @@ public class ProcessModuleHandleTest {
     }
     logger.debug("Start");
     List<Future<Void>> start = mhs.stream().map(ModuleHandle::start).collect(Collectors.toList());
-    GenericCompositeFuture.join(start)
+    Future.join(start)
         .onSuccess(x -> ports.forEach(port -> context.assertFalse(isFree(port), "port " + port)))
         .map(x -> mhs.stream().map(ModuleHandle::stop).collect(Collectors.toList()))
-        .compose(stop -> GenericCompositeFuture.join(stop))
+        .compose(stop -> Future.join(stop))
         .onSuccess(x -> ports.forEach(port -> context.assertTrue(isFree(port), "port " + port)))
         .onComplete(context.asyncAssertSuccess());
   }

@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.ClientSSLOptions;
 import io.vertx.core.net.JdkSSLEngineOptions;
 import io.vertx.core.net.PemTrustOptions;
 import io.vertx.pgclient.PgBuilder;
@@ -73,11 +74,12 @@ class PostgresHandle {
       logger.debug("Enforcing SSL encryption for PostgreSQL connections, "
           + "requiring TLSv1.3 with server name certificate");
       connectOptions.setSslMode(SslMode.VERIFY_FULL);
-      connectOptions.setHostnameVerificationAlgorithm("HTTPS");
-      connectOptions.setPemTrustOptions(
+      ClientSSLOptions cso = new ClientSSLOptions();
+      cso.setHostnameVerificationAlgorithm("HTTPS");
+      cso.setTrustOptions(
           new PemTrustOptions().addCertValue(Buffer.buffer(serverPem)));
-      connectOptions.setEnabledSecureTransportProtocols(Collections.singleton("TLSv1.3"));
-      connectOptions.setJdkSslEngineOptions(new JdkSSLEngineOptions());
+      cso.setEnabledSecureTransportProtocols(Collections.singleton("TLSv1.3"));
+      connectOptions.setSslOptions(cso);
     }
 
     PoolOptions poolOptions = new PoolOptions();

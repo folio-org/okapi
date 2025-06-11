@@ -31,7 +31,7 @@ public class DiscoveryManagerTest extends TestBase {
 
   @After
   public void after(TestContext context) {
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Test

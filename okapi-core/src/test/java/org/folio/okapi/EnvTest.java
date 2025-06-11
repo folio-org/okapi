@@ -49,25 +49,20 @@ public class EnvTest {
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(new JsonObject().put("port", Integer.toString(port)));
 
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
+    vertx.deployVerticle(MainVerticle.class.getName(), opt).onComplete(context.asyncAssertSuccess());
   }
 
   @After
   public void tearDown(TestContext context) {
-    Async async = context.async();
     httpClient.request(HttpMethod.DELETE, port,
-        "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
+        "localhost", "/_/discovery/modules").onComplete(context.asyncAssertSuccess(request -> {
           request.end();
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
-            response.endHandler(x -> {
-              httpClient.close();
-              async.complete();
-            });
+            httpClient.close();
+            vertx.close().onComplete(context.asyncAssertSuccess());
           }));
         }));
-    async.await();
-    vertx.close(context.asyncAssertSuccess());
   }
 
   @Test

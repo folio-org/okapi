@@ -15,7 +15,6 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
@@ -61,7 +60,7 @@ public class ModuleTenantsTest {
       .setConfig(conf);
 
     var mainVerticle = new MainVerticle();
-    vertx.deployVerticle(mainVerticle, opt, context.asyncAssertSuccess(x -> {
+    vertx.deployVerticle(mainVerticle, opt).onComplete(context.asyncAssertSuccess(x -> {
       // directly create a legacy tenant id with underscore, POST /_/proxy/tenants rejects it
       var tenantManager = mainVerticle.getTenantManager();
       tenantManager.insert(new Tenant(new TenantDescriptor(okapiTenant, "the name")));
@@ -70,20 +69,15 @@ public class ModuleTenantsTest {
 
   @After
   public void tearDown(TestContext context) {
-    Async async = context.async();
     httpClient.request(HttpMethod.DELETE, port,
-        "localhost", "/_/discovery/modules", context.asyncAssertSuccess(request -> {
+        "localhost", "/_/discovery/modules").onComplete(context.asyncAssertSuccess(request -> {
           request.end();
-          request.response(context.asyncAssertSuccess(response -> {
+          request.response().onComplete(context.asyncAssertSuccess(response -> {
             context.assertEquals(204, response.statusCode());
-            response.endHandler(x -> {
-              httpClient.close();
-              async.complete();
-            });
+            httpClient.close();
+            vertx.close().onComplete(context.asyncAssertSuccess());
           }));
        }));
-    async.await();
-    vertx.close(context.asyncAssertSuccess());
   }
 
   @Test

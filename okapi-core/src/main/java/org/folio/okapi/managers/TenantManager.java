@@ -36,7 +36,6 @@ import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor.Action;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
@@ -163,7 +162,7 @@ public class TenantManager implements Liveness {
           return Future.succeededFuture();
         }));
       }
-      return GenericCompositeFuture.all(futures).map(tdl);
+      return Future.all(futures).map(tdl);
     });
   }
 
@@ -1154,7 +1153,7 @@ public class TenantManager implements Liveness {
                 .onFailure(x -> tm.setMessage(x.getMessage()))));
       }
     }
-    return GenericCompositeFuture.all(futures).mapEmpty();
+    return Future.all(futures).mapEmpty();
   }
 
   private Future<Void> installTenantModule(Tenant tenant, ProxyContext pc,
@@ -1184,7 +1183,7 @@ public class TenantManager implements Liveness {
     for (TenantModuleDescriptor tm : tml) {
       futures.add(autoUndeploy(tenant, job, modsAvailable, tm));
     }
-    return GenericCompositeFuture.all(futures).mapEmpty();
+    return Future.all(futures).mapEmpty();
   }
 
   private Future<Void> autoUndeploy(Tenant tenant, InstallJob job,
@@ -1221,7 +1220,7 @@ public class TenantManager implements Liveness {
           return Future.succeededFuture();
         }));
       }
-      return GenericCompositeFuture.all(futures).map(tl);
+      return Future.all(futures).map(tl);
     });
   }
 
@@ -1242,7 +1241,7 @@ public class TenantManager implements Liveness {
           return Future.succeededFuture();
         }));
       }
-      return GenericCompositeFuture.all(futures).map(users);
+      return Future.all(futures).map(users);
     });
   }
 
@@ -1283,7 +1282,7 @@ public class TenantManager implements Liveness {
         for (Tenant t : res) {
           futures.add(tenants.add(t.getId(), t));
         }
-        return GenericCompositeFuture.all(futures).mapEmpty();
+        return Future.all(futures).mapEmpty();
       });
     });
   }
@@ -1345,7 +1344,7 @@ public class TenantManager implements Liveness {
         return Future.succeededFuture();
       }));
     }
-    return GenericCompositeFuture.all(futures).compose(res -> {
+    return Future.all(futures).compose(res -> {
       enabledModulesCache.put(tenant.getId(), new ModuleCache(mdl));
       return Future.succeededFuture();
     });

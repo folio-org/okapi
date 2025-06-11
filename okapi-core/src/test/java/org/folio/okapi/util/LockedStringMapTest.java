@@ -7,7 +7,6 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Test;
@@ -33,7 +32,7 @@ public class LockedStringMapTest {
 
   @After
   public void tearDown(TestContext context) {
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   @Test
@@ -333,14 +332,14 @@ public class LockedStringMapTest {
           for (int i = 0; i < 10; i++) {
             futures.add(map.addOrReplace(true, "k", "l", Integer.toString(i)));
           }
-          return GenericCompositeFuture.all(futures);
+          return Future.all(futures);
         })
         .compose(x -> {
           List<Future<Void>> futures = new LinkedList<>();
           for (int i = 0; i < 10; i++) {
             futures.add(map.addOrReplace(true, "k", Integer.toString(i), Integer.toString(i)));
           }
-          return GenericCompositeFuture.all(futures);
+          return Future.all(futures);
         })
         .compose(x -> {
           List<Future<Boolean>> futures = new LinkedList<>();
@@ -348,7 +347,7 @@ public class LockedStringMapTest {
             futures.add(map.remove("k", "l"));
             futures.add(map.remove("k", Integer.toString(i)));
           }
-          return GenericCompositeFuture.all(futures);
+          return Future.all(futures);
         })
         .onComplete(context.asyncAssertSuccess());
   }

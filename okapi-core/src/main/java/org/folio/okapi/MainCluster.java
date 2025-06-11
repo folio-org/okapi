@@ -16,9 +16,11 @@ class MainCluster {
     setLog4jContextSelector();
     Logger logger = OkapiLogger.get();
     MainDeploy d = new MainDeploy();
-    d.init(args, res -> {
-      if (res.failed()) {
-        logger.error(res.cause().getMessage(), res.cause());
+    d.init(args).onFailure(res -> {
+      if (res instanceof MainVerticle.StopException) {
+        System.exit(0);
+      } else {
+        logger.error(res.getMessage(), res.getCause());
         System.exit(1);
       }
     });

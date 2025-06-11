@@ -6,7 +6,6 @@ import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.spi.cluster.ClusterManager;
 import java.util.LinkedList;
 import java.util.List;
-import org.folio.okapi.common.GenericCompositeFuture;
 
 public class EventBusChecker {
   private static final String EVENT_NODE_CHECK = "org.folio.okapi.node.check.";
@@ -47,6 +46,6 @@ public class EventBusChecker {
             return Future.succeededFuture();
           }));
     }
-    return GenericCompositeFuture.all(futures).mapEmpty();
+    return Future.all(futures).mapEmpty();
   }
 }

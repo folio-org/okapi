@@ -19,7 +19,7 @@ public class TokenCache {
 
   /**
    * Constructor using the provided TTL and maxSize.
-   * 
+   *
    * <p>Once the cache reaches maximum capcity, the least-recently accessed entry will be evicted
    * upon insertion of a new entry
    *
@@ -41,7 +41,7 @@ public class TokenCache {
 
   /**
    * Cache an entry.
-   * 
+   *
    * @param method HTTP method
    * @param path path pattern
    * @param userId X-Okapi-User-Id header to cache
@@ -62,7 +62,7 @@ public class TokenCache {
 
   /**
    * Get a cached entry.
-   * 
+   *
    * @param tenant tenant id
    * @param method HTTP method
    * @param path path pattern
@@ -97,18 +97,18 @@ public class TokenCache {
   public static Builder builder() {
     return new Builder();
   }
-  
+
   public int size() {
     return cache.size();
   }
-  
+
   public static final class LruCache extends LinkedHashMap<String, CacheEntry> {
 
     private static final long serialVersionUID = -6197036022604882327L;
     private final int maxEntries;
 
     public LruCache(final int maxEntries) {
-      super((int) (maxEntries / 0.75f), 0.75f, true);
+      super((int) (maxEntries / 0.75), 0.75f, true);
       this.maxEntries = maxEntries;
     }
 
@@ -184,7 +184,7 @@ public class TokenCache {
 
     /**
      * Create a cache entry.
-     * 
+     *
      * @param token the access token to cache
      * @param userId the X-Okapi-User-Id header
      * @param permissions the X-Okapi-Permissions header

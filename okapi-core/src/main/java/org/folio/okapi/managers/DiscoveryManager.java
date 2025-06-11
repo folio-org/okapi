@@ -21,7 +21,6 @@ import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -97,7 +96,7 @@ public class DiscoveryManager implements NodeListener {
           }
         }));
       }
-      return GenericCompositeFuture.all(futures).mapEmpty();
+      return Future.all(futures).mapEmpty();
     });
   }
 
@@ -231,7 +230,7 @@ public class DiscoveryManager implements NodeListener {
           .compose(res -> deploymentStore.delete(dd.getInstId()))
           .mapEmpty());
     }
-    return GenericCompositeFuture.all(futures).mapEmpty();
+    return Future.all(futures).mapEmpty();
   }
 
   private Future<Void> callUndeploy(DeploymentDescriptor md) {
@@ -299,7 +298,7 @@ public class DiscoveryManager implements NodeListener {
       dd.setNodeId(node);
       futures.add(addAndDeploy(dd));
     }
-    return GenericCompositeFuture.all(futures).mapEmpty();
+    return Future.all(futures).mapEmpty();
   }
 
   Future<Void> autoUndeploy(ModuleDescriptor md) {
@@ -318,7 +317,7 @@ public class DiscoveryManager implements NodeListener {
           futures.add(callUndeploy(dd));
         }
       }
-      return GenericCompositeFuture.all(futures).mapEmpty();
+      return Future.all(futures).mapEmpty();
     });
   }
 
@@ -363,7 +362,7 @@ public class DiscoveryManager implements NodeListener {
           return Future.succeededFuture();
         }));
       }
-      return GenericCompositeFuture.all(futures).map(all);
+      return Future.all(futures).map(all);
     });
   }
 
@@ -390,7 +389,7 @@ public class DiscoveryManager implements NodeListener {
         return Future.succeededFuture();
       }));
     }
-    return GenericCompositeFuture.all(futures).compose(x -> Future.succeededFuture(all));
+    return Future.all(futures).compose(x -> Future.succeededFuture(all));
   }
 
   Future<HealthDescriptor> fail(Throwable cause, HealthDescriptor hd) {
@@ -529,7 +528,7 @@ public class DiscoveryManager implements NodeListener {
           return Future.succeededFuture();
         }));
       }
-      return GenericCompositeFuture.all(futures).map(nodes);
+      return Future.all(futures).map(nodes);
     });
   }
 

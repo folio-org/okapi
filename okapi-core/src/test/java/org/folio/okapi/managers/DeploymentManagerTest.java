@@ -33,7 +33,7 @@ public class DeploymentManagerTest {
 
   @After
   public void tearDown(TestContext context) {
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   private void createDeploymentManager(TestContext context, EnvStore envStore, JsonObject config) {

@@ -1,12 +1,9 @@
 package org.folio.okapi.managers;
 
-import static org.folio.okapi.common.ChattyResponsePredicate.JSON;
-import static org.folio.okapi.common.ChattyResponsePredicate.SC_OK;
-
-import io.vertx.config.yaml.YamlProcessor;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpResponseExpectation;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.PemTrustOptions;
@@ -23,6 +20,7 @@ import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
+import org.yaml.snakeyaml.Yaml;
 
 public class KubernetesManager {
 
@@ -40,6 +38,7 @@ public class KubernetesManager {
 
   /**
    * Construct Kubernetes manager.
+   *
    * @param config configuration.
    */
   public KubernetesManager(DiscoveryManager discoveryManager, JsonObject config) {
@@ -52,7 +51,8 @@ public class KubernetesManager {
     webClientOptions = new WebClientOptions();
     String kubeServerPem = Config.getSysConf(ConfNames.KUBE_SERVER_PEM, null, config);
     if (kubeServerPem != null) {
-      webClientOptions.setPemTrustOptions(new PemTrustOptions().addCertPath(kubeServerPem));
+      PemTrustOptions pto = new PemTrustOptions().addCertPath(kubeServerPem);
+      webClientOptions.setTrustOptions(pto);
     }
   }
 
@@ -71,16 +71,18 @@ public class KubernetesManager {
       return Future.succeededFuture();
     }
     return vertx.fileSystem().readFile(fname)
-        .compose(content -> new YamlProcessor().process(vertx, null, content))
-        .map(conf -> {
-          JsonObject context = findNameInJsonArray(conf, "context",
-              conf.getString("current-context"));
+        .map(content -> {
+          Yaml yaml = new Yaml();
+          Map<String, Object> conf = yaml.load(content.toString());
+          JsonObject confJson = new JsonObject(conf);
+          JsonObject ctx = findNameInJsonArray(confJson, "context",
+              confJson.getString("current-context"));
           if (token == null) {
-            JsonObject user = findNameInJsonArray(conf, "user", context.getString("user"));
+            JsonObject user = findNameInJsonArray(confJson, "user", ctx.getString("user"));
             token = user.getString("token");
           }
           if (server == null) {
-            JsonObject cluster = findNameInJsonArray(conf, "cluster", context.getString("cluster"));
+            JsonObject cluster = findNameInJsonArray(confJson, "cluster", ctx.getString("cluster"));
             server = cluster.getString("server");
           }
           return null;
@@ -89,6 +91,7 @@ public class KubernetesManager {
 
   /**
    * async initialization of the manager.
+   *
    * @param vertx Vert.x handle
    * @return future result.
    */
@@ -175,6 +178,7 @@ public class KubernetesManager {
 
   /**
    * Get endpoints from Kubernetes cluster.
+   *
    * @return deployment descriptors list.
    */
   Future<List<DeploymentDescriptor>> getEndpoints() {
@@ -184,9 +188,9 @@ public class KubernetesManager {
       abs.putHeader("Authorization", "Bearer " + token);
     }
     return abs.putHeader("Accept", "application/json")
-        .expect(SC_OK)
-        .expect(JSON)
         .send()
+        .expecting(HttpResponseExpectation.SC_OK)
+        .expecting(HttpResponseExpectation.JSON)
         .map(res -> parseItems(res.bodyAsJsonObject()));
   }
 
@@ -201,29 +205,29 @@ public class KubernetesManager {
 
   /**
    * Refresh discovery with Kubernetes service information.
+   *
    * @return async result.
    */
   public Future<Void> refresh() {
     if (server == null) {
       return Future.succeededFuture();
     }
-    return discoveryManager.get().compose(existing ->
-            getEndpoints().compose(incoming -> {
-              List<DeploymentDescriptor> removeList = new ArrayList<>();
-              List<DeploymentDescriptor> addList = new ArrayList<>();
-              getDiffs(existing, incoming, removeList, addList);
-              Future<Void> future = Future.succeededFuture();
-              for (DeploymentDescriptor dd : addList) {
-                logger.info("Kubernetes: add {} {}", dd.getSrvcId(), dd.getUrl());
-                future = future.compose(x -> discoveryManager.add(dd));
-              }
-              for (DeploymentDescriptor dd : removeList) {
-                logger.info("Kubernetes: remove {} {}", dd.getSrvcId(), dd.getUrl());
-                future = future.compose(x -> discoveryManager.removeAndUndeploy(
-                    dd.getSrvcId(), dd.getInstId()));
-              }
-              return future;
-            }))
+    return discoveryManager.get().compose(existing -> getEndpoints().compose(incoming -> {
+      List<DeploymentDescriptor> removeList = new ArrayList<>();
+      List<DeploymentDescriptor> addList = new ArrayList<>();
+      getDiffs(existing, incoming, removeList, addList);
+      Future<Void> future = Future.succeededFuture();
+      for (DeploymentDescriptor dd : addList) {
+        logger.info("Kubernetes: add {} {}", dd.getSrvcId(), dd.getUrl());
+        future = future.compose(x -> discoveryManager.add(dd));
+      }
+      for (DeploymentDescriptor dd : removeList) {
+        logger.info("Kubernetes: remove {} {}", dd.getSrvcId(), dd.getUrl());
+        future = future.compose(x -> discoveryManager.removeAndUndeploy(
+            dd.getSrvcId(), dd.getInstId()));
+      }
+      return future;
+    }))
         .onSuccess(x -> logger.info("Kubernetes refresh OK"))
         .onFailure(x -> logger.info("Kubernetes refresh failed {}", x.getMessage(), x));
   }

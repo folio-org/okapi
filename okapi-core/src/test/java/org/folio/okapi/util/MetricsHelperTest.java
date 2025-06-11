@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
-import io.vertx.core.VertxOptions;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 
 class MetricsHelperTest {
@@ -33,7 +33,7 @@ class MetricsHelperTest {
 
   @BeforeEach
   void setup() {
-    MetricsUtil.init(new VertxOptions());
+    MetricsUtil.init(Vertx.builder());
   }
 
   @AfterEach

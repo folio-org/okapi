@@ -78,7 +78,7 @@ public class InstallTest {
     RestAssuredClient c = api.createRestAssured3();
 
     c.given().delete("/_/discovery/modules").then().statusCode(204);
-    vertx.close(context.asyncAssertSuccess());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   static void startModule(ModuleHandle moduleHandle, TestContext context) {

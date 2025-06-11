@@ -9,7 +9,7 @@
 #   curl -w '\n' -D - -d '{"srvcId":"test-basic-1.0.0", "nodeId":"localhost"}' http://localhost:9130/_/discovery/modules
 ###
 
-FROM folioci/alpine-jre-openjdk17:latest
+FROM folioci/alpine-jre-openjdk21:latest
 
 # Install latest patch versions of packages: https://pythonspeed.com/articles/security-updates-in-docker/
 USER root

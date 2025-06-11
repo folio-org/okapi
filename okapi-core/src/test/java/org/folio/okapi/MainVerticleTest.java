@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import io.netty.handler.codec.DecoderResult;
 import io.restassured.RestAssured;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.junit5.VertxExtension;
@@ -59,14 +60,18 @@ class MainVerticleTest {
     var httpServerRequest = mock(HttpServerRequest.class);
     var decoderResult = mock(DecoderResult.class);
     var httpServerResponse = mock(HttpServerResponse.class);
+    var httpConnection = mock(HttpConnection.class);
+
     when(httpServerRequest.decoderResult()).thenReturn(decoderResult);
     when(httpServerRequest.response()).thenReturn(httpServerResponse);
+    when(httpServerRequest.connection()).thenReturn(httpConnection);;
+    when(decoderResult.isFailure()).thenReturn(true);
+    when(decoderResult.cause()).thenReturn(new Exception("test"));
     when(httpServerResponse.setStatusCode(400)).thenReturn(httpServerResponse);
 
     MainVerticle.invalidRequestHandler(httpServerRequest);
 
     verify(httpServerResponse).setStatusCode(400);
     verify(httpServerResponse).end();
-    verify(httpServerResponse).close();
   }
 }

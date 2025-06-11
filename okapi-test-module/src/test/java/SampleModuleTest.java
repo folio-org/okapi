@@ -43,7 +43,7 @@ public class SampleModuleTest {
     System.setProperty("pidFile", pidFilename);
 
     DeploymentOptions opt = new DeploymentOptions();
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
+    vertx.deployVerticle(MainVerticle.class.getName(), opt).onComplete(context.asyncAssertSuccess());
   }
 
   @After
@@ -53,8 +53,7 @@ public class SampleModuleTest {
     } catch (IOException ex) {
       logger.warn(ex);
     }
-    Async async = context.async();
-    vertx.close(x -> async.complete());
+    vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
   private HashMap<String, String> headers = new HashMap<>();
@@ -290,7 +289,7 @@ public class SampleModuleTest {
     for (int loop = 0; loop < 2; loop++) {
       Async async = context.async();
       logger.info("Sending {} GB", total / 1e9);
-      client.request(HttpMethod.POST, PORT, "localhost", "/testb", ar -> {
+      client.request(HttpMethod.POST, PORT, "localhost", "/testb").onComplete(ar -> {
         context.assertTrue(ar.succeeded());
         HttpClientRequest request = ar.result();
         request.putHeader("Content-Type", "text/plain");
@@ -301,7 +300,7 @@ public class SampleModuleTest {
           buffer.appendString("X");
         }
         endRequest(request, buffer, 0, bufCnt);
-        request.response(context.asyncAssertSuccess(res -> {
+        request.response().onComplete(context.asyncAssertSuccess(res -> {
           context.assertEquals(200, res.statusCode());
           AtomicLong cnt = new AtomicLong();
           res.handler(h -> cnt.addAndGet(h.length()));
@@ -323,7 +322,7 @@ public class SampleModuleTest {
     if (i == cnt) {
       req.end();
     } else {
-      req.write(buffer, res -> endRequest(req, buffer, i + 1, cnt));
+      req.write(buffer).onComplete(res -> endRequest(req, buffer, i + 1, cnt));
     }
   }
 }
