@@ -80,10 +80,10 @@ public class ProxyContext {
     newid.append(String.format("%06d", r.nextInt(1000000)));
 
     int start = 0;
-    if (path.startsWith("/_")) {
+    if (path.startsWith("/_/")) {
       start = 2;
     }
-    int end = start;
+    int end = start + 1;
     while (end < path.length() && path.charAt(end) != '/' && path.charAt(end) != '?') {
       end++;
     }
