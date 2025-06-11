@@ -73,14 +73,21 @@ public class ProxyContext {
     if (path == null) { // defensive coding, should always be there
       path = "";
     }
-    path = path.replaceFirst("^(/_)?(/[^/?]+).*$", "$2");
-    // when rerouting, the query appears as part of the getPath, so we kill it
-    // here with the '?'.
+
     StringBuilder newid = new StringBuilder();
     // Not used for security, just for request id uniqueness
     Random r = new Random(); //NOSONAR
     newid.append(String.format("%06d", r.nextInt(1000000)));
-    newid.append(path);
+
+    int start = 0;
+    if (path.startsWith("/_")) {
+      start = 2;
+    }
+    int end = start;
+    while (end < path.length() && path.charAt(end) != '/' && path.charAt(end) != '?') {
+      end++;
+    }
+    newid.append(path, start, end);
     String curid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
     if (curid == null || curid.isEmpty()) {
       reqId = newid.toString();
