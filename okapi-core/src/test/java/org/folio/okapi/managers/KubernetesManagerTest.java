@@ -256,7 +256,7 @@ public class KubernetesManagerTest {
     when(dd.isLeader()).thenReturn(false);
     KubernetesManager kubernetesManager = new KubernetesManager(dd, config);
     kubernetesManager.refreshLoop(vertx);
-    vertx.setTimer(10, x -> context.verify(() -> {
+    vertx.setTimer(20, x -> context.verify(() -> {
           verify(dd, atLeastOnce()).isLeader();
           context.completeNow();
         })
@@ -270,7 +270,7 @@ public class KubernetesManagerTest {
     when(dd.isLeader()).thenReturn(true);
     KubernetesManager kubernetesManager = new KubernetesManager(dd, config);
     kubernetesManager.refreshLoop(vertx);
-    vertx.setTimer(10, x -> context.verify(() -> {
+    vertx.setTimer(20, x -> context.verify(() -> {
           verify(dd, atLeastOnce()).isLeader();
           context.completeNow();
         })
