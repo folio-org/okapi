@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "InterfaceDescriptor.json",
+  "title": "InterfaceDescriptor",
+  "description": "An interface that a module can provide",
+  "type": "object",
+  "additionalProperties" : false,
+  "properties": {
+    "id": {
+      "description": "Interface ID",
+      "type": "string"
+    },
+    "version": {
+      "description": "Interface version in major.minor format",
+      "type": "string"
+    },
+    "interfaceType": {
+      "description": "Type: proxy (default), system, internal, multiple",
+      "type": ["string", "null"]
+    },
+    "handlers": {
+      "description": "Handler entries for this interface",
+      "type": ["array", "null"],
+      "items": {
+        "$ref": "RoutingEntry.json"
+      }
+    },
+    "permissionSets": {
+      "description": "Permissions for this interface",
+      "type": ["array", "null"],
+      "items": {
+        "$ref": "Permission.json"
+      }
+    },
+    "scope" : {
+      "description" : "Interface scope",
+      "type" : "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": ["id", "version"]
+}

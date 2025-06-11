@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "HealthDescriptorList.json",
+  "title": "HealthDescriptorList",
+  "description": "List of health descriptors",
+  "type": "array",
+  "items": {
+    "$ref": "HealthDescriptor.json"
+  }
+}
