@@ -62,8 +62,8 @@ public class DockerTest {
           .put("port_start", Integer.toString(port + 4))
           .put("port_end", Integer.toString(port + 6)));
 
-      vertx.deployVerticle(MainVerticle.class.getName(),
-        opt).onComplete(context.asyncAssertSuccess(id -> {
+      vertx.deployVerticle(MainVerticle.class.getName(), opt)
+       .onComplete(context.asyncAssertSuccess(id -> {
           logger.info("Verticle deployed: " + id);
           verticleId = id;
           async.complete();
