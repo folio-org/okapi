@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "TenantList.json",
+  "title": "TenantList",
+  "description": "List of Tenants",
+  "type": "array",
+  "items": {
+    "$ref": "TenantDescriptor.json"
+  }
+}

@@ -1,0 +1,65 @@
+name: api-lint
+
+# https://dev.folio.org/guides/api-lint/
+
+# API_TYPES: string: The space-separated list of types to consider.
+# One or more of 'RAML OAS'.
+# e.g. 'OAS'
+#
+# API_DIRECTORIES: string: The space-separated list of directories to search
+# for API description files.
+# e.g. 'src/main/resources/openapi'
+# NOTE: -- Also add each separate path to each of the "on: paths:" sections.
+# e.g. 'src/main/resources/openapi/**'
+#
+# API_EXCLUDES: string: The space-separated list of directories and files
+# to exclude from traversal, in addition to the default exclusions.
+# e.g. ''
+#
+# API_WARNINGS: boolean: Whether to cause Warnings to be displayed,
+# and to fail the workflow.
+# e.g. false
+
+env:
+  API_TYPES: 'RAML'
+  API_DIRECTORIES: 'okapi-core/src/main/raml'
+  API_EXCLUDES: ''
+  API_WARNINGS: false
+
+on:
+  push:
+    paths:
+      - 'okapi-core/src/main/raml/**'
+  pull_request:
+    paths:
+      - 'okapi-core/src/main/raml/**'
+
+jobs:
+  api-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Prepare folio-tools
+        run: |
+          git clone https://github.com/folio-org/folio-tools
+          cd folio-tools/api-lint \
+            && yarn install \
+            && pip3 install -r requirements.txt
+      - name: Configure default options
+        run: |
+          echo "OPTION_WARNINGS=''" >> $GITHUB_ENV
+      - name: Configure option warnings
+        if: ${{ env.API_WARNINGS == 'true' }}
+        run: |
+          echo "OPTION_WARNINGS=--warnings" >> $GITHUB_ENV
+      - name: Do api-lint
+        run: |
+          python3 folio-tools/api-lint/api_lint.py \
+            --loglevel info \
+            --types ${{ env.API_TYPES }} \
+            --directories ${{ env.API_DIRECTORIES }} \
+            --excludes ${{ env.API_EXCLUDES }} \
+            ${{ env.OPTION_WARNINGS }}

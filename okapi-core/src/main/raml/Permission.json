@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "Permission.json",
+  "title": "Permissions Definition Schema",
+  "description": "Permission entity",
+  "type": "object",
+  "additionalProperties" : false,
+  "properties": {
+    "permissionName": {
+      "description": "Permission ID (usually module.service.method or similar)",
+      "type": "string"
+    },
+    "replaces": {
+      "description": "previously used names for this permission",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "displayName": {
+      "description": "Human readable name for permission",
+      "type": "string"
+    },
+    "description": {
+      "description": "Description for permission",
+      "type": "string"
+    },
+    "subPermissions": {
+      "description": "Sub permissions",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "visible" : {
+      "description": "Whether to show the permission in UI",
+      "type" : "boolean"
+    }
+  },
+  "required" : [ "permissionName"]
+}

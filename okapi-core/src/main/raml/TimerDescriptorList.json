@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "TimerDescriptorList.json",
+  "title": "Timer Descriptor list",
+  "description": "Timer Descriptor List",
+  "type": "array",
+  "items": {
+    "$ref": "TimerDescriptor.json"
+  }
+}
+

@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "ModuleList.json",
+  "title": "ModuleList",
+  "description": "List of Module Descriptors",
+  "type": "array",
+  "items": {
+    "$ref": "ModuleDescriptor.json"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "test-auth-3.4.1",
+  "name": "Okapi test auth module",
+  "provides": [
+    {
+      "id": "test-auth",
+      "version": "3.4",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/authn/login"
+        }
+      ]
+    },
+    {
+      "id": "_tenantPermissions",
+      "version": "1.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/_/tenantPermissions"
+        }
+      ]
+    }
+  ],
+  "requires": [],
+  "filters": [
+    {
+      "methods": [ "*" ],
+      "pathPattern": "/*",
+      "phase": "auth",
+      "type": "headers"
+    }
+  ],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar ${basedir}/target/okapi-test-auth-module-fat.jar"
+  }
+}
+

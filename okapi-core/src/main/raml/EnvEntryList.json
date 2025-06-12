@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "EnvEntryList.json",
+  "title": "EnvEntryList",
+  "description": "List of environment variables",
+  "type": "array",
+  "items": {
+    "$ref": "EnvEntry.json"
+  }
+}
