@@ -3,6 +3,8 @@ package org.folio.okapi;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpResponseExpectation;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,12 +35,13 @@ import org.junit.runner.RunWith;
 public class ModuleTenantsTest {
 
   private final Logger logger = OkapiLogger.get();
-  private Vertx vertx;
+  private Vertx vertx = Vertx.vertx();
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
   private final int port = 9230;
   private static RamlDefinition api;
   private final String okapiTenant = "ros_kilde";
+  private String verticleId;
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -49,7 +52,6 @@ public class ModuleTenantsTest {
   @Before
   public void setUp(TestContext context) {
     logger.debug("starting ModuleTenantsTest");
-    vertx = Vertx.vertx();
     httpClient = vertx.createHttpClient();
     JsonObject conf = new JsonObject()
         .put("port", Integer.toString(port))
@@ -60,24 +62,25 @@ public class ModuleTenantsTest {
       .setConfig(conf);
 
     var mainVerticle = new MainVerticle();
-    vertx.deployVerticle(mainVerticle, opt).onComplete(context.asyncAssertSuccess(x -> {
+    vertx.deployVerticle(mainVerticle, opt).onComplete(context.asyncAssertSuccess(id -> {
       // directly create a legacy tenant id with underscore, POST /_/proxy/tenants rejects it
       var tenantManager = mainVerticle.getTenantManager();
+      verticleId = id;
       tenantManager.insert(new Tenant(new TenantDescriptor(okapiTenant, "the name")));
     }));
   }
 
   @After
   public void tearDown(TestContext context) {
-    httpClient.request(HttpMethod.DELETE, port,
-        "localhost", "/_/discovery/modules").onComplete(context.asyncAssertSuccess(request -> {
-          request.end();
-          request.response().onComplete(context.asyncAssertSuccess(response -> {
-            context.assertEquals(204, response.statusCode());
-            httpClient.close();
-            vertx.close().onComplete(context.asyncAssertSuccess());
-          }));
-       }));
+    httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
+      .compose(request -> {
+        request.end();
+        return request.response()
+            .expecting(HttpResponseExpectation.SC_NO_CONTENT);
+      })
+      .compose(response -> response.end())
+      .eventually(() -> vertx.undeploy(verticleId))
+      .onComplete(context.asyncAssertSuccess());
   }
 
   @Test
