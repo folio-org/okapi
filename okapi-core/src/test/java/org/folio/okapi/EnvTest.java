@@ -3,6 +3,8 @@ package org.folio.okapi;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpResponseExpectation;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,7 +15,6 @@ import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
@@ -28,11 +29,12 @@ import org.junit.runner.RunWith;
 public class EnvTest {
 
   private final Logger logger = OkapiLogger.get();
-  private Vertx vertx;
+  private Vertx vertx = Vertx.vertx();
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
   private final int port = 9230;
   private static RamlDefinition api;
+  private String verticleId;
 
   @BeforeClass
   public static void setUpBeforeClass() {
@@ -43,26 +45,26 @@ public class EnvTest {
   @Before
   public void setUp(TestContext context) {
     logger.debug("starting EnvTest");
-    vertx = Vertx.vertx();
     httpClient = vertx.createHttpClient();
 
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(new JsonObject().put("port", Integer.toString(port)));
 
-    vertx.deployVerticle(MainVerticle.class.getName(), opt).onComplete(context.asyncAssertSuccess());
+    vertx.deployVerticle(MainVerticle.class.getName(), opt)
+      .onComplete(context.asyncAssertSuccess(id -> verticleId = id));
   }
 
   @After
   public void tearDown(TestContext context) {
-    httpClient.request(HttpMethod.DELETE, port,
-        "localhost", "/_/discovery/modules").onComplete(context.asyncAssertSuccess(request -> {
-          request.end();
-          request.response().onComplete(context.asyncAssertSuccess(response -> {
-            context.assertEquals(204, response.statusCode());
-            httpClient.close();
-            vertx.close().onComplete(context.asyncAssertSuccess());
-          }));
-        }));
+    httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
+      .compose(request -> {
+        request.end();
+        return request.response()
+            .expecting(HttpResponseExpectation.SC_NO_CONTENT);
+      })
+      .compose(response -> response.end())
+      .eventually(() -> vertx.undeploy(verticleId))
+      .onComplete(context.asyncAssertSuccess());
   }
 
   @Test
