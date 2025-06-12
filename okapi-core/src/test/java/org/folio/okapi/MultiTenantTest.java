@@ -5,9 +5,9 @@ import io.restassured.response.Response;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpResponseExpectation;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
@@ -124,29 +124,23 @@ public class MultiTenantTest {
 
     MainDeploy d = new MainDeploy(conf);
     String[] args = {"dev"};
-    d.init(args).onComplete(context.asyncAssertSuccess(vertx1 -> {
-      vertx = vertx1;
-    }));
+    d.init(args)
+      .onComplete(context.asyncAssertSuccess(vertx1 -> {
+         vertx = vertx1;
+      }));
   }
 
   @After
   public void tearDown(TestContext context) {
-    Async async = context.async();
     HttpClient httpClient = vertx.createHttpClient();
-    httpClient.request(HttpMethod.DELETE, port,
-        "localhost", "/_/discovery/modules")
-        .onComplete(context.asyncAssertSuccess(request -> {
-          request.end();
-          request.response().onComplete(context.asyncAssertSuccess(response -> {
-            context.assertEquals(204, response.statusCode());
-            response.endHandler(x -> {
-              httpClient.close();
-              async.complete();
-            });
-          }));
-        }));
-    async.await();
-    vertx.close().onComplete(context.asyncAssertSuccess());
+    httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
+      .compose(request -> {
+        request.end();
+        return request.response()
+            .expecting(HttpResponseExpectation.SC_NO_CONTENT);
+      })
+      .compose(response -> response.end())
+      .onComplete(context.asyncAssertSuccess(x -> vertx.close()));
   }
 
   @Test
