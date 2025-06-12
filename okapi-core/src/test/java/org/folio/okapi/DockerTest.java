@@ -78,14 +78,14 @@ public class DockerTest {
 
     HttpClient httpClient = vertx.createHttpClient();
     httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
-    .compose(request -> {
-      request.end();
-      return request.response()
-          .expecting(HttpResponseExpectation.SC_NO_CONTENT);
-    })
-    .compose(response -> response.end())
-    .eventually(() -> vertx.undeploy(verticleId))
-    .onComplete(context.asyncAssertSuccess());
+      .compose(request -> {
+        request.end();
+        return request.response()
+            .expecting(HttpResponseExpectation.SC_NO_CONTENT);
+      })
+      .compose(response -> response.end())
+      .eventually(() -> vertx.undeploy(verticleId))
+      .onComplete(context.asyncAssertSuccess());
   }
 
   private Future<JsonArray> checkDocker() {
