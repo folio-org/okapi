@@ -369,20 +369,7 @@ public class ProxyTest {
 
   @After
   public void tearDown(TestContext context) {
-    Async async = context.async();
-    httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
-      .onComplete(
-        context.asyncAssertSuccess(request -> {
-          request.end();
-          request.response().onComplete(context.asyncAssertSuccess(response -> {
-            context.assertEquals(204, response.statusCode());
-            response.endHandler(x -> {
-              httpClient.close();
-              async.complete();
-            });
-          }));
-        }));
-    async.await();
+    given().delete("/_/discovery/modules").then().statusCode(204);
     vertx.close().onComplete(context.asyncAssertSuccess());
   }
 
@@ -1810,7 +1797,6 @@ public class ProxyTest {
   @Test
   public void testRequestOnly(TestContext context) {
     final String okapiTenant = "roskilde";
-    Response r;
 
     // add tenant
     final String docTenantRoskilde = "{" + LS
@@ -1818,13 +1804,12 @@ public class ProxyTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    r = api.createRestAssured3().given()
+    api.createRestAssured3().given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
       .body(equalTo(docTenantRoskilde))
       .extract().response();
-    final String locationTenantRoskilde = r.getHeader("Location");
 
     final String docRequestPre = "{" + LS
         + "  \"id\" : \"request-pre-1.0.0\"," + LS
@@ -2028,7 +2013,12 @@ public class ProxyTest {
       .then().statusCode(200).log().ifValidationFails()
       .header("Content-Type", "text/xml")
       .body(equalTo("<test>Hello Okapi</test>"));
-    Assert.assertEquals("Okapi", preBuffer.toString());
+
+    Awaitility.await().atMost(500, TimeUnit.MILLISECONDS).untilAsserted(
+      () -> {
+        Assertions.assertThat(preBuffer).isNotNull();
+        Assertions.assertThat(preBuffer.toString()).isEqualTo("Okapi");
+      });
 
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
@@ -2070,15 +2060,14 @@ public class ProxyTest {
       .header("Content-Type", "text/xml")
       .body(equalTo("<test>Hello Okapi</test>"));
 
-    Async async = context.async();
-    vertx.setTimer(300, res -> {
-      context.assertEquals("Okapi", preBuffer.toString());
-      context.assertEquals("<test>Hello Okapi</test>", postBuffer.toString());
-      context.assertNotNull(postHandlerHeaders);
-      context.assertEquals("200", postHandlerHeaders.get(XOkapiHeaders.HANDLER_RESULT));
-      async.complete();
-    });
-    async.await();
+    Awaitility.await().atMost(500, TimeUnit.MILLISECONDS).untilAsserted(
+      () -> {
+        Assertions.assertThat(preBuffer).isNotNull();
+        Assertions.assertThat(preBuffer.toString()).isEqualTo("Okapi");
+        Assertions.assertThat(postBuffer).isNotNull();
+        Assertions.assertThat(postBuffer.toString()).isEqualTo("<test>Hello Okapi</test>");
+        Assertions.assertThat(postHandlerHeaders.get(XOkapiHeaders.HANDLER_RESULT)).isEqualTo("200");
+      });
 
     // same as sample-1.0.0 but with request-response-1.0
     final String docSample2 = "{" + LS
@@ -2126,15 +2115,14 @@ public class ProxyTest {
         .header("Content-Type", "text/xml")
         .body(equalTo("<test>Hello Okapi</test>"));
 
-    Async async2 = context.async();
-    vertx.setTimer(300, res -> {
-      context.assertEquals("Okapi", preBuffer.toString());
-      context.assertEquals("<test>Hello Okapi</test>", postBuffer.toString());
-      context.assertNotNull(postHandlerHeaders);
-      context.assertEquals("200", postHandlerHeaders.get(XOkapiHeaders.HANDLER_RESULT));
-      async2.complete();
-    });
-    async2.await();
+    Awaitility.await().atMost(500, TimeUnit.MILLISECONDS).untilAsserted(
+      () -> {
+        Assertions.assertThat(preBuffer).isNotNull();
+        Assertions.assertThat(preBuffer.toString()).isEqualTo("Okapi");
+        Assertions.assertThat(postBuffer).isNotNull();
+        Assertions.assertThat(postBuffer.toString()).isEqualTo("<test>Hello Okapi</test>");
+        Assertions.assertThat(postHandlerHeaders.get(XOkapiHeaders.HANDLER_RESULT)).isEqualTo("200");
+      });
   }
 
   @Test
