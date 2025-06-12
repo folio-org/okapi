@@ -76,20 +76,16 @@ public class DockerTest {
   public void tearDown(TestContext context) {
     logger.info("tearDown");
 
-    Async async = context.async();
     HttpClient httpClient = vertx.createHttpClient();
-    httpClient.request(HttpMethod.DELETE, port,
-        "localhost", "/_/discovery/modules").onComplete(context.asyncAssertSuccess(request -> {
-          request.end();
-          request.response().onComplete(context.asyncAssertSuccess(response -> {
-            context.assertEquals(204, response.statusCode());
-            response.endHandler(x -> {
-              async.complete();
-            });
-          }));
-        }));
-    async.await();
-    vertx.undeploy(verticleId).onComplete(context.asyncAssertSuccess());
+    httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
+    .compose(request -> {
+      request.end();
+      return request.response()
+          .expecting(HttpResponseExpectation.SC_NO_CONTENT);
+    })
+    .compose(response -> response.end())
+    .eventually(() -> vertx.undeploy(verticleId))
+    .onComplete(context.asyncAssertSuccess());
   }
 
   private Future<JsonArray> checkDocker() {
