@@ -129,7 +129,6 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    final String locationBasic_1_0_0 = r.getHeader("Location");
 
     c = api.createRestAssured3();
     r = c.given()
