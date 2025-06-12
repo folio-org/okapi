@@ -8,9 +8,7 @@ import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.UrlDecoder;
@@ -38,6 +36,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpResponseExpectation;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -65,7 +64,7 @@ public class ModuleTest {
 
   private final Logger logger = OkapiLogger.get();
 
-  private Vertx vertx;
+  private Vertx vertx = Vertx.vertx();
 
   private String locationSampleDeployment;
   private String locationHeaderDeployment;
@@ -78,6 +77,8 @@ public class ModuleTest {
   private static final String LS = System.lineSeparator();
   private final int port = 9230;
   private static RamlDefinition api;
+  private String verticleId;
+
   /**
    * Testcontainers startup config workaround for podman:
    * https://github.com/testcontainers/testcontainers-java/issues/6640#issuecomment-1431636203
@@ -158,8 +159,6 @@ public class ModuleTest {
 
   @Before
   public void setUp(TestContext context) {
-    vertx = Vertx.vertx();
-
     httpClient = vertx.createHttpClient();
     RestAssured.port = port;
     RestAssured.urlEncodingEnabled = false;
@@ -171,26 +170,25 @@ public class ModuleTest {
     config.put("mongo_db_init", "1");
 
     DeploymentOptions opt = new DeploymentOptions().setConfig(config);
-    vertx.deployVerticle(MainVerticle.class.getName(), opt).onComplete(context.asyncAssertSuccess());
+    vertx.deployVerticle(MainVerticle.class.getName(), opt)
+      .onComplete(context.asyncAssertSuccess(id -> verticleId = id));
   }
 
   @After
   public void tearDown(TestContext context) {
     logger.debug("Cleaning up after ModuleTest");
-    if (httpClient != null) {
-      Async async = context.async();
-      httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
-      .onComplete(
-          context.asyncAssertSuccess(request -> {
-            request.end();
-            request.response().onComplete(context.asyncAssertSuccess(response -> {
-              context.assertEquals(204, response.statusCode());
-              response.endHandler(x -> async.complete());
-            }));
-          }));
-      async.await();
+    if (verticleId == null) {
+      return;
     }
-    vertx.close().onComplete(context.asyncAssertSuccess());
+    httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
+      .compose(request -> {
+        request.end();
+        return request.response()
+            .expecting(HttpResponseExpectation.SC_NO_CONTENT);
+      })
+      .compose(response -> response.end())
+      .eventually(() -> undeployMainVerticle())
+      .onComplete(context.asyncAssertSuccess());
   }
 
 
@@ -1875,12 +1873,7 @@ public class ModuleTest {
       c.given().delete(loc).then().statusCode(204);
       assertEmptyReport(c);
 
-      Async async = context.async();
-      undeployAll().onComplete(x -> {
-        DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-        vertx.deployVerticle(MainVerticle.class.getName(), opt).onComplete(y -> async.complete());
-      });
-      async.await();
+      redeploy(context).onComplete(context.asyncAssertSuccess());
     }
     c = api.createRestAssured3();
     c.given().delete(locationSampleModule).then().statusCode(204);
@@ -2632,22 +2625,24 @@ public class ModuleTest {
     assertEmptyReport(c);
   }
 
-  private Future<Void> undeployAll() {
-    Set<String> ids = vertx.deploymentIDs();
-    Iterator<String> it = ids.iterator();
-    Future<Void> future = Future.succeededFuture();
-    while (it.hasNext()) {
-      future = future.compose(x -> vertx.undeploy(it.next()));
+  private Future<Void> undeployMainVerticle() {
+    if (verticleId == null) {
+      return Future.succeededFuture();
     }
-    return future;
+    return vertx.undeploy(verticleId)
+       .onSuccess(x -> verticleId = null)
+       .mapEmpty();
+  }
+
+  private Future<String> deployMainVerticle() {
+    DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+    return vertx.deployVerticle(MainVerticle.class.getName(), opt)
+          .onSuccess(id -> verticleId = id);
   }
 
   private Future<String> redeploy() {
-    httpClient = null;
-    return undeployAll().compose(x -> {
-      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      return vertx.deployVerticle(MainVerticle.class.getName(), opt);
-    });
+    return undeployMainVerticle()
+      .compose(x -> deployMainVerticle());
   }
 
   private Future<String> redeploy(TestContext context) {
@@ -2847,7 +2842,7 @@ public class ModuleTest {
         .get("/_/proxy/tenants/testlib/modules/okapi-0.0.0")
         .then().statusCode(foundStatus);
 
-    final String locHdrModule = createHeaderModule("1.1");
+    createHeaderModule("1.1");
 
     given()
         .header("Content-Type", "application/json")
