@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "DeploymentDescriptor.json",
+  "title": "DeploymentDescriptor",
+  "description" : "Module deployment information. There are two modes: deployment managed by Okapi (with nodeId specified) and remote module (with URL specified).",
+  "type": "object",
+  "additionalProperties" : false,
+  "properties": {
+    "srvcId": {
+      "description": "The Module ID for the instance",
+      "type": "string"
+    },
+    "instId": {
+       "description": "Instance ID (at least unique for node)",
+       "type": "string"
+    },
+    "nodeId": {
+      "description": "Node ID where module is deployed",
+      "type": ["string", "null"]
+    },
+    "url": {
+      "description": "URL where module is deployed (not managed by Okapi). Must not end with a slash unless a slash should be added. Examples with url and where a request for /foo will be proxied to: http://example.com results in http://example.com/foo, and http://example.com/ results in http://example.com//foo, and http://example.com/xyz results in http://example.com/xyz/foo, and http://example.com/xyz/ results in http://example.com/xyz//foo.",
+      "type": ["string", "null"]
+    },
+    "descriptor" : {
+      "description": "Deployment details",
+      "$ref": "LaunchDescriptor.json"
+    }
+  },
+  "required": ["srvcId"]
+}
