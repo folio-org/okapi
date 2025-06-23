@@ -11,8 +11,11 @@
   <modules>
     <module>okapi-testing</module>
     <module>okapi-common</module>
+    <module>okapi-test-module</module>
+    <module>okapi-test-auth-module</module>
+    <module>okapi-test-header-module</module>
+    <module>okapi-core</module>
   </modules>
-
   <licenses>
     <license>
       <name>Apache License 2.0</name>
@@ -41,7 +44,7 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      
+
        <!-- START: versions that depend on the vertx-stack-depchain version -->
       <dependency>
         <groupId>io.micrometer</groupId>
@@ -50,8 +53,14 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <dependency>
+        <groupId>com.hazelcast</groupId>
+        <artifactId>hazelcast</artifactId>
+        <version>5.3.8</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/4.x/.github/workflows/ci-4.x.yml -->
+      </dependency>
+
       <!-- END: versions that depend on the vertx-stack-depchain version -->
-      
+
       <dependency>
         <groupId>org.hamcrest</groupId>
         <artifactId>hamcrest</artifactId>
@@ -82,6 +91,22 @@
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
         <version>3.27.3</version>
+      </dependency>
+       <dependency>
+        <groupId>com.zaxxer</groupId>
+        <artifactId>nuprocess</artifactId>
+        <version>3.0.0</version>
+        <scope>compile</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.cronutils</groupId>
+        <artifactId>cron-utils</artifactId>
+        <version>9.2.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.ongres.scram</groupId>
+        <artifactId>client</artifactId>
+        <version>2.1</version>
       </dependency>
       <dependency>
         <groupId>org.junit</groupId>
@@ -142,16 +167,40 @@
 
     <pluginManagement>
       <plugins>
-
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.6.0</version>
+          <configuration>
+            <createDependencyReducedPom>false</createDependencyReducedPom>
+            <filters>
+              <filter>
+                <artifact>*:*</artifact>
+                <excludes>
+                  <exclude>**/Log4j2Plugins.dat</exclude>
+                </excludes>
+              </filter>
+            </filters>
+          </configuration>
+        </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.4.2</version>
         </plugin>
-        
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.3.1</version>
+        </plugin>
+        <plugin>
+          <groupId>pl.project13.maven</groupId>
+          <artifactId>git-commit-id-plugin</artifactId>
+          <version>4.9.10</version>
+        </plugin>
       </plugins>
     </pluginManagement>
-        
+
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
