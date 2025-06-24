@@ -49,45 +49,64 @@ public class FolioLoggingContext implements StrLookup {
    */
   @Override
   public String lookup(LogEvent event, String key) {
-    return lookup(key);
+    return lookup(localKey(key));
   }
 
   /**
-   * Lookup value by key.
+   * Lookup value by {@link String} key.
    *
    * @param key the name of logging variable, {@code null} key isn't allowed
    * @return value for key or *empty string* if there is no such key
    */
   @Override
   public String lookup(String key) {
-    // needs try/catch until fixed: https://github.com/eclipse-vertx/vert.x/issues/4611
-    try {
-      Context ctx = Vertx.currentContext();
-      if (ctx != null) {
-        String val = ctx.getLocal(localKey(key));
-        if (val != null) {
-          return val;
-        }
+    return lookup(localKey(key));
+  }
+
+  /**
+   * Lookup value by {@link ContextLocal} key.
+   *
+   * @param key the name of logging variable, {@code null} key isn't allowed
+   * @return value for key or *empty string* if there is no such key
+   */
+  public String lookup(ContextLocal<String> key) {
+    Context ctx = Vertx.currentContext();
+    if (ctx != null) {
+      String val = ctx.getLocal(key);
+      if (val != null) {
+        return val;
       }
-      return EMPTY_VALUE;
-    } catch (NullPointerException e) {
-      return EMPTY_VALUE;
     }
+    return EMPTY_VALUE;
   }
 
   /**
    * Put value by key to the logging context.
+   *
    * @param key the name of logging variable, {@code null} key isn't allowed.
    * @param value the value of logging variable.
-   *              If {@code null} is passed, entry is removed from context
+   *     If {@code null} is passed, entry is removed from context.
+   * @see #put(ContextLocal, String) that takes one of the {@link FolioLocal} values
+   *     and therefore avoids a lookup.
    */
   public static void put(String key, String value) {
+    put(localKey(key), value);
+  }
+
+  /**
+   * Put value by key to the logging context.
+   *
+   * @param key one of the {@link FolioLocal} values as key, {@code null} key isn't allowed.
+   * @param value the value of logging variable.
+   *     If {@code null} is passed, entry is removed from context.
+   */
+  public static void put(ContextLocal<String> key, String value) {
     Context ctx = Vertx.currentContext();
     if (ctx != null) {
       if (value != null) {
-        ctx.putLocal(localKey(key), value);
+        ctx.putLocal(key, value);
       } else {
-        ctx.removeLocal(localKey(key));
+        ctx.removeLocal(key);
       }
     }
   }
