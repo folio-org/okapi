@@ -181,12 +181,7 @@ public class ModuleTest {
       return;
     }
     httpClient.request(HttpMethod.DELETE, port, "localhost", "/_/discovery/modules")
-      .compose(request -> {
-        request.end();
-        return request.response()
-            .expecting(HttpResponseExpectation.SC_NO_CONTENT);
-      })
-      .compose(response -> response.end())
+      .compose(request -> request.send().expecting(HttpResponseExpectation.SC_NO_CONTENT))
       .eventually(() -> undeployMainVerticle())
       .onComplete(context.asyncAssertSuccess());
   }
