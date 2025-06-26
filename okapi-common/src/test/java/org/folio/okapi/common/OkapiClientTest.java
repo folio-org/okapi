@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpResponseExpectation;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
@@ -405,13 +406,8 @@ public class OkapiClientTest {
     context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
     client.request(HttpMethod.POST, PORT, LOCALHOST, URL + "/test1")
-    .compose(request -> {
-      request.end();
-      return request.response();
-    })
-    .onComplete(context.asyncAssertSuccess(response -> {
-      context.assertEquals(200, response.statusCode());
-    }));
+    .compose(request -> request.send().expecting(HttpResponseExpectation.SC_OK))
+    .onComplete(context.asyncAssertSuccess());
   }
 
 }
