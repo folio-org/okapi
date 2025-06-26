@@ -1,6 +1,6 @@
 # Okapi — a multitenant API Gateway
 
-Copyright (C) 2015-2024 The Open Library Foundation
+Copyright (C) 2015-2025 The Open Library Foundation
 
 This software is distributed under the terms of the Apache License,
 Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
@@ -9,7 +9,7 @@ Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
 
 The Okapi software has the following compile-time dependencies:
 
-* Java 17
+* Java 21
 
 * Apache Maven 3.8.x or higher
 
@@ -27,7 +27,7 @@ terminated manually.*
 
 Before buliding, make sure your `$JAVA_HOME` environment variable is set correctly.
 
-This can be done by one of the two ways described below:
+This can be done by one of the three ways described below:
 
 1. For e.g., on Debain(and Debian-based) distros, run the following command to set the
 `$JAVA_HOME` for the current session:
@@ -52,6 +52,8 @@ Then run:
 
 You may need to log out and log in again or reboot for these changes to take effect.
 
+This can be also achieved with [sdkman](https://sdkman.io) which allows you to install local
+version of java, maven, etc.
 
 To build and run:
 
