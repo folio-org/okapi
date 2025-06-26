@@ -86,7 +86,7 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
     assertThat(postgresHandle.getOptions().getPort()).isEqualTo(5432);
   }
 
-  static private JsonObject config() {
+  private static JsonObject config() {
     return new JsonObject()
         .put("postgres_host", POSTGRESQL_CONTAINER.getHost())
         .put("postgres_port", POSTGRESQL_CONTAINER.getFirstMappedPort() + "")
@@ -109,7 +109,7 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
   @Test
   void rejectWithoutSsl(Vertx vertx, VertxTestContext vtc) {
     configure("ssl = off");
-    new PostgresHandle(vertx, config()).getConnection().onComplete(vtc.failing(fail -> vtc.completeNow()));
+    new PostgresHandle(vertx, config()).getConnection().onComplete(vtc.failingThenComplete());
   }
 
   @Test
@@ -128,7 +128,7 @@ class PostgresHandleTest extends PgTestBase implements WithAssertions {
   @Test
   void rejectTlsv1_2(Vertx vertx, VertxTestContext vtc) {
     configure("ssl = on", "ssl_min_protocol_version = TLSv1.2", "ssl_max_protocol_version = TLSv1.2");
-    new PostgresHandle(vertx, config()).getConnection().onComplete(vtc.failing(fail -> vtc.completeNow()));
+    new PostgresHandle(vertx, config()).getConnection().onComplete(vtc.failingThenComplete());
   }
 
   @Test
