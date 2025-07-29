@@ -133,14 +133,14 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.17.0</version>
+        <version>3.18.0</version>
       </dependency>
       <!-- unmaintained raml-tester doesn't bump vulnerable commons-fileupload
            https://github.com/nidi3/raml-tester -->
       <dependency>
         <groupId>commons-fileupload</groupId>
         <artifactId>commons-fileupload</artifactId>
-        <version>1.5</version>
+        <version>1.6.0</version>
       </dependency>
       <!-- unmaintained raml-tester uses old commons-io 2.11.0, testcontainers requires a more recent one -->
       <dependency>
