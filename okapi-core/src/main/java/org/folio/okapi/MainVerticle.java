@@ -153,7 +153,7 @@ public class MainVerticle extends VerticleBase {
     healthManager = new HealthManager(Integer.parseInt(
         Config.getSysConf("healthPort", "0", config)));
     envManager = new EnvManager(storage.getEnvStore());
-    discoveryManager = new DiscoveryManager(storage.getDeploymentStore());
+    discoveryManager = new DiscoveryManager(storage.getDeploymentStore(), config);
     if (clusterManager != null) {
       discoveryManager.setClusterManager(clusterManager);
     }

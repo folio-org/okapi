@@ -7,6 +7,9 @@ import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.PoolOptions;
 import io.vertx.core.http.RequestOptions;
+import io.vertx.core.json.JsonObject;
+import org.folio.okapi.ConfNames;
+import org.folio.okapi.common.Config;
 
 /**
  * Like {@link HttpClient} but methods catch each {@link Throwable} and pass
@@ -17,13 +20,37 @@ import io.vertx.core.http.RequestOptions;
 public class FuturisedHttpClient {
   HttpClient httpClient;
 
+  /**
+   * Create a HTTP client for proxy outgoing requests.
+   * @param vertx Vert.x handle to use for client
+   * @param config Configuration for Vert.x
+   * @return
+   */
+  public static FuturisedHttpClient getProxyClient(Vertx vertx, JsonObject config) {
+    int httpProxySize = Config.getSysConfInteger(ConfNames.HTTP_MAX_SIZE_PROXY,
+        ConfNames.HTTP_MAX_SIZE_PROXY_DEFAULT, config);
+    return new FuturisedHttpClient(vertx, httpProxySize);
+  }
+
+  /**
+   * Create a HTTP client for system requests.
+   * @param vertx Vert.x handle to use for client
+   * @param config Configuration for Vert.x
+   * @return
+   */
+  public static FuturisedHttpClient getSystemClient(Vertx vertx, JsonObject config) {
+    int httpSystemSize = Config.getSysConfInteger(ConfNames.HTTP_MAX_SIZE_SYSTEM,
+        PoolOptions.DEFAULT_MAX_POOL_SIZE, config);
+    return new FuturisedHttpClient(vertx, httpSystemSize);
+  }
+
   public FuturisedHttpClient(Vertx vertx, HttpClientOptions httpClientOptions,
       PoolOptions poolOptions) {
     httpClient = vertx.createHttpClient(httpClientOptions, poolOptions);
   }
 
-  public FuturisedHttpClient(Vertx vertx) {
-    this(vertx, new HttpClientOptions(), new PoolOptions());
+  FuturisedHttpClient(Vertx vertx, int size) {
+    this(vertx, new HttpClientOptions(), new PoolOptions().setHttp1MaxSize(size));
   }
 
   /**

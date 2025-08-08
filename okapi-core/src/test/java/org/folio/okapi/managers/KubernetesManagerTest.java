@@ -50,7 +50,7 @@ public class KubernetesManagerTest {
         .requestHandler(router)
         .listen(KUBE_MOCK_PORT)
         .compose(x -> {
-          discoveryManager = new DiscoveryManager(new DeploymentStoreNull());
+          discoveryManager = new DiscoveryManager(new DeploymentStoreNull(), new JsonObject());
           return discoveryManager.init(vertx);
         })
         .onComplete(context.succeedingThenComplete());

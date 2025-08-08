@@ -75,7 +75,7 @@ public class DockerModuleHandle implements ModuleHandle {
     this.cmd = desc.getDockerCmd();
     this.env = desc.getEnv();
     this.dockerArgs = desc.getDockerArgs();
-    this.client = new FuturisedHttpClient(vertx);
+    this.client = FuturisedHttpClient.getSystemClient(vertx, config);
     this.logBuffer = new StringBuilder();
     this.logSkip = 0;
     logger.info("Docker handler with native: {}", vertx.isNativeTransportEnabled());

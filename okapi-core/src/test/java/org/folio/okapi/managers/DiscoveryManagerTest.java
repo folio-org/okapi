@@ -2,6 +2,7 @@ package org.folio.okapi.managers;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -36,7 +37,7 @@ public class DiscoveryManagerTest extends TestBase {
 
   @Test
   public void isLeaderWithoutClusterManager(TestContext context) {
-    DiscoveryManager discoveryManager = new DiscoveryManager(null);
+    DiscoveryManager discoveryManager = new DiscoveryManager(null, new JsonObject());
 
     discoveryManager.init(vertx).onComplete(context.asyncAssertSuccess(then ->
         Assert.assertEquals(true, discoveryManager.isLeader())));
@@ -45,7 +46,7 @@ public class DiscoveryManagerTest extends TestBase {
   @Test
   public void healthUnknown(TestContext context) {
     Async async = context.async();
-    DiscoveryManager discoveryManager = new DiscoveryManager(null);
+    DiscoveryManager discoveryManager = new DiscoveryManager(null, new JsonObject());
     discoveryManager.init(vertx).onComplete(context.asyncAssertSuccess(res -> {
       DeploymentDescriptor dd = new DeploymentDescriptor();
       discoveryManager.health(dd).onComplete(res1 -> {
@@ -61,7 +62,7 @@ public class DiscoveryManagerTest extends TestBase {
   @Test
   public void healthUnknown2(TestContext context) {
     Async async = context.async();
-    DiscoveryManager discoveryManager = new DiscoveryManager(null);
+    DiscoveryManager discoveryManager = new DiscoveryManager(null, new JsonObject());
     discoveryManager.init(vertx).onComplete(context.asyncAssertSuccess(res -> {
       DeploymentDescriptor dd = new DeploymentDescriptor();
       dd.setUrl("");
@@ -78,7 +79,7 @@ public class DiscoveryManagerTest extends TestBase {
   @Test
   public void healthFails(TestContext context) {
     Async async = context.async();
-    DiscoveryManager discoveryManager = new DiscoveryManager(null);
+    DiscoveryManager discoveryManager = new DiscoveryManager(null, new JsonObject());
     discoveryManager.init(vertx).onComplete(context.asyncAssertSuccess(res -> {
       DeploymentDescriptor dd = new DeploymentDescriptor();
       dd.setUrl("http://localhost:9230");
@@ -126,7 +127,7 @@ public class DiscoveryManagerTest extends TestBase {
     ModuleManager moduleManager = new ModuleManagerFake(null);
     Future<Void> future = deploymentStore.insert(deploymentDescriptor);
     future = future.compose(x -> {
-      DiscoveryManager discoveryManager = new DiscoveryManager(deploymentStore);
+      DiscoveryManager discoveryManager = new DiscoveryManager(deploymentStore, new JsonObject());
       discoveryManager.setModuleManager(moduleManager);
       return discoveryManager.init(vertx)
           .compose(y -> discoveryManager.restartModules())
@@ -137,7 +138,7 @@ public class DiscoveryManagerTest extends TestBase {
 
   @Test
   public void testAddAndDeployIgnoreError(TestContext context) {
-    DiscoveryManager discoveryManager = new DiscoveryManager(null);
+    DiscoveryManager discoveryManager = new DiscoveryManager(null, new JsonObject());
 
     discoveryManager.init(vertx)
         .onComplete(context.asyncAssertSuccess(then ->
