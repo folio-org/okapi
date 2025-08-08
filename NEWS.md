@@ -1,6 +1,11 @@
-## 7.0.0
+## 6.3.0 2025-08-08
 
-Breaking changes:
+* [OKAPI-1211](https://folio-org.atlassian.net/browse/OKAPI-1211) freshtoken.client NPE if server response has empty body
+* [OKAPI-1213](https://folio-org.atlassian.net/browse/OKAPI-1213) Add FolioLoggingContext.put(ContextLocal<String>, String)
+* [OKAPI-1217](https://folio-org.atlassian.net/browse/OKAPI-1217) Configurable HTTP pool sizes for proxy and system calls
+* [OKAPI-1215](https://folio-org.atlassian.net/browse/OKAPI-1215) Upgrade to Vert.x 5.
+
+Breaking API changes:
 * `ChattyResponsePredicate` removed. Use `ChattyHttpResponseExpectation` instead.
 * `GenericCompositeFuture` removed. Methods exists in Vert.x' `Future` since Vert.x 5.
 
