@@ -111,8 +111,10 @@ public class ProxyService {
     waitMs = Config.getSysConfInteger(ConfNames.LOG_WAIT_MS, 0, config);
     enableSystemAuth = Config.getSysConfBoolean(ConfNames.ENABLE_SYSTEM_AUTH, true, config);
     enableTraceHeaders = Config.getSysConfBoolean(ConfNames.ENABLE_TRACE_HEADERS, false, config);
-    int httpProxySize = Config.getSysConfInteger(ConfNames.HTTP_MAX_SIZE_PROXY, 1000, config);
-    int httpSysSize = Config.getSysConfInteger(ConfNames.HTTP_MAX_SIZE_SYSTEM, 10, config);
+    int httpProxySize = Config.getSysConfInteger(ConfNames.HTTP_MAX_SIZE_PROXY,
+        ConfNames.HTTP_MAX_SIZE_PROXY_DEFAULT, config);
+    int httpSysSize = Config.getSysConfInteger(ConfNames.HTTP_MAX_SIZE_SYSTEM,
+        ConfNames.HTTP_MAX_SIZE_SYSTEM_DEFAULT, config);
 
     httpClientProxy = new FuturisedHttpClient(vertx, new HttpClientOptions(),
         new PoolOptions().setHttp1MaxSize(httpProxySize));
@@ -1211,8 +1213,7 @@ public class ProxyService {
     headers.put(XOkapiHeaders.URL_TO, inst.getUrl());
     logger.debug("syscall begin {} {} {}{}", inst.getModuleDescriptor().getId(),
         inst.getMethod(), inst.getUrl(), inst.getPath());
-    OkapiClient cli = new OkapiClient(httpClientSystem.getHttpClient(), inst.getUrl(),
-        vertx, headers);
+    var cli = new OkapiClient(httpClientSystem.getHttpClient(), inst.getUrl(), vertx, headers);
     String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
     cli.newReqId(reqId); // "tenant" or "tenantpermissions"
     cli.enableInfoLog();
