@@ -24,7 +24,6 @@ public final class ConfNames {
   public static final String KUBE_REFRESH_INTERVAL = "kube_refresh_interval";
   public static final String LOG_WAIT_MS = "log_wait_ms";
   public static final String HTTP_MAX_SIZE_SYSTEM = "http_max_size_system";
-  public static final int HTTP_MAX_SIZE_SYSTEM_DEFAULT = 10;
   public static final String HTTP_MAX_SIZE_PROXY = "http_max_size_proxy";
   public static final int HTTP_MAX_SIZE_PROXY_DEFAULT = 1000;
 

@@ -114,7 +114,7 @@ public class ProxyService {
     int httpProxySize = Config.getSysConfInteger(ConfNames.HTTP_MAX_SIZE_PROXY,
         ConfNames.HTTP_MAX_SIZE_PROXY_DEFAULT, config);
     int httpSysSize = Config.getSysConfInteger(ConfNames.HTTP_MAX_SIZE_SYSTEM,
-        ConfNames.HTTP_MAX_SIZE_SYSTEM_DEFAULT, config);
+        PoolOptions.DEFAULT_MAX_POOL_SIZE, config);
 
     httpClientProxy = new FuturisedHttpClient(vertx, new HttpClientOptions(),
         new PoolOptions().setHttp1MaxSize(httpProxySize));
