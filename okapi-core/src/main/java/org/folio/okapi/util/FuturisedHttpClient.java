@@ -40,7 +40,7 @@ public class FuturisedHttpClient {
    */
   public static FuturisedHttpClient getSystemClient(Vertx vertx, JsonObject config) {
     int httpSystemSize = Config.getSysConfInteger(ConfNames.HTTP_MAX_SIZE_SYSTEM,
-        PoolOptions.DEFAULT_MAX_POOL_SIZE, config);
+        ConfNames.HTTP_MAX_SIZE_SYSTEM_DEFAULT, config);
     return new FuturisedHttpClient(vertx, httpSystemSize);
   }
 
