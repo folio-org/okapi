@@ -23,8 +23,7 @@ public class FuturisedHttpClient {
   }
 
   public FuturisedHttpClient(Vertx vertx) {
-    this(vertx, new HttpClientOptions(), new PoolOptions().setHttp1MaxSize(1000));
-    // default max size is 30, which is too small for Okapi
+    this(vertx, new HttpClientOptions(), new PoolOptions());
   }
 
   /**
