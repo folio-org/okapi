@@ -2910,6 +2910,8 @@ leave it unmodified (default).
  value is a boolean - `true` for enable, `false` for disable. Default is `false`.
 This property appeared in Okapi 4.10.0; trace header was always enabled
 before 4.10.0.
+* `http_max_size_system`: Pool size for HTTP client used in system calls. Default value is 100.
+* `http_max_size_proxy`: Pool size for HTTP client used in outgoing proxy calls. Default value is 1000.
 * `enable_system_auth`: Controls whether Okapi checks token by calling Auth module
 when invoking system interfaces such as `_tenant` or via regular proxy call.
 The value is a boolean - `true` for enable, `false` for disable.  Default is `true`.
@@ -3469,7 +3471,7 @@ If the module chooses to perform the tenant operation asynchronously, it
 returns 201 (Created) with `Location` header. For example:
 
     Location: /_/tenant/6da99bac-457b-499f-89a4-34f4da8e9be8
-    
+
 This signals that the tenant job has started. Use a GET request on the
 Location path returned to poll for the completion of the tenant job with the
 

@@ -35,7 +35,7 @@ public class DeploymentManagerTest {
     Async async = context.async();
     EnvManager em = new EnvManager(envStore);
     DeploymentStore ds = new DeploymentStoreNull();
-    DiscoveryManager dis = new DiscoveryManager(ds);
+    DiscoveryManager dis = new DiscoveryManager(ds, new JsonObject());
     em.init(vertx)
         .compose(x -> dis.init(vertx))
         .onComplete(context.asyncAssertSuccess(x -> {

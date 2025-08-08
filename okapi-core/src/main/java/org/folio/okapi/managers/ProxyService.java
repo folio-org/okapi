@@ -71,7 +71,8 @@ public class ProxyService {
   private final InternalModule internalModule;
   private final String okapiUrl;
   private final Vertx vertx;
-  private final FuturisedHttpClient httpClient;
+  private final FuturisedHttpClient httpProxyClient;
+  private final FuturisedHttpClient httpSystemClient;
   // for load balancing, so security is not an issue
   private static final Random random = new Random();
   private final int waitMs;
@@ -108,7 +109,9 @@ public class ProxyService {
     waitMs = Config.getSysConfInteger(ConfNames.LOG_WAIT_MS, 0, config);
     enableSystemAuth = Config.getSysConfBoolean(ConfNames.ENABLE_SYSTEM_AUTH, true, config);
     enableTraceHeaders = Config.getSysConfBoolean(ConfNames.ENABLE_TRACE_HEADERS, false, config);
-    httpClient = new FuturisedHttpClient(vertx);
+
+    httpProxyClient = FuturisedHttpClient.getProxyClient(vertx, config);
+    httpSystemClient = FuturisedHttpClient.getSystemClient(vertx, config);
 
     String tcTtlMs = Config.getSysConf(TOKEN_CACHE_TTL_MS, null, config);
     String tcMaxSize = Config.getSysConf(TOKEN_CACHE_MAX_SIZE, null, config);
@@ -626,7 +629,7 @@ public class ProxyService {
     String url = makeUrl(mi, ctx);
     HttpMethod meth = ctx.request().method();
     RequestOptions requestOptions = new RequestOptions().setMethod(meth).setAbsoluteURI(url);
-    Future<HttpClientRequest> fut = httpClient.request(requestOptions);
+    Future<HttpClientRequest> fut = httpProxyClient.request(requestOptions);
     fut.onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res));
     fut.onSuccess(clientRequest -> {
       final Timer.Sample sample = MetricsHelper.getTimerSample();
@@ -661,7 +664,7 @@ public class ProxyService {
                                List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
-    Future<HttpClientRequest> fut = httpClient.request(
+    Future<HttpClientRequest> fut = httpProxyClient.request(
         new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx)));
     fut.onSuccess(clientRequest -> {
       clientRequestList.add(clientRequest);
@@ -817,7 +820,7 @@ public class ProxyService {
     HttpServerResponse response = ctx.response();
     RequestOptions requestOptions =
         new RequestOptions().setMethod(request.method()).setAbsoluteURI(makeUrl(mi, ctx));
-    Future<HttpClientRequest> fut = httpClient.request(requestOptions);
+    Future<HttpClientRequest> fut = httpProxyClient.request(requestOptions);
     fut.onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res));
     fut.onSuccess(clientRequest -> {
       final Timer.Sample sample = MetricsHelper.getTimerSample();
@@ -865,7 +868,7 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     RequestOptions requestOptions =
         new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx));
-    Future<HttpClientRequest> fut = httpClient.request(requestOptions);
+    Future<HttpClientRequest> fut = httpProxyClient.request(requestOptions);
     fut.onFailure(res -> proxyClientFailure(pc, mi, requestOptions, res));
     fut.onSuccess(clientRequest -> {
       final Timer.Sample sample = MetricsHelper.getTimerSample();
@@ -1202,7 +1205,7 @@ public class ProxyService {
     headers.put(XOkapiHeaders.URL_TO, inst.getUrl());
     logger.debug("syscall begin {} {} {}{}", inst.getModuleDescriptor().getId(),
         inst.getMethod(), inst.getUrl(), inst.getPath());
-    OkapiClient cli = new OkapiClient(httpClient.getHttpClient(), inst.getUrl(), vertx, headers);
+    var cli = new OkapiClient(httpSystemClient.getHttpClient(), inst.getUrl(), vertx, headers);
     String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
     cli.newReqId(reqId); // "tenant" or "tenantpermissions"
     cli.enableInfoLog();
@@ -1327,7 +1330,7 @@ public class ProxyService {
       resolveUrls(List.of(mi)).compose(unused -> {
         RequestOptions requestOptions = new RequestOptions().setMethod(ctx.request().method())
             .setAbsoluteURI(mi.getUrl() + newPath);
-        return httpClient.request(requestOptions)
+        return httpProxyClient.request(requestOptions)
             .compose(clientRequest -> {
               copyHeaders(clientRequest, ctx, null);
               clientRequest.putHeader(XOkapiHeaders.TENANT, tid);

@@ -7,6 +7,7 @@ import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
 import java.util.Collection;
@@ -52,6 +53,7 @@ public class DiscoveryManager implements NodeListener {
   private final DeploymentStore deploymentStore;
   private final Messages messages = Messages.getInstance();
   private DeliveryOptions deliveryOptions;
+  private final JsonObject config;
 
   /**
    * Initialize discovery manager.
@@ -60,7 +62,7 @@ public class DiscoveryManager implements NodeListener {
    */
   public Future<Void> init(Vertx vertx) {
     this.vertx = vertx;
-    this.httpClient = new FuturisedHttpClient(vertx);
+    this.httpClient = FuturisedHttpClient.getSystemClient(vertx, config);
     deliveryOptions = new DeliveryOptions().setSendTimeout(36000000); // 1 hour
     return deployments.init(vertx, "discoveryList", false).compose(x ->
         nodes.init(vertx, "discoveryNodes", false));
@@ -100,8 +102,9 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public DiscoveryManager(DeploymentStore ds) {
+  public DiscoveryManager(DeploymentStore ds, JsonObject config) {
     deploymentStore = ds;
+    this.config = config;
   }
 
   public void setClusterManager(ClusterManager mgr) {
