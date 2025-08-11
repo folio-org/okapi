@@ -34,19 +34,6 @@ public class MainVerticle extends AbstractVerticle {
   private String tenantRequests = "";
   private JsonArray tenantParameters;
 
-  /** main for test module. */
-  public static void main(String[] args) {
-    System.setProperty("vertx.logger-delegate-factory-class-name",
-        "io.vertx.core.logging.Log4jLogDelegateFactory");
-
-    Vertx vertx = Vertx.vertx();
-    vertx.deployVerticle(new MainVerticle()).onFailure(x -> {
-      Logger logger = OkapiLogger.get();
-      logger.error("Failed to deploy test module", x);
-      System.exit(1);
-    });
-  }
-
   // Report the request headers in response headers, body, and/or log
   private void headers(RoutingContext ctx, StringBuilder xmlMsg) {
     // Report all headers back (in headers and in the body) if requested
