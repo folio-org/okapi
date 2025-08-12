@@ -3,7 +3,6 @@ package org.folio.okapi.sample;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
@@ -33,19 +32,6 @@ public class MainVerticle extends AbstractVerticle {
   private String helloGreeting;
   private String tenantRequests = "";
   private JsonArray tenantParameters;
-
-  /** main for test module. */
-  public static void main(String[] args) {
-    System.setProperty("vertx.logger-delegate-factory-class-name",
-        "io.vertx.core.logging.Log4jLogDelegateFactory");
-
-    Vertx vertx = Vertx.vertx();
-    vertx.deployVerticle(new MainVerticle()).onFailure(x -> {
-      Logger logger = OkapiLogger.get();
-      logger.error("Failed to deploy test module", x);
-      System.exit(1);
-    });
-  }
 
   // Report the request headers in response headers, body, and/or log
   private void headers(RoutingContext ctx, StringBuilder xmlMsg) {
