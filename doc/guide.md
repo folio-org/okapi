@@ -2238,6 +2238,12 @@ for interfaceType=multiple or system.  For a `full` with a value of
 interfaceType. If `type` is not specified, interfaces of all types are
 returned.
 
+An interface of `interfaceType`=`multiple` should not be listed as a
+dependency of a module in the module descriptor, neither in the
+`"requires"` nor in the `"optional"` property. Usually there's another
+regular interface dependency to the other module that is sufficient
+for the dependency check; otherwise add and use an empty interface.
+
 ### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
 installed:
