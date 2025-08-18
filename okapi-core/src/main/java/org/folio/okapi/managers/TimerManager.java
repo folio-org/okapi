@@ -311,7 +311,7 @@ public class TimerManager {
     final long delay = routingEntry.getDelayMilliSeconds();
     final String tenantProductSeq = timerDescriptor.getId();
     if (delay > 0) {
-      int extra = 0;
+      var extra = 0;
       if (waitExtra != null && waitExtra > 0) {
         // random delay up to waitExtra milliseconds
         extra = random.nextInt(waitExtra);
