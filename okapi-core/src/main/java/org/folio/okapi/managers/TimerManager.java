@@ -311,10 +311,10 @@ public class TimerManager {
     final long delay = routingEntry.getDelayMilliSeconds();
     final String tenantProductSeq = timerDescriptor.getId();
     if (delay > 0) {
-      long extra = 0;
+      int extra = 0;
       if (waitExtra != null && waitExtra > 0) {
         // random delay up to waitExtra milliseconds
-        extra = (long) (random.nextDouble() * waitExtra);
+        extra = random.nextInt(waitExtra);
       }
       LOGGER.info("waitTimer {} delay {} extra {} for tenant {}",
           tenantProductSeq, delay, extra, tenantId);
