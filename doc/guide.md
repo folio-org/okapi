@@ -2912,9 +2912,9 @@ This property appeared in Okapi 4.10.0; trace header was always enabled
 before 4.10.0.
 * `http_max_size_system`: Pool size for HTTP client used in system calls. Default value is 100.
 * `http_max_size_proxy`: Pool size for HTTP client used in outgoing proxy calls. Default value is 1000.
-* `timer_wait_sync`: If `true` okapi will wait until module call completes before waiting for next call.
-Defaults to `false`, which ensures precise timer intervals but may result in concurrent calls if a
-previous call takes longer than the waiting period.
+* `timer_wait_sync`: If `true` okapi will wait until module call completes before waiting for next call
+for some tenant. Defaults to `false`, which ensures precise timer intervals but may result in
+concurrent calls if a previous call takes longer than the waiting period.
 If `true` okapi will wait until module call completes before waiting for next call.
 * `timer_wait_extra`: Random extra delay in range between 0 and the specified value (in milliseconds).
 The value must be given in milliseconds. Default is 0, which means no extra delay.
