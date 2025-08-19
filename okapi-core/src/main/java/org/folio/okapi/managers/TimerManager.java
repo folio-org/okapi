@@ -230,7 +230,7 @@ public class TimerManager {
         .onSuccess(res ->
             LOGGER.info("timer {} call succeeded to module {} for tenant {}",
                 timerDescriptor.getId(), md.getId(), tenantId))
-          .mapEmpty();
+        .mapEmpty();
   }
 
   Future<ModuleDescriptor> getModuleForTimer(String tenantId, String tenantProductSeq) {
