@@ -316,7 +316,7 @@ public class TimerManager {
         // random delay up to waitExtra milliseconds
         extra = random.nextInt(waitExtra);
       }
-      LOGGER.info("waitTimer {} delay {} extra {} for tenant {}",
+      LOGGER.info("waitTimer {} delay {} random extra {} for tenant {}",
           tenantProductSeq, delay, extra, tenantId);
       long timer = vertx.setTimer(delay + extra, res -> handleTimer(tenantId, tenantProductSeq));
       timerRunning.put(tenantProductSeq, timer);
