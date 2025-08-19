@@ -2238,6 +2238,13 @@ for interfaceType=multiple or system.  For a `full` with a value of
 interfaceType. If `type` is not specified, interfaces of all types are
 returned.
 
+For Eureka environments it's required to list each interface of type
+`multiple` as an `"optional"` dependency so that the sidecar gets
+initialized with this route. In an Okapi based environment that
+`"optional"` dependency is ignored. Declaring a multiple interface
+as `"requires"` dependency is not implemented and will fail in an
+Okapi based environment.
+
 ### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
 installed:
