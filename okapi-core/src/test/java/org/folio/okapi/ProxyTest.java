@@ -2573,7 +2573,7 @@ public class ProxyTest {
     Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
         () -> Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(0));
     Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
-        () -> Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(3));
+        () -> Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(10));
     Assertions.assertThat(timerDelaySum.containsKey(0)).isFalse();
 
     // enable it again
