@@ -1,4 +1,4 @@
-## 7.0.0
+## 7.0.0 2025-08-21
 
 * [OKAPI-1211](https://folio-org.atlassian.net/browse/OKAPI-1211) freshtoken.client NPE if server response has empty body
 * [OKAPI-1213](https://folio-org.atlassian.net/browse/OKAPI-1213) Add `FolioLoggingContext.put(ContextLocal<String>, String)`
