@@ -1,6 +1,13 @@
-## 7.0.0
+## 7.0.0 2025-08-21
 
-Breaking changes:
+* [OKAPI-1211](https://folio-org.atlassian.net/browse/OKAPI-1211) freshtoken.client NPE if server response has empty body
+* [OKAPI-1213](https://folio-org.atlassian.net/browse/OKAPI-1213) Add `FolioLoggingContext.put(ContextLocal<String>, String)`
+* [OKAPI-1217](https://folio-org.atlassian.net/browse/OKAPI-1217) Configurable HTTP pool sizes for proxy and system calls
+* [OKAPI-1219](https://folio-org.atlassian.net/browse/OKAPI-1219) Upgrade to Vert.x 5 (OKAPI-1215 originally)
+* [OKAPI-1221](https://folio-org.atlassian.net/browse/OKAPI-1221) Vert.x 5.0.3 fixing Netty CVE-2025-55163 MadeYouReset
+* [OKAPI-1223](https://folio-org.atlassian.net/browse/OKAPI-1223) Declare multiple interface as optional dependency for Eureka
+
+Breaking API changes:
 * `ChattyResponsePredicate` removed. Use `ChattyHttpResponseExpectation` instead.
 * `GenericCompositeFuture` removed. Methods exists in Vert.x' `Future` since Vert.x 5.
 
