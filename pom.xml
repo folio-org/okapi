@@ -33,7 +33,7 @@
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-bom</artifactId>
-        <version>2.24.3</version>
+        <version>2.25.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -49,7 +49,7 @@
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.15.0</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
+        <version>1.15.2</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -80,7 +80,7 @@
       <dependency>
         <groupId>io.rest-assured</groupId>
         <artifactId>rest-assured</artifactId>
-        <version>5.5.1</version>
+        <version>5.5.6</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
@@ -90,7 +90,7 @@
       <dependency>
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
-        <version>3.27.3</version>
+        <version>3.27.4</version>
       </dependency>
        <dependency>
         <groupId>com.zaxxer</groupId>
@@ -118,7 +118,7 @@
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
-        <version>1.20.5</version>
+        <version>1.21.3</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -133,20 +133,20 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.17.0</version>
+        <version>3.18.0</version>
       </dependency>
       <!-- unmaintained raml-tester doesn't bump vulnerable commons-fileupload
            https://github.com/nidi3/raml-tester -->
       <dependency>
         <groupId>commons-fileupload</groupId>
         <artifactId>commons-fileupload</artifactId>
-        <version>1.5</version>
+        <version>1.6.0</version>
       </dependency>
       <!-- unmaintained raml-tester uses old commons-io 2.11.0, testcontainers requires a more recent one -->
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.18.0</version>
+        <version>2.20.0</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
