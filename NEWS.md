@@ -1,3 +1,8 @@
+## 6.2.4 2025-08-19
+
+* [OKAPI-1211](https://folio-org.atlassian.net/browse/OKAPI-1211) freshtoken.client NPE if server response has empty body
+* [OKAPI-1222](https://folio-org.atlassian.net/browse/OKAPI-1222) Vert.x 4.5.18 fixing Netty CVE-2025-55163 MadeYouReset
+
 ## 6.2.3 2025-05-16
 
 * [OKAPI-1210](https://folio-org.atlassian.net/browse/OKAPI-1210) install: default action is enable
