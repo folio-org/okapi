@@ -29,6 +29,7 @@ public final class ConfNames {
   public static final int HTTP_MAX_SIZE_PROXY_DEFAULT = 1000;
   public static final String TIMER_WAIT_SYNC = "timer_wait_sync";
   public static final String TIMER_WAIT_EXTRA = "timer_wait_extra";
+  public static final int TIMER_WAIT_EXTRA_DEFAULT = 30000;
 
   private ConfNames() {
     throw new UnsupportedOperationException("Cannot instantiate utility class.");

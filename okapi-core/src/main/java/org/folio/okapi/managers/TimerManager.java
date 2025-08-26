@@ -70,8 +70,9 @@ public class TimerManager {
   public TimerManager(TimerStore timerStore, boolean local, JsonObject config) {
     this.timerStore = timerStore;
     this.local = local;
-    this.waitSync = Config.getSysConfBoolean(ConfNames.TIMER_WAIT_SYNC, false, config);
-    this.waitExtra = Config.getSysConfInteger(ConfNames.TIMER_WAIT_EXTRA, 0, config);
+    this.waitSync = Config.getSysConfBoolean(ConfNames.TIMER_WAIT_SYNC, true, config);
+    this.waitExtra = Config.getSysConfInteger(ConfNames.TIMER_WAIT_EXTRA,
+        ConfNames.TIMER_WAIT_EXTRA_DEFAULT, config);
     LOGGER.info("TimerManager: timer_wait_sync={}, timer_wait_extra={}", waitSync, waitExtra);
   }
 

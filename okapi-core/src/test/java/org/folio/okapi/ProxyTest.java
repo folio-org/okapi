@@ -341,8 +341,8 @@ public class ProxyTest {
   Future<Void> startOkapi() {
     DeploymentOptions opt = new DeploymentOptions()
         .setConfig(new JsonObject()
-            .put("timer_wait_sync", true)
-            .put("timer_wait_extra", 3)
+            .put(ConfNames.TIMER_WAIT_SYNC, true)
+            .put(ConfNames.TIMER_WAIT_EXTRA, 3)
             .put("loglevel", "info")
             .put("port", Integer.toString(port))
             .put("healthPort", Integer.toString(portHealth))
