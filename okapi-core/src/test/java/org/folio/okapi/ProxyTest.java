@@ -341,6 +341,8 @@ public class ProxyTest {
   Future<Void> startOkapi() {
     DeploymentOptions opt = new DeploymentOptions()
         .setConfig(new JsonObject()
+            .put(ConfNames.TIMER_WAIT_SYNC, true)
+            .put(ConfNames.TIMER_WAIT_EXTRA, 3)
             .put("loglevel", "info")
             .put("port", Integer.toString(port))
             .put("healthPort", Integer.toString(portHealth))
@@ -2566,12 +2568,15 @@ public class ProxyTest {
         .patch("/_/proxy/tenants/" + okapiTenant + "/timers/timer-module_0")
         .then().statusCode(204);
 
+    // with sync and extra wait the disable may take more time to kick in..
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
+        () -> Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(0));
+
+    // expect no more timers for path /timers/timer-module_0
     timerDelaySum.clear();
 
     Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
-        () -> Assertions.assertThat(timerDelaySum.get(1)).isGreaterThan(0));
-    Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(
-        () -> Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(2));
+        () -> Assertions.assertThat(timerDelaySum.get(2)).isGreaterThan(4));
     Assertions.assertThat(timerDelaySum.containsKey(0)).isFalse();
 
     // enable it again

@@ -189,7 +189,7 @@ public class MainVerticle extends VerticleBase {
       proxyService = new ProxyService(vertx, tenantManager, discoveryManager, internalModule,
           okapiUrl, config);
       tenantManager.setProxyService(proxyService);
-      timerManager = new TimerManager(storage.getTimerStore(), false);
+      timerManager = new TimerManager(storage.getTimerStore(), false, config);
       internalModule.withTimerManager(timerManager);
     } else { // not really proxying, except to /_/deployment
       moduleManager = new ModuleManager(new ModuleStoreNull(), true);
