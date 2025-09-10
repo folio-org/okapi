@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -57,7 +58,7 @@ class TimerManagerTest {
 
   @Test
   void getModuleForTimer() {
-    var timerManager = new TimerManager(null, true);
+    var timerManager = new TimerManager(null, true, new JsonObject());
     var x = moduleDescriptor("mod-x-1.0.0", 11);
     var y = moduleDescriptor("mod-y-2.3.4", 11);
     var mds = List.of(x, y);
@@ -121,7 +122,7 @@ class TimerManagerTest {
     when(tenantManager.getEnabledModules("test_tenant")).thenReturn(succeededFuture(mds));
     var discoveryManager = mock(DiscoveryManager.class);
     var proxyService = mock(ProxyService.class);
-    var timerManager = new TimerManager(timerStore, true);
+    var timerManager = new TimerManager(timerStore, true, new JsonObject());
     timerManager.init(vertx, tenantManager, discoveryManager, proxyService)
     .compose(x -> testPatchTimer(timerManager, "mod-y_0", 0))
     .compose(x -> testPatchTimer(timerManager, "mod-y_0", null))

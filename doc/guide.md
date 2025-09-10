@@ -2919,6 +2919,13 @@ This property appeared in Okapi 4.10.0; trace header was always enabled
 before 4.10.0.
 * `http_max_size_system`: Pool size for HTTP client used in system calls. Default value is 100.
 * `http_max_size_proxy`: Pool size for HTTP client used in outgoing proxy calls. Default value is 1000.
+* `timer_wait_sync`: If `true` (the default), Okapi will wait for a module's timer call to complete
+before starting the next timer call for the same tenant; if `false`, Okapi ensures precise timer intervals but
+may result in concurrent calls if a previous call takes longer than the waiting period for the same tenant.
+Timers are handled independently for each tenant.
+* `timer_wait_extra`: Random extra delay in range between 0 and the specified value (in milliseconds).
+This reduces the number of timers that start at the same time, especially when there are many tenants.
+The value must be given in milliseconds. Default is 30000 (30 seconds).
 * `enable_system_auth`: Controls whether Okapi checks token by calling Auth module
 when invoking system interfaces such as `_tenant` or via regular proxy call.
 The value is a boolean - `true` for enable, `false` for disable.  Default is `true`.

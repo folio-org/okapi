@@ -15,12 +15,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.ConfNames;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.TimerDescriptor;
+import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.TimerStore;
@@ -29,6 +32,8 @@ import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.TenantProductSeq;
 
+// S2245: Using pseudorandom number generators (PRNGs) is security-sensitive
+@java.lang.SuppressWarnings({"squid:S2245"})
 public class TimerManager {
   private static final Logger LOGGER = OkapiLogger.get();
   private static final String MAP_NAME = "org.folio.okapi.timer.map";
@@ -52,10 +57,23 @@ public class TimerManager {
   private DiscoveryManager discoveryManager;
   private ProxyService proxyService;
   private Vertx vertx;
+  private boolean waitSync;
+  private Integer waitExtra;
+  private static final Random random = new Random();
 
-  public TimerManager(TimerStore timerStore, boolean local) {
+  /**
+   * Constructor for TimerManager.
+   * @param timerStore storage for timer descriptors
+   * @param local whether map is local or distributed
+   * @param config Vert.x configuration
+   */
+  public TimerManager(TimerStore timerStore, boolean local, JsonObject config) {
     this.timerStore = timerStore;
     this.local = local;
+    this.waitSync = Config.getSysConfBoolean(ConfNames.TIMER_WAIT_SYNC, true, config);
+    this.waitExtra = Config.getSysConfInteger(ConfNames.TIMER_WAIT_EXTRA,
+        ConfNames.TIMER_WAIT_EXTRA_DEFAULT, config);
+    LOGGER.info("TimerManager: timer_wait_sync={}, timer_wait_extra={}", waitSync, waitExtra);
   }
 
   /**
@@ -197,7 +215,8 @@ public class TimerManager {
    * @param md module descriptor of module to invoke
    * @param timerDescriptor timer descriptor in use
    */
-  private void fireTimer(String tenantId, ModuleDescriptor md, TimerDescriptor timerDescriptor) {
+  private Future<Void> fireTimer(String tenantId, ModuleDescriptor md,
+      TimerDescriptor timerDescriptor) {
     RoutingEntry routingEntry = timerDescriptor.getRoutingEntry();
     String path = routingEntry.getStaticPath();
     HttpMethod httpMethod = routingEntry.getDefaultMethod(HttpMethod.POST);
@@ -205,13 +224,14 @@ public class TimerManager {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     LOGGER.info("timer {} call start module {} for tenant {}",
         timerDescriptor.getId(), md.getId(), tenantId);
-    proxyService.callSystemInterface(headers, tenantId, inst, "")
+    return proxyService.callSystemInterface(headers, tenantId, inst, "")
         .onFailure(cause ->
             LOGGER.info("timer {} call failed to module {} for tenant {} : {}",
                 timerDescriptor.getId(), md.getId(), tenantId, cause.getMessage()))
         .onSuccess(res ->
             LOGGER.info("timer {} call succeeded to module {} for tenant {}",
-                timerDescriptor.getId(), md.getId(), tenantId));
+                timerDescriptor.getId(), md.getId(), tenantId))
+        .mapEmpty();
   }
 
   Future<ModuleDescriptor> getModuleForTimer(String tenantId, String tenantProductSeq) {
@@ -264,7 +284,11 @@ public class TimerManager {
               }
               if (discoveryManager.isLeader()) {
                 // only fire timer in one instance (of the Okapi cluster)
-                fireTimer(tenantId, md, timerDescriptor);
+                Future<Void> f = fireTimer(tenantId, md, timerDescriptor);
+                if (waitSync) {
+                  f.onComplete(x -> waitTimer(tenantId, timerDescriptor));
+                  return;
+                }
               }
               // roll on.. wait and redo..
               waitTimer(tenantId, timerDescriptor);
@@ -287,9 +311,15 @@ public class TimerManager {
     RoutingEntry routingEntry = timerDescriptor.getRoutingEntry();
     final long delay = routingEntry.getDelayMilliSeconds();
     final String tenantProductSeq = timerDescriptor.getId();
-    LOGGER.info("waitTimer {} delay {} for tenant {}", tenantProductSeq, delay, tenantId);
     if (delay > 0) {
-      long timer = vertx.setTimer(delay, res -> handleTimer(tenantId, tenantProductSeq));
+      var extra = 0;
+      if (waitExtra != null && waitExtra > 0) {
+        // random delay up to waitExtra milliseconds
+        extra = random.nextInt(waitExtra);
+      }
+      LOGGER.info("waitTimer {} delay {} random extra {} for tenant {}",
+          tenantProductSeq, delay, extra, tenantId);
+      long timer = vertx.setTimer(delay + extra, res -> handleTimer(tenantId, tenantProductSeq));
       timerRunning.put(tenantProductSeq, timer);
     } else {
       var timer = timerRunning.remove(tenantProductSeq);
