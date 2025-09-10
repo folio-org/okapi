@@ -1,3 +1,7 @@
+## 6.2.5 2025-09-10
+
+* [OKAPI-1225](https://folio-org.atlassian.net/browse/OKAPI-1225) Upgrade Vert.x from 4.5.18 to 4.5.21 fixing CVE-2025-58056 (Sunflower)
+
 ## 6.2.4 2025-08-19
 
 * [OKAPI-1211](https://folio-org.atlassian.net/browse/OKAPI-1211) freshtoken.client NPE if server response has empty body
