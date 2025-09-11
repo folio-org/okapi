@@ -1,7 +1,7 @@
 ## 6.1.4 2025-09-10
 
 * [OKAPI-1222](https://folio-org.atlassian.net/browse/OKAPI-1222) Vert.x 4.5.18 fixing Netty CVE-2025-55163 MadeYouReset
-* [OKAPI-1226](https://folio-org.atlassian.net/browse/OKAPI-1226) Vert.x 4.5.21 fixing Netty CVE-2025-58056
+* [OKAPI-1226](https://folio-org.atlassian.net/browse/OKAPI-1226) Vert.x 4.5.21 fixing Netty CVE-2025-58056, CVE-2025-58057
 
 ## 6.1.3 2025-02-17
 
