@@ -1,3 +1,12 @@
+## 7.0.1 2025-11-13
+
+* [OKAPI-1224](https://folio-org.atlassian.net/browse/OKAPI-1224) Upgrade Vert.x from 5.0.3 to 5.0.4 fixing CVE-2025-58056
+* [OKAPI-1229](https://folio-org.atlassian.net/browse/OKAPI-1229) Bump Vert.x from 5.0.4 to 5.0.5 fixing CVE-2025-59432, CVE-2025-11965, CVE-2025-11966
+* [OKAPI-1220](https://folio-org.atlassian.net/browse/OKAPI-1220) timer\_wait\_sync, timer\_wait\_extra options
+* #1420 Remove unused scram client 2.1
+* #1421 Update deps; allow JDK 25 compilation
+* [OKAPI-1228](https://folio-org.atlassian.net/browse/OKAPI-1228) Add META-INF VertxServiceProvider fixing FolioLoggingContext and FolioLocal
+
 ## 7.0.0 2025-08-21
 
 * [OKAPI-1211](https://folio-org.atlassian.net/browse/OKAPI-1211) freshtoken.client NPE if server response has empty body
