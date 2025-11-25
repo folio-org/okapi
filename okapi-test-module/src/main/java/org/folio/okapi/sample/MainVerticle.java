@@ -1,8 +1,7 @@
 package org.folio.okapi.sample;
 
-import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
+import io.vertx.core.VerticleBase;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
@@ -26,7 +25,7 @@ import org.folio.okapi.common.XOkapiHeaders;
  */
 
 @java.lang.SuppressWarnings({"squid:S1192"})
-public class MainVerticle extends AbstractVerticle {
+public class MainVerticle extends VerticleBase {
 
   private final Logger logger = OkapiLogger.get();
   private String helloGreeting;
@@ -225,7 +224,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Promise<Void> promise) throws IOException {
+  public Future<?> start() {
     helloGreeting = System.getenv("helloGreeting");
     if (helloGreeting == null) {
       helloGreeting = "Hello";
@@ -253,7 +252,7 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/recurse").handler(this::recurseHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-    Future<Void> future = vertx.createHttpServer(so)
+    return vertx.createHttpServer(so)
         .requestHandler(router)
         .listen(port)
         .compose(result -> {
@@ -270,6 +269,5 @@ public class MainVerticle extends AbstractVerticle {
           }
           return Future.succeededFuture();
         });
-    future.onComplete(promise::handle);
   }
 }

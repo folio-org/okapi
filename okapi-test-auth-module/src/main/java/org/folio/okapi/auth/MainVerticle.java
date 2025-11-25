@@ -1,11 +1,10 @@
 package org.folio.okapi.auth;
 
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Promise;
+import io.vertx.core.Future;
+import io.vertx.core.VerticleBase;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
@@ -22,7 +21,7 @@ import org.folio.okapi.common.OkapiLogger;
  */
 @java.lang.SuppressWarnings({"squid:S1192"})
 
-public class MainVerticle extends AbstractVerticle {
+public class MainVerticle extends VerticleBase {
 
   private final Logger logger = OkapiLogger.get();
 
@@ -40,7 +39,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Promise<Void> promise) throws IOException {
+  public Future<?> start() {
     Router router = Router.router(vertx);
     Auth auth = new Auth();
 
@@ -57,9 +56,9 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/_/tenant").handler(auth::tenantOp);
     router.route("/*").handler(auth::filter);
 
-    vertx.createHttpServer()
+    return vertx.createHttpServer()
         .requestHandler(router)
-        .listen(port).onComplete(result -> promise.handle(result.mapEmpty()));
+        .listen(port);
   }
 
 }
