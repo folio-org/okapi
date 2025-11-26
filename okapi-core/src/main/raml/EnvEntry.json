@@ -17,6 +17,10 @@
     "description": {
       "description": "Description",
       "type": "string"
+    },
+    "required": {
+      "description": "True if the module cannot function if the environment variable is missing (because no sensible default exists), false otherwise",
+      "type": "boolean"
     }
   },
   "required": ["name"]
