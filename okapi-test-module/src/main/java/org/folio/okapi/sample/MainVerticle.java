@@ -1,8 +1,9 @@
 package org.folio.okapi.sample;
 
-import io.vertx.core.AbstractVerticle;
+import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
+
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
+import io.vertx.core.VerticleBase;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
@@ -14,6 +15,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.util.Objects;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.ModuleVersionReporter;
@@ -24,14 +26,13 @@ import org.folio.okapi.common.XOkapiHeaders;
 /*
  * Test module, to be used in Okapi's own unit tests
  */
-
-@java.lang.SuppressWarnings({"squid:S1192"})
-public class MainVerticle extends AbstractVerticle {
+public class MainVerticle extends VerticleBase {
 
   private final Logger logger = OkapiLogger.get();
-  private String helloGreeting;
+  private String helloGreeting =
+      Objects.requireNonNullElse(System.getenv("helloGreeting"), "Hello");
   private String tenantRequests = "";
-  private JsonArray tenantParameters;
+  private JsonArray tenantParameters = null;
 
   // Report the request headers in response headers, body, and/or log
   private void headers(RoutingContext ctx, StringBuilder xmlMsg) {
@@ -86,7 +87,7 @@ public class MainVerticle extends AbstractVerticle {
     ctx.response().setStatusCode(200);
     ctx.response().putHeader("X-Handler-header", "OK");
 
-    final String ctype = ctx.request().headers().get("Content-Type");
+    final String ctype = ctx.request().headers().get(CONTENT_TYPE);
     final String accept = ctx.request().headers().get("Accept");
     // see if POSTed text should be converted to XML.. To simulate a real handler
     // with request/response of different content types
@@ -99,9 +100,9 @@ public class MainVerticle extends AbstractVerticle {
       msg.append(hv);
     }
     if (xmlConversion) {
-      ctx.response().putHeader("Content-Type", "text/xml");
+      ctx.response().putHeader(CONTENT_TYPE, "text/xml");
     } else if (ctype != null) {
-      ctx.response().putHeader("Content-Type", ctype);
+      ctx.response().putHeader(CONTENT_TYPE, ctype);
     }
 
     String stopper = ctx.request().getHeader("X-stop-here");
@@ -162,7 +163,7 @@ public class MainVerticle extends AbstractVerticle {
     } else {
       ctx.response().setChunked(true);
 
-      final String cont = ctx.request().getHeader("Content-Type");
+      final String cont = ctx.request().getHeader(CONTENT_TYPE);
       logger.debug("Tenant api content type: '{}'", cont);
       String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
       if (tok == null) {
@@ -225,11 +226,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Promise<Void> promise) throws IOException {
-    helloGreeting = System.getenv("helloGreeting");
-    if (helloGreeting == null) {
-      helloGreeting = "Hello";
-    }
+  public Future<?> start() {
     final int port = Integer.parseInt(
         System.getProperty("http.port", System.getProperty("port", "8080")));
     String name = ManagementFactory.getRuntimeMXBean().getName();
@@ -253,7 +250,7 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/recurse").handler(this::recurseHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-    Future<Void> future = vertx.createHttpServer(so)
+    return vertx.createHttpServer(so)
         .requestHandler(router)
         .listen(port)
         .compose(result -> {
@@ -270,6 +267,5 @@ public class MainVerticle extends AbstractVerticle {
           }
           return Future.succeededFuture();
         });
-    future.onComplete(promise::handle);
   }
 }
