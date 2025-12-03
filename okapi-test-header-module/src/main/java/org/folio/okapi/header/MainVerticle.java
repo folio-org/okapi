@@ -1,7 +1,7 @@
 package org.folio.okapi.header;
 
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Promise;
+import io.vertx.core.Future;
+import io.vertx.core.VerticleBase;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -9,7 +9,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,7 +21,7 @@ import org.folio.okapi.common.XOkapiHeaders;
  * facilities, like supporting a _tenantPermissions interface.
  *
  */
-public class MainVerticle extends AbstractVerticle {
+public class MainVerticle extends VerticleBase {
 
   private final Logger logger = OkapiLogger.get();
   private Map<String,JsonArray> savedPermissions = new HashMap<>();
@@ -89,7 +88,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Promise<Void> promise) throws IOException {
+  public Future<?> start() {
     Router router = Router.router(vertx);
 
     final int port = Integer.parseInt(
@@ -102,8 +101,8 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/permResult").handler(this::myPermResult);
     router.post("/_/tenantPermissions").handler(this::myPermissionHandle);
 
-    vertx.createHttpServer()
+    return vertx.createHttpServer()
         .requestHandler(router)
-        .listen(port).onComplete(result -> promise.handle(result.mapEmpty()));
+        .listen(port);
   }
 }
