@@ -40,7 +40,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>5.0.5</version>  <!-- also update depending versions below! -->
+        <version>5.0.6</version>  <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
