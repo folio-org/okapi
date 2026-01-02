@@ -151,7 +151,6 @@ public class DockerTest {
       + "  \"launchDescriptor\" : {" + LS
       + "    \"dockerImage\" : \"okapi-test-module\"," + LS
       + "    \"dockerPull\" : false," + LS
-      + "    \"dockerCMD\" : [\"-Dfoo=bar\"]," + LS
       + "    \"dockerArgs\" : {" + LS
       + "      \"StopTimeout\" : 12," + LS
       + "      \"HostConfig\": { \"PortBindings\": { \"8080/tcp\": [{ \"HostPort\": \"%p\" }] } }" + LS
@@ -301,7 +300,7 @@ public class DockerTest {
       + "    \"dockerImage\" : \"folioci/mod-users:5.0.0-SNAPSHOT\"," + LS
       + "    \"dockerArgs\" : {" + LS
       + "      \"HostConfig\": {" + LS
-      + "         \"PortBindings\": { \"8081/tcp\": [{ \"HostIp\": \"%c\", \"HostPort\": \"%p\" }] } }" + LS
+      + "         \"PortBindings\": { \"8081/tcp\": [{ \"HostIp\": \"127.0.0.1\", \"HostPort\": \"%p\" }] } }" + LS
       + "    }" + LS
       + "  }" + LS
       + "}";

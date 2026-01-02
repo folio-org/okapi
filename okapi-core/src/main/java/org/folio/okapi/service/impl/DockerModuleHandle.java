@@ -60,8 +60,10 @@ public class DockerModuleHandle implements ModuleHandle {
   private String containerId;
   private final SocketAddress socketAddress;
   static final String DEFAULT_DOCKER_URL = "unix:///var/run/docker.sock";
-  static final String DEFAULT_DOCKER_VERSION = "v1.35";
+  static final String DEFAULT_DOCKER_API_VERSION = "v1.44";  // minimum version for Docker 29
+  static final String FALLBACK_DOCKER_API_VERSION = "v1.35"; // fallback to older client API version
   private String image;
+  private String dockerVersion;
 
   DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
                      String id, Ports ports, String containerHost, int port, JsonObject config,
@@ -82,6 +84,7 @@ public class DockerModuleHandle implements ModuleHandle {
     Boolean b = desc.getDockerPull();
     this.dockerPull = b == null || b;
     StringBuilder socketFile = new StringBuilder();
+    this.dockerVersion = DEFAULT_DOCKER_API_VERSION;
     this.dockerUrl = setupDockerAddress(socketFile,
         Config.getSysConf(ConfNames.DOCKER_URL, DEFAULT_DOCKER_URL, config));
     if (socketFile.length() > 0) {
@@ -114,7 +117,7 @@ public class DockerModuleHandle implements ModuleHandle {
     while (u.endsWith("/")) {
       u = u.substring(0, u.length() - 1);
     }
-    return u + "/" + DEFAULT_DOCKER_VERSION;
+    return u;
   }
 
   private Future<Void> handle204(HttpClientRequest req, String msg) {
@@ -140,7 +143,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private Future<HttpClientRequest> request(HttpMethod method, String url, MultiMap headers) {
     RequestOptions requestOptions = new RequestOptions()
         .setMethod(method)
-        .setAbsoluteURI(dockerUrl + url);
+        .setAbsoluteURI(dockerUrl + "/" + dockerVersion + url);
     if (socketAddress != null) {
       requestOptions.setServer(socketAddress);
     }
@@ -224,6 +227,14 @@ public class DockerModuleHandle implements ModuleHandle {
     res.endHandler(d -> {
       if (res.statusCode() != 200 && res.statusCode() != 201) {
         String m = msg + " HTTP error " + res.statusCode() + "\n" + body;
+        try {
+          JsonObject b = new JsonObject(body.toString());
+          if (b.containsKey("message")) {
+            m = b.getString("message");
+          }
+        } catch (DecodeException e) {
+          // ignore JSON decode errors
+        }
         logger.error(m);
         promise.fail(m);
         return;
@@ -390,10 +401,11 @@ public class DockerModuleHandle implements ModuleHandle {
     logger.info("create container from image {}", image);
 
     String doc = getCreateContainerDoc(exposedPort);
-    return postUrlJson("/containers/create", null,"createContainer", doc).map(res -> {
-      containerId = res.getString("Id");
-      return null;
-    });
+    return postUrlJson("/containers/create", null,"createContainer", doc)
+      .map(res -> {
+        containerId = res.getString("Id");
+        return null;
+      });
   }
 
   private int getExposedPort(JsonObject b) {
@@ -414,18 +426,28 @@ public class DockerModuleHandle implements ModuleHandle {
     if (hostPort == 0) {
       return Future.failedFuture(messages.getMessage("11300"));
     }
-    return getImage().map(res -> {
-      try {
-        return getExposedPort(res);
-      } catch (Exception e) {
-        logger.warn("{}", e.getMessage(), e);
-        throw e;
-      }
-    }).compose(this::createContainer)
-        .compose(res -> startContainer())
-        .compose(res -> getContainerLog())
-        .compose(res -> tcpPortWaiting.waitReady(null))
-        .recover(e -> stop().transform(x -> Future.failedFuture(e)));
+    return getImage()
+      .recover(error -> {
+        if (DEFAULT_DOCKER_API_VERSION.equals(dockerVersion)
+             && error.getMessage().startsWith("client version ")) {
+          dockerVersion = FALLBACK_DOCKER_API_VERSION;
+          return getImage();
+        }
+        return Future.failedFuture(error);
+      })
+      .map(res -> {
+        try {
+          return getExposedPort(res);
+        } catch (Exception e) {
+          logger.warn("{}", e.getMessage(), e);
+          throw e;
+        }
+      })
+      .compose(this::createContainer)
+      .compose(res -> startContainer())
+      .compose(res -> getContainerLog())
+      .compose(res -> tcpPortWaiting.waitReady(null))
+      .recover(e -> stop().transform(x -> Future.failedFuture(e)));
   }
 
   @Override

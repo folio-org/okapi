@@ -9,7 +9,6 @@ import static org.mockito.Mockito.*;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientAgent;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpMethod;
@@ -59,12 +58,12 @@ public class DockerModuleHandleTest implements WithAssertions {
   public void testDomainSocketAddresses() {
     StringBuilder s = new StringBuilder();
     String u = DockerModuleHandle.setupDockerAddress(s, "unix://socket");
-    Assert.assertEquals("http://localhost/" + DockerModuleHandle.DEFAULT_DOCKER_VERSION, u);
+    Assert.assertEquals("http://localhost", u);
     Assert.assertEquals("socket", s.toString());
 
     s = new StringBuilder();
     u = DockerModuleHandle.setupDockerAddress(s, DockerModuleHandle.DEFAULT_DOCKER_URL);
-    Assert.assertEquals("http://localhost/" + DockerModuleHandle.DEFAULT_DOCKER_VERSION, u);
+    Assert.assertEquals("http://localhost", u);
     Assert.assertEquals("/var/run/docker.sock", s.toString());
   }
 
@@ -72,17 +71,17 @@ public class DockerModuleHandleTest implements WithAssertions {
   public void testHostPortAddresses() {
     StringBuilder s = new StringBuilder();
     String u = DockerModuleHandle.setupDockerAddress(s, "tcp://localhost:4243");
-    Assert.assertEquals("http://localhost:4243/" + DockerModuleHandle.DEFAULT_DOCKER_VERSION, u);
+    Assert.assertEquals("http://localhost:4243", u);
     Assert.assertEquals("", s.toString());
 
     s = new StringBuilder();
     u = DockerModuleHandle.setupDockerAddress(s, "https://localhost:4243");
-    Assert.assertEquals("https://localhost:4243/" + DockerModuleHandle.DEFAULT_DOCKER_VERSION, u);
+    Assert.assertEquals("https://localhost:4243", u);
     Assert.assertEquals("", s.toString());
 
     s = new StringBuilder();
     u = DockerModuleHandle.setupDockerAddress(s, "https://localhost:4243/");
-    Assert.assertEquals("https://localhost:4243/" + DockerModuleHandle.DEFAULT_DOCKER_VERSION, u);
+    Assert.assertEquals("https://localhost:4243", u);
     Assert.assertEquals("", s.toString());
   }
 
@@ -557,7 +556,7 @@ public class DockerModuleHandleTest implements WithAssertions {
             cause.getMessage());
         // provoke 404 not found
         dh.postUrlJson("/version", null, "msg", "{}").onComplete(context.asyncAssertFailure(cause2 -> {
-          context.assertTrue(cause2.getMessage().startsWith("msg HTTP error 404"),
+          context.assertTrue(cause2.getMessage().contains("page not found"),
               cause2.getMessage());
           async.complete();
         }));
