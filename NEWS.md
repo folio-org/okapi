@@ -1,3 +1,7 @@
+## 6.2.6 2026-01-05
+
+* [OKAPI-1233](https://folio-org.atlassian.net/browse/OKAPI-1233) Vert.x 4.5.23 fixing CVE-2025-67735 Netty CRLF
+
 ## 6.2.5 2025-09-10
 
 * [OKAPI-1225](https://folio-org.atlassian.net/browse/OKAPI-1225) Upgrade Vert.x from 4.5.18 to 4.5.21 fixing CVE-2025-58056, CVE-2025-58057 (Sunflower)
