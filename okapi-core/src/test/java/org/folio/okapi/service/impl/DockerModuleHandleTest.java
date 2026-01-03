@@ -397,8 +397,46 @@ public class DockerModuleHandleTest implements WithAssertions {
 
     {
       Async async = context.async();
+      dockerMockStatus = 404;
+      dockerMockText = null;
+      dockerMockJson = new JsonObject().put("message", "page not found");
+      dh.start().onComplete(context.asyncAssertFailure(cause -> {
+        context.assertEquals("page not found", cause.getMessage());
+        async.complete();
+      }));
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      dockerMockStatus = 404;
+      dockerMockText = null;
+      dockerMockJson = new JsonObject().put("message", new JsonObject().put("x", "y"));
+      dh.start().onComplete(context.asyncAssertFailure(cause -> {
+        context.assertEquals("{x=y}", cause.getMessage());
+        async.complete();
+      }));
+      async.await();
+    }
+
+    {
+     Async async = context.async();
+      dockerMockStatus = 404;
+      dockerMockText = null;
+      dockerMockJson = new JsonObject().put("other", new JsonObject());
+      dh.start().onComplete(context.asyncAssertFailure(cause -> {
+        context.assertEquals("getImage HTTP error 404\n{\"other\":{}}",
+            cause.getMessage());
+        async.complete();
+      }));
+      async.await();
+    }
+
+    {
+      Async async = context.async();
       dockerMockStatus = 200;
       dockerMockText = "{}\n1";
+      dockerMockJson = null;
 
       dh.start().onComplete(context.asyncAssertFailure(cause -> {
         context.assertEquals("Missing Config in image", cause.getMessage());

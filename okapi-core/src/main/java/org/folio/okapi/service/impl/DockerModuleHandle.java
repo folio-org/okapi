@@ -228,12 +228,12 @@ public class DockerModuleHandle implements ModuleHandle {
       if (res.statusCode() != 200 && res.statusCode() != 201) {
         String m = msg + " HTTP error " + res.statusCode() + "\n" + body;
         try {
-          JsonObject b = new JsonObject(body.toString());
+          var b = new JsonObject(body.toString());
           if (b.containsKey("message")) {
             m = b.getString("message");
           }
         } catch (DecodeException e) {
-          // ignore JSON decode errors
+          logger.warn(e);
         }
         logger.error(m);
         promise.fail(m);
