@@ -126,12 +126,13 @@ public class DockerModuleHandleTest implements WithAssertions {
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
         "mod-users-5.0.0-SNAPSHOT", ports, "localhost",
         0 /* no exposed port */, conf);
-    dh.start().onComplete(context.asyncAssertFailure(cause ->
+    dh.prepareContainer().onComplete(context.asyncAssertFailure(cause ->
         context.assertEquals("No exposedPorts in image", cause.getMessage())));
   }
 
   private int dockerMockStatus = 200;
   private int dockerEmptyStatus = 200;
+  private String dockerMockVersion = DockerModuleHandle.DEFAULT_DOCKER_API_VERSION;
   private JsonObject dockerMockJson = null;
   private String dockerMockText = null;
   private int dockerPullStatus = 500;
@@ -142,7 +143,13 @@ public class DockerModuleHandleTest implements WithAssertions {
   private void dockerMockHandle(RoutingContext ctx) {
     HttpMethod method = ctx.request().method();
     String path = ctx.request().path();
-    logger.debug("dockerMockHandle {} {}", method.name(), path);
+    logger.info("dockerMockHandle {} {}", method.name(), path);
+    if (!path.startsWith("/" + dockerMockVersion)) {
+      ctx.response().putHeader("Context-Type", "application/json");
+      ctx.response().setStatusCode(400);
+      ctx.response().end("{\"message\": \"client version 1.99 is too new\"}");
+      return;
+    }
     if (method.equals(HttpMethod.POST) && path.contains("/images/create")) {
       lastFromImage = ctx.request().getParam("fromImage");
       String auth = ctx.request().getHeader("X-Registry-Auth");
@@ -169,7 +176,6 @@ public class DockerModuleHandleTest implements WithAssertions {
       } else {
         ctx.response().setStatusCode(404);
         ctx.response().end("{\"message\": \"not found\"}");
-        // ctx.response().end("Not found");
       }
     } else if (method.equals(HttpMethod.GET) || path.endsWith("/create")) {
       ctx.response().setStatusCode(dockerMockStatus);
@@ -183,7 +189,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       }
     } else {
       ctx.response().setStatusCode(dockerEmptyStatus);
-      ctx.response().end();
+      ctx.response().end("{}");
     }
   }
 
@@ -345,6 +351,7 @@ public class DockerModuleHandleTest implements WithAssertions {
         MOCK_PORT, // using also mock for virtual module
         conf);
 
+
     {
       Async async = context.async();
       dockerMockStatus = 200;
@@ -376,7 +383,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       dockerMockStatus = 102;
       dockerMockText = "Switch";
       dh.start().onComplete(context.asyncAssertFailure(cause -> {
-        context.assertEquals("getImage HTTP error 102\n",
+        context.assertEquals("info HTTP error 102\n",
             cause.getMessage());
         async.complete();
       }));
@@ -388,7 +395,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       dockerMockStatus = 404;
       dockerMockText = "NotHere";
       dh.start().onComplete(context.asyncAssertFailure(cause -> {
-        context.assertEquals("getImage HTTP error 404\nNotHere",
+        context.assertEquals("info HTTP error 404\nNotHere",
             cause.getMessage());
         async.complete();
       }));
@@ -425,7 +432,7 @@ public class DockerModuleHandleTest implements WithAssertions {
       dockerMockText = null;
       dockerMockJson = new JsonObject().put("other", new JsonObject());
       dh.start().onComplete(context.asyncAssertFailure(cause -> {
-        context.assertEquals("getImage HTTP error 404\n{\"other\":{}}",
+        context.assertEquals("info HTTP error 404\n{\"other\":{}}",
             cause.getMessage());
         async.complete();
       }));
@@ -552,6 +559,18 @@ public class DockerModuleHandleTest implements WithAssertions {
         async.complete();
       }));
       async.await();
+    }
+
+    {
+      Async async = context.async();
+      dockerMockStatus = 200;
+      dockerMockText = "{}";
+      dockerMockVersion = DockerModuleHandle.FALLBACK_DOCKER_API_VERSION;
+      dh.start().onComplete(context.asyncAssertSuccess(res -> {
+        async.complete();
+      }));
+      async.await();
+      dockerMockVersion = DockerModuleHandle.DEFAULT_DOCKER_API_VERSION;
     }
 
     listen.close().onComplete(context.asyncAssertSuccess());

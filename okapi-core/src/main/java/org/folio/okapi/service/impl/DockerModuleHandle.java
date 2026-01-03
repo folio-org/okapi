@@ -422,19 +422,11 @@ public class DockerModuleHandle implements ModuleHandle {
     return Integer.parseInt(port);
   }
 
-  private Future<Void> prepareContainer() {
+  Future<Void> prepareContainer() {
     if (hostPort == 0) {
       return Future.failedFuture(messages.getMessage("11300"));
     }
     return getImage()
-      .recover(error -> {
-        if (DEFAULT_DOCKER_API_VERSION.equals(dockerVersion)
-             && error.getMessage().startsWith("client version ")) {
-          dockerVersion = FALLBACK_DOCKER_API_VERSION;
-          return getImage();
-        }
-        return Future.failedFuture(error);
-      })
       .map(res -> {
         try {
           return getExposedPort(res);
@@ -450,13 +442,28 @@ public class DockerModuleHandle implements ModuleHandle {
       .recover(e -> stop().transform(x -> Future.failedFuture(e)));
   }
 
+  private Future<Void> checkVersion() {
+    return getUrl("/info", "info")
+      .recover(error -> {
+        if (!FALLBACK_DOCKER_API_VERSION.equals(dockerVersion)
+             && error.getMessage().startsWith("client version ")) {
+          dockerVersion = FALLBACK_DOCKER_API_VERSION;
+          logger.info("Falling back to Docker API version {}", dockerVersion);
+          return checkVersion().mapEmpty();
+        }
+        return Future.failedFuture(error);
+      })
+      .mapEmpty();
+  }
+
   @Override
   public Future<Void> start() {
+    Future<Void> future = checkVersion();
     if (dockerPull) {
       // ignore error for pullImage ... if image is not present locally prepareContainer will fail
-      return pullImage().recover(x -> Future.succeededFuture()).compose(x -> prepareContainer());
+      future = future.compose(x -> pullImage().otherwiseEmpty());
     }
-    return prepareContainer();
+    return future.compose(x -> prepareContainer());
   }
 
   @Override
