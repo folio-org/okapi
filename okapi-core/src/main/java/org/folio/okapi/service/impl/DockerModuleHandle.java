@@ -60,8 +60,8 @@ public class DockerModuleHandle implements ModuleHandle {
   private String containerId;
   private final SocketAddress socketAddress;
   static final String DEFAULT_DOCKER_URL = "unix:///var/run/docker.sock";
-  static final String DEFAULT_DOCKER_API_VERSION = "v1.44";  // minimum version for Docker 29
-  static final String FALLBACK_DOCKER_API_VERSION = "v1.35"; // fallback to older client API version
+  static final String DEFAULT_ENGINE_API_VERSION = "v1.44";  // minimum version for Docker 29
+  static final String FALLBACK_ENGINE_API_VERSION = "v1.35"; // fallback to older engine API version
   private String image;
   private String dockerVersion;
 
@@ -84,7 +84,7 @@ public class DockerModuleHandle implements ModuleHandle {
     Boolean b = desc.getDockerPull();
     this.dockerPull = b == null || b;
     StringBuilder socketFile = new StringBuilder();
-    this.dockerVersion = DEFAULT_DOCKER_API_VERSION;
+    this.dockerVersion = DEFAULT_ENGINE_API_VERSION;
     this.dockerUrl = setupDockerAddress(socketFile,
         Config.getSysConf(ConfNames.DOCKER_URL, DEFAULT_DOCKER_URL, config));
     if (socketFile.length() > 0) {
@@ -291,6 +291,9 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   Future<Void> pullImage() {
+    if (dockerPull == false) {
+      return Future.succeededFuture();
+    }
     if (dockerRegistries == null) {
       logger.info("pull image {}", image);
       return postUrlJson("/images/create?fromImage=" + image, null, "pullImage", "")
@@ -445,25 +448,22 @@ public class DockerModuleHandle implements ModuleHandle {
   private Future<Void> checkVersion() {
     return getUrl("/info", "info")
       .recover(error -> {
-        if (!FALLBACK_DOCKER_API_VERSION.equals(dockerVersion)
-             && error.getMessage().startsWith("client version ")) {
-          dockerVersion = FALLBACK_DOCKER_API_VERSION;
-          logger.info("Falling back to Docker API version {}", dockerVersion);
-          return checkVersion().mapEmpty();
+        if (!error.getMessage().startsWith("client version ")) {
+          return Future.failedFuture(error);
         }
-        return Future.failedFuture(error);
+        dockerVersion = FALLBACK_ENGINE_API_VERSION;
+        logger.info("Falling back to Docker API version {}", dockerVersion);
+        return getUrl("/info", "info").mapEmpty();
       })
       .mapEmpty();
   }
 
   @Override
   public Future<Void> start() {
-    Future<Void> future = checkVersion();
-    if (dockerPull) {
-      // ignore error for pullImage ... if image is not present locally prepareContainer will fail
-      future = future.compose(x -> pullImage().otherwiseEmpty());
-    }
-    return future.compose(x -> prepareContainer());
+    return checkVersion()
+        // ignore pull errors, let it fail in prepareContainer
+        .compose(x -> pullImage().otherwiseEmpty())
+        .compose(x -> prepareContainer());
   }
 
   @Override

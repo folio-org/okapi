@@ -132,7 +132,7 @@ public class DockerModuleHandleTest implements WithAssertions {
 
   private int dockerMockStatus = 200;
   private int dockerEmptyStatus = 200;
-  private String dockerMockVersion = DockerModuleHandle.DEFAULT_DOCKER_API_VERSION;
+  private String dockerMockVersion = DockerModuleHandle.DEFAULT_ENGINE_API_VERSION;
   private JsonObject dockerMockJson = null;
   private String dockerMockText = null;
   private int dockerPullStatus = 500;
@@ -565,12 +565,33 @@ public class DockerModuleHandleTest implements WithAssertions {
       Async async = context.async();
       dockerMockStatus = 200;
       dockerMockText = "{}";
-      dockerMockVersion = DockerModuleHandle.FALLBACK_DOCKER_API_VERSION;
-      dh.start().onComplete(context.asyncAssertSuccess(res -> {
+      dockerMockVersion = DockerModuleHandle.FALLBACK_ENGINE_API_VERSION;
+      dh.start().onComplete(context.asyncAssertSuccess(res -> async.complete()));
+      async.await();
+      dockerMockVersion = DockerModuleHandle.DEFAULT_ENGINE_API_VERSION;
+    }
+
+    {
+      Async async = context.async();
+      dockerMockStatus = 200;
+      dockerMockText = "{}";
+      dockerMockVersion = DockerModuleHandle.FALLBACK_ENGINE_API_VERSION;
+      dh.start().onComplete(context.asyncAssertSuccess(res -> async.complete()));
+      async.await();
+      dockerMockVersion = DockerModuleHandle.DEFAULT_ENGINE_API_VERSION;
+    }
+
+    {
+      Async async = context.async();
+      dockerMockStatus = 200;
+      dockerMockText = "{}";
+      dockerMockVersion = "v0.9";
+      dh.start().onComplete(context.asyncAssertFailure(cause -> {
+        context.assertEquals("client version 1.99 is too new", cause.getMessage());
         async.complete();
       }));
       async.await();
-      dockerMockVersion = DockerModuleHandle.DEFAULT_DOCKER_API_VERSION;
+      dockerMockVersion = DockerModuleHandle.DEFAULT_ENGINE_API_VERSION;
     }
 
     listen.close().onComplete(context.asyncAssertSuccess());
