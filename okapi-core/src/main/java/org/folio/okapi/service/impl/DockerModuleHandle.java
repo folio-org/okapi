@@ -9,7 +9,6 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
-import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
@@ -60,8 +59,10 @@ public class DockerModuleHandle implements ModuleHandle {
   private String containerId;
   private final SocketAddress socketAddress;
   static final String DEFAULT_DOCKER_URL = "unix:///var/run/docker.sock";
-  static final String DEFAULT_DOCKER_VERSION = "v1.35";
+  static final String DEFAULT_ENGINE_API_VERSION = "v1.44";  // minimum version for Docker 29
+  static final String FALLBACK_ENGINE_API_VERSION = "v1.35"; // fallback to older engine API version
   private String image;
+  private String dockerVersion;
 
   DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
                      String id, Ports ports, String containerHost, int port, JsonObject config,
@@ -82,6 +83,7 @@ public class DockerModuleHandle implements ModuleHandle {
     Boolean b = desc.getDockerPull();
     this.dockerPull = b == null || b;
     StringBuilder socketFile = new StringBuilder();
+    this.dockerVersion = DEFAULT_ENGINE_API_VERSION;
     this.dockerUrl = setupDockerAddress(socketFile,
         Config.getSysConf(ConfNames.DOCKER_URL, DEFAULT_DOCKER_URL, config));
     if (socketFile.length() > 0) {
@@ -114,7 +116,7 @@ public class DockerModuleHandle implements ModuleHandle {
     while (u.endsWith("/")) {
       u = u.substring(0, u.length() - 1);
     }
-    return u + "/" + DEFAULT_DOCKER_VERSION;
+    return u;
   }
 
   private Future<Void> handle204(HttpClientRequest req, String msg) {
@@ -140,7 +142,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private Future<HttpClientRequest> request(HttpMethod method, String url, MultiMap headers) {
     RequestOptions requestOptions = new RequestOptions()
         .setMethod(method)
-        .setAbsoluteURI(dockerUrl + url);
+        .setAbsoluteURI(dockerUrl + "/" + dockerVersion + url);
     if (socketAddress != null) {
       requestOptions.setServer(socketAddress);
     }
@@ -224,6 +226,14 @@ public class DockerModuleHandle implements ModuleHandle {
     res.endHandler(d -> {
       if (res.statusCode() != 200 && res.statusCode() != 201) {
         String m = msg + " HTTP error " + res.statusCode() + "\n" + body;
+        try {
+          var b = new JsonObject(body.toString());
+          if (b.containsKey("message")) {
+            m = b.getString("message");
+          }
+        } catch (Exception e) {
+          logger.warn("Cannot decode response body as JSON: {}", e.getMessage());
+        }
         logger.error(m);
         promise.fail(m);
         return;
@@ -238,7 +248,7 @@ public class DockerModuleHandle implements ModuleHandle {
       try {
         JsonObject b = new JsonObject(line);
         promise.complete(b);
-      } catch (DecodeException e) {
+      } catch (Exception e) {
         logger.warn("{}", e.getMessage(), e);
         logger.warn("while decoding {}", line);
         promise.fail(e);
@@ -280,6 +290,9 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   Future<Void> pullImage() {
+    if (!dockerPull) {
+      return Future.succeededFuture();
+    }
     if (dockerRegistries == null) {
       logger.info("pull image {}", image);
       return postUrlJson("/images/create?fromImage=" + image, null, "pullImage", "")
@@ -390,10 +403,11 @@ public class DockerModuleHandle implements ModuleHandle {
     logger.info("create container from image {}", image);
 
     String doc = getCreateContainerDoc(exposedPort);
-    return postUrlJson("/containers/create", null,"createContainer", doc).map(res -> {
-      containerId = res.getString("Id");
-      return null;
-    });
+    return postUrlJson("/containers/create", null,"createContainer", doc)
+      .map(res -> {
+        containerId = res.getString("Id");
+        return null;
+      });
   }
 
   private int getExposedPort(JsonObject b) {
@@ -410,31 +424,45 @@ public class DockerModuleHandle implements ModuleHandle {
     return Integer.parseInt(port);
   }
 
-  private Future<Void> prepareContainer() {
+  Future<Void> prepareContainer() {
     if (hostPort == 0) {
       return Future.failedFuture(messages.getMessage("11300"));
     }
-    return getImage().map(res -> {
-      try {
-        return getExposedPort(res);
-      } catch (Exception e) {
-        logger.warn("{}", e.getMessage(), e);
-        throw e;
-      }
-    }).compose(this::createContainer)
-        .compose(res -> startContainer())
-        .compose(res -> getContainerLog())
-        .compose(res -> tcpPortWaiting.waitReady(null))
-        .recover(e -> stop().transform(x -> Future.failedFuture(e)));
+    return getImage()
+      .map(res -> {
+        try {
+          return getExposedPort(res);
+        } catch (Exception e) {
+          logger.warn("{}", e.getMessage(), e);
+          throw e;
+        }
+      })
+      .compose(this::createContainer)
+      .compose(res -> startContainer())
+      .compose(res -> getContainerLog())
+      .compose(res -> tcpPortWaiting.waitReady(null))
+      .recover(e -> stop().transform(x -> Future.failedFuture(e)));
+  }
+
+  private Future<Void> checkVersion() {
+    return getUrl("/info", "info")
+      .recover(error -> {
+        if (!error.getMessage().startsWith("client version ")) {
+          return Future.failedFuture(error);
+        }
+        dockerVersion = FALLBACK_ENGINE_API_VERSION;
+        logger.info("Falling back to Docker API version {}", dockerVersion);
+        return getUrl("/info", "info");
+      })
+      .mapEmpty();
   }
 
   @Override
   public Future<Void> start() {
-    if (dockerPull) {
-      // ignore error for pullImage ... if image is not present locally prepareContainer will fail
-      return pullImage().recover(x -> Future.succeededFuture()).compose(x -> prepareContainer());
-    }
-    return prepareContainer();
+    return checkVersion()
+        // ignore pull errors, let it fail in prepareContainer
+        .compose(x -> pullImage().otherwiseEmpty())
+        .compose(x -> prepareContainer());
   }
 
   @Override
