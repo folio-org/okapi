@@ -452,7 +452,7 @@ public class DockerModuleHandle implements ModuleHandle {
         }
         dockerVersion = FALLBACK_ENGINE_API_VERSION;
         logger.info("Falling back to Docker API version {}", dockerVersion);
-        return getUrl("/info", "info").mapEmpty();
+        return getUrl("/info", "info");
       })
       .mapEmpty();
   }
