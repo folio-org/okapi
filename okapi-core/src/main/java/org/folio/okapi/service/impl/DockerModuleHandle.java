@@ -233,7 +233,7 @@ public class DockerModuleHandle implements ModuleHandle {
             m = b.getString("message");
           }
         } catch (Exception e) {
-          logger.warn(e);
+          logger.warn("Cannot decode response body as JSON: {}", e.getMessage());
         }
         logger.error(m);
         promise.fail(m);
