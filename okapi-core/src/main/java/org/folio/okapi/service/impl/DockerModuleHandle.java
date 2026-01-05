@@ -232,7 +232,7 @@ public class DockerModuleHandle implements ModuleHandle {
           if (b.containsKey("message")) {
             m = b.getString("message");
           }
-        } catch (DecodeException e) {
+        } catch (Exception e) {
           logger.warn(e);
         }
         logger.error(m);
@@ -249,7 +249,7 @@ public class DockerModuleHandle implements ModuleHandle {
       try {
         JsonObject b = new JsonObject(line);
         promise.complete(b);
-      } catch (DecodeException e) {
+      } catch (Exception e) {
         logger.warn("{}", e.getMessage(), e);
         logger.warn("while decoding {}", line);
         promise.fail(e);
@@ -291,7 +291,7 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   Future<Void> pullImage() {
-    if (dockerPull == false) {
+    if (!dockerPull) {
       return Future.succeededFuture();
     }
     if (dockerRegistries == null) {
