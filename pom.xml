@@ -40,7 +40,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>5.0.6</version>  <!-- also update depending versions below! -->
+        <version>5.0.7</version>  <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -49,7 +49,7 @@
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.15.2</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
+        <version>1.16.2</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -90,7 +90,7 @@
       <dependency>
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
-        <version>3.27.4</version>
+        <version>3.27.7</version>
       </dependency>
        <dependency>
         <groupId>com.zaxxer</groupId>
