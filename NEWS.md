@@ -1,3 +1,14 @@
+## 7.0.2 2026-02-11
+
+* [OKAPI-1228](https://folio-org.atlassian.net/browse/OKAPI-1228) Add javadoc about ServicesResourceTransformer requirement
+* [OKAPI-1230](https://folio-org.atlassian.net/browse/OKAPI-1230) Add optional "required" property to EnvEntry.json of module descriptor
+* [OKAPI-1231](https://folio-org.atlassian.net/browse/OKAPI-1231) Migrate from AbstractVerticle to VerticleBase
+* [OKAPI-1232](https://folio-org.atlassian.net/browse/OKAPI-1232) Vert.x 5.0.6 fixing CVE-2025-67735 Netty CRLF injection
+* [OKAPI-1234](https://folio-org.atlassian.net/browse/OKAPI-1234) Support Docker 29 and later
+* [OKAPI-1236](https://folio-org.atlassian.net/browse/OKAPI-1236) upgrade to test-containers 2.0.3 (#1432)
+* [OKAPI-1238](https://folio-org.atlassian.net/browse/OKAPI-1238) log4j 4.5.23 fixing SocketAppender TLS hostname verification CVE-2025-68161
+* [OKAPI-1239](https://folio-org.atlassian.net/browse/OKAPI-1239) Vertx 5.0.7 (CVE-2026-1002), assertj 3.27.7, micrometer 1.16.2
+
 ## 7.0.1 2025-11-13
 
 * [OKAPI-1224](https://folio-org.atlassian.net/browse/OKAPI-1224) Upgrade Vert.x from 5.0.3 to 5.0.4 fixing CVE-2025-58056
