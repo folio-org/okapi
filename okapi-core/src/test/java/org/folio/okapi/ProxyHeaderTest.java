@@ -1,5 +1,9 @@
 package org.folio.okapi;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
 import io.netty.handler.codec.compression.StandardCompressionOptions;
 import io.vertx.core.Expectation;
 import io.vertx.core.Future;
@@ -9,11 +13,13 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpResponseExpectation;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import java.util.Objects;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,32 +45,16 @@ class ProxyHeaderTest {
     "deflate,"
   })
   void test(String contentEncoding1, String contentEncoding2, VertxTestContext vtc) {
-    var compressionOptions1 = contentEncoding1.equals("gzip")
-        ? StandardCompressionOptions.gzip() : StandardCompressionOptions.deflate();
-
     deployOkapi()
-    .compose(x -> {
-      var httpServerOptions = new HttpServerOptions()
-          .setCompressionSupported(true)
-          .addCompressor(compressionOptions1);
-      return vertx.createHttpServer(httpServerOptions)
-          .requestHandler(req -> {
-            var contentEncoding = req.getHeader("Content-Encoding");
-            if (contentEncoding != null) {
-              vtc.failNow("Got unexpected Content-Encoding: " + contentEncoding);
-            }
-            req.response().end("answer");
-          })
-          .listen(8081);  // mod-foo at 8081
-    })
-    .compose(server -> get("http://localhost:8081/foo", null, contentEncoding1))
+    .compose(x -> deployModule(contentEncoding1))
+    .compose(server -> put("http://localhost:8081/foo", null, contentEncoding1))
     .expecting(assertContentEncoding(contentEncoding1))
-    .compose(x -> get("http://localhost:9130/foo", "br", contentEncoding2))
+    .compose(x -> put("http://localhost:9130/foo", "br", contentEncoding2))
     .expecting(assertContentEncoding(contentEncoding2))
     .onComplete(vtc.succeedingThenComplete());
   }
 
-  Future<HttpClientResponse> post(String path, String body) {
+  Future<HttpClientResponse> postOkapi(String path, String body) {
     var requestOptions = new RequestOptions()
         .setMethod(HttpMethod.POST).setAbsoluteURI("http://localhost:9130" + path);
     return httpClient.request(requestOptions)
@@ -74,24 +64,42 @@ class ProxyHeaderTest {
 
   Future<HttpClientResponse> deployOkapi() {
     return vertx.deployVerticle(new MainVerticle())  // okapi at 9130
-        .compose(x -> post("/_/proxy/tenants", """
+        .compose(x -> postOkapi("/_/proxy/tenants", """
             {"id":"diku"}
             """))
-        .compose(x -> post("/_/proxy/modules", """
+        .compose(x -> postOkapi("/_/proxy/modules", """
             {"id":"mod-foo-1.0.0", "provides":
               [{"id":"foo", "version":"1.0", "handlers":
                 [{"methods":["PUT"], "pathPattern": "/foo", "permissionsRequired": []}]}]}
             """))
-        .compose(x -> post("/_/discovery/modules", """
+        .compose(x -> postOkapi("/_/discovery/modules", """
             {"srvcId": "mod-foo-1.0.0", "instId": "mod-foo-1.0.0",
              "url": "http://localhost:8081"}
             """))
-        .compose(x -> post("/_/proxy/tenants/diku/modules", """
+        .compose(x -> postOkapi("/_/proxy/tenants/diku/modules", """
             {"id":"mod-foo-1.0.0"}
             """));
   }
 
-  Future<HttpClientResponse> get(String uri, String contentEncoding, String acceptEncoding) {
+  Future<HttpServer> deployModule(String contentEncoding) {
+    var compressionOptions = contentEncoding.equals("gzip")
+        ? StandardCompressionOptions.gzip() : StandardCompressionOptions.deflate();
+    var httpServerOptions = new HttpServerOptions()
+        .setCompressionSupported(true)
+        .addCompressor(compressionOptions);
+    return vertx.createHttpServer(httpServerOptions)
+        .requestHandler(req -> {
+          try {
+            assertThat("Content-Encoding", req.getHeader("Content-Encoding"), is(nullValue()));
+            req.response().end("y".repeat(100000));
+          } catch (Exception e) {
+            req.response().setStatusCode(400).end(ExceptionUtils.getStackTrace(e));
+          }
+        })
+        .listen(8081);
+  }
+
+  Future<HttpClientResponse> put(String uri, String contentEncoding, String acceptEncoding) {
     var requestOptions = new RequestOptions()
         .setMethod(HttpMethod.PUT)
         .setAbsoluteURI(uri)
