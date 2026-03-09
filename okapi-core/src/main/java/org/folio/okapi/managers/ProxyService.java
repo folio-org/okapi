@@ -9,6 +9,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -411,8 +412,7 @@ public class ProxyService {
       }
     }
     sanitizeAuthHeaders(hres.headers());
-    hres.headers().remove("Content-Length");
-    hres.headers().remove("Transfer-Encoding");
+    removeEncodingHeaders(hres.headers());
     if (hres.getStatusCode() != 204) {
       hres.setChunked(true);
     }
@@ -468,13 +468,21 @@ public class ProxyService {
    *
    * @param headers request or response HTTP headers
    */
-  private void sanitizeAuthHeaders(MultiMap headers) {
+  private static void sanitizeAuthHeaders(MultiMap headers) {
     headers.remove(XOkapiHeaders.MODULE_TOKENS);
     headers.remove(XOkapiHeaders.MODULE_PERMISSIONS);
     headers.remove(XOkapiHeaders.PERMISSIONS_REQUIRED);
     headers.remove(XOkapiHeaders.PERMISSIONS_DESIRED);
     headers.remove(XOkapiHeaders.EXTRA_PERMISSIONS);
     headers.remove(XOkapiHeaders.FILTER);
+  }
+
+  private static void removeEncodingHeaders(MultiMap headers) {
+    headers
+        .remove(HttpHeaders.ACCEPT_ENCODING)
+        .remove(HttpHeaders.CONTENT_ENCODING)
+        .remove(HttpHeaders.CONTENT_LENGTH)
+        .remove(HttpHeaders.TRANSFER_ENCODING);
   }
 
   /**
@@ -736,7 +744,7 @@ public class ProxyService {
       dumpHeaders(ctx.request().headers());
     }
     clientRequest.headers().setAll(ctx.request().headers());
-    clientRequest.headers().remove("Content-Length");
+    removeEncodingHeaders(clientRequest.headers());
     clientRequest.headers().remove("Host");
     final String phase = mi == null ? "" : mi.getRoutingEntry().getPhase();
     if (!XOkapiHeaders.FILTER_AUTH.equals(phase)) {
