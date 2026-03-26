@@ -110,7 +110,7 @@ public class ModuleManager {
           ModuleDescriptor exMd = tempList.get(id);
           String exJson = Json.encodePrettily(exMd);
           String json = Json.encodePrettily(md);
-          if (!json.equals(exJson)) {
+          if (check && !json.equals(exJson)) {
             return Future.failedFuture(new OkapiError(ErrorType.USER,
                 messages.getMessage("10203", id)));
           }
