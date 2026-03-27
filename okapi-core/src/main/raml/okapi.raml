@@ -453,7 +453,10 @@ traits:
       /_/proxy/modules.
     queryParameters:
       check:
-        description: Whether to check dependencies
+        description: Whether to check dependencies and immutability of existing modules.
+          If false, modules may be imported requiring interfaces that are not currently
+          offered by any other module. Also with a false value an existing module may be
+          updated; thus breaking immutability.
         type: boolean
         required: false
         default: true
@@ -530,7 +533,10 @@ traits:
       selected for a specific tenant.
     queryParameters:
       check:
-        description: Whether to check dependencies
+        description: Whether to check dependencies and immutability of existing modules.
+          If false, a module may be imported requiring interfaces that are not currently
+          offered by any other module. Also with a false value an existing module may
+          be updated; thus breaking immutability.
         type: boolean
         required: false
         default: true

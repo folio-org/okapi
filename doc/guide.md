@@ -1100,6 +1100,11 @@ posted.
 Note that Okapi gives us less details about the modules, for in the real life this
 could be quite a long list.
 
+Modules are immutable (for same id). There is no PUT method to update a module.
+It is possible to POST the module descriptor again, if it is equivalent to the
+existing module. This enforcement can be lifted, by supplying query
+parameter `check=false`.
+
 #### Deploying the module
 
 It is not enough that Okapi knows that such a module exists. We must

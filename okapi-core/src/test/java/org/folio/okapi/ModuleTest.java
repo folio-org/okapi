@@ -948,6 +948,17 @@ public class ModuleTest {
         .body(equalTo("create: module sample-module-1+1 already exists"));
     assertEmptyReport(c);
 
+    // post it again with slight modification, but check=false, so it should be allowed, and replace the old one
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(docSampleModule.replace("sample.extra\"", "sample.foo\""))
+        .queryParam("check", "false")
+        .post("/_/proxy/modules")
+        .then()
+        .statusCode(201);
+    assertEmptyReport(c);
+
     given()
         .header("Content-Type", "application/json")
         .body("{}")
