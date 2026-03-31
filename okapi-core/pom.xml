@@ -40,7 +40,7 @@
     <dependency> <!-- for log4j2 asynchronous loggers -->
       <groupId>com.lmax</groupId>
       <artifactId>disruptor</artifactId>
-      <version>3.4.4</version>
+      <version>4.0.0</version>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
