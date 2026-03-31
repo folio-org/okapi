@@ -143,7 +143,6 @@
         <version>4.3.0</version>
       </dependency>
       <!-- mockito 5.23.0 uses byte-buddy 1.17.7, use later version for JDK 25 support -->
-      <!--
       <dependency>
         <groupId>net.bytebuddy</groupId>
         <artifactId>byte-buddy</artifactId>
@@ -154,7 +153,6 @@
         <artifactId>byte-buddy-agent</artifactId>
         <version>1.18.7</version>
       </dependency>
-      -->
     </dependencies>
   </dependencyManagement>
 
