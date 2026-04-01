@@ -28,6 +28,7 @@ class SemVerTest {
   }
 
   @Test
+  @SuppressWarnings("java:S117")  // allow underscore in local variables
   void test() {
     SemVer v1 = createVersion("1", false, false);
     SemVer v2 = createVersion("2", false, false);
@@ -62,7 +63,7 @@ class SemVerTest {
 
   void testPrefix() {
     SemVer v1 = createVersion("1", false, false);
-    SemVer v1_0 = createVersion("1.0", false, false);
+    SemVer v1dot0 = createVersion("1.0", false, false);
     SemVer p1 = createVersion("1.0.0-alpha", true, false);
     SemVer p2 = createVersion("1.0.0-alpha.1", true, false);
     SemVer p3 = createVersion("1.0.0-alpha.beta", true, false);
@@ -78,9 +79,9 @@ class SemVerTest {
     assertTrue(p1.hasPrefix(v1));
     assertTrue(p7.hasPrefix(v1));
     assertTrue(p8.hasPrefix(v1));
-    assertTrue(p1.hasPrefix(v1_0));
-    assertTrue(p7.hasPrefix(v1_0));
-    assertTrue(p8.hasPrefix(v1_0));
+    assertTrue(p1.hasPrefix(v1dot0));
+    assertTrue(p7.hasPrefix(v1dot0));
+    assertTrue(p8.hasPrefix(v1dot0));
     assertFalse(v1.hasPrefix(p8));
     assertTrue(p1.hasPrefix(p8));
     assertFalse(p4.hasPrefix(p5));
