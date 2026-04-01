@@ -1,9 +1,11 @@
 package org.folio.okapi.common;
 
-import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
-public class SemVerTest {
+class SemVerTest {
 
   private SemVer createVersion(String id, boolean isPrelease, boolean isNpmsnapshot) {
     SemVer v = new SemVer(id);
@@ -25,9 +27,8 @@ public class SemVerTest {
     assertNull(v);
   }
 
-  @java.lang.SuppressWarnings({"squid:S5961"}) // more than 25 assertions
   @Test
-  public void test() {
+  void test() {
     SemVer v1 = createVersion("1", false, false);
     SemVer v2 = createVersion("2", false, false);
 
@@ -57,7 +58,11 @@ public class SemVerTest {
 
     assertFalse(v1_10_0.hasPrefix(v1_10_1));
     assertFalse(v1_10_1.hasPrefix(v1_10_0));
+  }
 
+  void testPrefix() {
+    SemVer v1 = createVersion("1", false, false);
+    SemVer v1_0 = createVersion("1.0", false, false);
     SemVer p1 = createVersion("1.0.0-alpha", true, false);
     SemVer p2 = createVersion("1.0.0-alpha.1", true, false);
     SemVer p3 = createVersion("1.0.0-alpha.beta", true, false);
@@ -98,7 +103,10 @@ public class SemVerTest {
     assertEquals(1, p6.compareTo(p5));
     assertEquals(1, p7.compareTo(p6));
     assertEquals(1, p8.compareTo(p7));
+  }
 
+  @Test
+  void testSnapshot() {
     SemVer snap1 = createVersion("1.0.0-rc.1+snapshot-2017.1", true, false);
     SemVer snap2 = createVersion("1.0.0-rc.1+snapshot-2017.2", true, false);
     assertTrue(snap1.hasPrefix(snap1));
@@ -116,7 +124,70 @@ public class SemVerTest {
     assertEquals(1, snap2.compareTo(snap1));
     assertEquals(1, snap3.compareTo(snap1));
     assertEquals(-1, snap1.compareTo(snap3));
+  }
 
+  @Test
+  void testEquals() {
+    var semVer = new SemVer("1.2.0-SNAPSHOT");
+    var semVerCopy = new SemVer("1.2.0-SNAPSHOT");
+    assertEquals(semVer, semVer);
+    assertEquals(semVer, semVerCopy);
+  }
+
+  @ParameterizedTest
+  @CsvSource(textBlock = """
+      1, 1.0
+      1.0, 1
+      1, 1.0.0
+      1.0.0, 1
+      1.0.0, 1.0.1
+      1.0.0, 1.1.0
+      1.0.0, 1.0.0-foo
+      1.0.0-foo-1, 1.0.0-foo-2
+      """)
+  void testNotEquals(String string1, String string2) {
+    var semVer1 = new SemVer(string1);
+    var semVer2 = new SemVer(string2);
+    var equals = semVer1.equals(semVer2);
+    assertFalse(equals);
+    assertNotEquals(semVer1.hashCode(), semVer2.hashCode());
+  }
+
+  @Test
+  void testEqualsNull() {
+    var equals = new SemVer("1.0.0").equals(null);
+    assertFalse(equals);
+  }
+
+  @Test
+  void testEqualsIdent() {
+    var semVer = new SemVer("1.0.0");
+    assertEquals(semVer, semVer);
+  }
+
+  static class ExtendedSemVer extends SemVer {
+    public final String extension;
+
+    public ExtendedSemVer(String s, String extension) {
+      super(s);
+      this.extension = extension;
+    }
+  }
+
+  @Test
+  void testEqualsExtended() {
+    var semVer3 = new SemVer("1.2.3");
+    var extendedSemVer3e = new ExtendedSemVer("1.2.3", "e");
+    var extendedSemVer3f = new ExtendedSemVer("1.2.3", "f");
+    var extendedSemVer4e = new ExtendedSemVer("1.2.4", "e");
+    assertNotEquals(semVer3, extendedSemVer3e);
+    assertEquals(extendedSemVer3e, extendedSemVer3f);
+    assertNotEquals(extendedSemVer3e, extendedSemVer4e);
+  }
+
+  @Test
+  void testLong() {
+    SemVer snap1 = createVersion("1.0.0-rc.1+snapshot-2017.1", true, false);
     SemVer npmSnapshot = new SemVer("4000001006.1.0");
     assertEquals(-4, snap1.compareTo(npmSnapshot));
 
@@ -125,7 +196,7 @@ public class SemVerTest {
   }
 
   @Test
-  public void testMixedPrerelease() {
+  void testMixedPrerelease() {
     SemVer v2a3a = createVersion("1.0.0-2a-3a", true, false);
     SemVer v2a3 = createVersion("1.0.0-2a-3", true, false);
     SemVer v1234 = createVersion("1.0.0-1234", true, false);
@@ -137,7 +208,7 @@ public class SemVerTest {
   }
 
   @Test
-  public void testInvalid() {
+  void testInvalid() {
     invalidVersion("", "missing major version: ");
     invalidVersion("x", "missing major version: x");
     invalidVersion("x.y", "missing major version: x.y");

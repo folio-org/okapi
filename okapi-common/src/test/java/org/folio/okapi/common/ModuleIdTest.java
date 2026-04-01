@@ -1,15 +1,15 @@
 package org.folio.okapi.common;
 
-import java.util.LinkedList;
-import java.util.List;
-import org.junit.Test;
 import static org.junit.Assert.*;
 
-public class ModuleIdTest {
+import java.util.LinkedList;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
-  @java.lang.SuppressWarnings({"squid:S5961"}) // more than 25 assertions
+class ModuleIdTest {
+
   @Test
-  public void test() {
+  void test() {
     ModuleId module_1 = new ModuleId("module-1");
     assertEquals("module-1", module_1.getId());
     assertTrue(module_1.hasSemVer());
@@ -24,15 +24,44 @@ public class ModuleIdTest {
     assertFalse(module_1plus2.hasNpmSnapshot());
     assertEquals("module", module_1plus2.getProduct());
     assertEquals("module-1-2+3", module_1plus2.toString());
+  }
 
-    assertNotEquals(module_1, module_1plus2);
-    ModuleId module_1_ref = module_1;
-    assertEquals(module_1, module_1_ref);
-    ModuleId module_1plus2copy = new ModuleId("module-1-2+3");
-    assertEquals(module_1plus2, module_1plus2copy);
+  static class ExtendedModuleId extends ModuleId {
+    public final String extension;
 
-    assertEquals(module_1plus2.hashCode(), module_1plus2copy.hashCode());
+    public ExtendedModuleId(String s, String extension) {
+      super(s);
+      this.extension = extension;
+    }
+  }
 
+  @Test
+  void testEquals() {
+    var module1 = new ModuleId("module-1");
+    var module1plus2 = new ModuleId("module-1-2+3");
+    assertNotEquals(module1, module1plus2);
+    var module1ref = module1;
+    assertEquals(module1, module1ref);
+    var module1plus2copy = new ModuleId("module-1-2+3");
+    assertEquals(module1plus2, module1plus2copy);
+    assertFalse(module1.equals(null));
+    assertNotEquals(module1, "module-1");
+    var extendedModule1 = new ExtendedModuleId("module-1", "e");
+    var extendedModule2 = new ExtendedModuleId("module-2", "e");
+    var extendedModule1copy = new ExtendedModuleId("module-1", "f");
+    assertEquals(extendedModule1, extendedModule1);
+    assertNotEquals(extendedModule1, extendedModule2);
+    assertEquals(extendedModule1, extendedModule1copy);
+    assertNotEquals(extendedModule1, module1);
+    assertNotEquals(module1, extendedModule1);
+
+    assertEquals(module1plus2.hashCode(), module1plus2copy.hashCode());
+    assertNotEquals(module1.hashCode(), module1plus2.hashCode());
+  }
+
+  @Test
+  void testComparisons() {
+    ModuleId module_1 = new ModuleId("module-1");
     ModuleId foobar_1_2 = new ModuleId("foo-bar1-1.2");
     assertEquals("foo-bar1-1.2", foobar_1_2.toString());
 
@@ -72,7 +101,7 @@ public class ModuleIdTest {
   }
 
   @Test
-  public void testLatest() {
+  void testLatest() {
     ModuleId module_1 = new ModuleId("module-1");
     List<String> versionsL = new LinkedList<>();
     versionsL.add("module-1.0");
@@ -85,7 +114,7 @@ public class ModuleIdTest {
   }
 
   @Test
-  public void testNpmSnapshot() {
+  void testNpmSnapshot() {
     ModuleId module_1_10000 = new ModuleId("module-1.2.10000");
     assertTrue(module_1_10000.hasSemVer());
     assertFalse(module_1_10000.hasPreRelease());
@@ -93,7 +122,7 @@ public class ModuleIdTest {
   }
 
   @Test
-  public void testWithoutSemVer() {
+  void testWithoutSemVer() {
     ModuleId module = new ModuleId("module");
     assertFalse(module.hasSemVer());
     assertFalse(module.hasPreRelease());
