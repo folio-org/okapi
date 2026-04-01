@@ -1,3 +1,13 @@
+## 7.2.0 next minor version
+
+## 7.1.0 unused (wrong release)
+
+## 7.0.3 2026-04-01
+
+* [OKAPI-1241](https://folio-org.atlassian.net/browse/OKAPI-1241) Jackson 2.18.6 fixing DoS when parsing long number - GHSA-72hv-8253-57qq
+* #1439 MD post check=false param loosen MDs immutable check
+* [OKAPI-1242](https://folio-org.atlassian.net/browse/OKAPI-1242) Bump dependencies for Trillium (Vert.x 5.0.10, …)
+
 ## 7.0.2 2026-02-11
 
 * [OKAPI-1228](https://folio-org.atlassian.net/browse/OKAPI-1228) Add javadoc about ServicesResourceTransformer requirement
