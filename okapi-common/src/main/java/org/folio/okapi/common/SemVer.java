@@ -259,7 +259,10 @@ public class SemVer implements Comparable<SemVer> {
     if (this == that) {
       return true;
     }
-    if (!(that instanceof SemVer)) {
+    if (that == null) {
+      return false;
+    }
+    if (that.getClass() != getClass()) {
       return false;
     }
     return compareTo((SemVer) that) == 0;

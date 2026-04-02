@@ -114,7 +114,10 @@ public class ModuleId implements Comparable<ModuleId> {
     if (this == that) {
       return true;
     }
-    if (!(that instanceof ModuleId)) {
+    if (that == null) {
+      return false;
+    }
+    if (that.getClass() != getClass()) {
       return false;
     }
     return compareTo((ModuleId) that) == 0;

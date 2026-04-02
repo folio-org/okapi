@@ -24,11 +24,14 @@ public class TenantUserCache {
       if (this == o) {
         return true;
       }
-      if (o instanceof TokenKey) {
-        TokenKey tokenKey = (TokenKey) o; // if on java17 we didn't have to do this
-        return tenant.equals(tokenKey.tenant) && user.equals(tokenKey.user);
+      if (o == null) {
+        return false;
       }
-      return false;
+      if (o.getClass() != getClass()) {
+        return false;
+      }
+      var tokenKey = (TokenKey) o;
+      return tenant.equals(tokenKey.tenant) && user.equals(tokenKey.user);
     }
 
     @Override
