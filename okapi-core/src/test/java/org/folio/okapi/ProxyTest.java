@@ -3984,7 +3984,8 @@ public class ProxyTest {
     given()
         .header("Content-Type", "application/json")
         .body("{\"id\":").post("/_/proxy/import/modules")
-        .then().statusCode(400).body(containsString("Expected `[` but found `{`"));
+        .then().statusCode(400)
+        .body(containsString("Cannot deserialize value of type `org.folio.okapi.bean.ModuleDescriptor[]`"));
 
     given()
         .header("Content-Type", "application/json")
