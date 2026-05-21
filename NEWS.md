@@ -2,6 +2,11 @@
 
 ## 7.1.0 unused (wrong release)
 
+## 7.0.4 2026-05-21
+
+* [OKAPI-1243](https://folio-org.atlassian.net/browse/OKAPI-1243) equals should support subclasses of ModuleId, SemVer, …
+* [OKAPI-1245](https://folio-org.atlassian.net/browse/OKAPI-1245) Vertx 5.0.12 fixing Netty vulns CVE-2026-42583, CVE-2026-42587, …
+
 ## 7.0.3 2026-04-01
 
 * [OKAPI-1241](https://folio-org.atlassian.net/browse/OKAPI-1241) Jackson 2.18.6 fixing DoS when parsing long number - GHSA-72hv-8253-57qq
