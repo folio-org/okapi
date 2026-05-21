@@ -1,3 +1,7 @@
+## 6.2.7 2026-05-21
+
+* [OKAPI-1244](https://folio-org.atlassian.net/browse/OKAPI-1244) Vertx 4.5.27, log4j 2.26.0 fixing vulns: CVE-2026-33871, CVE-2026-42583, CVE-2026-42587, CVE-2026-34481
+
 ## 6.2.6 2026-01-05
 
 * [OKAPI-1233](https://folio-org.atlassian.net/browse/OKAPI-1233) Vert.x 4.5.23 fixing CVE-2025-67735 Netty CRLF
