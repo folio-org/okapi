@@ -4,7 +4,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -31,6 +30,7 @@ import org.apache.logging.log4j.Logger;
 @java.lang.SuppressWarnings({"squid:S2245"})
 public class OkapiClient {
 
+  private static final int LOGLEN = 200;
   private final Logger logger = OkapiLogger.get();
 
   private String okapiUrl;
@@ -259,23 +259,24 @@ public class OkapiClient {
       return Future.failedFuture(
           new ErrorTypeException(ErrorType.INTERNAL, "OkapiClient: No OkapiUrl specified"));
     }
-    return Future.future(promise -> request1(method, path, data, promise));
+    return request1(method, path, data);
   }
 
-  private void request1(HttpMethod method, String path, Buffer data, Promise<String> promise) {
-    request2(method, path, data)
-        .onSuccess(s -> promise.tryComplete(s))
-        .onFailure(e -> {
-          if (e.getCause() == null) {
-            promise.tryFail(e);
-            return;
+  private Future<String> request1(HttpMethod method, String path, Buffer data) {
+    return request2(method, path, data)
+        .recover(e -> {
+          logger.error("request {} {} {}", method, path, sanitize(data));
+          logger.error("{} {}", e.getClass().getName(), sanitize(e.getMessage()));
+          var cause = e.getCause();
+          if (cause == null) {
+            return Future.failedFuture(e);
           }
           if (retryClosedCount <= 0) {
-            promise.tryFail(new ErrorTypeException(ErrorType.INTERNAL, e.getCause()));
-            return;
+            return Future.failedFuture(new ErrorTypeException(ErrorType.INTERNAL, cause));
           }
           retryClosedCount--;
-          vertx.setTimer(retryClosedWait, x -> request1(method, path, data, promise));
+          return Future.future(promise -> vertx.setTimer(retryClosedWait,
+              x -> request1(method, path, data).onComplete(promise)));
         });
   }
 
@@ -317,6 +318,26 @@ public class OkapiClient {
           Exception e = new ErrorTypeException(errorType, statusCode + ": " + responsebody);
           return Future.failedFuture(e);
         });
+  }
+
+  private String sanitize(Buffer data) {
+    if (data == null) {
+      return null;
+    }
+    if (data.length() <= LOGLEN) {
+      return OkapiStringUtil.removeLogCharacters(data.toString());
+    }
+    var trim = data.getString(0, LOGLEN / 2) + "…"
+        + data.getString(data.length() - LOGLEN / 2, data.length());
+    return OkapiStringUtil.removeLogCharacters(trim);
+  }
+
+  private String sanitize(String s) {
+    if (s.length() <= LOGLEN) {
+      return OkapiStringUtil.removeLogCharacters(s);
+    }
+    var trim = s.substring(0, LOGLEN / 2) + "…" + s.substring(s.length() - LOGLEN / 2);
+    return OkapiStringUtil.removeLogCharacters(trim);
   }
 
   public Future<String> post(String path, String data) {
