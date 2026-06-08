@@ -448,15 +448,4 @@ public class OkapiClientTest {
       assertThat(s.length(), lessThan(500));
     }));
   }
-
-  @Test
-  public void sanitizeNull(TestContext context) {
-    new OkapiClient(URL, vertx, null)
-    .request(HttpMethod.POST, "/test1?e=567", (Buffer) null)
-    .onComplete(context.asyncAssertFailure(e -> {
-      var s = log.toString();
-      assertThat(s, containsString("POST /test1?e=567 null"));
-      assertThat(s, containsString("hello null"));
-    }));
-  }
 }

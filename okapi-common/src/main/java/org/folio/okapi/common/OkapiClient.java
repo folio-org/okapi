@@ -1,5 +1,7 @@
 package org.folio.okapi.common;
 
+import static org.folio.okapi.common.OkapiStringUtil.sanitizeForLog;
+
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -30,7 +32,6 @@ import org.apache.logging.log4j.Logger;
 @java.lang.SuppressWarnings({"squid:S2245"})
 public class OkapiClient {
 
-  private static final int LOGLEN = 200;
   private final Logger logger = OkapiLogger.get();
 
   private String okapiUrl;
@@ -265,8 +266,8 @@ public class OkapiClient {
   private Future<String> request1(HttpMethod method, String path, Buffer data) {
     return request2(method, path, data)
         .recover(e -> {
-          logger.error("request {} {} {}", method, path, sanitize(data));
-          logger.error("{} {}", e.getClass().getName(), sanitize(e.getMessage()));
+          logger.error("request {} {} {}", method, path, sanitizeForLog(data));
+          logger.error("{} {}", e.getClass().getName(), sanitizeForLog(e.getMessage()));
           var cause = e.getCause();
           if (cause == null) {
             return Future.failedFuture(e);
@@ -318,26 +319,6 @@ public class OkapiClient {
           Exception e = new ErrorTypeException(errorType, statusCode + ": " + responsebody);
           return Future.failedFuture(e);
         });
-  }
-
-  private String sanitize(Buffer data) {
-    if (data == null) {
-      return null;
-    }
-    if (data.length() <= LOGLEN) {
-      return OkapiStringUtil.removeLogCharacters(data.toString());
-    }
-    var trim = data.getString(0, LOGLEN / 2) + "…"
-        + data.getString(data.length() - LOGLEN / 2, data.length());
-    return OkapiStringUtil.removeLogCharacters(trim);
-  }
-
-  private String sanitize(String s) {
-    if (s.length() <= LOGLEN) {
-      return OkapiStringUtil.removeLogCharacters(s);
-    }
-    var trim = s.substring(0, LOGLEN / 2) + "…" + s.substring(s.length() - LOGLEN / 2);
-    return OkapiStringUtil.removeLogCharacters(trim);
   }
 
   public Future<String> post(String path, String data) {
