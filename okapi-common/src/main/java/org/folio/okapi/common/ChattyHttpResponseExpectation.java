@@ -340,17 +340,8 @@ public interface ChattyHttpResponseExpectation
    * Return the body trimmed to {@link #MAX_BODY_LENGTH} Unicode characters by removing
    * characters in the middle.
    */
-  @SuppressWarnings({
-      "java:S109",  // suppress "Assign this magic number 2 to a well-named constant
-      // and use the constant instead." because / 2 indicates a half.
-  })
   static String trimmedBody(io.vertx.ext.web.client.HttpResponse<Buffer> httpResponse) {
-    var body = httpResponse.bodyAsString();
-    if (body != null && body.length() > MAX_BODY_LENGTH) {
-      body = body.substring(0, MAX_BODY_LENGTH / 2) + "…"
-          + body.substring(body.length() - (MAX_BODY_LENGTH - 1) / 2);
-    }
-    return body;
+    return OkapiStringUtil.trim(httpResponse.body(), MAX_BODY_LENGTH);
   }
 
   /**

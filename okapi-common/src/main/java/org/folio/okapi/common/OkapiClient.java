@@ -1,10 +1,11 @@
 package org.folio.okapi.common;
 
+import static org.folio.okapi.common.OkapiStringUtil.sanitizeForLog;
+
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -259,23 +260,24 @@ public class OkapiClient {
       return Future.failedFuture(
           new ErrorTypeException(ErrorType.INTERNAL, "OkapiClient: No OkapiUrl specified"));
     }
-    return Future.future(promise -> request1(method, path, data, promise));
+    return request1(method, path, data);
   }
 
-  private void request1(HttpMethod method, String path, Buffer data, Promise<String> promise) {
-    request2(method, path, data)
-        .onSuccess(s -> promise.tryComplete(s))
-        .onFailure(e -> {
-          if (e.getCause() == null) {
-            promise.tryFail(e);
-            return;
+  private Future<String> request1(HttpMethod method, String path, Buffer data) {
+    return request2(method, path, data)
+        .recover(e -> {
+          logger.error("request {} {} {}", method, path, sanitizeForLog(data));
+          logger.error("{} {}", e.getClass().getName(), sanitizeForLog(e.getMessage()));
+          var cause = e.getCause();
+          if (cause == null) {
+            return Future.failedFuture(e);
           }
           if (retryClosedCount <= 0) {
-            promise.tryFail(new ErrorTypeException(ErrorType.INTERNAL, e.getCause()));
-            return;
+            return Future.failedFuture(new ErrorTypeException(ErrorType.INTERNAL, cause));
           }
           retryClosedCount--;
-          vertx.setTimer(retryClosedWait, x -> request1(method, path, data, promise));
+          return Future.future(promise -> vertx.setTimer(retryClosedWait,
+              x -> request1(method, path, data).onComplete(promise)));
         });
   }
 

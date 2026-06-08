@@ -1,5 +1,10 @@
 package org.folio.okapi.common;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.not;
+
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -15,17 +20,21 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import java.io.StringWriter;
 import java.util.Base64;
 import java.util.HashMap;
-import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.appender.WriterAppender;
+import org.apache.logging.log4j.core.Logger;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
-@java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
 public class OkapiClientTest {
 
@@ -33,11 +42,30 @@ public class OkapiClientTest {
   private static final int PORT = 9230;
   private static final String LOCALHOST = "localhost";
   private static final String URL = "http://" + LOCALHOST + ":" + PORT;
-  private final Logger logger = OkapiLogger.get();
+  private static final StringWriter log = new StringWriter();
+  private static final WriterAppender writeAppender = WriterAppender.newBuilder()
+      .setTarget(log).setName("l").build();
+  private static final Logger logger = (Logger) LogManager.getLogger("okapi");
   private HttpServer server;
 
   @Rule
   public Timeout timeoutRule = Timeout.seconds(10);
+
+  @BeforeClass
+  public static void beforeClass() {
+    writeAppender.start();
+    logger.addAppender(writeAppender);
+  }
+
+  @AfterClass
+  public static void afterClass() {
+    logger.removeAppender(writeAppender);
+  }
+
+  @Before
+  public void before() {
+    log.getBuffer().setLength(0);
+  }
 
   private void myStreamHandle1(RoutingContext ctx) {
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
@@ -90,7 +118,6 @@ public class OkapiClientTest {
 
   @Before
   public void setUp(TestContext context) {
-    logger.debug("setUp");
     vertx = Vertx.vertx();
 
     spinUpServer()
@@ -410,4 +437,15 @@ public class OkapiClientTest {
     .onComplete(context.asyncAssertSuccess());
   }
 
+  @Test
+  public void sanitize(TestContext context) {
+    new OkapiClient(URL, vertx, null)
+    .post("/test1?e=555", "foo\nbar" + "x".repeat(500) + "y")
+    .onComplete(context.asyncAssertFailure(e -> {
+      var s = log.toString();
+      assertThat(s, not(containsString("foo\nbar")));
+      assertThat(s, containsString("foo_bar"));
+      assertThat(s.length(), lessThan(500));
+    }));
+  }
 }
