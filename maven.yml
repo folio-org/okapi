@@ -1,0 +1,16 @@
+name: Maven central workflow
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  maven:
+    uses: folio-org/.github/.github/workflows/maven.yml@v1
+    # Only handle push events from the main branch or tags, to decrease PR noise
+    if: github.ref_name == github.event.repository.default_branch || github.event_name != 'push' || github.ref_type == 'tag'
+    secrets: inherit
