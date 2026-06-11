@@ -14,3 +14,5 @@ jobs:
     # Only handle push events from the main branch or tags, to decrease PR noise
     if: github.ref_name == github.event.repository.default_branch || github.event_name != 'push' || github.ref_type == 'tag'
     secrets: inherit
+    with:
+      docker-health-command: 'wget --no-verbose --tries=1 --spider http://localhost:9130/_/proxy/health || exit 1'
