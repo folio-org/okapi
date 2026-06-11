@@ -16,3 +16,4 @@ jobs:
     secrets: inherit
     with:
       docker-health-command: 'wget --no-verbose --tries=1 --spider http://localhost:9130/_/proxy/health || exit 1'
+      docker-label-documentation: 'https://github.com/folio-org/okapi/blob/master/doc/guide.md'
