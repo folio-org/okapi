@@ -14,3 +14,5 @@ jobs:
     # Only handle push events from the main branch or tags, to decrease PR noise
     if: github.ref_name == github.event.repository.default_branch || github.event_name != 'push' || github.ref_type == 'tag'
     secrets: inherit
+    with:
+      docker-label-documentation: 'https://github.com/folio-org/okapi/blob/master/doc/guide.md'
