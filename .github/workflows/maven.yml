@@ -15,4 +15,5 @@ jobs:
     if: github.ref_name == github.event.repository.default_branch || github.event_name != 'push' || github.ref_type == 'tag'
     secrets: inherit
     with:
+      publish-module-descriptor: false
       docker-label-documentation: 'https://github.com/folio-org/okapi/blob/master/doc/guide.md'
