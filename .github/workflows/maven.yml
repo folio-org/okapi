@@ -17,3 +17,4 @@ jobs:
     with:
       publish-module-descriptor: false
       docker-label-documentation: 'https://github.com/folio-org/okapi/blob/master/doc/guide.md'
+
