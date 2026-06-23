@@ -2,6 +2,13 @@
 
 ## 7.1.0 unused (wrong release)
 
+## 7.0.5 2026-06-23
+
+* [OKAPI-1247](https://folio-org.atlassian.net/browse/OKAPI-1247) OkapiClient should log errors
+* [OKAPI-1246](https://folio-org.atlassian.net/browse/OKAPI-1246) vert.x 5.1.1, junit 6.1.0, Netty 4.2.15.Final fixing vulns
+* [OKAPI-1248](https://folio-org.atlassian.net/browse/OKAPI-1248) Use GitHub Actions Workflows for Maven replacing Jenkinsfile
+* [OKAPI-1249](https://folio-org.atlassian.net/browse/OKAPI-1249) Trillium vulns: Vertx 5.1.3, micrometer 1.16.6 - CVE-2026-40984
+
 ## 7.0.4 2026-05-21
 
 * [OKAPI-1243](https://folio-org.atlassian.net/browse/OKAPI-1243) equals should support subclasses of ModuleId, SemVer, …
