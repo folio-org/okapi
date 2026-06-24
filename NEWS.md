@@ -1,3 +1,8 @@
+## 6.2.8 2026-06-23
+
+* [OKAPI-1248](https://folio-org.atlassian.net/browse/OKAPI-1248) Use GitHub Actions Workflows for Maven replacing Jenkinsfile
+* [OKAPI-1250](https://folio-org.atlassian.net/browse/OKAPI-1250) Vertx 4.5.28 fixing Netty vulns https://github.com/netty/netty/releases/tag/netty-4.1.135.Final
+
 ## 6.2.7 2026-05-21
 
 * [OKAPI-1244](https://folio-org.atlassian.net/browse/OKAPI-1244) Vertx 4.5.27, log4j 2.26.0 fixing vulns: CVE-2026-33871, CVE-2026-42583, CVE-2026-42587, CVE-2026-34481
