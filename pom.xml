@@ -51,7 +51,7 @@
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.12.13</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L41 -->
+        <version>1.15.12</version>  <!-- security fix https://spring.io/security/cve-2026-40984 -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
