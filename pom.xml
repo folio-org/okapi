@@ -59,6 +59,7 @@
         <version>5.6.0</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml#L24 -->
       </dependency>
 
+      <!-- remove this dependency when vertx ships with scram-client >= 3.3, see CVE-2026-53712 https://github.com/advisories/GHSA-p9jg-fcr6-3mhf -->
       <dependency>
         <groupId>com.ongres.scram</groupId>
         <artifactId>scram-client</artifactId> <!-- https://github.com/eclipse-vertx/vertx-sql-client/blob/5.1/vertx-pg-client/pom.xml#L54 -->
