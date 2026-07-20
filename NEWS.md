@@ -1,3 +1,8 @@
+## 6.2.9 2026-07-20
+
+* [OKAPI-1251](https://folio-org.atlassian.net/browse/OKAPI-1251) micrometer 1.12.13 -> 1.15.12 fix CVE-2026-40984
+* [OKAPI-1253](https://folio-org.atlassian.net/browse/OKAPI-1253) Netty 4.1.136, Vertx 4.5.30, scram 3.3, log4j 2.26.1 fixing vulns
+
 ## 6.2.8 2026-06-23
 
 * [OKAPI-1248](https://folio-org.atlassian.net/browse/OKAPI-1248) Use GitHub Actions Workflows for Maven replacing Jenkinsfile
