@@ -1,6 +1,11 @@
 ## 7.2.0 next minor version
 
-## 7.1.0 unused (wrong release)
+## 7.1.0 unused (tag taken for a wrong release attempt)
+
+## 7.0.6 2026-07-20
+
+* [OKAPI-1252](https://folio-org.atlassian.net/browse/OKAPI-1252) Vert.x 5.1.5, Netty 4.2.16, scram-client 3.4 fixing vulns
+* [OKAPI-1254](https://folio-org.atlassian.net/browse/OKAPI-1254) Bump log4j 2.25.4 -> 2.26.1 fixing CVE-2026-49844
 
 ## 7.0.5 2026-06-23
 
