@@ -2,6 +2,10 @@
 
 ## 7.1.0 unused (tag taken for a wrong release attempt)
 
+## 7.0.7 2026-08-05
+
+* [OKAPI-1255](https://folio-org.atlassian.net/browse/OKAPI-1255) Vertx 5.1.6, Netty 4.2.17 fixing vulns
+
 ## 7.0.6 2026-07-20
 
 * [OKAPI-1252](https://folio-org.atlassian.net/browse/OKAPI-1252) Vert.x 5.1.5, Netty 4.2.16, scram-client 3.4 fixing vulns
