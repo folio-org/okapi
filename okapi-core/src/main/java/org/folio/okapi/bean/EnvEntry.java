@@ -7,6 +7,7 @@ public class EnvEntry {
   private String name;
   private String value;
   private String description;
+  private Boolean required;
 
   public EnvEntry() {
   }
@@ -38,5 +39,13 @@ public class EnvEntry {
 
   public void setDescription(String description) {
     this.description = description;
+  }
+
+  public Boolean getRequired() {
+    return required;
+  }
+
+  public void setRequired(Boolean required) {
+    this.required = required;
   }
 }
