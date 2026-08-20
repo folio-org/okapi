@@ -1,3 +1,7 @@
+## 6.2.10 2026-08-19
+
+* [OKAPI-1256](https://folio-org.atlassian.net/browse/OKAPI-1256) Vertx 4.5.32, Netty 4.1.137 fixing vulns
+
 ## 6.2.9 2026-07-20
 
 * [OKAPI-1251](https://folio-org.atlassian.net/browse/OKAPI-1251) micrometer 1.12.13 -> 1.15.12 fix CVE-2026-40984
