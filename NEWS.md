@@ -2,6 +2,10 @@
 
 ## 7.1.0 unused (tag taken for a wrong release attempt)
 
+## 7.0.8 2026-08-21
+
+* [OKAPI-1257](https://folio-org.atlassian.net/browse/OKAPI-1257) Add "required" to module descriptor's "env" (DR-000044)
+
 ## 7.0.7 2026-08-05
 
 * [OKAPI-1255](https://folio-org.atlassian.net/browse/OKAPI-1255) Vertx 5.1.6, Netty 4.2.17 fixing vulns
