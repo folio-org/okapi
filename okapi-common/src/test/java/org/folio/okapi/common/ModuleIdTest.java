@@ -6,7 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class ModuleIdTest {
+public class ModuleIdTest {
 
   @Test
   void test() {
