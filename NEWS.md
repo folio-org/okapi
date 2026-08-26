@@ -2,6 +2,10 @@
 
 ## 7.1.0 unused (tag taken for a wrong release attempt)
 
+## 7.0.9 2026-08-26
+
+* [OKAPI-1258](https://folio-org.atlassian.net/browse/OKAPI-1258) micrometer 1.17.1 fixing CVE-2026-59295, CVE-2026-59296
+
 ## 7.0.8 2026-08-21
 
 * [OKAPI-1257](https://folio-org.atlassian.net/browse/OKAPI-1257) Add "required" to module descriptor's "env" (DR-000044)
