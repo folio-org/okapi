@@ -49,7 +49,7 @@
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.17.0</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L39 -->
+        <version>1.17.1</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L39 -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
