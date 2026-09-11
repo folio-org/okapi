@@ -1,3 +1,7 @@
+## 6.2.11 2026-09-10
+
+* [OKAPI-1262](https://folio-org.atlassian.net/browse/OKAPI-1262) Vertx 4.5.34, Netty 4.1.138, Jackson 2.21.6, Micrometer 1.16.7 fixing vulns
+
 ## 6.2.10 2026-08-19
 
 * [OKAPI-1256](https://folio-org.atlassian.net/browse/OKAPI-1256) Vertx 4.5.32, Netty 4.1.137 fixing vulns
