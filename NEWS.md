@@ -2,6 +2,10 @@
 
 ## 7.1.0 unused (tag taken for a wrong release attempt)
 
+## 7.0.10 2026-09-10
+
+* [OKAPI-1261](https://folio-org.atlassian.net/browse/OKAPI-1261) Vertx 5.1.8, Netty 4.2.18, Jackson 2.21.6 fixing vulns
+
 ## 7.0.9 2026-08-26
 
 * [OKAPI-1258](https://folio-org.atlassian.net/browse/OKAPI-1258) micrometer 1.17.1 fixing CVE-2026-59295, CVE-2026-59296
