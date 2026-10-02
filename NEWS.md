@@ -2,6 +2,10 @@
 
 ## 7.1.0 unused (tag taken for a wrong release attempt)
 
+## 7.0.11 2026-10-02
+
+* [OKAPI-1263](https://folio-org.atlassian.net/browse/OKAPI-1263) HTTP body truncation, vertx-core 5.0.11 regression: Downgrade to Vert.x 5.0
+
 ## 7.0.10 2026-09-10
 
 * [OKAPI-1261](https://folio-org.atlassian.net/browse/OKAPI-1261) Vertx 5.1.8, Netty 4.2.18, Jackson 2.21.6 fixing vulns
