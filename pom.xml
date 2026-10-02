@@ -31,6 +31,22 @@
     <dependencies>
 
       <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <!-- bump from 2.18.6 (provided by vertx-stack-depchain) to 2.18.11 fixing vulns -->
+        <version>2.18.11</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <!-- bump from 4.2.13 (provided by vertx-stack-depchain) to 4.2.18 fixing vulns -->
+        <version>4.2.18.Final</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-bom</artifactId>
         <version>2.26.1</version>
@@ -40,16 +56,25 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>5.1.8</version>  <!-- also update depending versions below! -->
+        <version>5.0.12</version>  <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!-- downgrade vertx-core from 5.0.12 to 5.0.10 fixing HTTP body truncation:
+        https://folio-org.atlassian.net/browse/OKAPI-1263
+      -->
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-core</artifactId>
+        <version>5.0.10</version>
+      </dependency>
 
-       <!-- START: versions that depend on the vertx-stack-depchain version -->
+      <!-- START: versions that depend on the vertx-stack-depchain version -->
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.17.1</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/master/pom.xml#L39 -->
+        <!-- upgrade from 1.15.11 to 1.15.12 -->
+        <version>1.15.12</version>  <!-- https://github.com/vert-x3/vertx-micrometer-metrics/blob/5.0.12/pom.xml#L39 -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
