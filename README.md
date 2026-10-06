@@ -69,7 +69,7 @@ To build without running the test suite:
 ## Developers
 
 When running unit tests, property `testStorage` controls what storage
-to use. It has a default value of `inmemory,postgres,mongo`.
+to use. It has a default value of `inmemory,postgres`.
 Tests will complete faster by specifying one storage type only.
 
 For example:

@@ -971,20 +971,14 @@ the [Reference](#web-service) section.
 
 ### 存储
 
-Okapi默认为一个内存存储，可以脱离数据库层运行。这对于开发和测试来说非常方便，但是在实际当中，我们希望一些数据能够持久化。目前可以通过`-Dstorage=mongo`和`-Dstorage=postgres`选项分别开启MongoDB和PostgresSQL存储。
+Okapi默认为一个内存存储，可以脱离数据库层运行。这对于开发和测试来说非常方便，但是在实际当中，我们希望一些数据能够持久化。可以通过`-Dstorage=postgres`选项开启PostgreSQL存储。
 
 
 Okapi defaults to an internal in-memory mock storage, so it can run without
 any database layer under it. This is fine for development and testing, but of
 course in real life we will want some of our data to persist from one invocation
-to the next. At the moment, MongoDB and PostgreSQL storage can be enabled by
-option `-Dstorage=mongo` and  `-Dstorage=postgres` respectively to the command
-line that starts Okapi.
-
-我们后台逐步弃用MongDB。所以如果使用MongDB存储请查看MongoHandle.java的代码。
-
-We are moving away from the Mongo backend. For its command line options, you
-will have to look in the code in MongoHandle.java.
+to the next. PostgreSQL storage can be enabled by adding option
+`-Dstorage=postgres` to the command line that starts Okapi.
 
 
 初始化PostgreSQL数据库分为两步：
@@ -4067,7 +4061,7 @@ Okapi. These must be at the beginning of the command line, before the
 Defaults to `localhost`
 * `nodename`: Node name of this instance. Can be used instead of the
 system-generated UUID (in cluster mode), or `localhost` (in dev mode)
-* `storage`: Defines the storage back end, `postgres`, `mongo` or (the default)
+* `storage`: Defines the storage back end, `postgres` or (the default)
 `inmemory`
 * `lang`: Default language for messages returned by Okapi.
 * `loglevel`: The logging level. Defaults to `INFO`; other useful values are

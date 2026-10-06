@@ -22,7 +22,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
@@ -58,7 +57,7 @@ public class ModuleTest {
     if (f != null) {
       return Collections.singletonList("inmemory");
     } else {
-      return Arrays.asList("inmemory", "postgres", "mongo");
+      return Arrays.asList("inmemory", "postgres");
     }
   }
 
@@ -79,13 +78,7 @@ public class ModuleTest {
   private static RamlDefinition api;
   private String verticleId;
 
-  /**
-   * Testcontainers startup config workaround for podman:
-   * https://github.com/testcontainers/testcontainers-java/issues/6640#issuecomment-1431636203
-   */
-  private static final int STARTUP_ATTEMPTS = 3;
   private static PostgreSQLContainer<?> postgresSQLContainer;
-  private static MongoDBContainer mongoDBContainer;
 
   private final JsonObject conf;
 
@@ -118,9 +111,6 @@ public class ModuleTest {
     if (postgresSQLContainer != null) {
       postgresSQLContainer.stop();
     }
-    if (mongoDBContainer != null) {
-      mongoDBContainer.stop();
-    }
   }
 
   public ModuleTest(String value) throws Exception {
@@ -145,15 +135,6 @@ public class ModuleTest {
         conf.put("postgres_host", postgresSQLContainer.getHost());
         conf.put("postgres_port", postgresSQLContainer.getFirstMappedPort().toString());
         break;
-      case "mongo":
-        if (mongoDBContainer == null) {
-          mongoDBContainer = new MongoDBContainer("mongo:5.0.8")
-              .withStartupAttempts(STARTUP_ATTEMPTS);
-          mongoDBContainer.start();
-        }
-        conf.put("mongo_port", mongoDBContainer.getFirstMappedPort().toString());
-        conf.put("mongo_host", mongoDBContainer.getHost());
-        break;
     }
   }
 
@@ -167,7 +148,6 @@ public class ModuleTest {
 
     JsonObject config = new JsonObject(conf.encode());
     config.put("postgres_db_init", "1");
-    config.put("mongo_db_init", "1");
 
     DeploymentOptions opt = new DeploymentOptions().setConfig(config);
     vertx.deployVerticle(MainVerticle.class.getName(), opt)
