@@ -2,9 +2,9 @@ package org.folio.okapi;
 
 import static io.restassured.RestAssured.get;
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,11 +37,11 @@ class MainVerticleTest {
   void mongoStorageFailsStartup(Vertx vertx, VertxTestContext vtc) {
     var options = new DeploymentOptions().setConfig(new JsonObject().put("storage", "mongo"));
     vertx.deployVerticle(new MainVerticle(), options)
-        .onComplete(vtc.failing(cause -> vtc.verify(() -> {
-          assertInstanceOf(IllegalArgumentException.class, cause);
-          assertEquals("Unknown storage type: mongo", cause.getMessage());
+        .onComplete(vtc.failing(cause -> {
+          assertThat(cause, instanceOf(IllegalArgumentException.class));
+          assertThat(cause.getMessage(), is("Unknown storage type: mongo"));
           vtc.completeNow();
-        })));
+        }));
   }
 
   @Test
