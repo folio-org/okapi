@@ -2,6 +2,8 @@ package org.folio.okapi;
 
 import static io.restassured.RestAssured.get;
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -9,10 +11,12 @@ import static org.mockito.Mockito.when;
 
 import io.netty.handler.codec.DecoderResult;
 import io.restassured.RestAssured;
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,6 +31,17 @@ class MainVerticleTest {
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     vertx.deployVerticle(new MainVerticle())
         .onComplete(vtc.succeedingThenComplete());
+  }
+
+  @Test
+  void mongoStorageFailsStartup(Vertx vertx, VertxTestContext vtc) {
+    var options = new DeploymentOptions().setConfig(new JsonObject().put("storage", "mongo"));
+    vertx.deployVerticle(new MainVerticle(), options)
+        .onComplete(vtc.failing(cause -> {
+          assertThat(cause, instanceOf(IllegalArgumentException.class));
+          assertThat(cause.getMessage(), is("Unknown storage type: mongo"));
+          vtc.completeNow();
+        }));
   }
 
   @Test

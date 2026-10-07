@@ -14,7 +14,6 @@ import org.folio.okapi.service.TimerStore;
 
 public class Storage {
 
-  private MongoHandle mongo;
   private PostgresHandle postgres;
   private final ModuleStore moduleStore;
   private final TenantStore tenantStore;
@@ -40,14 +39,6 @@ public class Storage {
   public Storage(Vertx vertx, String type, JsonObject config) {
     this.config = config;
     switch (type) {
-      case "mongo":
-        mongo = new MongoHandle(vertx, config);
-        moduleStore = new ModuleStoreMongo(mongo.getClient());
-        tenantStore = new TenantStoreMongo(mongo.getClient());
-        deploymentStore = new DeploymentStoreMongo(mongo.getClient());
-        envStore = new EnvStoreMongo(mongo.getClient());
-        timerStore = new TimerStoreMongo(mongo.getClient());
-        break;
       case "inmemory":
         moduleStore = new ModuleStoreNull();
         tenantStore = new TenantStoreNull();
@@ -75,11 +66,7 @@ public class Storage {
    * @return future
    */
   public Future<Void> prepareDatabases(InitMode mode) {
-    String dbInit = Config.getSysConf("mongo_db_init", "0", config);
-    if (mongo != null && "1".equals(dbInit)) {
-      mode = InitMode.INIT;
-    }
-    dbInit = Config.getSysConf("postgres_db_init", "0", config);
+    String dbInit = Config.getSysConf("postgres_db_init", "0", config);
     if (postgres != null && "1".equals(dbInit)) {
       logger.warn("Will initialize the whole database!");
       logger.warn("The postgres_db_init option is DEPRECATED!"

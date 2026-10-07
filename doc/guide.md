@@ -752,12 +752,8 @@ the [Reference](#web-service) section.
 Okapi defaults to an internal in-memory mock storage, so it can run without
 any database layer under it. This is fine for development and testing, but of
 course in real life we will want some of our data to persist from one invocation
-to the next. At the moment, MongoDB and PostgreSQL storage can be enabled by
-option `-Dstorage=mongo` and  `-Dstorage=postgres` respectively to the command
-line that starts Okapi.
-
-We are moving away from the Mongo backend. For its command line options, you
-will have to look in the code in MongoHandle.java.
+to the next. PostgreSQL storage can be enabled by adding option
+`-Dstorage=postgres` to the command line that starts Okapi.
 
 Initializing the PostgreSQL database is a two-step operation. First we need to
 create a user and a database in PostgreSQL. This needs to be only once on any
@@ -2860,7 +2856,7 @@ command-line, before the `-jar`.
 Defaults to `localhost`
 * `nodename`: Node name of this instance. Can be used instead of the
 system-generated UUID (in cluster mode), or `localhost` (in dev mode)
-* `storage`: Defines the storage back end, `postgres`, `mongo` or (the default)
+* `storage`: Defines the storage back end, `postgres` or (the default)
 `inmemory`
 * `healthPort`: port for the GET `/readiness` and GET `/liveness` health checks.
 Use 0 to disable, this is the default. They return 204 if Okapi is ready/responsive and 500 otherwise.
