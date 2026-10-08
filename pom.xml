@@ -40,12 +40,13 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>5.1.8</version>  <!-- also update depending versions below! -->
+        <version>5.2.1</version>  <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
 
-       <!-- START: versions that depend on the vertx-stack-depchain version -->
+      <!-- START: versions that depend on the vertx-stack-depchain version -->
+
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
@@ -59,12 +60,6 @@
         <version>5.6.0</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml#L24 -->
       </dependency>
 
-      <!-- remove this dependency when vertx ships with scram-client >= 3.3, see CVE-2026-53712 https://github.com/advisories/GHSA-p9jg-fcr6-3mhf -->
-      <dependency>
-        <groupId>com.ongres.scram</groupId>
-        <artifactId>scram-client</artifactId> <!-- https://github.com/eclipse-vertx/vertx-sql-client/blob/5.1/vertx-pg-client/pom.xml#L54 -->
-        <version>3.4</version>
-      </dependency>
       <!-- END: versions that depend on the vertx-stack-depchain version -->
 
       <dependency>
