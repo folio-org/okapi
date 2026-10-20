@@ -57,7 +57,7 @@
       <dependency>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast</artifactId>
-        <version>5.6.0</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml#L24 -->
+        <version>5.7.0</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml#L24 -->
       </dependency>
 
       <!-- END: versions that depend on the vertx-stack-depchain version -->
