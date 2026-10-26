@@ -57,7 +57,7 @@
       <dependency>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast</artifactId>
-        <version>5.7.0</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml#L24 -->
+        <version>5.7.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml#L24 -->
       </dependency>
 
       <!-- END: versions that depend on the vertx-stack-depchain version -->
@@ -342,6 +342,14 @@
       <id>indexdata</id>
       <name>Index Data</name>
       <url>https://maven.indexdata.com/</url>
+    </repository>
+    <repository>
+      <id>hazelcast-public-repository</id>
+      <name>Hazelcast Public Release Repository</name>
+      <url>https://repository.hazelcast.com/release/</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
     </repository>
   </repositories>
 
