@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>6.2.13-SNAPSHOT</version>
+  <version>6.2.14-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
@@ -58,7 +58,7 @@
       <dependency>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast</artifactId>
-        <version>5.3.8</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/4.x/.github/workflows/ci-4.x.yml -->
+        <version>5.7.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml#L24 -->
       </dependency>
       <!-- END: versions that depend on the vertx-stack-depchain version -->
 
@@ -392,6 +392,14 @@
       <id>indexdata</id>
       <name>Index Data</name>
       <url>https://maven.indexdata.com/</url>
+    </repository>
+    <repository>
+      <id>hazelcast-public-repository</id>
+      <name>Hazelcast Public Release Repository</name>
+      <url>https://repository.hazelcast.com/release/</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
     </repository>
   </repositories>
 
