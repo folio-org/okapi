@@ -33,6 +33,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private RoutingEntry[] filters;
   private Permission[] permissionSets;
   private EnvEntry[] env;
+  private ProducesEvent[] producesEvents;
+  private ConsumesEvent[] consumesEvents;
   private AnyDescriptor metadata;
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
@@ -383,6 +385,22 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   public void setEnv(EnvEntry[] env) {
     this.env = env;
+  }
+
+  public ProducesEvent[] getProducesEvents() {
+    return producesEvents;
+  }
+
+  public void setProducesEvents(ProducesEvent[] producesEvents) {
+    this.producesEvents = producesEvents;
+  }
+
+  public ConsumesEvent[] getConsumesEvents() {
+    return consumesEvents;
+  }
+
+  public void setConsumesEvents(ConsumesEvent[] consumesEvents) {
+    this.consumesEvents = consumesEvents;
   }
 
   public AnyDescriptor getMetadata() {

@@ -2952,6 +2952,48 @@ public class ModuleTest {
 
 
   @Test
+  public void testEventsStored() {
+    final String id = "mod-events-test-1.0.0";
+    final String produced = "something.created.v1";
+    final String consumedOptional = "something.updated.v1";
+    final String consumedRequired = "something.deleted.v1";
+    final String doc = new JsonObject()
+        .put("id", id)
+        .put("producesEvents", new JsonArray()
+            .add(new JsonObject().put("event", produced)))
+        .put("consumesEvents", new JsonArray()
+            .add(new JsonObject().put("event", consumedOptional).put("optional", true))
+            .add(new JsonObject().put("event", consumedRequired)))
+        .encode();
+
+    RestAssuredClient c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(doc)
+        .post("/_/proxy/modules")
+        .then().statusCode(201);
+    assertEmptyReport(c);
+
+    c = api.createRestAssured3();
+    final String body = c.given()
+        .get("/_/proxy/modules/" + id)
+        .then().statusCode(200)
+        .extract().body().asString();
+    assertEmptyReport(c);
+
+    var md = new JsonObject(body);
+    var produces = md.getJsonArray("producesEvents");
+    Assert.assertEquals(1, produces.size());
+    Assert.assertEquals(produced, produces.getJsonObject(0).getString("event"));
+    var consumes = md.getJsonArray("consumesEvents");
+    Assert.assertEquals(2, consumes.size());
+    Assert.assertEquals(consumedOptional, consumes.getJsonObject(0).getString("event"));
+    Assert.assertEquals(Boolean.TRUE, consumes.getJsonObject(0).getBoolean("optional"));
+    Assert.assertEquals(consumedRequired, consumes.getJsonObject(1).getString("event"));
+    Assert.assertFalse(consumes.getJsonObject(1).containsKey("optional"));
+  }
+
+  @Test
   public void testNoTenant(TestContext context) {
     RestAssuredClient c;
     Response r;

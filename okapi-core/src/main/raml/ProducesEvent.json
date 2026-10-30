@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "ProducesEvent.json",
+  "title": "ProducesEvent",
+  "description": "Declaration of an event the module produces",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "event": {
+      "description": "An event name, comprised of multiple segments, separated by . (dot).  The last component is reserved for the major version (e.g. v1)",
+      "type": "string"
+    }
+  },
+  "required": ["event"]
+}
