@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "ConsumesEvent.json",
+  "title": "ConsumesEvent",
+  "description": "Declaration of an event the module consumes",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "event": {
+      "description": "An event name, comprised of multiple segments, separated by . (dot).  The last component is reserved for the major version (e.g. v1)",
+      "type": "string"
+    },
+    "optional": {
+      "description": "When 'true', indicates the module can operate in the absence of a producer for this event",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": ["event"]
+}
