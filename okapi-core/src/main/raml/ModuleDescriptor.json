@@ -69,6 +69,20 @@
       "description": "Supported environment variables",
       "$ref" : "EnvEntryList.json"
     },
+    "producesEvents": {
+      "description": "Events produced by the module",
+      "type": "array",
+      "items": {
+        "$ref": "ProducesEvent.json"
+      }
+    },
+    "consumesEvents": {
+      "description": "Events consumed by the module",
+      "type": "array",
+      "items": {
+        "$ref": "ConsumesEvent.json"
+      }
+    },
     "metadata" : {
       "description": "Module Metadata (any object)",
       "type" : "object"

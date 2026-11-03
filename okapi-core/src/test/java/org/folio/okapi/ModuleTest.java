@@ -3,8 +3,10 @@ package org.folio.okapi;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -2950,6 +2952,43 @@ public class ModuleTest {
     assertEmptyReport(c);
   }
 
+
+  @Test
+  public void testEventsStored() {
+    final String id = "mod-events-test-1.0.0";
+    final String produced = "something.created.v1";
+    final String consumedOptional = "something.updated.v1";
+    final String consumedRequired = "something.deleted.v1";
+    final String doc = new JsonObject()
+        .put("id", id)
+        .put("producesEvents", new JsonArray()
+            .add(new JsonObject().put("event", produced)))
+        .put("consumesEvents", new JsonArray()
+            .add(new JsonObject().put("event", consumedOptional).put("optional", true))
+            .add(new JsonObject().put("event", consumedRequired)))
+        .encode();
+
+    RestAssuredClient c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(doc)
+        .post("/_/proxy/modules")
+        .then().statusCode(201);
+    assertEmptyReport(c);
+
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/modules/" + id)
+        .then().statusCode(200)
+        .body("producesEvents", hasSize(1))
+        .body("producesEvents[0].event", is(produced))
+        .body("consumesEvents", hasSize(2))
+        .body("consumesEvents[0].event", is(consumedOptional))
+        .body("consumesEvents[0].optional", is(true))
+        .body("consumesEvents[1].event", is(consumedRequired))
+        .body("consumesEvents[1]", not(hasKey("optional")));
+    assertEmptyReport(c);
+  }
 
   @Test
   public void testNoTenant(TestContext context) {

@@ -1,6 +1,7 @@
 ## 7.2.0 next minor version
 
 * [OKAPI-1260](https://folio-org.atlassian.net/browse/OKAPI-1260) Remove MongoDB support. PostgreSQL is the supported persistent-storage backend. Existing MongoDB installations must migrate their data and configuration before upgrading; `storage=mongo` now fails at startup.
+* [OKAPI-1268](https://folio-org.atlassian.net/browse/OKAPI-1268) Add `producesEvents` and `consumesEvents` to the module descriptor.
 
 ## 7.1.0 unused (tag taken for a wrong release attempt)
 
