@@ -8,6 +8,7 @@ public class ConsumesEvent {
   private Boolean optional;
 
   public ConsumesEvent() {
+    // no-arg constructor required for JSON deserialization
   }
 
   public String getEvent() {

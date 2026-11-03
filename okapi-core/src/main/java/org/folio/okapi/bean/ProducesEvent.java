@@ -7,6 +7,7 @@ public class ProducesEvent {
   private String event;
 
   public ProducesEvent() {
+    // no-arg constructor required for JSON deserialization
   }
 
   public String getEvent() {
