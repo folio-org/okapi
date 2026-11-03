@@ -3,8 +3,10 @@ package org.folio.okapi;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -2975,22 +2977,17 @@ public class ModuleTest {
     assertEmptyReport(c);
 
     c = api.createRestAssured3();
-    final String body = c.given()
+    c.given()
         .get("/_/proxy/modules/" + id)
         .then().statusCode(200)
-        .extract().body().asString();
+        .body("producesEvents", hasSize(1))
+        .body("producesEvents[0].event", is(produced))
+        .body("consumesEvents", hasSize(2))
+        .body("consumesEvents[0].event", is(consumedOptional))
+        .body("consumesEvents[0].optional", is(true))
+        .body("consumesEvents[1].event", is(consumedRequired))
+        .body("consumesEvents[1]", not(hasKey("optional")));
     assertEmptyReport(c);
-
-    var md = new JsonObject(body);
-    var produces = md.getJsonArray("producesEvents");
-    Assert.assertEquals(1, produces.size());
-    Assert.assertEquals(produced, produces.getJsonObject(0).getString("event"));
-    var consumes = md.getJsonArray("consumesEvents");
-    Assert.assertEquals(2, consumes.size());
-    Assert.assertEquals(consumedOptional, consumes.getJsonObject(0).getString("event"));
-    Assert.assertEquals(Boolean.TRUE, consumes.getJsonObject(0).getBoolean("optional"));
-    Assert.assertEquals(consumedRequired, consumes.getJsonObject(1).getString("event"));
-    Assert.assertFalse(consumes.getJsonObject(1).containsKey("optional"));
   }
 
   @Test
