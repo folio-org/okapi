@@ -6,6 +6,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public class ProducesEvent {
   private String event;
 
+  public ProducesEvent() {
+  }
+
   public String getEvent() {
     return event;
   }

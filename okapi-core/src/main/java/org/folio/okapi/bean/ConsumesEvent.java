@@ -7,6 +7,9 @@ public class ConsumesEvent {
   private String event;
   private Boolean optional;
 
+  public ConsumesEvent() {
+  }
+
   public String getEvent() {
     return event;
   }
