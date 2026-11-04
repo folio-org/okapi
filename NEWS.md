@@ -2,10 +2,14 @@
 
 ## 7.1.0 unused (tag taken for a wrong release attempt)
 
+## 7.0.14 2026-11-05
+
+* [OKAPI-1269](https://folio-org.atlassian.net/browse/OKAPI-1269) Vertx 5.2.3, Netty 4.2.20, Jackson 2.21.8/3.1.8
+* [FOLIO-4585](https://folio-org.atlassian.net/browse/FOLIO-4585) Remove leaked eMudhra key from CA certificates
+
 ## 7.0.13 2026-10-29
 
 * [OKAPI-1266](https://folio-org.atlassian.net/browse/OKAPI-1266) Upgrade Hazelcast to 5.7.2 fixing vulns
-* [FOLIO-4585](https://folio-org.atlassian.net/browse/FOLIO-4585) Remove leaked eMudhra key from ca-certificates
 
 ## 7.0.12 2026-10-08
 
