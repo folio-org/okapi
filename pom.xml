@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>7.0.14-SNAPSHOT</version>
+  <version>7.0.15-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
@@ -40,7 +40,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>5.2.1</version>  <!-- also update depending versions below! -->
+        <version>5.2.3</version>  <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
