@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>6.2.14-SNAPSHOT</version>
+  <version>6.2.15-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
