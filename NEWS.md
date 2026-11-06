@@ -1,9 +1,20 @@
-## 7.2.0 next minor version
+## 8.0.0 2026-11-05
 
 * [OKAPI-1260](https://folio-org.atlassian.net/browse/OKAPI-1260) Remove MongoDB support. PostgreSQL is the supported persistent-storage backend. Existing MongoDB installations must migrate their data and configuration before upgrading; `storage=mongo` now fails at startup.
 * [OKAPI-1268](https://folio-org.atlassian.net/browse/OKAPI-1268) Add `producesEvents` and `consumesEvents` to the module descriptor.
 
-## 7.1.0 unused (tag taken for a wrong release attempt)
+## 7.0.14 2026-11-05
+
+* [OKAPI-1269](https://folio-org.atlassian.net/browse/OKAPI-1269) Vertx 5.2.3, Netty 4.2.20, Jackson 2.21.8/3.1.8
+* [FOLIO-4585](https://folio-org.atlassian.net/browse/FOLIO-4585) Remove leaked eMudhra key from CA certificates
+
+## 7.0.13 2026-10-29
+
+* [OKAPI-1266](https://folio-org.atlassian.net/browse/OKAPI-1266) Upgrade Hazelcast to 5.7.2 fixing vulns
+
+## 7.0.12 2026-10-08
+
+* [OKAPI-1264](https://folio-org.atlassian.net/browse/OKAPI-1264) Vertx 5.2.1, Netty 4.2.19, Jackson 2.21.7 fixing vulns
 
 ## 7.0.11 2026-10-02
 
