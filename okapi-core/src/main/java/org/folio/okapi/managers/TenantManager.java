@@ -1078,6 +1078,12 @@ public class TenantManager implements Liveness {
         continue;
       }
       ModuleDescriptor md = modsAvailable.get(tm.getId());
+      if (md == null) {
+        logger.info("jobRunPending skips TenantModuleDescriptor id={} "
+            + "because ModuleDescriptor is null", tm.getId());
+        tm.setMessage("skipped because ModuleDescriptor is null");
+        continue;
+      }
       if (options.getDepCheck() && !depsOK(tm, md, getEnabledModules(t))) {
         continue;
       }
